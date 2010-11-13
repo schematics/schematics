@@ -78,7 +78,7 @@ obvious when I subclass Media to create the Movie document below.
                         max_value=datetime.datetime.now().year)
         personal_thoughts = StringField(max_length=255)
     
-We've added a _public_fields member to our document. This list is used
+We've added a `_public_fields` member to our document. This list is used
 to store which fields are safe for transmitting to someone who doesn't
 own this particular document. You'll notice `personal_thoughts` is not
 in that list.
@@ -86,7 +86,6 @@ in that list.
 Let's see what happens when we print this document as:
 
 1. An object fit for mongo to store
-
 
     {
         'personal_thoughts': u'I wish I had three hands...', 
@@ -96,32 +95,27 @@ Let's see what happens when we print this document as:
         'year': 1990
     }
 
-
 2. A dictionary safe for transmitting to the owner of the document. We
    achieve this by calling `make_json_safe`. This function is a 
    classmethod available on the `Document` class. This function knows to
    remove \_cls and \_types because they are in 
    `Document._internal_fields`. _You can add any fields that should be
    treated as internal to your system by adding a list named 
-   `\_private\_fields` to your Document and listing each field_.
+   `_private_fields` to your Document and listing each field_.
    
-
     {
         'personal_thoughts': u'I wish I had three hands...',
         'title': u'Total Recall',
         'year': 1990
     }
-
    
 3. A dictionary safe for transmitting to anyone on the site. We achieve
    this by calling `make_json_publicsafe`.
-
 
     {
         'title': u'Total Recall',
         'year': 1990
     }
-
 
 ## Validation
 
