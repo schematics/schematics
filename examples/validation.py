@@ -3,8 +3,11 @@
 from dictshield.document import *
 from dictshield.fields import *
 
+print '--------------------------------------------'
+print 'Creating a User document and show validation'
+print '--------------------------------------------\n'
+
 class User(Document):
-    _private_fields = ['secret']
     _public_fields = ['name']
     
     secret = MD5Field()
@@ -15,18 +18,25 @@ u = User()
 u.secret = 'whatevz'
 u.name = 'test hash'
 
-print 'Attempting first validation...'
+print '  Attempting validation on:\n\n    %s\n' % (u.to_mongo())
 try:
     u.validate()
+    print ' Validation passed\n'
 except DictPunch, dp:
-    print('  DictPunch caught: %s\n' % (dp))
+    print '  DictPunch caught: %s\n' % (dp)
     
 
-print 'Fixing data and trying validation again...'
 u.secret = 'e8b5d682452313a6142c10b045a9a135'
-u.validate()
-print '  Validated!\n'
+print '  Adjusted invalid data and trying again on:\n\n    %s\n' % (u.to_mongo())
+try:
+    u.validate()
+    print '  Validation passed\n'
+except DictPunch, dp:
+    print '  DictPunch caught: %s\n' % (dp)
 
+print '----------------------------------------------------------------'
+print 'Converting a Python dictionary to a User document for validation'
+print '----------------------------------------------------------------\n'
 
 total_input = {
     'secret': 'e8b5d682452313a6142c10b045a9a135',
@@ -36,19 +46,27 @@ total_input = {
     'rogue_field': 'MWAHAHA',
 }
 
-print 'Validating:\n\n    %s\n' % (total_input)
-valid_fields = User.check_class_fields(total_input)
+print '  Attempting validation on:\n\n    %s\n' % (total_input)
+print '  Checking for *any* exceptions: ',
+try:
+    User.validate_class_fields(total_input)
+    print 'Validation passed'
+except DictPunch, dp:
+    print('DictPunch caught: %s' % (dp))
 
-if valid_fields:
-    print 'Remove rogue field by building a DictShield Document'
-    user_doc = User(**total_input).to_mongo()
-    print user_doc
-    print '  Document:\n    %s' % (user_doc)
-    safe_doc = User.make_json_safe(user_doc)
-    print '  Safe doc:\n    %s' % (safe_doc)
-    public_safe_doc = User.make_json_publicsafe(safe_doc)
-    print '  Public safe doc:\n    %s\n' % (public_safe_doc)
+print '  Checking for *every* exception: ', 
+exceptions = User.validate_class_fields(total_input, validate_all=True)
+
+if len(exceptions) == 0:
+    print 'Validation passed\n'
 else:
-    raise DictPunch('Failed validation!')
+    print '%s exceptions found\n\n    %s\n' % (len(exceptions),
+                                               [str(e) for e in exceptions])
 
+user_doc = User(**total_input).to_mongo()
+print '  Document:\n    %s\n' % (user_doc)
+safe_doc = User.make_json_ownersafe(user_doc)
+print '  Owner safe doc:\n    %s\n' % (safe_doc)
+public_safe_doc = User.make_json_publicsafe(safe_doc)
+print '  Public safe doc:\n    %s\n' % (public_safe_doc)
 

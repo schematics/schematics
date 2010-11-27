@@ -18,7 +18,6 @@ m.title = 'Misc Media'
 print 'From Media class to mongo structure:\n\n    %s\n' % (m.to_mongo())
 
 
-
 class Movie(Media):
     """Subclass of Foo. Adds bar and limits publicly shareable
     fields to only 'bar'.
@@ -34,11 +33,11 @@ mv.personal_thoughts = 'I wish I had three hands...' # :P
 print 'From Movie class to mongo structure:\n\n    %s\n' % (mv.to_mongo())
 
 
-safe_json = Movie.make_json_safe(mv.to_mongo())
-safe_str = 'Making mv json safe:\n\n    %s\n'
-print safe_str % (safe_json)
+ownersafe_json = Movie.make_json_ownersafe(mv.to_mongo())
+ownersafe_str = 'Making mv json safe:\n\n    %s\n'
+print ownersafe_str % (ownersafe_json)
 
-publicsafe_json = Movie.make_json_publicsafe(safe_json)
-psafe_str = 'Making mv json public safe (only %s should show):\n\n    %s\n'
-print  psafe_str % (Movie._public_fields, publicsafe_json)
+publicsafe_json = Movie.make_json_publicsafe(mv.to_mongo())
+publicsafe_str = 'Making mv json public safe (only %s should show):\n\n    %s\n'
+print  publicsafe_str % (Movie._public_fields, publicsafe_json)
                                                                
