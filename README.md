@@ -77,15 +77,19 @@ obvious when I subclass Media to create the Movie document below.
         year = IntField(min_value=1950, 
                         max_value=datetime.datetime.now().year)
         personal_thoughts = StringField(max_length=255)
+
+If you feel these fields are too much overhead, you can turn them
+off by adding a dictionary called `meta` to the Movie class with
+the key `allow_inheritance` set to False.
     
-We've added a `_public_fields` member to our document. This list is used
+Noticed we've added a `_public_fields` member to our document. This list is used
 to store which fields are safe for transmitting to someone who doesn't
 own this particular document. You'll notice `personal_thoughts` is not
 in that list.
 
 Let's see what happens when we print this document as:
 
-1. An object fit for mongo to store
+An object fit for mongo to store:
 
     {
         'personal_thoughts': u'I wish I had three hands...', 
@@ -95,13 +99,13 @@ Let's see what happens when we print this document as:
         'year': 1990
     }
 
-2. A dictionary safe for transmitting to the owner of the document. We
-   achieve this by calling `make_json_safe`. This function is a 
-   classmethod available on the `Document` class. This function knows to
-   remove \_cls and \_types because they are in 
-   `Document._internal_fields`. _You can add any fields that should be
-   treated as internal to your system by adding a list named 
-   `_private_fields` to your Document and listing each field_.
+A dictionary safe for transmitting to the owner of the document. We
+achieve this by calling `make_json_ownersafe`. This function is a 
+classmethod available on the `Document` class. This function knows to
+remove \_cls and \_types because they are in `Document._internal_fields`.
+_You can add any fields that should be treated as internal to your
+system by adding a list named `_private_fields` to your Document 
+and listing each field_.
    
     {
         'personal_thoughts': u'I wish I had three hands...',
@@ -109,8 +113,8 @@ Let's see what happens when we print this document as:
         'year': 1990
     }
    
-3. A dictionary safe for transmitting to anyone on the site. We achieve
-   this by calling `make_json_publicsafe`.
+A dictionary safe for transmitting to the public, not just the owner. 
+We achieve this by calling `make_json_publicsafe`.
 
     {
         'title': u'Total Recall',
@@ -127,7 +131,6 @@ in some fields to focus simply on validation.
 Here is an example of a User document.
 
     class User(Document):
-        _private_fields = ['secret']
         _public_fields = ['name']
         
         secret = MD5Field()
@@ -149,8 +152,9 @@ exceptions, so we'll protect against that in our code.
     except DictPunch, dp:
         print('  DictPunch caught: %s\n' % (dp))
 
-You might notice that the field which failed is not reported well yet.
-That's on the way, but not here yet.
+You might notice that the field which failed is also (new) reported. 
+It's available on the exception as `field_name` and `field_value`. The
+reason is stored as `reason`.
 
 Anyway, in this particular case an MD5 was expected. This is what the 
 MD5Field looks like. Notice that it's basically just an implementation
@@ -163,18 +167,20 @@ of a `validate()` function.
     
         def validate(self, value):
             if len(value) != MD5Field.hash_length:
-                raise DictPunch('MD5 value is wrong length')
+                raise DictPunch('MD5 value is wrong length',
+                                self.field_name, value)
             try:
                 x = int(value, 16)
             except:
-                raise DictPunch('MD5 value is not hex')
+                raise DictPunch('MD5 value is not hex',
+                                self.field_name, value)
     
 Back to validation...
 
 It's possible we don't want to instantiate a bunch of objects just to
 validate some fields, so let's see what it looks like to use a more
 typical process: go from python dictionary into a mongo-friendly
-DictShield document.
+DictShield `Document`.
 
     total_input = {
         'secret': 'e8b5d682452313a6142c10b045a9a135',
@@ -183,20 +189,31 @@ DictShield document.
         'rogue_field': 'MWAHAHA',
     }
     
-    valid_fields = User.check_class_fields(total_input)
+    try:
+        User.validate_class_fields(total_input)
+    except DictPunch, dp:
+        print('  DictPunch caught: %s\n' % (dp))
 
-This is the first time we've seen `check_class_fields()`. This is a 
-classmethod which returns true or false, depending whether or not
-validation is successful. Once we know validation has passed, we can
-pass the dictionary into our User document and call `to_mongo()` to
-get a mongo safe dictionary immediately.
+This is the first time we've seen `validate_class_fields(...)`. This
+is a classmethod which throws a DictPunch when validation on any field
+fails. 
+
+The keyword `validate_all` is available if you'd prefer to
+check every field and get a list of DictPunch's, if found, as 
+a return value.
+
+    exceptions = User.validate_class_fields(total_input, validate_all=True)
+
+Once validation has passed, we can pass the dictionary into our User class,
+to map dictionary keys to field names, and call `to_mongo()` to get a mongo
+safe dictionary mapped to the design of the User class.
 
     user_doc = User(**total_input).to_mongo()
 
 The values in total_input are matched against fields found in the
 DictShield Document class and anything else is discarded.
 
-user_doc now looks like below with `rogue_field` is removed.
+`user_doc` now looks like below with `rogue_field` removed.
 
     {
         '_types': ['User'], 
