@@ -136,7 +136,6 @@ class DocumentMetaclass(type):
     """
 
     def __new__(cls, name, bases, attrs):
-        print 'WORDd'
         metaclass = attrs.get('__metaclass__')
         super_new = super(DocumentMetaclass, cls).__new__
         if metaclass and issubclass(metaclass, DocumentMetaclass):
