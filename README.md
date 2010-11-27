@@ -45,12 +45,15 @@ This code is taken from dictshield/examples/creating_objects.py
 
 Below is an example of a Media class holding one member.
 
+    from dictshield.document import Document
+    from dictshield.fields import StringField
     class Media(Document):
         """Simple document that has one StringField member
         """
         title = StringField(max_length=40)
     
-You create the class just like you would any Python class
+You create the class just like you would any Python class. And we'll see 
+how that class is represented in Mongo.
 
     m = Media()
     m.title = 'Misc Media'
@@ -69,6 +72,7 @@ We see two keys that come from Media's meta class: \_types and \_cls.
 document. \_cls stores the specific class instance. This becomes more
 obvious when I subclass Media to create the Movie document below.
 
+    from dictshield.fields import IntField
     class Movie(Media):
         """Subclass of Foo. Adds bar and limits publicly shareable
         fields to only 'bar'.
@@ -130,6 +134,9 @@ in some fields to focus simply on validation.
 
 Here is an example of a User document.
 
+    from dictshield.document import Document
+    from dictshield.fields import MD5Field
+    from dictshield.fields import StringField
     class User(Document):
         _public_fields = ['name']
         secret = MD5Field()
