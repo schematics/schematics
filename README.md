@@ -132,7 +132,6 @@ Here is an example of a User document.
 
     class User(Document):
         _public_fields = ['name']
-        
         secret = MD5Field()
         name = StringField(required=True, max_length=50)
         bio = StringField(max_length=100)
@@ -164,7 +163,6 @@ of a `validate()` function.
         """A field that validates input as resembling an MD5 hash.
         """
         hash_length = 32
-    
         def validate(self, value):
             if len(value) != MD5Field.hash_length:
                 raise DictPunch('MD5 value is wrong length',
