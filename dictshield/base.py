@@ -10,13 +10,26 @@ _document_registry = {}
 def get_document(name):
     return _document_registry[name]
 
+class InvalidShield(Exception):
+    """A shield has been put together incorrectly
+    """
+    pass
 
 class DictPunch(Exception):
     """Wayne Brady's gonna have to punch someone in the dict when Wayne Brady's
     gotta deal with some bs input. Wayne Brady DOES NOT like bs input.
     """
-    pass
+    def __init__(self, reason, field_name, field_value, *args, **kwargs):
+        super(DictPunch, self).__init__(*args, **kwargs)
+        self.reason = reason
+        self.field_name = field_name
+        self.field_value = field_value
 
+    def __str__(self):
+        return '%s(%s):  %s' % (self.field_name,
+                                self.field_value,
+                                self.reason)
+    
 
 ##############
 ### Fields ###
@@ -27,9 +40,9 @@ class BaseField(object):
     may be added to subclasses of `Document` to define a document's schema.
     """
 
-    def __init__(self, db_field=None, required=False, default=None, 
+    def __init__(self, field_name=None, required=False, default=None, 
                  validation=None, choices=None):
-        self.db_field = db_field 
+        self.field_name = field_name
         self.required = required
         self.default = default
         self.validation = validation
@@ -123,6 +136,7 @@ class DocumentMetaclass(type):
     """
 
     def __new__(cls, name, bases, attrs):
+        print 'WORDd'
         metaclass = attrs.get('__metaclass__')
         super_new = super(DocumentMetaclass, cls).__new__
         if metaclass and issubclass(metaclass, DocumentMetaclass):
@@ -171,8 +185,8 @@ class DocumentMetaclass(type):
             if hasattr(attr_value, "__class__") and \
                issubclass(attr_value.__class__, BaseField):
                 attr_value.name = attr_name
-                if not attr_value.db_field:
-                    attr_value.db_field = attr_name
+                if not attr_value.field_name:
+                    attr_value.field_name = attr_name
                 doc_fields[attr_name] = attr_value
         attrs['_fields'] = doc_fields
 
@@ -214,7 +228,6 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
             'collection': collection,
             'max_documents': None,
             'max_size': None,
-            'ordering': [], # default ordering applied at runtime
         }
         meta.update(base_meta)
 
@@ -333,7 +346,7 @@ class BaseDocument(object):
         for field_name, field in self._fields.items():
             value = getattr(self, field_name, None)
             if value is not None:
-                data[field.db_field] = field.to_mongo(value)
+                data[field.field_name] = field.to_mongo(value)
         # Only add _cls and _types if allow_inheritance is not False
         if not (hasattr(self, '_meta') and
                 self._meta.get('allow_inheritance', True) == False):
@@ -371,8 +384,8 @@ class BaseDocument(object):
         present_fields = data.keys()
 
         for field_name, field in cls._fields.items():
-            if field.db_field in data:
-                value = data[field.db_field]
+            if field.field_name in data:
+                value = data[field.field_name]
                 data[field_name] = (value if value is None
                                     else field.to_python(value))
 

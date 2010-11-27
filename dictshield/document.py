@@ -20,27 +20,21 @@ class Document(BaseDocument):
     Individual documents may then be created by making instances of the
     :class:`~dictshield.Document` subclass.
 
-    By default, the MongoDB collection used to store documents created using a
-    :class:`~dictshield.Document` subclass will be the name of the subclass
-    converted to lowercase. A different collection may be specified by
-    providing :attr:`collection` to the :attr:`meta` dictionary in the class
-    definition.
-
     A :class:`~dictshield.Document` subclass may be itself subclassed, to
-    create a specialised version of the document that will be stored in the
+    create a specialised version of the document that can be stored in the
     same collection. To facilitate this behaviour, `_cls` and `_types`
-    fields are added to documents (hidden though the Dictshield interface
-    though). To disable this behaviour and remove the dependence on the
-    presence of `_cls` and `_types`, set :attr:`allow_inheritance` to
-    ``False`` in the :attr:`meta` dictionary.
+    fields are added to documents to specify the install class and the types
+    in the Document class hierarchy. To disable this behaviour and remove
+    the dependence on the presence of `_cls` and `_types`, set
+    :attr:`allow_inheritance` to ``False`` in the :attr:`meta` dictionary.
 
-    A :class:`~dictshield.Document` may use a **Capped Collection** by 
-    specifying :attr:`max_documents` and :attr:`max_size` in the :attr:`meta`
-    dictionary. :attr:`max_documents` is the maximum number of documents that
-    is allowed to be stored in the collection, and :attr:`max_size` is the 
-    maximum size of the collection in bytes. If :attr:`max_size` is not 
-    specified and :attr:`max_documents` is, :attr:`max_size` defaults to 
-    10000000 bytes (10MB).
+    :attr:`_internal_fields` class field is used to list fields which are
+    private and not meant to leave the system. This consists of `_id`, `_cls`
+    and `_types` but a user can extend the lis of internal fields by defining
+    a class level list field called _private_fields.
+
+    If :attr:`_public_fields` is defined, the `make_json_publicsafe` method
+    will use it as a whitelist for which fields to not erase.
     """
 
     __metaclass__ = TopLevelDocumentMetaclass
@@ -52,66 +46,59 @@ class Document(BaseDocument):
     _public_fields = None
 
     @classmethod
-    def make_json_safe(cls, found_data):
-        """This function removes internal fields and handles any steps
-        required for making the data stucture (list, dict or Document)
-        safe for transmission.
+    def _get_internal_fields(cls):
+        """Helper function that determines the union of :attr:`_internal_fields`
+        and :attr:`_private_fields`, else returns just :attr:`_internal_fields`.
         """
-        removeable_fields = set(cls._internal_fields)
+        internal_fields = set(cls._internal_fields)
         if hasattr(cls, '_private_fields'):
-            priv_fields = set(cls._private_fields)
-            removeable_fields = removeable_fields.union(priv_fields)
-            
-        def fix_dict(s):
-            for f in removeable_fields:
-                if s.has_key(f):
-                    del s[f]
-            return s
-    
-        def fix_engine_obj(s):
-            return fix_dict(s.to_mongo())
-
-        fix = fix_dict
-
-        # If found_data is a list, return the results of fixing each item
-        # Treats 'item' as a dict.
-        # If you have a list of Documents, consider something more efficient
-        if type(found_data) is list:
-            return [(fix(s)) for s in found_data]
-        # Clean fields for external transmission
-        elif type(found_data) is dict: 
-            return fix(found_data)
-        # Fix Document and return cleaned dictionary
-        elif isinstance(found_data, Document):
-            fix = fix_engine_obj
-            return fix(found_data)
-        else:
-            logging.debug('Called make_json_safe on incompatible obj')
-            return None
+            private_fields = set(cls._private_fields)
+            internal_fields = internal_fields.union(private_fields)
+        return internal_fields
 
 
     @classmethod
-    def make_json_publicsafe(cls, found_data):
+    def make_json_ownersafe(cls, data_dict):
+        """This function removes internal fields and handles any steps
+        required for making the data stucture (list, dict or Document)
+        safe for transmission to the owner of the data.
+        """
+        internal_fields = cls._get_internal_fields()
+
+        if isinstance(data_dict, cls):
+            data_dict = data_dict.to_mongo()
+
+        # removeable_fields is a blacklist
+        for f in internal_fields:
+            if data_dict.has_key(f):
+                del data_dict[f]
+        return data_dict
+    
+
+    @classmethod
+    def make_json_publicsafe(cls, data_dict):
         """This funciton ensures found_data only contains the keys as
-        required by cls.public_fields
+        listed in cls._public_fields.
+
+        This function can be safely called without calling make_json_ownersafe
+        first because it treats cls._public_fields as a whitelist and
+        removes anything not listed.
         """
         if cls._public_fields is None:
             raise DictPunch('make_json_publicsafe called cls with no _public_fields')
         
-        def fix_dict(s):
-            for f in s.keys():
-                if f not in cls._public_fields:
-                    del s[f]
-            return s
-    
-        if type(found_data) is list: # list of dicts
-            return [(fix_dict(s)) for s in found_data]
-        elif type(found_data) is dict: # single dict
-            return fix_dict(found_data)    
+        if isinstance(data_dict, cls):
+            data_dict = data_dict.to_mongo()
+
+        # public_fields is a whitelist
+        for f in data_dict.keys():
+            if f not in cls._public_fields:
+                del data_dict[f]
+        return data_dict
 
         
     @classmethod
-    def check_class_fields(cls, dict, log_fd=None):
+    def validate_class_fields(cls, dict, validate_all=False):
         """This is a convenience function that loops over _fields in
         cls to validate them. If the field is not required AND not present,
         it is skipped.
@@ -119,56 +106,38 @@ class Document(BaseDocument):
         'not present' is defined as not having a value OR having '' (or u'')
         as a value.
         """
-        # TODO Get rid of this soon
-        if log_fd is None:
-            write_to_log = lambda x: None
-        else:
-            write_to_log = log_fd.write
-        
         if not hasattr(cls, '_fields'):
-            raise ValueError('cls does not have _fields member')
+            raise ValueError('cls is not a DictShield')
         
-        try:
-            for k,v in cls._fields.items():
-                # mongoengine!
-                if k is 'id': 
-                    k = '_id'
+        internal_fields = cls._get_internal_fields()
+
+        if validate_all:
+            exceptions = list()
+            handle_exception = lambda e: exceptions.append(e)
+        else:
+            def handle_exception(e):
+                raise e
+            
+        for k,v in cls._fields.items():
+            # mongoengine!
+            if k is 'id': 
+                k = '_id'
         
-                # we don't accept forbidden_fields from users, so validation will fail
-                if hasattr(cls, '_internal_fields') and k in cls._internal_fields:
+            # we don't accept internal fields from users
+            if k in internal_fields:
+                e = DictPunch('Overwrite of internal fields attempted', k, v)
+                handle_exception(e)
+                continue
+            
+            if v.required or dict.has_key(k):
+                datum = dict[k]
+                # treat empty strings as empty values and skip
+                if isinstance(datum, (str, unicode)) and len(datum.strip()) == 0:
                     continue
-        
-                # Fields are often populated with "" instead of their native types.
-                # This is not ideal, but must be handled, so "" is treated as empty
-                # data instead of a string value, so they are skipped
-                if v.required or dict.has_key(k):
-                    user_data = dict[k]
-                    data_type = type(user_data)
-                    if data_type is str and user_data.strip() is "": 
-                        continue
-                    if data_type is unicode and user_data.strip() is u'': 
-                        continue
-                    user_data = dict[k]
-                    v.validate(user_data)
-        except Exception, e:
-            write_to_log('Field %s :: %s' % (k, e))
-            return False
-        return True
-        
+                try:
+                    v.validate(datum)
+                except DictPunch, e:
+                    handle_exception(e)
 
-class MapReduceDocument(object):
-    """A document returned from a map/reduce query.
-
-    :param collection: An instance of :class:`~pymongo.Collection`
-    :param key: Document/result key, often an instance of 
-                :class:`~pymongo.objectid.ObjectId`. If supplied as 
-                an ``ObjectId`` found in the given ``collection``, 
-                the object can be accessed via the ``object`` property.
-    :param value: The result(s) for this key.
-    """
-
-    def __init__(self, document, collection, key, value):
-        self._document = document
-        self._collection = collection
-        self.key = key
-        self.value = value
+        if validate_all:
+            return exceptions
