@@ -47,6 +47,7 @@ Below is an example of a Media class holding one member.
 
     from dictshield.document import Document
     from dictshield.fields import StringField
+
     class Media(Document):
         """Simple document that has one StringField member
         """
@@ -74,6 +75,7 @@ obvious when I subclass Media to create the Movie document below.
 
     import datetime
     from dictshield.fields import IntField
+
     class Movie(Media):
         """Subclass of Foo. Adds bar and limits publicly shareable
         fields to only 'bar'.
@@ -152,6 +154,7 @@ Here is an example of a User document.
     from dictshield.document import Document
     from dictshield.fields import MD5Field
     from dictshield.fields import StringField
+
     class User(Document):
         _public_fields = ['name']
         secret = MD5Field()
