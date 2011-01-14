@@ -40,7 +40,7 @@ class Document(BaseDocument):
     __metaclass__ = TopLevelDocumentMetaclass
 
     _internal_fields = [
-        '_id', '_cls', '_types',
+        '_id', 'id', '_cls', '_types',
     ]
 
     _public_fields = None
@@ -56,27 +56,57 @@ class Document(BaseDocument):
             internal_fields = internal_fields.union(private_fields)
         return internal_fields
 
+    @classmethod
+    def _safe_data_from_input(cls, fun, data):
+        """Helper function for handling variable inputs to make_json_*safe
+        functions.
+
+        Returns a safe doc if given one element.
+
+        Returns an list if given a list. Can handle a list of dicts or
+        list of docs.
+        """
+        # single cls instance
+        if isinstance(data, cls):
+            return fun(data.to_mongo())
+
+        # single dict instance
+        elif isinstance(data, dict):
+            return fun(data)
+
+        # list of cls instances or list of dicts
+        elif isinstance(data, list):
+            if len(data) < 1:
+                return list()
+            elif isinstance(data[0], dict):
+                pass # written for clarity
+            elif isinstance(data[0], cls):
+                data = [d.to_mongo() for d in data]
+            return map(fun, data)
 
     @classmethod
-    def make_json_ownersafe(cls, data_dict):
+    def make_json_ownersafe(cls, doc_dict_or_dicts):
         """This function removes internal fields and handles any steps
         required for making the data stucture (list, dict or Document)
         safe for transmission to the owner of the data.
+
+        It attempts to handle multiple inputs types to avoid as many
+        translation steps as possible.
         """
         internal_fields = cls._get_internal_fields()
 
-        if isinstance(data_dict, cls):
-            data_dict = data_dict.to_mongo()
+        def handle_doc(data):
+            # internal_fields is a blacklist
+            for f in internal_fields:
+                if data.has_key(f):
+                    del data[f]
+            return data
 
-        # removeable_fields is a blacklist
-        for f in internal_fields:
-            if data_dict.has_key(f):
-                del data_dict[f]
-        return data_dict
+        return cls._safe_data_from_input(handle_doc, doc_dict_or_dicts)
+        
     
-
     @classmethod
-    def make_json_publicsafe(cls, data_dict):
+    def make_json_publicsafe(cls, doc_dict_or_dicts):
         """This funciton ensures found_data only contains the keys as
         listed in cls._public_fields.
 
@@ -87,16 +117,16 @@ class Document(BaseDocument):
         if cls._public_fields is None:
             raise DictPunch('make_json_publicsafe called cls with no _public_fields')
         
-        if isinstance(data_dict, cls):
-            data_dict = data_dict.to_mongo()
-
-        # public_fields is a whitelist
-        for f in data_dict.keys():
-            if f not in cls._public_fields:
-                del data_dict[f]
-        return data_dict
-
+        def handle_doc(doc):
+            # public_fields is a whitelist
+            for f in doc.keys():
+                if f not in cls._public_fields:
+                    del doc[f]
+            return doc
         
+        return cls._safe_data_from_input(handle_doc, doc_dict_or_dicts)
+
+    
     @classmethod
     def validate_class_fields(cls, dict, validate_all=False):
         """This is a convenience function that loops over _fields in
@@ -119,7 +149,7 @@ class Document(BaseDocument):
                 raise e
             
         for k,v in cls._fields.items():
-            # mongoengine!
+            # handle common id name
             if k is 'id': 
                 k = '_id'
         
