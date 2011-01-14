@@ -10,6 +10,11 @@ _document_registry = {}
 def get_document(name):
     return _document_registry[name]
 
+
+##################
+### Exceptions ###
+##################
+
 class InvalidShield(Exception):
     """A shield has been put together incorrectly
     """
@@ -29,7 +34,7 @@ class DictPunch(Exception):
         return '%s(%s):  %s' % (self.field_name,
                                 self.field_value,
                                 self.reason)
-    
+
 
 ##############
 ### Fields ###
@@ -40,13 +45,16 @@ class BaseField(object):
     may be added to subclasses of `Document` to define a document's schema.
     """
 
-    def __init__(self, field_name=None, required=False, default=None, 
-                 validation=None, choices=None):
+    def __init__(self, db_field=None, field_name=None, required=False,
+                 default=None, id_field=False, validation=None, choices=None):
+        self.db_field = '_id' if id_field else db_field or field_name
+
         self.field_name = field_name
         self.required = required
         self.default = default
         self.validation = validation
         self.choices = choices
+        self.id_field = id_field
 
     def __get__(self, instance, owner):
         """Descriptor for retrieving a value from a field in a document. Do 
@@ -56,8 +64,8 @@ class BaseField(object):
             # Document class being used rather than a document object
             return self
 
-        # Get value from document instance if available, if not use default
-        value = instance._data.get(self.name)
+        value = instance._data.get(self.field_name)
+
         if value is None:
             value = self.default
             # Allow callable default values
@@ -68,7 +76,7 @@ class BaseField(object):
     def __set__(self, instance, value):
         """Descriptor for assigning a value to a field in a document.
         """
-        instance._data[self.name] = value
+        instance._data[self.field_name] = value
 
     def to_python(self, value):
         """Convert a MongoDB-compatible type to a Python type.
@@ -109,7 +117,7 @@ class ObjectIdField(BaseField):
 
     def to_python(self, value):
         return value
-        # return unicode(value)
+        #return unicode(value)
 
     def to_mongo(self, value):
         if not isinstance(value, pymongo.objectid.ObjectId):
@@ -117,7 +125,7 @@ class ObjectIdField(BaseField):
                 return pymongo.objectid.ObjectId(unicode(value))
             except Exception, e:
                 #e.message attribute has been deprecated since Python 2.6
-                raise DictPunch(unicode(e))
+                raise InvalidShield(unicode(e))
         return value
 
     def validate(self, value):
@@ -183,9 +191,9 @@ class DocumentMetaclass(type):
         for attr_name, attr_value in attrs.items():
             if hasattr(attr_value, "__class__") and \
                issubclass(attr_value.__class__, BaseField):
-                attr_value.name = attr_name
-                if not attr_value.field_name:
-                    attr_value.field_name = attr_name
+                attr_value.field_name = attr_name
+                if not attr_value.db_field:
+                    attr_value.db_field = attr_name
                 doc_fields[attr_name] = attr_value
         attrs['_fields'] = doc_fields
 
@@ -215,18 +223,22 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
             return super_new(cls, name, bases, attrs)
 
         collection = name.lower()
+        id_field = None
 
         base_meta = {}
 
         # Subclassed documents inherit collection from superclass
         for base in bases:
-            if hasattr(base, '_meta') and 'collection' in base._meta:
-                collection = base._meta['collection']
+            if hasattr(base, '_meta'):
+                if 'collection' in base._meta:
+                    collection = base._meta['collection']
+                id_field = id_field or base._meta.get('id_field')
 
         meta = {
             'collection': collection,
             'max_documents': None,
             'max_size': None,
+            'id_field': id_field,            
         }
         meta.update(base_meta)
 
@@ -237,6 +249,22 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
         # Set up collection manager, needs the class to have fields so use
         # DocumentMetaclass before instantiating CollectionManager object
         new_class = super_new(cls, name, bases, attrs)
+
+        for field_name, field in new_class._fields.items():
+            # Check for custom id key
+            if field.id_field:
+                current_id = new_class._meta['id_field']
+                if current_id and current_id != field_name:
+                    raise ValueError('Cannot override id_field')
+
+                new_class._meta['id_field'] = field_name
+                # Make 'Document.id' an alias to the real primary key field
+                new_class.id = field
+
+        if not new_class._meta['id_field']:
+            new_class._meta['id_field'] = 'id'
+            new_class._fields['id'] = ObjectIdField(db_field='_id')
+            new_class.id = new_class._fields['id']
 
         return new_class
 
@@ -249,17 +277,20 @@ class BaseDocument(object):
 
     def __init__(self, **values):
         self._data = {}
+
         # Assign default values to instance
-        for attr_name in self._fields.keys():
+        for attr_name, attr_value in self._fields.items():
             # Use default value if present
             value = getattr(self, attr_name, None)
             setattr(self, attr_name, value)
+
         # Assign initial values to instance
-        for attr_name in values.keys():
+        for attr_name,attr_value in values.items():
             try:
-                setattr(self, attr_name, values.pop(attr_name))
-            except AttributeError:
+                setattr(self, attr_name, attr_value)
+            except AttributeError, a:
                 pass
+
 
     def validate(self):
         """Ensure that all fields' values are valid and that required fields
@@ -345,7 +376,7 @@ class BaseDocument(object):
         for field_name, field in self._fields.items():
             value = getattr(self, field_name, None)
             if value is not None:
-                data[field.field_name] = field.to_mongo(value)
+                data[field.db_field] = field.to_mongo(value)
         # Only add _cls and _types if allow_inheritance is not False
         if not (hasattr(self, '_meta') and
                 self._meta.get('allow_inheritance', True) == False):
@@ -383,8 +414,8 @@ class BaseDocument(object):
         present_fields = data.keys()
 
         for field_name, field in cls._fields.items():
-            if field.field_name in data:
-                value = data[field.field_name]
+            if field.fb_field in data:
+                value = data[field.db_field]
                 data[field_name] = (value if value is None
                                     else field.to_python(value))
 
