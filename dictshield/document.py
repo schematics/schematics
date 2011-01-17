@@ -173,7 +173,7 @@ class Document(BaseDocument):
                     handle_exception(e)
                     
         if validate_all:
-            return excetions
+            return exceptions
         else:
             return True
 
