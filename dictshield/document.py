@@ -126,13 +126,14 @@ class Document(BaseDocument):
         
         return cls._safe_data_from_input(handle_doc, doc_dict_or_dicts)
 
-    
+
     @classmethod
-    def validate_class_fields(cls, dict, validate_all=False):
-        """This is a convenience function that loops over _fields in
-        cls to validate them. If the field is not required AND not present,
-        it is skipped.
-    
+    def _validate_helper(cls, fun, values, validate_all=False):
+        """This is a convenience function that loops over the given values
+        and attempts to validate them against the class definition. It only
+        validates the data in values and does not guarantee a complete document
+        is present.
+
         'not present' is defined as not having a value OR having '' (or u'')
         as a value.
         """
@@ -147,27 +148,51 @@ class Document(BaseDocument):
         else:
             def handle_exception(e):
                 raise e
-            
+
         for k,v in cls._fields.items():
             # handle common id name
             if k is 'id': 
                 k = '_id'
-        
+
             # we don't accept internal fields from users
-            if k in internal_fields:
-                e = DictPunch('Overwrite of internal fields attempted', k, v)
-                handle_exception(e)
-                continue
-            
-            if v.required or dict.has_key(k):
-                datum = dict[k]
+            if k in internal_fields and k in values:
+                value_is_default = (values[k] is v.default)
+                if not value_is_default:
+                    e = DictPunch('Overwrite of internal fields attempted', k, v)
+                    handle_exception(e)
+                    continue
+
+            if fun(k, v):
+                datum = values[k]                
                 # treat empty strings as empty values and skip
                 if isinstance(datum, (str, unicode)) and len(datum.strip()) == 0:
-                    continue
+                    continue                
                 try:
                     v.validate(datum)
                 except DictPunch, e:
                     handle_exception(e)
-
+                    
         if validate_all:
-            return exceptions
+            return excetions
+        else:
+            return True
+
+
+    @classmethod
+    def validate_class_fields(cls, values, validate_all=False):
+        """This is a convenience function that loops over _fields in
+        cls to validate them. If the field is not required AND not present,
+        it is skipped.
+        """
+        fun = lambda k,v: v.required or k in values
+        return cls._validate_helper(fun, values, validate_all=validate_all)
+
+    @classmethod
+    def validate_class_partial(cls, values, validate_all=False):
+        """This is a convenience function that loops over _fields in
+        cls to validate them. This function is a partial validatation
+        only, meaning the values given and does not check if the document
+        is complete.
+        """
+        fun = lambda k,v: k in values
+        return cls._validate_helper(fun, values, validate_all=validate_all)
