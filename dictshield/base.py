@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import sys
-import pymongo
-import pymongo.objectid
+#import pymongo
+import bson.objectid
 
 
 _document_registry = {}
@@ -120,9 +120,9 @@ class ObjectIdField(BaseField):
         #return unicode(value)
 
     def to_mongo(self, value):
-        if not isinstance(value, pymongo.objectid.ObjectId):
+        if not isinstance(value, bson.objectid.ObjectId):
             try:
-                return pymongo.objectid.ObjectId(unicode(value))
+                return bson.objectid.ObjectId(unicode(value))
             except Exception, e:
                 #e.message attribute has been deprecated since Python 2.6
                 raise InvalidShield(unicode(e))
@@ -130,7 +130,7 @@ class ObjectIdField(BaseField):
 
     def validate(self, value):
         try:
-            pymongo.objectid.ObjectId(unicode(value))
+            bson.objectid.ObjectId(unicode(value))
         except:
             raise DictPunch('Invalid Object ID')
 
