@@ -163,7 +163,10 @@ class Document(BaseDocument):
                     continue
 
             if fun(k, v):
-                datum = values[k]                
+                datum = values[k]
+                # if datum is None, skip
+                if datum is None:
+                    continue
                 # treat empty strings as empty values and skip
                 if isinstance(datum, (str, unicode)) and len(datum.strip()) == 0:
                     continue                
