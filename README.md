@@ -8,6 +8,16 @@ API's that can't necessarily trust their inputs.
 It is designed with MongoDB in mind but could be easily adapted to work
 with other storage systems.
 
+# Installing
+
+DictShield is in [pypi](http://pypi.python.org) so you can use `easy_install` or `pip`.
+
+    pip install dictshield
+
+# License
+
+BSD!
+
 # The Design 
 
 DictShield specifically aims to provides helpers for a few types of 
