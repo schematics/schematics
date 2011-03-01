@@ -302,7 +302,7 @@ class BaseDocument(object):
 
         # Ensure that each field is matched to a valid value
         for field, value in fields:
-            if value is not None:
+            if value is not None and value != '': # treat empty strings is nonexistent
                 try:
                     field._validate(value)
                 except (ValueError, AttributeError, AssertionError), e:
