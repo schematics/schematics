@@ -310,7 +310,8 @@ class BaseDocument(object):
                                           % (field.__class__.__name__, value),
                                     field.field_name, value)
             elif field.required:
-                raise DictPunch('Field missing', field.field_name, value)
+                raise DictPunch('Required field missing',
+                                field.field_name, value)
 
     @classmethod
     def _get_subclasses(cls):
