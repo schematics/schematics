@@ -307,9 +307,10 @@ class BaseDocument(object):
                     field._validate(value)
                 except (ValueError, AttributeError, AssertionError), e:
                     raise DictPunch('Invalid value for field of type "%s": %s'
-                                          % (field.__class__.__name__, value))
+                                          % (field.__class__.__name__, value),
+                                    field.field_name, value)
             elif field.required:
-                raise DictPunch('Field "%s" is required' % field.name)
+                raise DictPunch('Field missing', field.field_name, value)
 
     @classmethod
     def _get_subclasses(cls):
