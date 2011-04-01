@@ -45,6 +45,9 @@ class StringField(BaseField):
     def lookup_member(self, member_name):
         return None
 
+###
+### Web fields
+###
 
 class URLField(StringField):
     """A field that validates input as an URL.
@@ -94,6 +97,9 @@ class EmailField(StringField):
         if not EmailField.EMAIL_REGEX.match(value):
             raise DictPunch('Invalid email address', self.field_name, value)
 
+###
+### Numbers
+###
 
 class NumberField(BaseField):
     """An integer field.
@@ -135,7 +141,6 @@ class IntField(NumberField):
         super(IntField, self).__init__(number_class=int,
                                        number_type='Int',
                                            *args, **kwargs)
-        
 
 class LongField(NumberField):
     """A field that validates input as a Long
@@ -145,7 +150,6 @@ class LongField(NumberField):
                                         number_type='Long',
                                         *args, **kwargs)
 
-
 class FloatField(NumberField):
     """A field that validates input as a Float
     """
@@ -153,12 +157,11 @@ class FloatField(NumberField):
         super(FloatField, self).__init__(number_class=float,
                                          number_type='Float',
                                          *args, **kwargs)
-
         
 class DecimalField(BaseField):
     """A fixed-point decimal number field.
     """
-
+ 
     def __init__(self, min_value=None, max_value=None, **kwargs):
         self.min_value, self.max_value = min_value, max_value
         super(DecimalField, self).__init__(**kwargs)
@@ -190,6 +193,10 @@ class DecimalField(BaseField):
                             self.field_name, value)
 
 
+###
+### Hashing fields
+###
+
 class MD5Field(BaseField):
     """A field that validates input as resembling an MD5 hash.
     """
@@ -220,7 +227,10 @@ class SHA1Field(BaseField):
         except:
             raise DictPunch('SHA1 value is not hex',
                             self.field_name, value)
-        
+
+###
+### Native type fields
+###
 
 class BooleanField(BaseField):
     """A boolean field type.
@@ -233,7 +243,6 @@ class BooleanField(BaseField):
         if not isinstance(value, bool):
             raise DictPunch('Not a boolean', self.field_name, value)
 
-
 class DateTimeField(BaseField):
     """A datetime field.
     """
@@ -241,8 +250,6 @@ class DateTimeField(BaseField):
     def validate(self, value):
         if not isinstance(value, datetime.datetime):
             raise DictPunch('Not a datetime', self.field_name, value)
-        
-
 
 class EmbeddedDocumentField(BaseField):
     """An embedded document field. Only valid values are subclasses of
@@ -287,7 +294,6 @@ class EmbeddedDocumentField(BaseField):
     def lookup_member(self, member_name):
         return self.document_type._fields.get(member_name)
 
-
 class ListField(BaseField):
     """A list field that wraps a standard field, allowing multiple instances
     of the field to be used as a list in the model.
@@ -331,7 +337,6 @@ class ListField(BaseField):
         self._owner_document = owner_document
 
     owner_document = property(_get_owner_document, _set_owner_document)
-
 
 class SortedListField(ListField):
     """A ListField that sorts the contents of its list before writing to
