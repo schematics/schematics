@@ -59,7 +59,7 @@ class DictPunch(Exception):
 ##############
 
 class BaseField(object):
-    """A base class for fields in a MongoDB document. Instances of this class
+    """A base class for fields in a DictShield document. Instances of this class
     may be added to subclasses of `Document` to define a document's schema.
     """
 
@@ -76,7 +76,7 @@ class BaseField(object):
 
     def __get__(self, instance, owner):
         """Descriptor for retrieving a value from a field in a document. Do 
-        any necessary conversion between Python and MongoDB types.
+        any necessary conversion between Python and `DictShield` types.
         """
         if instance is None:
             # Document class being used rather than a document object
@@ -97,12 +97,12 @@ class BaseField(object):
         instance._data[self.field_name] = value
 
     def to_python(self, value):
-        """Convert a MongoDB-compatible type to a Python type.
+        """Convert a DictShield type to a Python type.
         """
         return value
 
-    def to_mongo(self, value):
-        """Convert a Python type to a MongoDB-compatible type.
+    def to_json(self, value):
+        """Convert a DictShield type into a value safe for JSON.
         """
         return self.to_python(value)
 
@@ -130,28 +130,37 @@ class BaseField(object):
         self.validate(value)
 
 class ObjectIdField(BaseField):
-    """An field wrapper around MongoDB's ObjectIds.
+    """A basic abstraction for ObjectId's. Users of `ObjectIdField` are
+    expected to provide value safe for unicode.
+    """
+    def to_python(self, value):
+        return value
+
+    def validate(self, value):
+        try:
+            unicode(value)
+        except:
+            raise DictPunch('Invalid Object ID')
+
+class BSONObjectIdField(BaseField):
+    """An field wrapper around MongoDB ObjectIds.
     """
 
     def to_python(self, value):
-        return value
-        #return unicode(value)
+        try:
+            return bson.objectid.ObjectId(unicode(value))
+        except Exception, e:
+            raise InvalidShield(unicode(e))
+        return str(value)
 
-    def to_mongo(self, value):
-        if not isinstance(value, bson.objectid.ObjectId):
-            try:
-                return bson.objectid.ObjectId(unicode(value))
-            except Exception, e:
-                #e.message attribute has been deprecated since Python 2.6
-                raise InvalidShield(unicode(e))
-        return value
+    def to_json(self, value):
+        return str(value)
 
     def validate(self, value):
         try:
             bson.objectid.ObjectId(unicode(value))
         except:
             raise DictPunch('Invalid Object ID')
-
 
 ########################
 ### Metaclass design ###
@@ -390,14 +399,14 @@ class BaseDocument(object):
             return unicode(self).encode('utf-8')
         return '%s object' % self.__class__.__name__
 
-    def to_mongo(self):
-        """Return data dictionary ready for use with MongoDB.
+    def to_json(self):
+        """Return data dictionary ready for encoding into JSON.
         """
         data = {}
         for field_name, field in self._fields.items():
             value = getattr(self, field_name, None)
             if value is not None:
-                data[field.uniq_field] = field.to_mongo(value)
+                data[field.uniq_field] = field.to_json(value)
         # Only add _cls and _types if allow_inheritance is not False
         if not (hasattr(self, '_meta') and
                 self._meta.get('allow_inheritance', True) == False):
@@ -408,8 +417,8 @@ class BaseDocument(object):
         return data
 
     @classmethod
-    def _from_son(cls, son):
-        """Create an instance of a Document (subclass) from a PyMongo SON.
+    def _from_son(cls, son): # TODO rename to json 
+        """Create an instance of a Document (subclass) from a BSON.
         """
         # get the class name from the document, falling back to the given
         # class if unavailable

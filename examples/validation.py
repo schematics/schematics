@@ -18,7 +18,7 @@ u = User()
 u.secret = 'whatevz'
 u.name = 'test hash'
 
-print '  Attempting validation on:\n\n    %s\n' % (u.to_mongo())
+print '  Attempting validation on:\n\n    %s\n' % (u.to_json())
 try:
     u.validate()
     print ' Validation passed\n'
@@ -27,7 +27,7 @@ except DictPunch, dp:
     
 
 u.secret = 'e8b5d682452313a6142c10b045a9a135'
-print '  Adjusted invalid data and trying again on:\n\n    %s\n' % (u.to_mongo())
+print '  Adjusted invalid data and trying again on:\n\n    %s\n' % (u.to_json())
 try:
     u.validate()
     print '  Validation passed\n'
@@ -63,7 +63,7 @@ else:
     print '%s exceptions found\n\n    %s\n' % (len(exceptions),
                                                [str(e) for e in exceptions])
 
-user_doc = User(**total_input).to_mongo()
+user_doc = User(**total_input).to_json()
 print '  Document:\n    %s\n' % (user_doc)
 safe_doc = User.make_json_ownersafe(user_doc)
 print '  Owner safe doc:\n    %s\n' % (safe_doc)

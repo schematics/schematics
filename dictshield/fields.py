@@ -169,7 +169,7 @@ class DecimalField(BaseField):
             value = unicode(value)
         return decimal.Decimal(value)
 
-    def to_mongo(self, value):
+    def to_json(self, value):
         return unicode(value)
 
     def validate(self, value):
@@ -265,8 +265,8 @@ class ListField(BaseField):
     def to_python(self, value):
         return [self.field.to_python(item) for item in value]
 
-    def to_mongo(self, value):
-        return [self.field.to_mongo(item) for item in value]
+    def to_json(self, value):
+        return [self.field.to_json(item) for item in value]
 
     def validate(self, value):
         """Make sure that a list of valid fields is being used.
@@ -306,11 +306,11 @@ class SortedListField(ListField):
             self._ordering = kwargs.pop('ordering')
         super(SortedListField, self).__init__(field, **kwargs)
 
-    def to_mongo(self, value):
+    def to_json(self, value):
         if self._ordering is not None:
-            return sorted([self.field.to_mongo(item) for item in value],
+            return sorted([self.field.to_json(item) for item in value],
                           key=itemgetter(self._ordering))
-        return sorted([self.field.to_mongo(item) for item in value])
+        return sorted([self.field.to_json(item) for item in value])
 
 class DictField(BaseField):
     """A dictionary field that wraps a standard Python dictionary. This is
@@ -389,8 +389,8 @@ class EmbeddedDocumentField(BaseField):
             return self.document_type._from_son(value)
         return value
 
-    def to_mongo(self, value):
-        return self.document_type.to_mongo(value)
+    def to_json(self, value):
+        return self.document_type.to_json(value)
 
     def validate(self, value):
         """Make sure that the document instance is an instance of the

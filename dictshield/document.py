@@ -15,8 +15,8 @@ class EmbeddedDocument(BaseDocument):
 
 class Document(BaseDocument):
     """The base class used for defining the structure and properties of
-    collections of documents stored in MongoDB. Inherit from this class, and
-    add fields as class attributes to define a document's structure.
+    collections of documents modeled in DictShield. Inherit from this class,
+    and add fields as class attributes to define a document's structure.
     Individual documents may then be created by making instances of the
     :class:`~dictshield.Document` subclass.
 
@@ -32,6 +32,9 @@ class Document(BaseDocument):
     private and not meant to leave the system. This consists of `_id`, `_cls`
     and `_types` but a user can extend the lis of internal fields by defining
     a class level list field called _private_fields.
+
+    :attr:`make_json_ownersafe` is defined to remove the keys listed in both
+    fields, make it safe for sending as json.
 
     If :attr:`_public_fields` is defined, the `make_json_publicsafe` method
     will use it as a whitelist for which fields to not erase.
@@ -68,7 +71,7 @@ class Document(BaseDocument):
         """
         # single cls instance
         if isinstance(data, cls):
-            return fun(data.to_mongo())
+            return fun(data.to_json())
 
         # single dict instance
         elif isinstance(data, dict):
@@ -81,7 +84,7 @@ class Document(BaseDocument):
             elif isinstance(data[0], dict):
                 pass # written for clarity
             elif isinstance(data[0], cls):
-                data = [d.to_mongo() for d in data]
+                data = [d.to_json() for d in data]
             return map(fun, data)
 
     @classmethod
