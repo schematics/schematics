@@ -6,7 +6,6 @@ import re
 import datetime
 import decimal
 
-
 __all__ = ['StringField', 'IntField', 'FloatField', 'LongField', 'BooleanField',
            'DateTimeField', 'EmbeddedDocumentField', 'ListField', 'DictField',
            'ObjectIdField', 'DecimalField', 'URLField', 'MD5Field', 'SHA1Field',
@@ -14,7 +13,6 @@ __all__ = ['StringField', 'IntField', 'FloatField', 'LongField', 'BooleanField',
            'DictPunch', 'InvalidShield'] 
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
-
 
 class StringField(BaseField):
     """A unicode string field.
@@ -229,7 +227,7 @@ class SHA1Field(BaseField):
                             self.field_name, value)
 
 ###
-### Native type fields
+### Native type'ish fields
 ###
 
 class BooleanField(BaseField):
@@ -250,49 +248,6 @@ class DateTimeField(BaseField):
     def validate(self, value):
         if not isinstance(value, datetime.datetime):
             raise DictPunch('Not a datetime', self.field_name, value)
-
-class EmbeddedDocumentField(BaseField):
-    """An embedded document field. Only valid values are subclasses of
-    :class:`~dictshield.EmbeddedDocument`.
-    """
-
-    def __init__(self, document_type, **kwargs):
-        if not isinstance(document_type, basestring):
-            if not issubclass(document_type, EmbeddedDocument):
-                raise DictPunch('Invalid embedded document class '
-                                      'provided to an EmbeddedDocumentField')
-        self.document_type_obj = document_type
-        super(EmbeddedDocumentField, self).__init__(**kwargs)
-
-    @property
-    def document_type(self):
-        if isinstance(self.document_type_obj, basestring):
-            if self.document_type_obj == RECURSIVE_REFERENCE_CONSTANT:
-                self.document_type_obj = self.owner_document
-            else:
-                self.document_type_obj = get_document(self.document_type_obj)
-        return self.document_type_obj
-
-    def to_python(self, value):
-        if not isinstance(value, self.document_type):
-            return self.document_type._from_son(value)
-        return value
-
-    def to_mongo(self, value):
-        return self.document_type.to_mongo(value)
-
-    def validate(self, value):
-        """Make sure that the document instance is an instance of the
-        EmbeddedDocument subclass provided when the document was defined.
-        """
-        # Using isinstance also works for subclasses of self.document
-        if not isinstance(value, self.document_type):
-            raise DictPunch('Invalid embedded document instance '
-                                  'provided to an EmbeddedDocumentField')
-        self.document_type.validate(value)
-
-    def lookup_member(self, member_name):
-        return self.document_type._fields.get(member_name)
 
 class ListField(BaseField):
     """A list field that wraps a standard field, allowing multiple instances
@@ -357,7 +312,6 @@ class SortedListField(ListField):
                           key=itemgetter(self._ordering))
         return sorted([self.field.to_mongo(item) for item in value])
 
-
 class DictField(BaseField):
     """A dictionary field that wraps a standard Python dictionary. This is
     similar to an embedded document, but the structure is not defined.
@@ -385,7 +339,6 @@ class DictField(BaseField):
     def lookup_member(self, member_name):
         return self.basecls(uniq_field=member_name)
 
-
 class GeoPointField(BaseField):
     """A list storing a latitude and longitude.
     """
@@ -404,3 +357,50 @@ class GeoPointField(BaseField):
             not isinstance(value[1], (float, int))):
             raise DictPunch('Both values in point must be float or int',
                             self.field_name, value)
+
+###
+### Sub structures
+###
+    
+class EmbeddedDocumentField(BaseField):
+    """An embedded document field. Only valid values are subclasses of
+    :class:`~dictshield.EmbeddedDocument`.
+    """
+
+    def __init__(self, document_type, **kwargs):
+        if not isinstance(document_type, basestring):
+            if not issubclass(document_type, EmbeddedDocument):
+                raise DictPunch('Invalid embedded document class '
+                                      'provided to an EmbeddedDocumentField')
+        self.document_type_obj = document_type
+        super(EmbeddedDocumentField, self).__init__(**kwargs)
+
+    @property
+    def document_type(self):
+        if isinstance(self.document_type_obj, basestring):
+            if self.document_type_obj == RECURSIVE_REFERENCE_CONSTANT:
+                self.document_type_obj = self.owner_document
+            else:
+                self.document_type_obj = get_document(self.document_type_obj)
+        return self.document_type_obj
+
+    def to_python(self, value):
+        if not isinstance(value, self.document_type):
+            return self.document_type._from_son(value)
+        return value
+
+    def to_mongo(self, value):
+        return self.document_type.to_mongo(value)
+
+    def validate(self, value):
+        """Make sure that the document instance is an instance of the
+        EmbeddedDocument subclass provided when the document was defined.
+        """
+        # Using isinstance also works for subclasses of self.document
+        if not isinstance(value, self.document_type):
+            raise DictPunch('Invalid embedded document instance '
+                                  'provided to an EmbeddedDocumentField')
+        self.document_type.validate(value)
+
+    def lookup_member(self, member_name):
+        return self.document_type._fields.get(member_name)
