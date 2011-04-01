@@ -21,8 +21,6 @@ An `InvalidShield` exception is thrown when the input data can't be mapped
 to a `Document`.
 """
 
-import bson.objectid
-
 _document_registry = {}
 
 def get_document(name):
@@ -139,26 +137,6 @@ class ObjectIdField(BaseField):
     def validate(self, value):
         try:
             unicode(value)
-        except:
-            raise DictPunch('Invalid Object ID')
-
-class BSONObjectIdField(BaseField):
-    """An field wrapper around MongoDB ObjectIds.
-    """
-
-    def to_python(self, value):
-        try:
-            return bson.objectid.ObjectId(unicode(value))
-        except Exception, e:
-            raise InvalidShield(unicode(e))
-        return str(value)
-
-    def to_json(self, value):
-        return str(value)
-
-    def validate(self, value):
-        try:
-            bson.objectid.ObjectId(unicode(value))
         except:
             raise DictPunch('Invalid Object ID')
 
