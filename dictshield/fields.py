@@ -3,7 +3,6 @@ from document import Document, EmbeddedDocument
 from operator import itemgetter
 
 import re
-import pymongo
 import bson.dbref
 import bson.son
 import bson.binary
