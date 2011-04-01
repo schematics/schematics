@@ -1,16 +1,10 @@
 from base import BaseField, ObjectIdField, DictPunch, InvalidShield, get_document
-from document import Document, EmbeddedDocument
+from document import EmbeddedDocument
 from operator import itemgetter
 
 import re
-import bson.dbref
-import bson.son
-import bson.binary
 import datetime
 import decimal
-import gridfs
-import warnings
-import types
 
 
 __all__ = ['StringField', 'IntField', 'FloatField', 'LongField', 'BooleanField',
@@ -80,8 +74,8 @@ class URLField(StringField):
             import urllib2
             try:
                 request = urllib2.Request(value)
-                response = urllib2.urlopen(request)
-            except Exception, e:
+                urllib2.urlopen(request)
+            except Exception:
                 message = 'URL does not exist'
                 raise DictPunch(message, self.field_name, value)
 
@@ -183,7 +177,7 @@ class DecimalField(BaseField):
                 value = str(value)
             try:
                 value = decimal.Decimal(value)
-            except Exception, exc:
+            except Exception:
                 raise DictPunch('Could not convert to decimal',
                                 self.field_name, value)
 
@@ -206,7 +200,7 @@ class MD5Field(BaseField):
             raise DictPunch('MD5 value is wrong length',
                             self.field_name, value)
         try:
-            x = int(value, 16)
+            int(value, 16)
         except:
             raise DictPunch('MD5 value is not hex',
                             self.field_name, value)
@@ -222,7 +216,7 @@ class SHA1Field(BaseField):
             raise DictPunch('SHA1 value is wrong length',
                             self.field_name, value)
         try:
-            x = int(value, 16)
+            int(value, 16)
         except:
             raise DictPunch('SHA1 value is not hex',
                             self.field_name, value)
@@ -322,7 +316,7 @@ class ListField(BaseField):
 
         try:
             [self.field.validate(item) for item in value]
-        except Exception, err:
+        except Exception:
             raise DictPunch('Invalid ListField item',
                             self.field_name, str(item))
 
