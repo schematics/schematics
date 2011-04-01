@@ -146,7 +146,7 @@ class LongField(NumberField):
                                         *args, **kwargs)
 
 
-class FloatField(BaseField):
+class FloatField(NumberField):
     """A field that validates input as a Float
     """
     def __init__(self, *args, **kwargs):
