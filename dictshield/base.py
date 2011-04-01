@@ -1,9 +1,27 @@
 #!/usr/bin/env python
 
-import sys
-#import pymongo
-import bson.objectid
+"""This module puts the basic framework for the Document and it's Metaclass
+together. The Metaclass attribute `_fields`_ informs the validation system
+about *what* to validate. `_fields` is also used for mapping inputs and outputs
+to corresponding members of the Document, fascilitating easy document validating
+like:
 
+    d = Document(**key_map)
+    try:
+        d.validate()
+    except:
+        handler_validation_fail()
+
+It also provides the basic framework for throwing errors when input doesn't
+match expected patterns, as we see with the exception handling.
+
+A `DictPunch` exception is thrown when validation fails.
+
+An `InvalidShield` exception is thrown when the input data can't be mapped
+to a `Document`.
+"""
+
+import bson.objectid
 
 _document_registry = {}
 
@@ -288,7 +306,8 @@ class BaseDocument(object):
         for attr_name,attr_value in values.items():
             try:
                 setattr(self, attr_name, attr_value)
-            except AttributeError, a:
+            # Put a diaper on the keys that don't belong and send 'em home
+            except AttributeError:
                 pass
 
 
@@ -305,9 +324,9 @@ class BaseDocument(object):
             if value is not None and value != '': # treat empty strings is nonexistent
                 try:
                     field._validate(value)
-                except (ValueError, AttributeError, AssertionError), e:
+                except (ValueError, AttributeError, AssertionError):
                     raise DictPunch('Invalid value for field of type "%s": %s'
-                                          % (field.__class__.__name__, value),
+                                    % (field.__class__.__name__, value),
                                     field.field_name, value)
             elif field.required:
                 raise DictPunch('Required field missing',
@@ -431,10 +450,6 @@ class BaseDocument(object):
                 return True
         return False
 
-if sys.version_info < (2, 5):
-    # Prior to Python 2.5, Exception was an old-style class
-    def subclass_exception(name, parents, unused):
-        return types.ClassType(name, parents, {})
-else:
-    def subclass_exception(name, parents, module):
-        return type(name, parents, {'__module__': module})
+
+def subclass_exception(name, parents, module):
+    return type(name, parents, {'__module__': module})
