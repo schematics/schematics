@@ -43,11 +43,11 @@ class StringField(BaseField):
             raise DictPunch('String value is too long', self.field_name, value)
 
         if self.min_length is not None and len(value) < self.min_length:
-            raise DictPunch('String value is too short', self.db_field, value)
+            raise DictPunch('String value is too short', self.uniq_field, value)
 
         if self.regex is not None and self.regex.match(value) is None:
             message = 'String value did not match validation regex',
-            raise DictPunch(message, self.db_field, value)
+            raise DictPunch(message, self.uniq_field, value)
 
     def lookup_member(self, member_name):
         return None
@@ -297,7 +297,7 @@ class EmbeddedDocumentField(BaseField):
 
 class ListField(BaseField):
     """A list field that wraps a standard field, allowing multiple instances
-    of the field to be used as a list in the database.
+    of the field to be used as a list in the model.
     """
 
     def __init__(self, field, **kwargs):
@@ -385,7 +385,7 @@ class DictField(BaseField):
                             self.field_name, value)
 
     def lookup_member(self, member_name):
-        return self.basecls(db_field=member_name)
+        return self.basecls(uniq_field=member_name)
 
 
 class GeoPointField(BaseField):

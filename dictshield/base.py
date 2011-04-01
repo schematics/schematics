@@ -45,10 +45,10 @@ class BaseField(object):
     may be added to subclasses of `Document` to define a document's schema.
     """
 
-    def __init__(self, db_field=None, field_name=None, required=False,
+    def __init__(self, uniq_field=None, field_name=None, required=False,
                  default=None, id_field=False, validation=None, choices=None):
-        self.db_field = '_id' if id_field else db_field or field_name
-
+        
+        self.uniq_field = '_id' if id_field else uniq_field or field_name
         self.field_name = field_name
         self.required = required
         self.default = default
@@ -192,8 +192,8 @@ class DocumentMetaclass(type):
             if hasattr(attr_value, "__class__") and \
                issubclass(attr_value.__class__, BaseField):
                 attr_value.field_name = attr_name
-                if not attr_value.db_field:
-                    attr_value.db_field = attr_name
+                if not attr_value.uniq_field:
+                    attr_value.uniq_field = attr_name
                 doc_fields[attr_name] = attr_value
         attrs['_fields'] = doc_fields
 
@@ -263,7 +263,7 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
 
         if not new_class._meta['id_field']:
             new_class._meta['id_field'] = 'id'
-            new_class._fields['id'] = ObjectIdField(db_field='_id')
+            new_class._fields['id'] = ObjectIdField(uniq_field='_id')
             new_class.id = new_class._fields['id']
 
         return new_class
@@ -378,7 +378,7 @@ class BaseDocument(object):
         for field_name, field in self._fields.items():
             value = getattr(self, field_name, None)
             if value is not None:
-                data[field.db_field] = field.to_mongo(value)
+                data[field.uniq_field] = field.to_mongo(value)
         # Only add _cls and _types if allow_inheritance is not False
         if not (hasattr(self, '_meta') and
                 self._meta.get('allow_inheritance', True) == False):
@@ -417,7 +417,7 @@ class BaseDocument(object):
 
         for field_name, field in cls._fields.items():
             if field.fb_field in data:
-                value = data[field.db_field]
+                value = data[field.uniq_field]
                 data[field_name] = (value if value is None
                                     else field.to_python(value))
 
