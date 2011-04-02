@@ -64,6 +64,7 @@ There are a few ways to use DictShield. A simple case is to create a class
 structure that has typed fields. DictShield offers multiple types in
 `fields.py`, like an EmailField or DecimalField.
 
+
 ## Creating Flexible Documents
 
 Below is an example of a Media class with a single field, the title.
@@ -106,6 +107,37 @@ Or if we were using Riak.
 
     >>> media = bucket.new('test_key', data=m.to_python())
     >>> media.store()
+
+
+## Types Through Validation
+
+This is what the MD5Field looks like. Notice that it's basically just
+an implementation of a `validate()` function, which raises a `DictPunch`
+exception if validation fails.
+
+    class MD5Field(BaseField):
+        """A field that validates input as resembling an MD5 hash.
+        """
+        hash_length = 32
+        def validate(self, value):
+            if len(value) != MD5Field.hash_length:
+                raise DictPunch('MD5 value is wrong length',
+                                self.field_name, value)
+            try:
+                x = int(value, 16)
+            except:
+                raise DictPunch('MD5 value is not hex',
+                                self.field_name, value)
+
+You might notice that the field which failed is also reported. It's available on
+the exception as `field_name` and `field_value`.
+
+The exception prints in this pattern `field_name(field_value): reason`.
+
+    DictPunch caught: secret(whatevz):  MD5 value is wrong length
+
+If you think the overhead of validation is unnecessary for some use cases, you 
+can skip it by never calling `validate()`. 
 
 
 ## More Object Modeling
@@ -214,16 +246,7 @@ We can still be leaner. DictShield also allows validating input without
 instantiating any objects.
 
 
-## Validating Document instances
-
-Remember the `User` class we defined earlier?
-
-    class User(Document):
-        _public_fields = ['name']
-        secret = MD5Field()
-        name = StringField(required=True, max_length=50)
-        bio = StringField(max_length=100)
-        url = URLField()
+## Validating User Input
 
 Let's say we get this dictionary from a user
 
@@ -234,7 +257,7 @@ Let's say we get this dictionary from a user
         'rogue_field': 'MWAHAHA',
     }
 
-Let's validate the dictionary. 
+First, we validate the dictionary. 
 
     u = User(**user_input)
     try:
@@ -242,14 +265,48 @@ Let's validate the dictionary.
     except DictPunch, dp:
         print 'DictPunch caught: %s' % (dp))
 
-This method required a User instance.
+This method builds a User instance out of the input, which also throws away 
+keys that aren't in the User definition.
+
+We then call validate on that `User` instance to validate each field against
+what the dictionary contained. If the data doesn't pass exception, a `DictPunch`
+is thrown and we handle the error. 
 
 
-### Validating a Subset
+## Removing Unknown Fields
+
+Unrecognized fields, in user input, are thrown away. This makes handling input
+fairly easy because you are generally working with a list of fields, what they
+look like and how to turn them into Python or JSON. Not much else.
+
+So here's how you can reduce the user input into just the fields found on a 
+`User` document.
+
+    user_doc = User(**total_input).to_python()
+
+The values in total_input are matched against fields found in the DictShield
+Document class and everything else is discarded.
+
+`user_doc` now looks like below with `rogue_field` removed.
+
+    {
+        '_types': ['User'], 
+        'bio': u'Python, Erlang and guitars!, 
+        'secret': 'e8b5d682452313a6142c10b045a9a135', 
+        'name': u'J2D2', 
+        '_cls': 'User'
+    }
+
+
+## Working without instances
 
 Consider a user updating some of their settings. Rather than validate the entire
 document, you want to check validation for just the field the client is 
-updating.
+updating and tell your database to store just that field.
+
+DictShield offers a few classmethods to facilitate this.
+
+### Validating a Subset
 
 `validate_class_fields` gives us that by checking if some dictionary matches
 the pattern it needs, including required fields. Notice, it's also a 
@@ -283,56 +340,6 @@ like we attempted above.
 validation was successful.
 
     exceptions = User.validate_class_fields(total_input, validate_all=True)
-
-
-### Types Through Validation
-
-This is what the MD5Field looks like. Notice that it's basically just
-an implementation of a `validate()` function, which raises a `DictPunch`
-exception if validation fails.
-
-    class MD5Field(BaseField):
-        """A field that validates input as resembling an MD5 hash.
-        """
-        hash_length = 32
-        def validate(self, value):
-            if len(value) != MD5Field.hash_length:
-                raise DictPunch('MD5 value is wrong length',
-                                self.field_name, value)
-            try:
-                x = int(value, 16)
-            except:
-                raise DictPunch('MD5 value is not hex',
-                                self.field_name, value)
-
-You might notice that the field which failed is also reported. It's available on
-the exception as `field_name` and `field_value`. The reason is simply `reason`.
-
-The exception prints in this pattern: `field_name(field_value): reason`
-
-    DictPunch caught: secret(whatevz):  MD5 value is wrong length
-
-
-### Removing Unknown Fields
-
-Once validation has passed, we can pass the dictionary into our User class,
-to map dictionary keys to field names, and call `to_python()` to get a Python
-dictionary mapped to the design of the User class.
-
-    user_doc = User(**total_input).to_python()
-
-The values in total_input are matched against fields found in the DictShield
-Document class and everything else is discarded.
-
-`user_doc` now looks like below with `rogue_field` removed.
-
-    {
-        '_types': ['User'], 
-        'bio': u'Python, Erlang and guitars!, 
-        'secret': 'e8b5d682452313a6142c10b045a9a135', 
-        'name': u'J2D2', 
-        '_cls': 'User'
-    }
 
 
 # Installing
