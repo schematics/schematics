@@ -1,24 +1,26 @@
 # DictShield
 
-Aside from being a cheeky excuse to make people say things that sound 
-sorta dirty, DictShield is a fast way to validate and trim the values
-in a dictionary. This is most useful to people building server-side
-API's that can't necessarily trust their inputs.
+Aside from being a cheeky excuse to make people say things that sound sorta 
+dirty, DictShield is a database-agnostic modeling system. It provides a way to
+model, validate and reshape data easily without insisting on any particular
+database. 
 
-It is designed with MongoDB in mind but could be easily adapted to work
-with other storage systems.
+DictShield objects serialize to JSON by default. Store them in a Memcached,
+MongoDB, Riak, whatever you need.
 
-# Installing
+Validating data looks like this: `Model(**data).validate()`.
+
+Converting to JSON looks like this: `instance.to_json()`.
+
+Easy.
+
+## Installing
 
 DictShield is in [pypi](http://pypi.python.org) so you can use `easy_install` or `pip`.
 
     pip install dictshield
 
-# License
-
-BSD!
-
-# The Design 
+## The Design 
 
 DictShield specifically aims to provides helpers for a few types of 
 common needs for server-side API designers.
@@ -29,7 +31,7 @@ common needs for server-side API designers.
 
 3. Remove keys we're not interested in.
 
-4. Provide helpers to remove keys in Mongo's representation before
+4. Provide helpers to remove keys in the Python representation before
    the data is sent to a user. 
 
 5. Provide helpers for reshaping dictionaries depending on the intended
@@ -40,20 +42,19 @@ dictionaries too. This is useful primarily to those who use DictShield
 to instantiate classes representing their data instead of just filtering
 dictionaries through the class's static methods.
 
-# Examples
+## License
 
-There are a few ways to use DictShield. To introduce the concept, I'll
-show how Document classes can be instantiated and then converted to
+BSD!
 
-1. An object fit for mongo to store
-2. A dictionary safe for transmitting to the owner of the document
-3. A dictionary safe for transmitting to anyone on the site
+# Example Uses
 
-## Object Creation
+There are a few ways to use DictShield. A simple case is to create a class
+structure that has typed fields. DictShield offers multiple types in
+`fields.py`, like an EmailField or DecimalField.
 
-This code is taken from dictshield/examples/creating_objects.py
+## Creating Flexible Documents
 
-Below is an example of a Media class holding one member.
+Below is an example of a Media class with a single field, the title.
 
     from dictshield.document import Document
     from dictshield.fields import StringField
@@ -64,11 +65,11 @@ Below is an example of a Media class holding one member.
         title = StringField(max_length=40)
     
 You create the class just like you would any Python class. And we'll see 
-how that class is represented in Mongo.
+how that class is represented as a Python dictionary.
 
     m = Media()
     m.title = 'Misc Media'
-    print 'From Media class to mongo structure:\n\n    %s\n' % (m.to_mongo())
+    print 'From Media class as Python structure:\n\n    %s\n' % (m.to_python())
 
 The output from this looks like:
 
@@ -78,9 +79,26 @@ The output from this looks like:
         'title': u'Misc Media'
     }
 
-We see two keys that come from Media's meta class: \_types and \_cls.
-\_types stores the hierachy of Document classes used to create the
-document. \_cls stores the specific class instance. This becomes more
+All the meta information is removed and we have just a barebones representation
+of our data. Notice that the class information is still there as `_cls` and 
+`_types`.
+
+## Saving To A Database
+
+We could pass this directly to Mongo to save it.
+
+    >>> db.test_collection.save(m.to_python())
+
+Or if we were using Riak, we might store JSON.
+
+    >>> media = bucket.new('test_key', data=m.to_python())
+    >>> media.store()
+
+## Object Hierarchy
+
+We see two keys that come from Media's meta class: `_types` and `_cls`.
+`_types` stores the hierachy of Document classes used to create the
+document. `_cls` stores the specific class instance. This becomes more
 obvious when I subclass Media to create the Movie document below.
 
     import datetime
@@ -120,7 +138,7 @@ system data (the raw document), data fields for the owner of the data
 (internal data removed) and the data fields that are shareable with the 
 general public.
 
-This is the raw document as stored in Mongo:
+This is the raw document as converted to a Python dictionary:
 
     {
         'personal_thoughts': u'I wish I had three hands...', 
@@ -130,10 +148,12 @@ This is the raw document as stored in Mongo:
         'year': 1990
     }
 
+## JSON for Owner of Document
+
 Here is a document safe for transmitting to the owner of the document. We
 achieve this by calling `Movie.make_json_ownersafe`. This function is a 
-classmethod available on the `Document` class. It knows to remove \_cls
-and \_types because they are in `Document._internal_fields`. _You can 
+classmethod available on the `Document` class. It knows to remove `_cls
+and `_types` because they are in `Document._internal_fields`. _You can 
 add any fields that should be treated as internal to your system by 
 adding a list named `_private_fields` to your Document and listing each
 field_.
@@ -144,6 +164,8 @@ field_.
         'year': 1990
     }
    
+## JSON for Public View of Document
+
 A dictionary safe for transmitting to the public, not just the owner. 
 We achieve this by calling `make_json_publicsafe`.
 
@@ -197,6 +219,8 @@ The exception prints in this pattern: field_name(field_value): reason
 Anyway, in this particular case an MD5 was expected, but we had the
 string 'whatevz', which is not an MD5. 
 
+### Types Through Validation
+
 This is what the MD5Field looks like. Notice that it's basically just
 an implementation of a `validate()` function, which raises a `DictPunch`
 exception if validation fails.
@@ -215,12 +239,12 @@ exception if validation fails.
                 raise DictPunch('MD5 value is not hex',
                                 self.field_name, value)
     
-Back to validation...
+## Back to validation...
 
 It's possible we don't want to instantiate a bunch of objects just to
 validate some fields, so let's see what it looks like to use a more
-typical process: go from python dictionary into a validated mongo bson
-structure via a DictShield Document definition.
+typical process: go from Python dictionary, as we might get straight after 
+parsing json, into a type-validated Document dictionary.
 
 Remember the `User` class we defined earlier?
 
@@ -230,7 +254,7 @@ Remember the `User` class we defined earlier?
         name = StringField(required=True, max_length=50)
         bio = StringField(max_length=100)
 
-Here is a dictionary we'll use to seed the document. Notice the key 
+Here is the dictionary we'll use to seed the document. Notice the key 
 names are the same as the field named in the document.
 
     total_input = {
@@ -260,15 +284,16 @@ a return value.
     exceptions = User.validate_class_fields(total_input, validate_all=True)
 
 Once validation has passed, we can pass the dictionary into our User class,
-to map dictionary keys to field names, and call `to_mongo()` to get a mongo
-safe dictionary mapped to the design of the User class.
+to map dictionary keys to field names, and call `to_python()` to get a Python
+dictionary mapped to the design of the User class.
 
-    user_doc = User(**total_input).to_mongo()
+    user_doc = User(**total_input).to_python()
 
 The values in total_input are matched against fields found in the
 DictShield Document class and anything else is discarded.
 
-`user_doc` now looks like below with `rogue_field` removed.
+`user_doc` now looks like below with `rogue_field` removed, and we know the 
+other fields are valid.
 
     {
         '_types': ['User'], 
