@@ -89,7 +89,7 @@ We could pass this directly to Mongo to save it.
 
     >>> db.test_collection.save(m.to_python())
 
-Or if we were using Riak, we might store JSON.
+Or if we were using Riak.
 
     >>> media = bucket.new('test_key', data=m.to_python())
     >>> media.store()
@@ -152,8 +152,8 @@ This is the raw document as converted to a Python dictionary:
 
 Here is a document safe for transmitting to the owner of the document. We
 achieve this by calling `Movie.make_json_ownersafe`. This function is a 
-classmethod available on the `Document` class. It knows to remove `_cls
-and `_types` because they are in `Document._internal_fields`. _You can 
+classmethod available on the `Document` class. It knows to remove `\_cls
+and `\_types` because they are in `Document.\_internal_fields`. _You can 
 add any fields that should be treated as internal to your system by 
 adding a list named `_private_fields` to your Document and listing each
 field_.
