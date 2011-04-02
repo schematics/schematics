@@ -239,7 +239,7 @@ exception if validation fails.
                 raise DictPunch('MD5 value is not hex',
                                 self.field_name, value)
     
-## Back to validation...
+## Stream-lined validation
 
 It's possible we don't want to instantiate a bunch of objects just to
 validate some fields, so let's see what it looks like to use a more
