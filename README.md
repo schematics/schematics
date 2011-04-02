@@ -152,11 +152,11 @@ This is the raw document as converted to a Python dictionary:
 
 Here is a document safe for transmitting to the owner of the document. We
 achieve this by calling `Movie.make_json_ownersafe`. This function is a 
-classmethod available on the `Document` class. It knows to remove `\_cls
-and `\_types` because they are in `Document.\_internal_fields`. _You can 
+classmethod available on the `Document` class. It knows to remove `_cls`
+and `_types` because they are in `Document._internal_fields`. _You can 
 add any fields that should be treated as internal to your system by 
 adding a list named `_private_fields` to your Document and listing each
-field_.
+field.
    
     {
         'personal_thoughts': u'I wish I had three hands...',
