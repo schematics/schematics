@@ -21,15 +21,21 @@ An `InvalidShield` exception is thrown when the input data can't be mapped
 to a `Document`.
 """
 
+### If you're using Python 2.6, you should use simplejson
+try:
+    import simplejson as json
+except:
+    import json
+
 _document_registry = {}
 
 def get_document(name):
     return _document_registry[name]
 
 
-##################
-### Exceptions ###
-##################
+###
+### Exceptions
+###
 
 class InvalidShield(Exception):
     """A shield has been put together incorrectly
@@ -52,9 +58,9 @@ class DictPunch(Exception):
                                 self.reason)
 
 
-##############
-### Fields ###
-##############
+###
+### Fields
+###
 
 class BaseField(object):
     """A base class for fields in a DictShield document. Instances of this class
@@ -94,15 +100,15 @@ class BaseField(object):
         """
         instance._data[self.field_name] = value
 
-    def to_python(self, value):
-        """Convert a DictShield type to a Python type.
+    def for_python(self, value):
+        """Convert a DictShield type into native Python value
         """
         return value
 
-    def to_json(self, value):
-        """Convert a DictShield type into a value safe for JSON.
+    def for_json(self, value):
+        """Convert a DictShield type into a value safe for JSON encoding
         """
-        return self.to_python(value)
+        return self.for_python(value)
 
     def validate(self, value):
         """Perform validation on a value.
@@ -140,9 +146,9 @@ class ObjectIdField(BaseField):
         except:
             raise DictPunch('Invalid Object ID')
 
-########################
-### Metaclass design ###
-########################
+###
+### Metaclass design
+###
         
 class DocumentMetaclass(type):
     """Metaclass for all documents.
@@ -274,9 +280,9 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
         return new_class
 
         
-###########################
-### Document structures ###
-###########################
+###
+### Document structures
+###
 
 class BaseDocument(object):
 
@@ -296,7 +302,6 @@ class BaseDocument(object):
             # Put a diaper on the keys that don't belong and send 'em home
             except AttributeError:
                 pass
-
 
     def validate(self):
         """Ensure that all fields' values are valid and that required fields
@@ -377,14 +382,14 @@ class BaseDocument(object):
             return unicode(self).encode('utf-8')
         return '%s object' % self.__class__.__name__
 
-    def to_json(self):
+    def to_python(self):
         """Return data dictionary ready for encoding into JSON.
         """
         data = {}
         for field_name, field in self._fields.items():
             value = getattr(self, field_name, None)
             if value is not None:
-                data[field.uniq_field] = field.to_json(value)
+                data[field.uniq_field] = field.for_json(value)
         # Only add _cls and _types if allow_inheritance is not False
         if not (hasattr(self, '_meta') and
                 self._meta.get('allow_inheritance', True) == False):
@@ -393,6 +398,12 @@ class BaseDocument(object):
         if data.has_key('_id') and not data['_id']:
             del data['_id']
         return data
+
+    def to_json(self):
+        """Return data encoded as JSON.
+        """
+        data = self.to_python()
+        return json.dumps(data)
 
     @classmethod
     def _from_son(cls, son): # TODO rename to json 

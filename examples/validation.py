@@ -63,10 +63,10 @@ else:
     print '%s exceptions found\n\n    %s\n' % (len(exceptions),
                                                [str(e) for e in exceptions])
 
-user_doc = User(**total_input).to_json()
-print '  Document:\n    %s\n' % (user_doc)
+user_doc = User(**total_input)
+print '  Document as Python:\n    %s\n' % (user_doc.to_python())
 safe_doc = User.make_json_ownersafe(user_doc)
 print '  Owner safe doc:\n    %s\n' % (safe_doc)
-public_safe_doc = User.make_json_publicsafe(safe_doc)
+public_safe_doc = User.make_json_publicsafe(user_doc)
 print '  Public safe doc:\n    %s\n' % (public_safe_doc)
 

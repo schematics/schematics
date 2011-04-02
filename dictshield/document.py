@@ -1,5 +1,7 @@
 from base import (BaseDocument, DictPunch, DocumentMetaclass, TopLevelDocumentMetaclass)
 
+from base import json
+
 __all__ = ['Document', 'EmbeddedDocument', 'DictPunch']
 
 
@@ -71,7 +73,7 @@ class Document(BaseDocument):
         """
         # single cls instance
         if isinstance(data, cls):
-            return fun(data.to_json())
+            return fun(data.to_python())
 
         # single dict instance
         elif isinstance(data, dict):
@@ -84,7 +86,7 @@ class Document(BaseDocument):
             elif isinstance(data[0], dict):
                 pass # written for clarity
             elif isinstance(data[0], cls):
-                data = [d.to_json() for d in data]
+                data = [d.to_python() for d in data]
             return map(fun, data)
 
     @classmethod
@@ -98,14 +100,15 @@ class Document(BaseDocument):
         """
         internal_fields = cls._get_internal_fields()
 
-        def handle_doc(data):
+        def handle_doc(doc_dict):
             # internal_fields is a blacklist
             for f in internal_fields:
-                if data.has_key(f):
-                    del data[f]
-            return data
+                if doc_dict.has_key(f):
+                    del doc_dict[f]
+            return doc_dict
 
-        return cls._safe_data_from_input(handle_doc, doc_dict_or_dicts)
+        trimmed = cls._safe_data_from_input(handle_doc, doc_dict_or_dicts)
+        return json.dumps(trimmed)
         
     
     @classmethod
@@ -120,14 +123,15 @@ class Document(BaseDocument):
         if cls._public_fields is None:
             raise DictPunch('make_json_publicsafe called cls with no _public_fields')
         
-        def handle_doc(doc):
+        def handle_doc(doc_dict):
             # public_fields is a whitelist
-            for f in doc.keys():
+            for f in doc_dict.keys():
                 if f not in cls._public_fields:
-                    del doc[f]
-            return doc
+                    del doc_dict[f]
+            return doc_dict
         
-        return cls._safe_data_from_input(handle_doc, doc_dict_or_dicts)
+        trimmed = cls._safe_data_from_input(handle_doc, doc_dict_or_dicts)
+        return json.dumps(trimmed)
 
 
     @classmethod
