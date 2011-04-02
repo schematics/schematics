@@ -198,7 +198,7 @@ First, here is the User model:
         bio = StringField(max_length=100)
         url = URLField()
 
-Next, we seed the instance with data validate it.
+Next, we seed the instance with some data and validate it.
     
     user = User(**{'secret': 'whatevs', 'name': 'test hash'})
     try:
@@ -206,8 +206,8 @@ Next, we seed the instance with data validate it.
     except DictPunch, dp:
         print 'DictPunch caught: %s' % (dp))
 
-This model validates an instance by looping through it's fields and calling
-`field.validate()` on each one. 
+This calling `validate()` on a model validates an instance by looping through
+it's fields and calling `field.validate()` on each one. 
 
 We can still be leaner. DictShield also allows validating input without 
 instantiating any objects.
@@ -223,14 +223,7 @@ We might write some server code that looks like this:
 
     json_string = request.get_arg('data')
     user_input = json.loads(json_string)
-
-Now recall that we validate the info like below.
-
-    u = User(**user_input)
-    try:
-        u.validate()
-    except DictPunch, dp:
-        print 'DictPunch caught: %s' % (dp))
+    u.validate(**user_input)
 
 This method builds a User instance out of the input, which also throws away 
 keys that aren't in the User definition.
