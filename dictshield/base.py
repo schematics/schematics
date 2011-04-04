@@ -383,13 +383,14 @@ class BaseDocument(object):
         return '%s object' % self.__class__.__name__
 
     def to_python(self):
-        """Return data dictionary ready for encoding into JSON.
+        """Returns a Python dictionary representing the Document's metastructure
+        and values.
         """
         data = {}
         for field_name, field in self._fields.items():
             value = getattr(self, field_name, None)
             if value is not None:
-                data[field.uniq_field] = field.for_json(value)
+                data[field.uniq_field] = field.for_python(value)
         # Only add _cls and _types if allow_inheritance is not False
         if not (hasattr(self, '_meta') and
                 self._meta.get('allow_inheritance', True) == False):
