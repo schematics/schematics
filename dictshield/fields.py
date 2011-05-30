@@ -346,17 +346,24 @@ class GeoPointField(BaseField):
     def validate(self, value):
         """Make sure that a geo-value is of type (x, y)
         """
-        if not isinstance(value, (list, tuple)):
-            raise DictPunch('GeoPointField can only accept tuples or '
-                            'lists of (x, y)', self.field_name, value)
-
         if not len(value) == 2:
             raise DictPunch('Value must be a two-dimensional point',
                             self.field_name, value)
-        if (not isinstance(value[0], (float, int)) and
-            not isinstance(value[1], (float, int))):
-            raise DictPunch('Both values in point must be float or int',
+        if isinstance(value, dict):
+            for v in value.values():
+                if not isinstance(v, (float, int)):
+                    raise DictPunch('Both values in point must be float or int',
+                                    self.field_name, value)
+        elif isinstance(value, (list, tuple)):
+            if (not isinstance(value[0], (float, int)) and
+                not isinstance(value[1], (float, int))):
+                raise DictPunch('Both values in point must be float or int',
+                                self.field_name, value)
+        else:
+            raise DictPunch('GeoPointField can only accept tuples, '
+                            'lists of (x, y), or dicts of {k1: v1, k2: v2}', 
                             self.field_name, value)
+
 
 ###
 ### Sub structures
