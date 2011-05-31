@@ -90,7 +90,7 @@ class Document(BaseDocument):
             return map(fun, data)
 
     @classmethod
-    def make_json_ownersafe(cls, doc_dict_or_dicts):
+    def make_ownersafe(cls, doc_dict_or_dicts):
         """This function removes internal fields and handles any steps
         required for making the data stucture (list, dict or Document)
         safe for transmission to the owner of the data.
@@ -108,11 +108,17 @@ class Document(BaseDocument):
             return doc_dict
 
         trimmed = cls._safe_data_from_input(handle_doc, doc_dict_or_dicts)
+        return trimmed
+
+    @classmethod
+    def make_json_ownersafe(cls, doc_dict_or_dicts):
+        """Trims the object using make_ownersafe and dumps to JSON
+        """
+        trimmed = cls.make_ownersafe(doc_dict_or_dicts)
         return json.dumps(trimmed)
-        
     
     @classmethod
-    def make_json_publicsafe(cls, doc_dict_or_dicts):
+    def make_publicsafe(cls, doc_dict_or_dicts):
         """This funciton ensures found_data only contains the keys as
         listed in cls._public_fields.
 
@@ -131,8 +137,14 @@ class Document(BaseDocument):
             return doc_dict
         
         trimmed = cls._safe_data_from_input(handle_doc, doc_dict_or_dicts)
-        return json.dumps(trimmed)
+        return trimmed
 
+    @classmethod
+    def make_json_publicsafe(cls, doc_dict_or_dicts):
+        """Trims the object using make_publicsafe and dumps to JSON
+        """
+        trimmed = cls.make_publicsafe(doc_dict_or_dicts)
+        return json.dumps(trimmed)
 
     @classmethod
     def _validate_helper(cls, fun, values, validate_all=False):
