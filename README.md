@@ -356,6 +356,11 @@ DictShield is in [pypi](http://pypi.python.org) so you can use `easy_install` or
     pip install dictshield
 
 
+# Contributors
+
+James Dennis, Andrew Gwozdziewycz and Dion Paragas
+
+
 # License
 
 BSD!
