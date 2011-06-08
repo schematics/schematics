@@ -53,7 +53,7 @@ class DictPunch(Exception):
         self.field_value = field_value
 
     def __str__(self):
-        return '%s(%s):  %s' % (self.field_name,
+        return '%s(%s) - %s' % (self.field_name,
                                 self.field_value,
                                 self.reason)
 
