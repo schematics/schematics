@@ -1,16 +1,16 @@
-From Media class to mongo structure:
+From Media class to json structure:
 
-    {'_types': ['Media'], '_cls': 'Media', 'title': u'Misc Media'}
+    {"_types": ["Media"], "_cls": "Media", "title": "Misc Media"}
 
-From Movie class to mongo structure:
+From Movie class to json structure:
 
-    {'personal_thoughts': u'I wish I had three hands...', '_types': ['Media', 'Media.Movie'], 'title': u'Total Recall', '_cls': 'Media.Movie', 'year': 1990}
+    {"personal_thoughts": "I wish I had three hands...", "_types": ["Media", "Media.Movie"], "title": "Total Recall", "_cls": "Media.Movie", "year": 1990}
 
 Making mv json safe:
 
-    {'personal_thoughts': u'I wish I had three hands...', 'title': u'Total Recall', 'year': 1990}
+    {"personal_thoughts": "I wish I had three hands...", "title": "Total Recall", "year": 1990}
 
 Making mv json public safe (only ['title', 'year'] should show):
 
-    {'title': u'Total Recall', 'year': 1990}
+    {"title": "Total Recall", "year": 1990}
 
