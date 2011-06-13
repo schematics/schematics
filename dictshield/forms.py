@@ -39,7 +39,6 @@ Using it looks a bit like this:
 """
 
 
-import itertools
 from dictshield.base import TopLevelDocumentMetaclass
 from dictshield.base import BaseField
 
