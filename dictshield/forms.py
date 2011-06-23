@@ -8,9 +8,10 @@ Using it looks a bit like this:
         owner = ObjectIdField()
         user = StringField()
         title = StringField(max_length=40)
+        password = StringField(max_length=128)
         _private_fields = ['owner']
 
-    # A second Document 
+    # A second Document to demonstrate how things can fail
     class SomethingElse(Document):
         o = ObjectIdField()
         u = StringField()
@@ -43,6 +44,15 @@ from dictshield.base import TopLevelDocumentMetaclass
 from dictshield.base import BaseField
 
 
+default_field_map = {
+    'BooleanField': 'radio',
+}
+
+default_name_map = {
+    'password': 'password',
+}
+
+
 class FormPunch(Exception):
     """Is Wayne Brady gonna have to choke a Dict?
     """
@@ -53,28 +63,58 @@ class Form(object):
     """This is the frame of a car with no doors, a seat for the driver and a
     steering wheel and two gears: div and paragraph
     """
-    def __init__(self, model):
+    def __init__(self, model, field_map=default_field_map,
+                 name_map=default_name_map):
         if not isinstance(model, TopLevelDocumentMetaclass):
             error_msg = '<model> argument must be top level DictShield class'
             raise FormPunch(error_msg)
+
+        # Model should be a dictshield document
         self._model = model
+
+        # The name of the class
         self._class_name = model._class_name
+
+        # Field Maps allow mapping fields to input types
+        self._field_map = field_map
+
+        # Override field maps by class name of field
+        self._name_map = name_map
+            
 
     ###
     ### Formatting Helpers
     ###
 
     def _included_fields(self):
-        """An internal generator that provides a collection of data per
-        iteration for use in a formatting outputter, like `as_p`.
+        """A generator that provides a collection of data per iteration for use
+        in a formatting outputter, like `as_p`.
         """
         for name, field in self._model._fields.items():
             if field.field_name: # field itself must be correct
                 if field.field_name in self._model._get_internal_fields():
                     continue
+
+                # Human representation of the name
                 name = name.replace('_', ' ')
                 name = name.title()
-                yield (name, field.field_name)
+
+                # These values are keys in override maps
+                field_name = field.field_name
+                field_class = field.__class__.__name__
+                
+                # If field is named in _name_map, use that field
+                if field_name in self._name_map:
+                    field_type = self._name_map[field_name]
+                # If field not in _name_map, check for override in field_map
+                elif field_class in self._field_map:
+                    field_type = self._field_map[field_class]
+                # Default to text input
+                else:
+                    field_type = 'text'            
+
+                yield (name, field_type, field.field_name)
+
 
     def _format_loop(self, format_str, values):
         """The fundamental loop for generating a formatted output string for
@@ -87,6 +127,7 @@ class Form(object):
         The `DictShield` instance will be converted to a dictionary using a call
         to `.to_python()`.
         """
+        # Inspect the values given for adherence to self._model's design
         if values is None:
             values = dict()
         elif isinstance(values, self._model):
@@ -99,16 +140,26 @@ class Form(object):
             error_str = '<values> argument must match self._model or be a dict'
             raise FormPunch(error_str)
 
-        formatted = ''
-        for (name, field) in self._included_fields():
+        # Loop around the fields and print a formatted output string for each
+        formatted = []
+        for (name, type, field) in self._included_fields():
             value = values.get(field, None)
             if value:
                 value_str = self._value_str(value)
             else:
                 value_str = ''
 
-            formatted = formatted + format_str % (name, field, value_str)
-        return formatted
+            args = {
+                'name': name,
+                'type': type,
+                'field': field,
+                'value_str': value_str,
+            }
+            formatted.append(format_str % args)
+
+        # we's done, dawg
+        return '\n'.join(formatted)
+
 
     def _value_str(self, value):
         """An internal function for printing a value= attribute string as
@@ -124,18 +175,20 @@ class Form(object):
         else:
             return ''
 
+
     ###
     ### Form Generation
     ###
 
     def as_p(self, values=dict()):
-        s = '<p>%s: <input type="text" name="%s" %s/></p>'
+        s = '<p>%(name)s: <input type="%(type)s" name="%(field)s" %(value_str)s /></p>'
         return self._format_loop(s, values)
-        
+
+
     def as_div(self, values=dict()):
         s = """<div>
-    <label>%s:</label>
-    <input type="text" name="%s" %s/>
+    <label>%(name)s:</label>
+    <input type="%(type)s" name="%(field)s" %(value_str)s />
 </div>
 """
         return self._format_loop(s, values)
