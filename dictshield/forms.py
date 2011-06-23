@@ -44,10 +44,12 @@ from dictshield.base import TopLevelDocumentMetaclass
 from dictshield.base import BaseField
 
 
+# ClassName => input type
 default_field_map = {
     'BooleanField': 'radio',
 }
 
+# Document field name => input type
 default_name_map = {
     'password': 'password',
 }
