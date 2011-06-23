@@ -138,7 +138,7 @@ class IntField(NumberField):
     def __init__(self, *args, **kwargs):
         super(IntField, self).__init__(number_class=int,
                                        number_type='Int',
-                                           *args, **kwargs)
+                                       *args, **kwargs)
 
 class LongField(NumberField):
     """A field that validates input as a Long
