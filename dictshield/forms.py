@@ -37,6 +37,15 @@ Using it looks a bit like this:
     # This call would throw an error as f is bound to `Something` because `se`
     # is a `SomethingElse` instance.
     print f.as_div(se)
+
+    # Print a styled form
+    style_dict = {
+        'div_class': 'forms_row',
+        'label_class': 'forms_label',
+        'input_class': 'form_value',
+    }
+    print f.as_div(s, **style_dict)
+    
 """
 
 
