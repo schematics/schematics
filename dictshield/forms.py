@@ -118,7 +118,7 @@ class Form(object):
                 yield (name, field_type, field.field_name)
 
 
-    def _format_loop(self, format_str, values):
+    def _format_loop(self, format_str, values, style_values):
         """The fundamental loop for generating a formatted output string for
         html forms. Takes a format string `format_str` and applies the list of
         values to it.
@@ -128,6 +128,8 @@ class Form(object):
 
         The `DictShield` instance will be converted to a dictionary using a call
         to `.to_python()`.
+
+        CAUTION: style_values is subject to side-effects for speed
         """
         # Inspect the values given for adherence to self._model's design
         if values is None:
@@ -151,16 +153,20 @@ class Form(object):
             else:
                 value_str = ''
 
-            args = {
-                'name': name,
-                'type': type,
-                'field': field,
-                'value_str': value_str,
-            }
-            formatted.append(format_str % args)
+            style_values['name'] = name
+            style_values['type'] = type
+            style_values['field'] = field
+            style_values['value_str'] = value_str
+            formatted.append(format_str % style_values)
 
         # we's done, dawg
         return '\n'.join(formatted)
+
+    def _class_str(self, attr_value):
+        if attr_value:
+            return ' class="%s"' % attr_value
+        
+        return ''
 
 
     def _value_str(self, value):
@@ -174,23 +180,41 @@ class Form(object):
         # value is not a class
         if value:
             return 'value="%s" ' % value
-        else:
-            return ''
+        
+        return ''
 
 
     ###
     ### Form Generation
     ###
 
-    def as_p(self, values=dict()):
-        s = '<p>%(name)s: <input type="%(type)s" name="%(field)s" %(value_str)s /></p>'
-        return self._format_loop(s, values)
+    def as_p(self, values=dict(), p_class=None, input_class=None):
+        style_values = {}
+        
+        if p_class:
+            style_values['p_class'] = self._class_str(p_class)
+        if input_class:
+            style_values['input_class'] = self._class_str(input_class)
+        
+        s = '<p%(p_class)s>%(name)s: <input%(input_class)s type="%(type)s" name="%(field)s" %(value_str)s/></p>'
+
+        return self._format_loop(s, values, style_values)
 
 
-    def as_div(self, values=dict()):
-        s = """<div>
-    <label>%(name)s:</label>
-    <input type="%(type)s" name="%(field)s" %(value_str)s />
+    def as_div(self, values=dict(), div_class='', label_class='',
+               input_class=''):
+        style_values = {}
+        
+        if div_class:
+            style_values['div_class'] = self._class_str(div_class)
+        if label_class:
+            style_values['label_class'] = self._class_str(label_class)
+        if input_class:
+            style_values['input_class'] = self._class_str(input_class)
+        
+        s = """<div%(div_class)s>
+    <label%(label_class)s>%(name)s:</label>
+    <input%(input_class)s type="%(type)s" name="%(field)s" %(value_str)s/>
 </div>
 """
-        return self._format_loop(s, values)
+        return self._format_loop(s, values, style_values)
