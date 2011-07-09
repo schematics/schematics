@@ -75,7 +75,7 @@ class Form(object):
     steering wheel and two gears: div and paragraph
     """
     def __init__(self, model, field_map=default_field_map,
-                 name_map=default_name_map):
+                 name_map=default_name_map, blacklist=None):
         if not isinstance(model, TopLevelDocumentMetaclass):
             error_msg = '<model> argument must be top level DictShield class'
             raise FormPunch(error_msg)
@@ -91,6 +91,12 @@ class Form(object):
 
         # Override field maps by class name of field
         self._name_map = name_map
+
+        # Check for override or default to `model._get_internal_fields`
+        if blacklist:
+            self._hidden_fields = blacklist
+        else:
+            self._hidden_fields = model._get_internal_fields()
             
 
     ###
@@ -103,7 +109,7 @@ class Form(object):
         """
         for name, field in self._model._fields.items():
             if field.field_name: # field itself must be correct
-                if field.field_name in self._model._get_internal_fields():
+                if field.field_name in self._hidden_fields:
                     continue
 
                 # Human representation of the name
