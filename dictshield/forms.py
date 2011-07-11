@@ -74,7 +74,7 @@ class Form(object):
     """This is the frame of a car with no doors, a seat for the driver and a
     steering wheel and two gears: div and paragraph
     """
-    def __init__(self, model, field_map=default_field_map,
+    def __init__(self, model, fields=None, field_map=default_field_map,
                  name_map=default_name_map):
         if not isinstance(model, TopLevelDocumentMetaclass):
             error_msg = '<model> argument must be top level DictShield class'
@@ -91,6 +91,17 @@ class Form(object):
 
         # Override field maps by class name of field
         self._name_map = name_map
+
+        # `fields` is treated as a way to override DictShield field privacy
+        #
+        # This behavior is desireable for letting users update fields that might
+        # have privacy restraints for serializable forms.
+        if fields:
+            internal_fields = set(model._internal_fields)
+            private_overrides = set(fields)
+            self._fields = internal_fields.union(private_overrides)
+        else:
+            self._fields = self._model._get_internal_fields()
             
 
     ###
@@ -103,7 +114,7 @@ class Form(object):
         """
         for name, field in self._model._fields.items():
             if field.field_name: # field itself must be correct
-                if field.field_name in self._model._get_internal_fields():
+                if field.field_name in self._fields:
                     continue
 
                 # Human representation of the name
@@ -153,7 +164,7 @@ class Form(object):
             error_str = '<values> argument must match self._model or be a dict'
             raise FormPunch(error_str)
 
-        # Loop around the fields and print a formatted output string for each
+        # Loop around the fields and create a formatted output string for each
         formatted = []
         for (name, type, field) in self._included_fields():
             if skip_fields and field in skip_fields:
