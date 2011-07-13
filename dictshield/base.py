@@ -137,8 +137,11 @@ class ObjectIdField(BaseField):
     """A basic abstraction for ObjectId's. Users of `ObjectIdField` are
     expected to provide value safe for unicode.
     """
-    def to_python(self, value):
-        return value
+    def for_python(self, value):
+        return unicode(value)
+    
+    def for_json(self, value):
+        return unicode(value)
 
     def validate(self, value):
         try:
@@ -382,15 +385,17 @@ class BaseDocument(object):
             return unicode(self).encode('utf-8')
         return '%s object' % self.__class__.__name__
 
-    def to_python(self):
-        """Returns a Python dictionary representing the Document's metastructure
+    def _data_format(self, format):
+        """Returns a format dictionary representing the Document's metastructure
         and values.
+        format options: 'for_python', 'for_json'
         """
         data = {}
         for field_name, field in self._fields.items():
             value = getattr(self, field_name, None)
             if value is not None:
-                data[field.uniq_field] = field.for_python(value)
+                method = getattr(field, format)
+                data[field.uniq_field] = method(value)
         # Only add _cls and _types if allow_inheritance is not False
         if not (hasattr(self, '_meta') and
                 self._meta.get('allow_inheritance', True) == False):
@@ -400,11 +405,16 @@ class BaseDocument(object):
             del data['_id']
         return data
 
+    def to_python(self):
+        """Returns a Python dictionary representing the Document's metastructure
+        and values.
+        """
+        return self._data_format('for_python')
+
     def to_json(self):
         """Return data encoded as JSON.
         """
-        data = self.to_python()
-        return json.dumps(data)
+        return self._data_format('for_json')
 
     @classmethod
     def _from_son(cls, son): # TODO rename to json 
@@ -413,7 +423,7 @@ class BaseDocument(object):
         # get the class name from the document, falling back to the given
         # class if unavailable
         class_name = son.get(u'_cls', cls._class_name)
-
+        
         data = dict((str(key), value) for key, value in son.items())
 
         if '_types' in data:
