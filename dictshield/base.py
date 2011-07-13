@@ -133,23 +133,33 @@ class BaseField(object):
 
         self.validate(value)
 
+
+### ID Fields
+
 class ObjectIdField(BaseField):
-    """A basic abstraction for ObjectId's. Users of `ObjectIdField` are
-    expected to provide value safe for unicode.
+    """An field wrapper around MongoDB ObjectIds.
     """
+
     def to_python(self, value):
-        return value
+        try:
+            return bson.objectid.ObjectId(unicode(value))
+        except Exception, e:
+            raise InvalidShield(unicode(e))
+
+    def for_json(self, value):
+        return str(value)
 
     def validate(self, value):
         try:
-            unicode(value)
+            bson.objectid.ObjectId(unicode(value))
         except:
-            raise DictPunch('Invalid Object ID')
+            raise DictPunch('Invalid ObjectId')
+
 
 ###
 ### Metaclass design
 ###
-        
+ 
 class DocumentMetaclass(type):
     """Metaclass for all documents.
     """
@@ -298,6 +308,8 @@ class BaseDocument(object):
         # Assign initial values to instance
         for attr_name,attr_value in values.items():
             try:
+                if attr_name == '_id':
+                    attr_name = 'id'
                 setattr(self, attr_name, attr_value)
             # Put a diaper on the keys that don't belong and send 'em home
             except AttributeError:
@@ -382,28 +394,48 @@ class BaseDocument(object):
             return unicode(self).encode('utf-8')
         return '%s object' % self.__class__.__name__
 
-    def to_python(self):
+    ###
+    ### Serialization
+    ###
+
+    def _to_fields(self, field_converter):
         """Returns a Python dictionary representing the Document's metastructure
         and values.
         """
         data = {}
+
+        # First map the subclasses of BaseField
         for field_name, field in self._fields.items():
             value = getattr(self, field_name, None)
             if value is not None:
-                data[field.uniq_field] = field.for_python(value)
+                #data[field.uniq_field] = field.for_python(value)
+                data[field.uniq_field] = field_converter(field, value)
+                
         # Only add _cls and _types if allow_inheritance is not False
         if not (hasattr(self, '_meta') and
                 self._meta.get('allow_inheritance', True) == False):
             data['_cls'] = self._class_name
             data['_types'] = self._superclasses.keys() + [self._class_name]
+            
         if data.has_key('_id') and not data['_id']:
             del data['_id']
+            
+        return data
+
+    def to_python(self):
+        """Returns a Python dictionary representing the Document's metastructure
+        and values.
+        """
+        fun = lambda f, v: f.for_python(v)
+        data = self._to_fields(fun)
         return data
 
     def to_json(self):
         """Return data encoded as JSON.
         """
-        data = self.to_python()
+        #data = self.to_python()
+        fun = lambda f, v: f.for_json(v)
+        data = self._to_fields(fun)
         return json.dumps(data)
 
     @classmethod
