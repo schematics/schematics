@@ -405,6 +405,7 @@ class BaseDocument(object):
     def _to_fields(self, field_converter):
         """Returns a Python dictionary representing the Document's metastructure
         and values.
+        format options: 'for_python', 'for_json'
         """
         data = {}
 
@@ -434,6 +435,12 @@ class BaseDocument(object):
         data = self._to_fields(fun)
         return data
 
+    def to_python(self):
+        """Returns a Python dictionary representing the Document's metastructure
+        and values.
+        """
+        return self._data_format('for_python')
+
     def to_json(self):
         """Return data encoded as JSON.
         """
@@ -449,7 +456,7 @@ class BaseDocument(object):
         # get the class name from the document, falling back to the given
         # class if unavailable
         class_name = son.get(u'_cls', cls._class_name)
-
+        
         data = dict((str(key), value) for key, value in son.items())
 
         if '_types' in data:
