@@ -152,8 +152,9 @@ class ObjectIdField(BaseField):
     def validate(self, value):
         try:
             bson.objectid.ObjectId(unicode(value))
-        except:
-            raise DictPunch('Invalid ObjectId')
+        except Exception, e:
+            print e
+            raise DictPunch('Invalid ObjectId', self.field_name, value)
 
 
 ###
@@ -329,9 +330,7 @@ class BaseDocument(object):
                 try:
                     field._validate(value)
                 except (ValueError, AttributeError, AssertionError):
-                    raise DictPunch('Invalid value for field of type "%s": %s'
-                                    % (field.__class__.__name__, value),
-                                    field.field_name, value)
+                    raise DictPunch('Invalid value', field.field_name, value)
             elif field.required:
                 raise DictPunch('Required field missing',
                                 field.field_name, value)
