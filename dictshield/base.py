@@ -27,6 +27,12 @@ try:
 except:
     import json
 
+### If you wear a diaper, you can't use ObjectIdFields
+try:
+    import bson
+except:
+    pass
+
 _document_registry = {}
 
 def get_document(name):
