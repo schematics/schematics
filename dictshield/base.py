@@ -159,7 +159,6 @@ class ObjectIdField(BaseField):
         try:
             bson.objectid.ObjectId(unicode(value))
         except Exception, e:
-            print e
             raise DictPunch('Invalid ObjectId', self.field_name, value)
 
 
