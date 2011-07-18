@@ -304,7 +304,6 @@ class BaseDocument(object):
 
     def __init__(self, **values):
         self._data = {}
-
         # Assign default values to instance
         for attr_name, attr_value in self._fields.items():
             # Use default value if present
@@ -405,7 +404,6 @@ class BaseDocument(object):
     def _to_fields(self, field_converter):
         """Returns a Python dictionary representing the Document's metastructure
         and values.
-        format options: 'for_python', 'for_json'
         """
         data = {}
 
@@ -439,7 +437,9 @@ class BaseDocument(object):
         """Returns a Python dictionary representing the Document's metastructure
         and values.
         """
-        return self._data_format('for_python')
+        fun = lambda f, v: f.for_python(v)
+        data = self._to_fields(fun)
+        return data
 
     def to_json(self):
         """Return data encoded as JSON.
@@ -464,7 +464,6 @@ class BaseDocument(object):
 
         if '_cls' in data:
             del data['_cls']
-
         # Return correct subclass for document type
         if class_name != cls._class_name:
             subclasses = cls._get_subclasses()
@@ -475,12 +474,12 @@ class BaseDocument(object):
             cls = subclasses[class_name]
 
         present_fields = data.keys()
-
+        #BUGFIX: changed fb_field to field_name and to_python to for_python
         for field_name, field in cls._fields.items():
-            if field.fb_field in data:
+            if field.field_name in data:
                 value = data[field.uniq_field]
                 data[field_name] = (value if value is None
-                                    else field.to_python(value))
+                                    else field.for_python(value))
 
         obj = cls(**data)
         obj._present_fields = present_fields
