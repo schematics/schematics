@@ -291,7 +291,6 @@ class BaseDocument(object):
 
     def __init__(self, **values):
         self._data = {}
-
         # Assign default values to instance
         for attr_name, attr_value in self._fields.items():
             # Use default value if present
@@ -385,36 +384,49 @@ class BaseDocument(object):
             return unicode(self).encode('utf-8')
         return '%s object' % self.__class__.__name__
 
-    def _data_format(self, format):
-        """Returns a format dictionary representing the Document's metastructure
+    ###
+    ### Serialization
+    ###
+
+    def _to_fields(self, field_converter):
+        """Returns a Python dictionary representing the Document's metastructure
         and values.
-        format options: 'for_python', 'for_json'
         """
         data = {}
+
+        # First map the subclasses of BaseField
         for field_name, field in self._fields.items():
             value = getattr(self, field_name, None)
             if value is not None:
-                method = getattr(field, format)
-                data[field.uniq_field] = method(value)
+                #data[field.uniq_field] = field.for_python(value)
+                data[field.uniq_field] = field_converter(field, value)
+                
         # Only add _cls and _types if allow_inheritance is not False
         if not (hasattr(self, '_meta') and
                 self._meta.get('allow_inheritance', True) == False):
             data['_cls'] = self._class_name
             data['_types'] = self._superclasses.keys() + [self._class_name]
+            
         if data.has_key('_id') and not data['_id']:
             del data['_id']
+            
         return data
 
     def to_python(self):
         """Returns a Python dictionary representing the Document's metastructure
         and values.
         """
-        return self._data_format('for_python')
+        fun = lambda f, v: f.for_python(v)
+        data = self._to_fields(fun)
+        return data
 
     def to_json(self):
         """Return data encoded as JSON.
         """
-        return self._data_format('for_json')
+        #data = self.to_python()
+        fun = lambda f, v: f.for_json(v)
+        data = self._to_fields(fun)
+        return json.dumps(data)
 
     @classmethod
     def _from_son(cls, son): # TODO rename to json 
@@ -431,7 +443,6 @@ class BaseDocument(object):
 
         if '_cls' in data:
             del data['_cls']
-
         # Return correct subclass for document type
         if class_name != cls._class_name:
             subclasses = cls._get_subclasses()
@@ -442,12 +453,12 @@ class BaseDocument(object):
             cls = subclasses[class_name]
 
         present_fields = data.keys()
-
+        #BUGFIX: changed fb_field to field_name and to_python to for_python
         for field_name, field in cls._fields.items():
-            if field.fb_field in data:
+            if field.field_name in data:
                 value = data[field.uniq_field]
                 data[field_name] = (value if value is None
-                                    else field.to_python(value))
+                                    else field.for_python(value))
 
         obj = cls(**data)
         obj._present_fields = present_fields

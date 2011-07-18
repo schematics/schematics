@@ -394,7 +394,7 @@ class EmbeddedDocumentField(BaseField):
     def for_python(self, value):
         if not isinstance(value, self.document_type):
             return self.document_type._from_son(value)
-        return value
+        return value.to_python()
 
     def for_json(self, value):
         if not isinstance(value, self.document_type):
