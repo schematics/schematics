@@ -407,7 +407,7 @@ class EmbeddedDocumentField(BaseField):
     
     def for_python_dict(self, value):
         data = self._to_instance(value)
-        return data.to_python()
+        return data.to_python_dict()
         
     def for_python(self, value):
         data = self._to_instance(value)
