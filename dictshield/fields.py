@@ -399,7 +399,7 @@ class EmbeddedDocumentField(BaseField):
     def for_json(self, value):
         if not isinstance(value, self.document_type):
             return self.document_type.for_json(value)
-        return value.to_json()
+        return value.to_python()
 
     def validate(self, value):
         """Make sure that the document instance is an instance of the
