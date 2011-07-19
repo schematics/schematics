@@ -1,5 +1,5 @@
 from base import BaseField, ObjectIdField, DictPunch, InvalidShield, get_document
-from document import EmbeddedDocument
+from document import EmbeddedDocument, Document
 from operator import itemgetter
 
 import re
@@ -398,12 +398,21 @@ class EmbeddedDocumentField(BaseField):
     def _to_instance(self, value):
         data = value
         if not isinstance(data, self.document_type):
-            data = self.document_type._from_son(data)
+            print 'hello world'
+            try:
+                data = self.document_type._from_son(data)
+            except:
+                raise DictPunch('Invalid data '
+                                  'provided to an EmbeddedDocumentField')
         return data
     
-    def for_python(self, value):
+    def for_python_dict(self, value):
         data = self._to_instance(value)
         return data.to_python()
+        
+    def for_python(self, value):
+        data = self._to_instance(value)
+        return data
 
     def for_json(self, value):
         data = self._to_instance(value)
@@ -414,10 +423,8 @@ class EmbeddedDocumentField(BaseField):
         EmbeddedDocument subclass provided when the document was defined.
         """
         # Using isinstance also works for subclasses of self.document
-        if not isinstance(value, self.document_type):
-            raise DictPunch('Invalid embedded document instance '
-                                  'provided to an EmbeddedDocumentField')
-        self.document_type.validate(value)
+        data = self._to_instance(value)
+        self.document_type.validate(data)
 
     def lookup_member(self, member_name):
         return self.document_type._fields.get(member_name)

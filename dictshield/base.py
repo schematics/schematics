@@ -27,6 +27,12 @@ try:
 except:
     import json
 
+### If you wear a diaper, you can't use ObjectIdFields
+try:
+    import bson
+except:
+    pass
+
 _document_registry = {}
 
 def get_document(name):
@@ -100,6 +106,11 @@ class BaseField(object):
         """
         instance._data[self.field_name] = value
 
+    def for_python_dict(self, value):
+        """Convert a DictShield type into native Python value
+        """
+        return self.for_python(value)
+
     def for_python(self, value):
         """Convert a DictShield type into native Python value
         """
@@ -138,16 +149,19 @@ class ObjectIdField(BaseField):
     expected to provide value safe for unicode.
     """
     def for_python(self, value):
-        return unicode(value)
-    
+        try:
+            return bson.objectid.ObjectId(unicode(value))
+        except Exception, e:
+            raise InvalidShield(unicode(e))
+
     def for_json(self, value):
-        return unicode(value)
+        return str(value)
 
     def validate(self, value):
         try:
-            unicode(value)
-        except:
-            raise DictPunch('Invalid Object ID')
+            bson.objectid.ObjectId(unicode(value))
+        except Exception, e:
+            raise DictPunch('Invalid ObjectId', self.field_name, value)
 
 ###
 ### Metaclass design
@@ -410,6 +424,14 @@ class BaseDocument(object):
         if data.has_key('_id') and not data['_id']:
             del data['_id']
             
+        return data
+
+    def to_python_dict(self):
+        """Returns a Python dictionary representing the Document's metastructure
+        and values.
+        """
+        fun = lambda f, v: f.for_python_dict(v)
+        data = self._to_fields(fun)
         return data
 
     def to_python(self):
