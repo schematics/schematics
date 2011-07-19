@@ -304,6 +304,7 @@ class BaseDocument(object):
 
     def __init__(self, **values):
         self._data = {}
+
         # Assign default values to instance
         for attr_name, attr_value in self._fields.items():
             # Use default value if present
@@ -433,14 +434,6 @@ class BaseDocument(object):
         data = self._to_fields(fun)
         return data
 
-    def to_python(self):
-        """Returns a Python dictionary representing the Document's metastructure
-        and values.
-        """
-        fun = lambda f, v: f.for_python(v)
-        data = self._to_fields(fun)
-        return data
-
     def to_json(self):
         """Return data encoded as JSON.
         """
@@ -456,7 +449,7 @@ class BaseDocument(object):
         # get the class name from the document, falling back to the given
         # class if unavailable
         class_name = son.get(u'_cls', cls._class_name)
-        
+
         data = dict((str(key), value) for key, value in son.items())
 
         if '_types' in data:
@@ -464,6 +457,7 @@ class BaseDocument(object):
 
         if '_cls' in data:
             del data['_cls']
+
         # Return correct subclass for document type
         if class_name != cls._class_name:
             subclasses = cls._get_subclasses()
@@ -474,7 +468,7 @@ class BaseDocument(object):
             cls = subclasses[class_name]
 
         present_fields = data.keys()
-        #BUGFIX: changed fb_field to field_name and to_python to for_python
+        # BUGFIX: changed fb_field to field_name and to_python to for_python
         for field_name, field in cls._fields.items():
             if field.field_name in data:
                 value = data[field.uniq_field]
