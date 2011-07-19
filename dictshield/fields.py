@@ -398,7 +398,6 @@ class EmbeddedDocumentField(BaseField):
     def _to_instance(self, value):
         data = value
         if not isinstance(data, self.document_type):
-            print 'hello world'
             try:
                 data = self.document_type._from_son(data)
             except:
