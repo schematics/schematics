@@ -391,15 +391,23 @@ class EmbeddedDocumentField(BaseField):
                 self.document_type_obj = get_document(self.document_type_obj)
         return self.document_type_obj
 
+###
+###return from son when not instance then process serialization
+###
+
+    def _to_instance(self, value):
+        data = value
+        if not isinstance(data, self.document_type):
+            data = self.document_type._from_son(data)
+        return data
+    
     def for_python(self, value):
-        if not isinstance(value, self.document_type):
-            return self.document_type._from_son(value)
-        return value.to_python()
+        data = self._to_instance(value)
+        return data.to_python()
 
     def for_json(self, value):
-        if not isinstance(value, self.document_type):
-            return self.document_type.for_json(value)
-        return value.to_json()
+        data = self._to_instance(value)
+        return data.to_python()
 
     def validate(self, value):
         """Make sure that the document instance is an instance of the
