@@ -119,7 +119,8 @@ class BaseField(object):
     def for_json(self, value):
         """Convert a DictShield type into a value safe for JSON encoding
         """
-        return self.for_python(value)
+        return json.dumps(value)
+#        return self.for_json(value)
 
     def validate(self, value):
         """Perform validation on a value.
@@ -448,7 +449,7 @@ class BaseDocument(object):
         #data = self.to_python()
         fun = lambda f, v: f.for_json(v)
         data = self._to_fields(fun)
-        return json.dumps(data)
+        return data
 
     @classmethod
     def _from_son(cls, son): # TODO rename to json 

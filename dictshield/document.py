@@ -182,7 +182,12 @@ class Document(BaseDocument):
                     continue
 
             if fun(k, v):
-                datum = values[k]
+                try:
+                    datum = values[k]
+                except KeyError:
+                    e = DictPunch('Required Embedded Field Not Found:', k, v)
+                    handle_exception(e)
+                    continue
                 # if datum is None, skip
                 if datum is None:
                     continue
