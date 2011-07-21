@@ -12,8 +12,8 @@ class Product(EmbeddedDocument):
     num_in_stock = IntField()
 
 class Order(EmbeddedDocument):
-    #date_made = DateTimeField(required=True)
-    #date_changed = DateTimeField()
+    date_made = DateTimeField(required=True)
+    date_changed = DateTimeField()
     line_items = ListField(EmbeddedDocumentField(Product))
     total = FloatField()
 
@@ -30,13 +30,11 @@ product = Product(sku=1,
                   title="Japanese Bowl",
                   description="A Japanese laquered bowl",
                   price=3.99,
-                  num_in_stock=3
-                 )
+                  num_in_stock=3)
 
-order = Order(#date_made = datetime.datetime.utcnow(),
+order = Order(date_made = datetime.datetime.utcnow(),
               line_items = [product,product],
-              total = 7.98,
-             )
+              total = 7.98)
 
 customer = Customer(username="ben",
                     email="ben@ben.com",

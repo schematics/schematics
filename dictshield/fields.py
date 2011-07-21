@@ -242,12 +242,37 @@ class BooleanField(BaseField):
             raise DictPunch('Not a boolean', self.field_name, value)
 
 class DateTimeField(BaseField):
-    """A datetime field.
+    """A datetime field. 
     """
+    def __set__(self, instance, value):
+        """If `value` is a string, the string should match iso8601 format.
+
+            'YYYY-MM-DDTHH:MM:SS.mmmmmm'
+
+        Or a datetime may be used (and is encouraged).
+        """
+        if not isinstance(value, datetime.datetime):
+            value = DateTimeField.iso8601_to_date(value)
+        instance._data[self.field] = value
+
+    @classmethod
+    def iso8601_to_date(cls, datestring):
+        """We get value.isoformat() but not the other way... CMON.
+        """
+        pattern = '(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)\.(\d\d\d\d\d\d)'
+        elements = re.findall(pattern, datestring)
+        date_info = elements[0]
+        date_digits = [int(d) for d in date_info]
+        value = datetime.datetime(*date_digits)
+        return value
 
     def validate(self, value):
         if not isinstance(value, datetime.datetime):
             raise DictPunch('Not a datetime', self.field_name, value)
+
+    def for_json(self, value):
+        value.isoformat()
+
 
 class ListField(BaseField):
     """A list field that wraps a standard field, allowing multiple instances
