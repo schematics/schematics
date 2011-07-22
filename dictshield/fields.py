@@ -245,6 +245,9 @@ class DateTimeField(BaseField):
     """A datetime field.
     """
 
+    def for_json(self, value):
+        return value.isoformat()
+
     def validate(self, value):
         if not isinstance(value, datetime.datetime):
             raise DictPunch('Not a datetime', self.field_name, value)
