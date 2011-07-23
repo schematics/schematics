@@ -244,34 +244,57 @@ class BooleanField(BaseField):
 class DateTimeField(BaseField):
     """A datetime field. 
     """
+
     def __set__(self, instance, value):
         """If `value` is a string, the string should match iso8601 format.
-
-            'YYYY-MM-DDTHH:MM:SS.mmmmmm'
-
-        Or a datetime may be used (and is encouraged).
+        `iso8601_to_date` is called for conversion.
+        
+        A datetime may be used (and is encouraged).
         """
-        if not isinstance(value, datetime.datetime):
+        if not value:
+            return
+
+        if isinstance(value, (str, unicode)):
             value = DateTimeField.iso8601_to_date(value)
-        instance._data[self.field] = value
+
+        instance._data[self.field_name] = value
 
     @classmethod
     def iso8601_to_date(cls, datestring):
-        """We get value.isoformat() but not the other way... CMON.
+        """Takes a string in ISO8601 format and converts it to a Python
+        datetime.  This is not present in the standard library, as far as I can
+        tell.
+
+        Example: 'YYYY-MM-DDTHH:MM:SS.mmmmmm'
+
+        ISO8601's elements come in the same order as the inputs to creating
+        a datetime.datetime.  I pass the patterns directly into the datetime
+        constructor.
         """
-        pattern = '(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)\.(\d\d\d\d\d\d)'
-        elements = re.findall(pattern, datestring)
+        iso8601 = '(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)\.(\d\d\d\d\d\d)'
+        elements = re.findall(iso8601, datestring)
         date_info = elements[0]
         date_digits = [int(d) for d in date_info]
         value = datetime.datetime(*date_digits)
         return value
 
+    @classmethod
+    def date_to_iso8601(cls, dt):
+        """Classmethod that goes the opposite direction of iso8601_to_date.
+        """
+        iso_dt = dt.isoformat()
+        return iso_dt
+
     def validate(self, value):
         if not isinstance(value, datetime.datetime):
             raise DictPunch('Not a datetime', self.field_name, value)
 
+    def for_python(self, value):
+        return value
+
     def for_json(self, value):
-        value.isoformat()
+        v = DateTimeField.date_to_iso8601(value)
+        return v
 
 
 class ListField(BaseField):
@@ -284,13 +307,20 @@ class ListField(BaseField):
             raise InvalidShield('Argument to ListField constructor must be '
                                 'a valid field')
         self.field = field
-        kwargs.setdefault('default', lambda: [])
+        kwargs.setdefault('default', list())
         super(ListField, self).__init__(**kwargs)
 
     def for_python(self, value):
+        if value is None:
+            return list()
         return [self.field.for_python(item) for item in value]
 
     def for_json(self, value):
+        """for_json must be careful to expand embedded documents into Python,
+        not JSON.
+        """
+        if value is None:
+            return list()
         return [self.field.for_json(item) for item in value]
 
     def validate(self, value):
@@ -403,7 +433,7 @@ class EmbeddedDocumentField(BaseField):
         if not isinstance(document_type, basestring):
             if not issubclass(document_type, EmbeddedDocument):
                 raise DictPunch('Invalid embedded document class '
-                                      'provided to an EmbeddedDocumentField')
+                                'provided to an EmbeddedDocumentField')
         self.document_type_obj = document_type
         super(EmbeddedDocumentField, self).__init__(**kwargs)
 
@@ -425,6 +455,7 @@ class EmbeddedDocumentField(BaseField):
         if not isinstance(value, self.document_type):
             return self.document_type.for_json(value)
         return value.to_python()
+    
 
     def validate(self, value):
         """Make sure that the document instance is an instance of the
@@ -433,7 +464,7 @@ class EmbeddedDocumentField(BaseField):
         # Using isinstance also works for subclasses of self.document
         if not isinstance(value, self.document_type):
             raise DictPunch('Invalid embedded document instance '
-                                  'provided to an EmbeddedDocumentField')
+                            'provided to an EmbeddedDocumentField')
         self.document_type.validate(value)
 
     def lookup_member(self, member_name):
