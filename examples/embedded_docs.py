@@ -3,6 +3,7 @@
 from dictshield.document import Document, EmbeddedDocument
 from dictshield.fields import *
 import datetime
+import json
 
 class Product(EmbeddedDocument):
     sku = IntField(min_value=1, max_value=9999, required=True)
@@ -18,10 +19,11 @@ class Order(EmbeddedDocument):
     total = FloatField()
 
 class User(Document):
-    username = StringField(min_length=8, max_length=20, required=True)
+    username = StringField(min_length=2, max_length=20, required=True)
     email = EmailField(max_length=30, required=True)
 
 class Customer(User):
+    date_made = DateTimeField(required=True)
     first_name = StringField(max_length=20, required=True)
     last_name = StringField(max_length=30, required=True)
     orders = ListField(EmbeddedDocumentField(Order))
@@ -40,7 +42,19 @@ customer = Customer(username="ben",
                     email="ben@ben.com",
                     first_name="Ben",
                     last_name="G",
-                    orders=[order])
+                    #orders=[order])
+                    date_made=datetime.datetime.utcnow(),
+                    orders=None)
+
 
 print 'Python:', customer.to_python(), '\n'
 print 'JSON:', customer.to_json(), '\n'
+
+print 'Serializing to JSON and reloading...\n'
+json_data = customer.to_json()
+customer_dict = json.loads(json_data)
+
+
+loaded_customer = Customer(**customer_dict)
+print 'Python:', loaded_customer.to_python(), '\n'
+print 'JSON: ', loaded_customer.to_json(), '\n'
