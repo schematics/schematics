@@ -34,21 +34,19 @@ product = Product(sku=1,
                   price=3.99,
                   num_in_stock=3)
 
-order = Order(date_made = datetime.datetime.utcnow(),
-              line_items = [product,product],
-              total = 7.98)
+order = Order(date_made=datetime.datetime.utcnow(),
+              line_items=[product,product],
+              total=7.98)
 
 customer = Customer(username="ben",
                     email="ben@ben.com",
                     first_name="Ben",
                     last_name="G",
-                    #orders=[order])
-                    date_made=datetime.datetime.utcnow(),
-                    orders=None)
+                    orders=[order])
 
 
-print 'Python:', customer.to_python(), '\n'
-print 'JSON:', customer.to_json(), '\n'
+print 'PYTHON:\n', customer.to_python(), '\n'
+print 'JSON:\n', customer.to_json(), '\n'
 
 print 'Serializing to JSON and reloading...\n'
 json_data = customer.to_json()
@@ -56,5 +54,5 @@ customer_dict = json.loads(json_data)
 
 
 loaded_customer = Customer(**customer_dict)
-print 'Python:', loaded_customer.to_python(), '\n'
-print 'JSON: ', loaded_customer.to_json(), '\n'
+print 'PYTHON:\n', loaded_customer.to_python(), '\n'
+print 'JSON:\n', loaded_customer.to_json(), '\n'

@@ -434,16 +434,20 @@ class BaseDocument(object):
         data = self._to_fields(fun)
         return data
 
-    def to_json(self):
-        """Return data encoded as JSON.
+    def to_json(self, encode=True):
+        """Return data prepared for JSON. By default, it returns a JSON encoded
+        string, but disabling the encoding to prevent double encoding with
+        embedded documents.
         """
-        #data = self.to_python()
         fun = lambda f, v: f.for_json(v)
         data = self._to_fields(fun)
-        return json.dumps(data)
+        if encode:
+            return json.dumps(data)
+        else:
+            return data
 
     @classmethod
-    def _from_son(cls, son): # TODO rename to json 
+    def _from_son(cls, son):
         """Create an instance of a Document (subclass) from a BSON.
         """
         # get the class name from the document, falling back to the given
