@@ -310,6 +310,19 @@ class ListField(BaseField):
         kwargs.setdefault('default', list())
         super(ListField, self).__init__(**kwargs)
 
+    def __set__(self, instance, value):
+        """Descriptor for assigning a value to a field in a document.
+        """
+        if isinstance(self.field, EmbeddedDocumentField):
+            list_of_docs = list()
+            for doc in value:
+                if isinstance(doc, dict):
+                    doc_obj = self.field.document_type_obj(**doc)
+                    doc = doc_obj
+                list_of_docs.append(doc)
+            value = list_of_docs
+        instance._data[self.field_name] = value
+
     def for_python(self, value):
         if value is None:
             return list()
@@ -437,6 +450,11 @@ class EmbeddedDocumentField(BaseField):
         self.document_type_obj = document_type
         super(EmbeddedDocumentField, self).__init__(**kwargs)
 
+    def __set__(self, instance, value):
+        if not isinstance(value, self.document_type):
+            value = self.document_type(**value)
+        instance._data[self.field_name] = value
+
     @property
     def document_type(self):
         if isinstance(self.document_type_obj, basestring):
@@ -447,15 +465,10 @@ class EmbeddedDocumentField(BaseField):
         return self.document_type_obj
 
     def for_python(self, value):
-        if not isinstance(value, self.document_type):
-            return self.document_type._from_son(value)
-        return value.to_python()
+        return value
 
     def for_json(self, value):
-        if not isinstance(value, self.document_type):
-            return self.document_type.for_json(value)
-        return value.to_python()
-    
+        return value.to_json(encode=False)
 
     def validate(self, value):
         """Make sure that the document instance is an instance of the
