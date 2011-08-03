@@ -42,6 +42,7 @@ customer = Customer(username="ben",
                     email="ben@ben.com",
                     first_name="Ben",
                     last_name="G",
+                    date_made=datetime.datetime.utcnow(),                    
                     orders=[order])
 
 
