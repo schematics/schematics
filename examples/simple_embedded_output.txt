@@ -1,0 +1,6 @@
+{'_types': ['Action'], 'name': u'Phone call', '_cls': 'Action'}
+{'action': [<Action: Action object>], '_types': ['TaskL'], '_cls': 'TaskL'}
+{'action': <Action: Action object>, '_types': ['Task'], '_cls': 'Task'}
+{"_types": ["Action"], "name": "Phone call", "_cls": "Action"}
+{"action": [{"_types": ["Action"], "name": "Phone call", "_cls": "Action"}], "_types": ["TaskL"], "_cls": "TaskL"}
+{"action": {"_types": ["Action"], "name": "Phone call", "_cls": "Action"}, "_types": ["Task"], "_cls": "Task"}
