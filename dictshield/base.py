@@ -412,7 +412,6 @@ class BaseDocument(object):
         for field_name, field in self._fields.items():
             value = getattr(self, field_name, None)
             if value is not None:
-                #data[field.uniq_field] = field.for_python(value)
                 data[field.uniq_field] = field_converter(field, value)
                 
         # Only add _cls and _types if allow_inheritance is not False

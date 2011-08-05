@@ -451,6 +451,8 @@ class EmbeddedDocumentField(BaseField):
         super(EmbeddedDocumentField, self).__init__(**kwargs)
 
     def __set__(self, instance, value):
+        if value is None:
+            return
         if not isinstance(value, self.document_type):
             value = self.document_type(**value)
         instance._data[self.field_name] = value
