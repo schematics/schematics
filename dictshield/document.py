@@ -147,7 +147,39 @@ class Document(BaseDocument):
         return json.dumps(trimmed)
 
     @classmethod
-    def _validate_helper(cls, fun, values, validate_all=False):
+    def _gen_handle_exception(cls, validate_all, exception_list):
+        """Generates a function for either raising exceptions or collecting them
+        in a list.
+        """
+        if validate_all:
+            def handle_exception(e):
+                exception_list.append(e)
+        else:
+            def handle_exception(e):
+                raise e
+
+        return handle_exception
+
+    @classmethod
+    def _gen_handle_class_field(cls, delete_rogues, field_list):
+        """Generates a function that either accumulates observed fields or
+        makes no attempt to collect them.
+
+        The case where nothing accumulates is to prevent growing data structures
+        unnecessarily.
+        """
+        if delete_rogues:
+            def handle_class_field(cf):
+                field_list.append(cf)
+        else:
+            def handle_class_field(cf):
+                pass
+
+        return handle_class_field
+
+    @classmethod
+    def _validate_helper(cls, field_inspector, values, validate_all=False,
+                         delete_rogues=True):
         """This is a convenience function that loops over the given values
         and attempts to validate them against the class definition. It only
         validates the data in values and does not guarantee a complete document
@@ -158,20 +190,26 @@ class Document(BaseDocument):
         """
         if not hasattr(cls, '_fields'):
             raise ValueError('cls is not a DictShield')
-        
+
         internal_fields = cls._get_internal_fields()
 
-        if validate_all:
-            exceptions = list()
-            handle_exception = lambda e: exceptions.append(e)
-        else:
-            def handle_exception(e):
-                raise e
+        # Create function for handling exceptions
+        exceptions = list()
+        handle_exceptions = cls._gen_handle_exception(validate_all, exceptions)
 
+        # Create function for handling a flock of frakkin palin's (rogue fields)
+        data_fields = set(values.keys())
+        class_fields = list()
+        handle_class_field = cls._gen_handle_class_field(delete_rogues,
+                                                         class_fields)
+
+        # Loop across fields present in model
         for k,v in cls._fields.items():
+
             # handle common id name
-            if k is 'id': 
-                k = '_id'
+            if k is 'id': k = '_id'
+
+            handle_class_field(k)
 
             # we don't accept internal fields from users
             if k in internal_fields and k in values:
@@ -181,7 +219,7 @@ class Document(BaseDocument):
                     handle_exception(e)
                     continue
 
-            if fun(k, v):
+            if field_inspector(k, v):
                 datum = values[k]
                 # if datum is None, skip
                 if datum is None:
@@ -193,7 +231,14 @@ class Document(BaseDocument):
                     v.validate(datum)
                 except DictPunch, e:
                     handle_exception(e)
-                    
+
+        # Remove rogue fields
+        if len(class_fields) > 0: # if accumulation is not disabled
+            palins = data_fields - set(class_fields)
+            for rogue_field in palins:
+                del values[rogue_field]
+
+        # Reaches here only if exceptions are aggregated or validation passed
         if validate_all:
             return exceptions
         else:
