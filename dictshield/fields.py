@@ -270,11 +270,17 @@ class DateTimeField(BaseField):
         ISO8601's elements come in the same order as the inputs to creating
         a datetime.datetime.  I pass the patterns directly into the datetime
         constructor.
+
+        The ISO8601 spec is rather complex and allows for many variations in
+        formatting values.  Currently the format expected is strict, with the
+        only optional component being the six-digit microsecond field.
+
+        http://www.w3.org/TR/NOTE-datetime
         """
-        iso8601 = '(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)\.(\d\d\d\d\d\d)'
+        iso8601 = '(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(?:\.(\d\d\d\d\d\d))?'
         elements = re.findall(iso8601, datestring)
         date_info = elements[0]
-        date_digits = [int(d) for d in date_info]
+        date_digits = [int(d) for d in date_info if d]
         value = datetime.datetime(*date_digits)
         return value
 
