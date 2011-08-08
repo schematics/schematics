@@ -195,7 +195,7 @@ class Document(BaseDocument):
 
         # Create function for handling exceptions
         exceptions = list()
-        handle_exceptions = cls._gen_handle_exception(validate_all, exceptions)
+        handle_exception = cls._gen_handle_exception(validate_all, exceptions)
 
         # Create function for handling a flock of frakkin palin's (rogue fields)
         data_fields = set(values.keys())
