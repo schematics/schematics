@@ -1,6 +1,54 @@
 #!/usr/bin/env python
 
 """This example demonstrates some of DictShield's validation abilities.
+
+Below is a `User` model that has a function for setting the secret field, which
+is just an MD5.
+
+Notice that the validation classmethod's remove rogue fields, similar to using
+dictionary to instantiate instances.
+
+This demo also introduces `_public_fields`.  Fields suitable for sharing with
+the world can be listed here, making it a whitelist.
+
+A blacklist is available by adding a list called `_private_fields`.  Any fields
+listed will not be available to the owner of the document.  The concepts of
+`public` and `owner` are implicit by the values in both the whitelist and the
+blacklist.
+
+Here is what the output looks like.
+
+    Attempting validation on:
+    
+        {"_types": ["User"], "secret": "whatevz", "name": "test hash", "_cls": "User"}
+    
+    DictPunch caught: MD5 value is wrong length - secret(whatevz)
+    
+    Adjusted invalid data and trying again on:
+    
+        {"_types": ["User"], "secret": "34165b7d7c2d95bbecd41c05c19379c4", "name": "test hash", "_cls": "User"}
+    
+    Validation passed
+    
+    Attempting validation on:
+    
+        {'rogue_field': 'MWAHAHA', 'bio': 'J2D2 loves music', 'secret': 'e8b5d682452313a6142c10b045a9a135', 'name': 'J2D2'}
+    
+    Validation passed
+    After validation:
+    
+        {'bio': 'J2D2 loves music', 'secret': 'e8b5d682452313a6142c10b045a9a135', 'name': 'J2D2'}
+    
+    Validation passed
+    
+    Document as Python:
+        {'_types': ['User'], 'bio': u'J2D2 loves music', 'secret': 'e8b5d682452313a6142c10b045a9a135', 'name': u'J2D2', '_cls': 'User'}
+    
+    Owner safe doc:
+        {"bio": "J2D2 loves music", "secret": "e8b5d682452313a6142c10b045a9a135", "name": "J2D2"}
+    
+    Public safe doc:
+        {"bio": "J2D2 loves music", "name": "J2D2"}
 """
 
 from dictshield.base import DictPunch
@@ -35,22 +83,22 @@ u.secret = 'whatevz'
 u.name = 'test hash'
 
 ### Validation will fail because u.secret does not contain an MD5 hash
-print '  Attempting validation on:\n\n    %s\n' % (u.to_json())
+print 'Attempting validation on:\n\n    %s\n' % (u.to_json())
 try:
     u.validate()
-    print '  Validation passed\n'
+    print 'Validation passed\n'
 except DictPunch, dp:
-    print '  DictPunch caught: %s\n' % (dp)
+    print 'DictPunch caught: %s\n' % (dp)
     
 
 ### Set the password *correctly* using our `set_password` function
 u.set_password('whatevz')
-print '  Adjusted invalid data and trying again on:\n\n    %s\n' % (u.to_json())
+print 'Adjusted invalid data and trying again on:\n\n    %s\n' % (u.to_json())
 try:
     u.validate()
-    print '  Validation passed\n'
+    print 'Validation passed\n'
 except DictPunch, dp:
-    print '  DictPunch caught: %s (This section wont actually run)\n' % (dp)
+    print 'DictPunch caught: %s (This section wont actually run)\n' % (dp)
 
 
 ###
@@ -65,13 +113,13 @@ total_input = {
 }
 
 ### Checking for any failure. Exception thrown on first failure.
-print '  Attempting validation on:\n\n    %s\n' % (total_input)
+print 'Attempting validation on:\n\n    %s\n' % (total_input)
 try:
     User.validate_class_fields(total_input)
     print 'Validation passed'
 except DictPunch, dp:
     print('DictPunch caught: %s' % (dp))
-print '  After validation:\n\n    %s\n' % (total_input)
+print 'After validation:\n\n    %s\n' % (total_input)
 
 
 ### Check all fields and collect all failures
@@ -92,9 +140,9 @@ else:
 total_input['rogue_field'] = 'MWAHAHA'
 
 user_doc = User(**total_input)
-print '  Document as Python:\n    %s\n' % (user_doc.to_python())
+print 'Document as Python:\n    %s\n' % (user_doc.to_python())
 safe_doc = User.make_json_ownersafe(user_doc)
-print '  Owner safe doc:\n    %s\n' % (safe_doc)
+print 'Owner safe doc:\n    %s\n' % (safe_doc)
 public_safe_doc = User.make_json_publicsafe(user_doc)
-print '  Public safe doc:\n    %s\n' % (public_safe_doc)
+print 'Public safe doc:\n    %s\n' % (public_safe_doc)
 
