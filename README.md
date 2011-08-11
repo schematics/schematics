@@ -51,8 +51,8 @@ dictionaries through the class's static methods.
 
 # Example Uses
 
-There are a few ways to use DictShield. A simple case is to create a class
-structure that has typed fields. DictShield offers multiple types in
+There are a few ways to use DictShield.  A simple case is to create a class
+structure that has typed fields.  DictShield offers multiple types in
 `fields.py`, like an EmailField or DecimalField.
 
 
