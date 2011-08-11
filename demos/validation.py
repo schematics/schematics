@@ -1,54 +1,36 @@
 #!/usr/bin/env python
 
-"""This example demonstrates some of DictShield's validation abilities.
+"""Attempting validation on:
+    
+    {"_types": ["User"], "secret": "whatevz", "name": "test hash", "_cls": "User"}
 
-Below is a `User` model that has a function for setting the secret field, which
-is just an MD5.
+DictPunch caught: MD5 value is wrong length - secret(whatevz)
 
-Notice that the validation classmethod's remove rogue fields, similar to using
-dictionary to instantiate instances.
+Adjusted invalid data and trying again on:
 
-This demo also introduces `_public_fields`.  Fields suitable for sharing with
-the world can be listed here, making it a whitelist.
+    {"_types": ["User"], "secret": "34165b7d7c2d95bbecd41c05c19379c4", "name": "test hash", "_cls": "User"}
 
-A blacklist is available by adding a list called `_private_fields`.  Any fields
-listed will not be available to the owner of the document.  The concepts of
-`public` and `owner` are implicit by the values in both the whitelist and the
-blacklist.
+Validation passed
 
-Here is what the output looks like.
+Attempting validation on:
 
-    Attempting validation on:
-    
-        {"_types": ["User"], "secret": "whatevz", "name": "test hash", "_cls": "User"}
-    
-    DictPunch caught: MD5 value is wrong length - secret(whatevz)
-    
-    Adjusted invalid data and trying again on:
-    
-        {"_types": ["User"], "secret": "34165b7d7c2d95bbecd41c05c19379c4", "name": "test hash", "_cls": "User"}
-    
-    Validation passed
-    
-    Attempting validation on:
-    
-        {'rogue_field': 'MWAHAHA', 'bio': 'J2D2 loves music', 'secret': 'e8b5d682452313a6142c10b045a9a135', 'name': 'J2D2'}
-    
-    Validation passed
-    After validation:
-    
-        {'bio': 'J2D2 loves music', 'secret': 'e8b5d682452313a6142c10b045a9a135', 'name': 'J2D2'}
-    
-    Validation passed
-    
-    Document as Python:
-        {'_types': ['User'], 'bio': u'J2D2 loves music', 'secret': 'e8b5d682452313a6142c10b045a9a135', 'name': u'J2D2', '_cls': 'User'}
-    
-    Owner safe doc:
-        {"bio": "J2D2 loves music", "secret": "e8b5d682452313a6142c10b045a9a135", "name": "J2D2"}
-    
-    Public safe doc:
-        {"bio": "J2D2 loves music", "name": "J2D2"}
+    {'rogue_field': 'MWAHAHA', 'bio': 'J2D2 loves music', 'secret': 'e8b5d682452313a6142c10b045a9a135', 'name': 'J2D2'}
+
+Validation passed
+After validation:
+
+    {'bio': 'J2D2 loves music', 'secret': 'e8b5d682452313a6142c10b045a9a135', 'name': 'J2D2'}
+
+Validation passed
+
+Document as Python:
+    {'_types': ['User'], 'bio': u'J2D2 loves music', 'secret': 'e8b5d682452313a6142c10b045a9a135', 'name': u'J2D2', '_cls': 'User'}
+
+Owner safe doc:
+    {"bio": "J2D2 loves music", "secret": "e8b5d682452313a6142c10b045a9a135", "name": "J2D2"}
+
+Public safe doc:
+    {"bio": "J2D2 loves music", "name": "J2D2"}
 """
 
 from dictshield.base import DictPunch

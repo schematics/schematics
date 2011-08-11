@@ -1,18 +1,6 @@
 #!/usr/bin/env python
 
-"""We first see an `Action` model, which is just a way to associate some value
-with a list of tags.
-
-A `SingleTask` instance associates an `Action` instance with a creation date.
-
-A `TaskList` associates a list of `Action` instances with a creation date but
-also adds an updated date and a count of how many tasks are completed.  This
-model is hypothetical, but it assumes the tasks are done synchronously so then
-`num_completed` would be an offset from the start of the task list.
-
-The output looks like below.  I have formatted it for clarity.
-
-ACTION: # As Python, then JSON
+"""ACTION: # As Python, then JSON
 
      {
        '_types': ['Action'],
@@ -130,7 +118,7 @@ print '    ', a2.to_json()
 
 
 ###
-### SimpleTask
+### SingleTask
 ###
 
 st = SingleTask()

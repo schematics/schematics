@@ -1,27 +1,6 @@
 #!/usr/bin/env python
 
-"""This example demonstrates nested structures and introduces the collection
-fields by using a `ListField`.
-
-There is a `Customer` instance with the name "Ben G".  This customer has ordered
-two types of bowls: A Japanese Bowl and an African Bowl.  The `Customer`
-instance contains a list of `Order` instances, which themselves contain a list
-of `Product` instances..
-
-To keep things simple the two bowls, represented with two `Product` instances,
-are sold to our customer in a single `Order` instance.  Read the code to see the
-implementation details, but below you will see the Python and JSON structures
-produced to model the data.
-
-First the data is printed in it's Python and JSON forms.  Then the data is
-serialized to a JSON string, which is then used to instantiate a new `Customer`
-instance, which has a list with one `Order` instance that contains two `Product`
-instances.
-
-Below is the output of this example.  I have formatted the output to make it
-easier to read.
-
-PYTHON:
+"""PYTHON:
     {
       'username': u'ben',
       '_types': ['User', 'User.Customer'],

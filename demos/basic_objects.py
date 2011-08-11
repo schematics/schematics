@@ -1,14 +1,6 @@
 #!/usr/bin/env python
 
-"""This class demonstrates the basics of building `Document` structures.  In the
-classes below I build a somewhat open-ended `Media` class with a `title`.  After
-that I subclass it to make a `Movie` class.
-
-The class hierarchy is listed in the `_types` field.  The class name itself is
-saved as `_cls`.  Anything else on the structure is a field you import from
-`dictshield.fields`.  Below we use a StringField, ObjectIdField and an IntField.
-
-From Media class to json structure:
+"""From Media class to json structure:
 
     {"_types": ["Media"], "_cls": "Media", "title": "Misc Media"}
 
@@ -16,19 +8,12 @@ From Movie class to json structure:
 
     {"personal_thoughts": "I wish I had three hands...", "_types": ["Media", "Media.Movie"], "title": "Total Recall", "_cls": "Media.Movie", "year": 1990}
 
-Calling a make*safe funciton.  In this case, it's `make_json_ownersafe`.  This
-produces a document with the class structure fields removed.  It functions like
-a black list for fields.
+Making mv json safe:
 
     {"personal_thoughts": "I wish I had three hands...", "title": "Total Recall", "year": 1990}
 
-Perhaps we're building an information repository where some of the data in each
-`Document` is shareable with the public.  There is another make*safe function to
-handle this case.  This time we use `make_json_publicsafe`.
-
-This function checks for a `_public_fields` member on the class and then removes
-any key that isn't in that list.  It functions like a white list for fields.
-
+Making mv json public safe (only ['title', 'year'] should show):
+    
     {"title": "Total Recall", "year": 1990}
 """
 
