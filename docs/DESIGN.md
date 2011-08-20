@@ -63,10 +63,10 @@ in a class called `Foo`.
 Validation comes in the form of type checks, effectively creating a type system
 out of however you think you can exactly describe a particular type. 
 
-For an integer field we could simply try converting the value to a `int`.  If
-the conversion succeeds
+For an integer field we could simply try converting the value to an `int`.  If
+the conversion succeeds, we know the data in the field is valid.
 
-Here is what the new field looks like with a `validate` function added.
+Here is what our `IntField` looks like with a `validate()` function added.
 
     class IntField(object):
         def __get__(self, instance, owner):
@@ -101,24 +101,24 @@ OK. Let's try using our new `validate` function.
       File "<stdin>", line 1, in <module>
     AttributeError: 'int' object has no attribute 'validate'
 
-Hmm... Looks like we can't call `validate()` on `f.i` because our definition of
-`__get__` is getting in the middle and returning 5, instead of our `IntField`.
-So we then attempt to call `validate()` on an int, which fails. We need a way of
-getting at the `IntField` class itself without accidentally triggering a call to
-`__get__`.
+Hmm...  Looks like we can't call `validate()` on `f.i` because our definition of
+`__get__` is getting in the middle and returning 5.  So we then attempt to call 
+`validate()` on an int, which fails.
 
-We could try putting it in a `dict` and extract the field by it's name from the
-dict when we need to call `validate()`.
+We need a way of getting at the `IntField` class itself without accidentally
+triggering a call to `__get__`.  We could try putting the field in a `dict` and
+extract the field by it's name from the dict when we need to call `validate()`.
 
-This is what the new definition of `Foo` looks like.
+This is what the new definition of `Foo` looks like with `_fields` added.
 
     class Foo(object):
         i = IntField()
         x = 'xxxx'
         _fields = {'i': i}
 
-It's a little cumbersome to create `_fields` by hand, but we'll automate that
-soon enough.  For now, let's check if it let's us call `validate()` correctly.
+It's a little cumbersome to consider creating `_fields` by hand, but we'll
+automate that soon enough.  For now, let's check if we can reach `validate()`
+correctly.
 
     >>> f = Foo()
     >>> f.i = 5
@@ -126,7 +126,7 @@ soon enough.  For now, let's check if it let's us call `validate()` correctly.
     >>> f._fields['i'].validate()
     >>>
     
-Looks like it worked...  The real test, though, is if we can get validation to
+Looks like it worked!  The real test, though, is if we can get validation to
 fail.
 
     >>> f.i = 'not an int'
@@ -142,13 +142,15 @@ Wahoo! We're in business.
 ## Documents
 
 Up to now we've been using an extremely simple class `Foo` to hold our
-`IntField`, but this isn't useful to us yet. The code for validating a field is
-cumbersome and requires us to validate each field specifically by it's name.
+`IntField`, but this isn't useful to us yet.  The code for validating a field is
+too long: `f._fields['i'].validate()`. 
+
+We'll rename `Foo` into a more useful name: `Document`.
 
 It would be better to make a `Document` level validate function that can loop
 through each field and validate them for us.
 
-    class Foo(object):
+    class Document(object):
         i = IntField()
         x = 'xxxx'
         _fields = {'i': i}
@@ -159,13 +161,13 @@ through each field and validate them for us.
 
 Let's see if it works.
 
-    >>> f = Foo()
-    >>> f.i = 5
+    >>> d = Document()
+    >>> d.i = 5
     __set__
-    >>> f.validate()
-    >>> f.i = 'word'
+    >>> d.validate()
+    >>> d.i = 'word'
     __set__
-    >>> f.validate()
+    >>> d.validate()
     Traceback (most recent call last):
       File "<stdin>", line 1, in <module>
       File "<stdin>", line 7, in validate
@@ -183,14 +185,14 @@ code at the time a class is created.  This is different from when a class is
 instantiated because the class is created the moment the python interpreter
 reads your class definition.  It is instantiated when you say something like:
 
-    f = Foo()
+    d = Document()
 
 Let's look at a simple example to drive the point home.
 
-    >>> class MetaBar(type):
+    >>> class MetaFoo(type):
     ...     def __new__(cls, name, bases, attrs):
     ...         klass = type.__new__(cls, name, bases, attrs)
-    ...         print 'Hello from MetaBar'
+    ...         print 'Hello from MetaFoo
     ...         klass._some_field = 'some field'
     ...         return klass
     ... 
@@ -203,12 +205,12 @@ Let's look at a simple example to drive the point home.
     >>>
 
 Look at that! It printed 'Hello from MetaBar' simply because we created a class
-that uses `MetaBar` for it's metaclass.  This means we can run code on class
+that uses `MetaFoo` for it's metaclass.  This means we can run code on class
 definitions whenever we create them.
 
 What does this let us do?  Well... for starters it let's us dynamically figure
 out how to create that `_fields` dictionary we mentioned before.  If someone 
-subclasses `Foo`, which uses `MetaBar` as it's metaclass, they automatically
+subclasses `Bar`, which uses `MetaFoo` as it's metaclass, they automatically
 populate `_fields` and our validation technique won't depend on any extra work
 from the programmer.
 
@@ -228,15 +230,15 @@ Here is our `IntField` from above, with the print statements removed.
     
         def validate(self):
             try:
-            int(self.value)
+                int(self.value)
             except:
-            raise Exception()
+                raise Exception()
     
 And here is our `Foo` class.  Notice we no longer create `_fields` by hand.
 Also notice, however, that we make use of `_fields` in `validate()`.
 
-    class Foo(object):
-        __metaclass__ = MetaFoo
+    class Document(object):
+        __metaclass__ = MetaDoc
         
         i = IntField()
         x = 'xxxx'
@@ -246,12 +248,12 @@ Also notice, however, that we make use of `_fields` in `validate()`.
                 v.validate()
 
 Now, here is the fun part.  We'll create a `MetaFoo` that loops through each
-attribute in `Foo` and determines which ones are `IntField` instances.  It then
-populates `_fields` with any `IntField` instances it finds.
+attribute in `Document` and determines which ones are `IntField` instances.  It
+then populates `_fields` with any `IntField` instances it finds.
 
 In it's most stripped down form, that looks like this.
 
-    class MetaFoo(type):
+    class MetaDoc(type):
         def __new__(cls, name, bases, attrs):
             klass = type.__new__(cls, name, bases, attrs)
             klass._fields = dict()
@@ -264,8 +266,8 @@ In it's most stripped down form, that looks like this.
 
 Let's see what it does.
 
-    >>> class Foo(object):
-    ...     __metaclass__ = MetaFoo
+    >>> class Document(object):
+    ...     __metaclass__ = MetaDoc
     ...     i = IntField()
     ...     x = 'xxxx'
     ...     def validate(self):
@@ -273,22 +275,22 @@ Let's see what it does.
     ...             v.validate()
     ... 
     >>> 
-    >>> f = Foo()
-    >>> f._fields
+    >>> d = Document()
+    >>> d._fields
     {'i': <__main__.IntField object at 0x102e64d90>}
     
-Neat! So `_fields` populated correctly with our `IntField`. But can we validate
+Neat!  So `_fields` populated correctly with our `IntField`. But can we validate
 a field?
 
-    >>> f.i = 'not a number'
-    >>> f.validate()
+    >>> d.i = 'not a number'
+    >>> d.validate()
     Traceback (most recent call last):
       File "<stdin>", line 1, in <module>
       File "<stdin>", line 7, in validate
       File "<stdin>", line 10, in validate
     Exception
-    >>> f.i = 5
-    >>> f.validate()
+    >>> d.i = 5
+    >>> d.validate()
     >>> 
     
 Looks good!
