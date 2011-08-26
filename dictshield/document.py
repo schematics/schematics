@@ -5,45 +5,24 @@ from base import json
 __all__ = ['Document', 'EmbeddedDocument', 'DictPunch']
 
 
-class EmbeddedDocument(BaseDocument):
-    """A :class:`~dictshield.Document` that isn't stored in its own
-    collection.  :class:`~dictshield.EmbeddedDocument`\ s should be used as
-    fields on :class:`~dictshield.Document`\ s through the
-    :class:`~dictshield.EmbeddedDocumentField` field type.
+class SafeableMixin:
+    """A `SafeableMixin` is used to add unix style permissions to fields in a
+    `Document`. It creates this by using a black list and a white list in the
+    form of three lists called `_internal_fields`, `_private_fields` and
+    `_public_fields`.
+
+    `_internal_fields` is used to list fields which are private and not meant
+    to leave the system. This generally consists of `_id`, `_cls` and `_types`
+    but a user can extend the list of internal fields by defining a class level
+    list field called _private_fields. Any field listed here will be removed
+    with any call to a make*safe method.
+
+    `make_json_ownersafe` is defined to remove the keys listed in both
+    fields, making it our blacklist.
+
+    If `_public_fields` is defined, `make_json_publicsafe` can be used to create
+    a structure made of only the fields in this list, making it our white list.
     """
-
-    __metaclass__ = DocumentMetaclass
-
-
-class Document(BaseDocument):
-    """The base class used for defining the structure and properties of
-    collections of documents modeled in DictShield. Inherit from this class,
-    and add fields as class attributes to define a document's structure.
-    Individual documents may then be created by making instances of the
-    :class:`~dictshield.Document` subclass.
-
-    A :class:`~dictshield.Document` subclass may be itself subclassed, to
-    create a specialised version of the document that can be stored in the
-    same collection. To facilitate this behaviour, `_cls` and `_types`
-    fields are added to documents to specify the install class and the types
-    in the Document class hierarchy. To disable this behaviour and remove
-    the dependence on the presence of `_cls` and `_types`, set
-    :attr:`allow_inheritance` to ``False`` in the :attr:`meta` dictionary.
-
-    :attr:`_internal_fields` class field is used to list fields which are
-    private and not meant to leave the system. This consists of `_id`, `_cls`
-    and `_types` but a user can extend the lis of internal fields by defining
-    a class level list field called _private_fields.
-
-    :attr:`make_json_ownersafe` is defined to remove the keys listed in both
-    fields, make it safe for sending as json.
-
-    If :attr:`_public_fields` is defined, the `make_json_publicsafe` method
-    will use it as a whitelist for which fields to not erase.
-    """
-
-    __metaclass__ = TopLevelDocumentMetaclass
-
     _internal_fields = [
         '_id', 'id', '_cls', '_types',
     ]
@@ -189,7 +168,7 @@ class Document(BaseDocument):
         as a value.
         """
         if not hasattr(cls, '_fields'):
-            raise ValueError('cls is not a DictShield')
+            raise ValueError('cls is not a Document instance')
 
         internal_fields = cls._get_internal_fields()
 
@@ -197,7 +176,7 @@ class Document(BaseDocument):
         exceptions = list()
         handle_exception = cls._gen_handle_exception(validate_all, exceptions)
 
-        # Create function for handling a flock of frakkin palin's (rogue fields)
+        # Create function for handling a flock of frakkin palins (rogue fields)
         data_fields = set(values.keys())
         class_fields = list()
         handle_class_field = cls._gen_handle_class_field(delete_rogues,
@@ -263,3 +242,33 @@ class Document(BaseDocument):
         """
         fun = lambda k,v: k in values
         return cls._validate_helper(fun, values, validate_all=validate_all)
+
+
+class EmbeddedDocument(BaseDocument, SafeableMixin):
+    """A :class:`~dictshield.Document` that isn't stored in its own
+    collection.  :class:`~dictshield.EmbeddedDocument`\ s should be used as
+    fields on :class:`~dictshield.Document`\ s through the
+    :class:`~dictshield.EmbeddedDocumentField` field type.
+    """
+
+    __metaclass__ = DocumentMetaclass
+
+
+class Document(BaseDocument, SafeableMixin):
+    """The base class used for defining the structure and properties of
+    collections of documents modeled in DictShield. Inherit from this class,
+    and add fields as class attributes to define a document's structure.
+    Individual documents may then be created by making instances of the
+    :class:`~dictshield.Document` subclass.
+
+    A :class:`~dictshield.Document` subclass may be itself subclassed, to
+    create a specialised version of the document that can be stored in the
+    same collection. To facilitate this behaviour, `_cls` and `_types`
+    fields are added to documents to specify the install class and the types
+    in the Document class hierarchy. To disable this behaviour and remove
+    the dependence on the presence of `_cls` and `_types`, set
+    :attr:`allow_inheritance` to ``False`` in the :attr:`meta` dictionary.
+    """
+
+    __metaclass__ = TopLevelDocumentMetaclass
+
