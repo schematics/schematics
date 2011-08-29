@@ -10,24 +10,25 @@
 COMMENT 1:
 - as python:   {'username': u'bro', 'text': u'This post was awesome!', '_types': ['Comment'], 'email': u'bru@dudegang.com', '_cls': 'Comment'} 
 
-- json owner:  {"username": "bro", "text": "This post was awesome!"} 
+- json owner:  {"username": "bro", "text": "This post was awesome!", "email": "bru@dudegang.com"} 
 
 - json public: {"username": "bro", "text": "This post was awesome!"} 
 
 COMMENT 2:
 - as python:   {'username': u'barbie', 'text': u'This post is ridiculous', '_types': ['Comment'], 'email': u'barbie@dudegang.com', '_cls': 'Comment'} 
 
-- json owner:  {"username": "barbie", "text": "This post is ridiculous"} 
+- json owner:  {"username": "barbie", "text": "This post is ridiculous", "email": "barbie@dudegang.com"} 
 
 - json public: {"username": "barbie", "text": "This post is ridiculous"} 
 
 BLOG POST:
 - as python:   {'_types': ['BlogPost'], 'author': <Author: Author object>, 'deleted': False, 'title': u'Hipster Hodgepodge', 'comments': [<Comment: Comment object>, <Comment: Comment object>], 'content': u'Retro single-origin coffee chambray stumptown, scenester VHS\nbicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free\ntrust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed\n', '_cls': 'BlogPost'} 
 
-- json owner:  {"author": {"username": "j2d2", "name": "james", "a_setting": true, "email": "jdennis@gmail.com"}, "deleted": false, "title": "Hipster Hodgepodge", "comments": [{"username": "bro", "text": "This post was awesome!"}, {"username": "barbie", "text": "This post is ridiculous"}], "content": "Retro single-origin coffee chambray stumptown, scenester VHS\nbicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free\ntrust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed\n"} 
+- json owner:  {"author": {"username": "j2d2", "name": "james", "a_setting": true, "email": "jdennis@gmail.com"}, "deleted": false, "title": "Hipster Hodgepodge", "comments": [{"username": "bro", "text": "This post was awesome!", "email": "bru@dudegang.com"}, {"username": "barbie", "text": "This post is ridiculous", "email": "barbie@dudegang.com"}], "content": "Retro single-origin coffee chambray stumptown, scenester VHS\nbicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free\ntrust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed\n"} 
 
 - json public: {"author": {"username": "j2d2", "name": "james"}, "comments": [{"username": "bro", "text": "This post was awesome!"}, {"username": "barbie", "text": "This post is ridiculous"}], "content": "Retro single-origin coffee chambray stumptown, scenester VHS\nbicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free\ntrust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed\n"} 
 """
+
 
 from dictshield.document import Document, EmbeddedDocument
 from dictshield.fields import (StringField,
@@ -48,7 +49,7 @@ class Author(EmbeddedDocument):
 
 
 class Comment(EmbeddedDocument):
-    _private_fields=['email']
+    _public_fields=['username', 'text']
     text = StringField()
     username = StringField()
     email = EmailField()   
