@@ -74,16 +74,26 @@ class SafeableMixin:
         required for making the data stucture (list, dict or Document)
         safe for transmission to the owner of the data.
 
+        It also knows to check for EmbeddedDocument's which contain their own
+        private/public data.
+
         It attempts to handle multiple inputs types to avoid as many
         translation steps as possible.
         """
         internal_fields = cls._get_internal_fields()
 
+        # This `handle_doc` implementation behaves as a blacklist
+        containers = (list, dict)
         def handle_doc(doc_dict):
-            # internal_fields is a blacklist
-            for f in internal_fields:
-                if doc_dict.has_key(f):
-                    del doc_dict[f]
+            for k,v in doc_dict.items():
+                if k in internal_fields:
+                    del doc_dict[k]
+                elif isinstance(v, EmbeddedDocument):
+                    doc_dict[k] = v.make_ownersafe(v.to_python())
+                elif isinstance(v, containers) and len(v) > 0:
+                    if isinstance(v[0], EmbeddedDocument):
+                        doc_dict[k] = [doc.make_ownersafe(doc.to_python())
+                                       for doc in v]
             return doc_dict
 
         trimmed = cls._safe_data_from_input(handle_doc, doc_dict_or_dicts)
@@ -101,18 +111,28 @@ class SafeableMixin:
         """This funciton ensures found_data only contains the keys as
         listed in cls._public_fields.
 
+        It also knows to check for EmbeddedDocument's which contain their own
+        private/public data.
+
         This function can be safely called without calling make_json_ownersafe
         first because it treats cls._public_fields as a whitelist and
         removes anything not listed.
         """
         if cls._public_fields is None:
-            raise DictPunch('make_json_publicsafe called cls with no _public_fields')
+            return cls.make_ownersafe(doc_dict_or_dicts)
         
+        # This `handle_doc` implementation behaves as a whitelist
+        containers = (list, dict)
         def handle_doc(doc_dict):
-            # public_fields is a whitelist
-            for f in doc_dict.keys():
-                if f not in cls._public_fields:
-                    del doc_dict[f]
+            for k,v in doc_dict.items():
+                if k not in cls._public_fields:
+                    del doc_dict[k]
+                elif isinstance(v, EmbeddedDocument):
+                    doc_dict[k] = v.make_publicsafe(v.to_python())
+                elif isinstance(v, containers) and len(v) > 0:
+                    if isinstance(v[0], EmbeddedDocument):
+                        doc_dict[k] = [doc.make_publicsafe(doc.to_python())
+                                       for doc in v]
             return doc_dict
         
         trimmed = cls._safe_data_from_input(handle_doc, doc_dict_or_dicts)
