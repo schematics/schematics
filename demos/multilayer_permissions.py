@@ -80,9 +80,6 @@ print '- json public:', Comment.make_json_publicsafe(comment1), '\n'
 
 comment2 = Comment(text='This post is ridiculous', username='barbie',
                    email='barbie@dudegang.com')
-comment2.to_python()
-Comment.make_json_ownersafe(comment2)
-Comment.make_json_publicsafe(comment2)
 print 'COMMENT 2:'
 print '- as python:  ', comment2.to_python(), '\n'
 print '- json owner: ', Comment.make_json_ownersafe(comment2), '\n'
