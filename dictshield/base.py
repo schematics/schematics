@@ -199,6 +199,13 @@ class DocumentMetaclass(type):
                 else:
                     simple_class = False
 
+                if base._meta.get('mixin', False) == True:
+                    # A dictshield mixin means it adds fields with no effet
+                    # on class hierarchy
+                    class_name.pop()
+                    del superclasses[base._class_name]
+
+
         meta = attrs.get('_meta', attrs.get('meta', {}))
 
         if 'allow_inheritance' not in meta:
@@ -212,7 +219,7 @@ class DocumentMetaclass(type):
         attrs['_meta'] = meta
 
         attrs['_class_name'] = '.'.join(reversed(class_name))
-        attrs['_superclasses'] = superclasses
+        attrs['_superclasses'] = superclasses        
 
         # Add the document's fields to the _fields attribute
         for attr_name, attr_value in attrs.items():
