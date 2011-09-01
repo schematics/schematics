@@ -1,5 +1,23 @@
 #!/usr/bin/env python
 
+"""This thing to notice in this example is that the class hierarcy is not
+influenced by subclassing EmbeddedDocuments with meta['mixin'] = True. This
+can be useful if you know you're going to use something of an EmbeddedDocument
+in the top level document structure
+
+{
+    "_cls": "SomeDoc", 
+    "_types": [
+        "SomeDoc"
+    ], 
+    "archived": false, 
+    "body": "Scenester twee mlkshk readymade butcher. Letterpress portland +1\nsalvia, vinyl trust fund butcher gentrify farm-to-table brooklyn helvetica DIY.\nSartorial homo 3 wolf moon, banh mi blog retro mlkshk Austin master cleanse.\n", 
+    "deleted": false, 
+    "liked": true, 
+    "title": "Some Document"
+}
+"""
+
 from dictshield.base import BaseField, DictPunch
 from dictshield.document import Document, EmbeddedDocument
 from dictshield.fields import (StringField,
@@ -34,4 +52,4 @@ Sartorial homo 3 wolf moon, banh mi blog retro mlkshk Austin master cleanse.
 
 sd.liked = True
 
-print sd.to_python()
+print sd.to_json()
