@@ -3,7 +3,7 @@
 from distutils.core import setup
  
 setup(name='dictshield',
-      version='0.3.0',
+      version='0.3.1',
       description='Python Library for typed dictionaries... sorta',
       author='James Dennis',
       author_email='jdennis@gmail.com',
