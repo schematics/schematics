@@ -15,7 +15,7 @@ like:
 It also provides the basic framework for throwing errors when input doesn't
 match expected patterns, as we see with the exception handling.
 
-A `DictPunch` exception is thrown when validation fails.
+A `ShieldException` is thrown when validation fails.
 
 An `InvalidShield` exception is thrown when the input data can't be mapped
 to a `Document`.
@@ -48,20 +48,20 @@ class InvalidShield(Exception):
     """
     pass
 
-class DictPunch(Exception):
-    """Wayne Brady's gonna have to punch someone in the dict when Wayne Brady's
-    gotta deal with some bs input. Wayne Brady DOES NOT like bs input.
+class ShieldException(Exception):
+    """The field did not pass validation.
     """
     def __init__(self, reason, field_name, field_value, *args, **kwargs):
-        super(DictPunch, self).__init__(*args, **kwargs)
+        super(ShieldException, self).__init__(*args, **kwargs)
         self.reason = reason
         self.field_name = field_name
         self.field_value = field_value
 
     def __str__(self):
-        return '%s - %s(%s)' % (self.reason,
-                                self.field_name,
-                                self.field_value)
+        return '%s - %s:%s)' % (self.reason, self.field_name, self.field_value)
+
+# Here from my younger, less venerable days.
+DictPunch = ShieldException
 
 
 ###
@@ -125,14 +125,14 @@ class BaseField(object):
         # check choices
         if self.choices is not None:
             if value not in self.choices:
-                raise DictPunch("Value must be one of %s."
+                raise ShieldException("Value must be one of %s."
                     % unicode(self.choices))
 
         # check validation argument
         if self.validation is not None:
             if callable(self.validation):
                 if not self.validation(value):
-                    raise DictPunch('Value does not match custom' \
+                    raise ShieldException('Value does not match custom' \
                                           'validation method.')
             else:
                 raise ValueError('validation argument must be a callable.')
@@ -159,7 +159,7 @@ class ObjectIdField(BaseField):
         try:
             bson.objectid.ObjectId(unicode(value))
         except Exception, e:
-            raise DictPunch('Invalid ObjectId', self.field_name, value)
+            raise ShieldException('Invalid ObjectId', self.field_name, value)
 
 
 ###
@@ -342,10 +342,11 @@ class BaseDocument(object):
                 try:
                     field._validate(value)
                 except (ValueError, AttributeError, AssertionError):
-                    raise DictPunch('Invalid value', field.field_name, value)
+                    raise ShieldException('Invalid value', field.field_name,
+                                          value)
             elif field.required:
-                raise DictPunch('Required field missing',
-                                field.field_name, value)
+                raise ShieldException('Required field missing', field.field_name,
+                                      value)
 
     @classmethod
     def _get_subclasses(cls):

@@ -4,7 +4,7 @@
     
     {"_types": ["User"], "secret": "whatevz", "name": "test hash", "_cls": "User"}
 
-DictPunch caught: MD5 value is wrong length - secret(whatevz)
+ShieldException caught: MD5 value is wrong length - secret:whatevz
 
 Adjusted invalid data and trying again on:
 
@@ -33,7 +33,7 @@ Public safe doc:
     {"bio": "J2D2 loves music", "name": "J2D2"}
 """
 
-from dictshield.base import DictPunch
+from dictshield.base import ShieldException
 from dictshield.document import Document
 from dictshield.fields import MD5Field, StringField
 import hashlib
@@ -69,8 +69,8 @@ print 'Attempting validation on:\n\n    %s\n' % (u.to_json())
 try:
     u.validate()
     print 'Validation passed\n'
-except DictPunch, dp:
-    print 'DictPunch caught: %s\n' % (dp)
+except ShieldException, se:
+    print 'ShieldException caught: %s\n' % (se)
     
 
 ### Set the password *correctly* using our `set_password` function
@@ -79,8 +79,8 @@ print 'Adjusted invalid data and trying again on:\n\n    %s\n' % (u.to_json())
 try:
     u.validate()
     print 'Validation passed\n'
-except DictPunch, dp:
-    print 'DictPunch caught: %s (This section wont actually run)\n' % (dp)
+except ShieldException, se:
+    print 'ShieldException caught: %s (This section wont actually run)\n' % (se)
 
 
 ###
@@ -99,8 +99,8 @@ print 'Attempting validation on:\n\n    %s\n' % (total_input)
 try:
     User.validate_class_fields(total_input)
     print 'Validation passed'
-except DictPunch, dp:
-    print('DictPunch caught: %s' % (dp))
+except ShieldException, se:
+    print('ShieldException caught: %s' % (se))
 print 'After validation:\n\n    %s\n' % (total_input)
 
 

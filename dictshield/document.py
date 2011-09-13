@@ -1,8 +1,11 @@
-from base import (BaseDocument, DictPunch, DocumentMetaclass, TopLevelDocumentMetaclass)
+from base import (BaseDocument,
+                  ShieldException,
+                  DocumentMetaclass,
+                  TopLevelDocumentMetaclass)
 
 from base import json
 
-__all__ = ['Document', 'EmbeddedDocument', 'DictPunch']
+__all__ = ['Document', 'EmbeddedDocument', 'ShieldException']
 
 
 class SafeableMixin:
@@ -214,7 +217,7 @@ class SafeableMixin:
             if k in internal_fields and k in values:
                 value_is_default = (values[k] is v.default)
                 if not value_is_default:
-                    e = DictPunch('Overwrite of internal fields attempted', k, v)
+                    e = ShieldException('Overwrite of internal fields attempted', k, v)
                     handle_exception(e)
                     continue
 
@@ -228,7 +231,7 @@ class SafeableMixin:
                     continue                
                 try:
                     v.validate(datum)
-                except DictPunch, e:
+                except ShieldException, e:
                     handle_exception(e)
 
         # Remove rogue fields

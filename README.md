@@ -156,7 +156,7 @@ Or maybe we're storing json in a memcached.
 ## A Type System
 
 This is what the MD5Field looks like. Notice that it's basically just
-an implementation of a `validate()` function, which raises a `DictPunch`
+an implementation of a `validate()` function, which raises a `ShieldException`
 exception if validation fails.
 
     class MD5Field(BaseField):
@@ -165,20 +165,20 @@ exception if validation fails.
         hash_length = 32
         def validate(self, value):
             if len(value) != MD5Field.hash_length:
-                raise DictPunch('MD5 value is wrong length',
-                                self.field_name, value)
+                raise ShieldException('MD5 value is wrong length',
+                                      self.field_name, value)
             try:
                 x = int(value, 16)
             except:
-                raise DictPunch('MD5 value is not hex',
-                                self.field_name, value)
+                raise ShieldException('MD5 value is not hex',
+                                      self.field_name, value)
 
 You might notice that the field which failed is also reported. It's available on
 the exception as `field_name` and `field_value`.
 
 The exception prints in this pattern `field_name(field_value): reason`.
 
-    DictPunch caught: secret(whatevz):  MD5 value is wrong length
+    ShieldException caught: secret(whatevz):  MD5 value is wrong length
 
 If you think the overhead of validation is unnecessary for some use cases, you 
 can skip it by never calling `validate()`. 
@@ -203,8 +203,8 @@ Next, we seed the instance with some data and validate it.
     user = User(**{'secret': 'whatevs', 'name': 'test hash'})
     try:
         user.validate()
-    except DictPunch, dp:
-        print 'DictPunch caught: %s' % (dp))
+    except ShieldException, se:
+        print 'ShieldException caught: %s' % (se))
 
 This calling `validate()` on a model validates an instance by looping through
 it's fields and calling `field.validate()` on each one. 
@@ -229,8 +229,8 @@ This method builds a User instance out of the input, which also throws away
 keys that aren't in the User definition.
 
 We then call `validate()` on that `User` instance to validate each field against
-what the dictionary contained. If the data doesn't pass exception, a `DictPunch`
-is thrown and we handle the error. 
+what the dictionary contained. If the data doesn't pass exception, a
+`ShieldException` is thrown and we handle the error. 
 
 If validation passed, we're done. We know the data looks good.
 
@@ -326,7 +326,7 @@ classmethod. No need to instantiate anything.
 
     try:
         User.validate_class_fields(user_input)
-    except DictPunch, dp:
+    except ShieldException, se:
         print('  Validation failure: %s\n' % (dp))
 
 This particular code would throw an exception because the `name` field is 

@@ -18,7 +18,7 @@ in the top level document structure
 }
 """
 
-from dictshield.base import BaseField, DictPunch
+from dictshield.base import BaseField
 from dictshield.document import Document, EmbeddedDocument
 from dictshield.fields import (StringField,
                                BooleanField,

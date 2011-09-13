@@ -1,4 +1,4 @@
-from base import BaseField, ObjectIdField, DictPunch, InvalidShield, get_document
+from base import BaseField, ObjectIdField, ShieldException, InvalidShield, get_document
 from document import EmbeddedDocument
 from operator import itemgetter
 
@@ -10,7 +10,7 @@ __all__ = ['StringField', 'IntField', 'FloatField', 'LongField', 'BooleanField',
            'DateTimeField', 'EmbeddedDocumentField', 'ListField', 'DictField',
            'ObjectIdField', 'DecimalField', 'URLField', 'MD5Field', 'SHA1Field',
            'SortedListField', 'EmailField', 'GeoPointField',
-           'DictPunch', 'InvalidShield'] 
+           'ShieldException', 'InvalidShield'] 
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
 
@@ -31,14 +31,14 @@ class StringField(BaseField):
         assert isinstance(value, (str, unicode))
 
         if self.max_length is not None and len(value) > self.max_length:
-            raise DictPunch('String value is too long', self.field_name, value)
+            raise ShieldException('String value is too long', self.field_name, value)
 
         if self.min_length is not None and len(value) < self.min_length:
-            raise DictPunch('String value is too short', self.uniq_field, value)
+            raise ShieldException('String value is too short', self.uniq_field, value)
 
         if self.regex is not None and self.regex.match(value) is None:
             message = 'String value did not match validation regex',
-            raise DictPunch(message, self.uniq_field, value)
+            raise ShieldException(message, self.uniq_field, value)
 
     def lookup_member(self, member_name):
         return None
@@ -69,7 +69,7 @@ class URLField(StringField):
 
     def validate(self, value):
         if not URLField.URL_REGEX.match(value):
-            raise DictPunch('Invalid URL', self.field_name, value)
+            raise ShieldException('Invalid URL', self.field_name, value)
 
         if self.verify_exists:
             import urllib2
@@ -78,7 +78,7 @@ class URLField(StringField):
                 urllib2.urlopen(request)
             except Exception:
                 message = 'URL does not exist'
-                raise DictPunch(message, self.field_name, value)
+                raise ShieldException(message, self.field_name, value)
 
 
 class EmailField(StringField):
@@ -93,7 +93,8 @@ class EmailField(StringField):
 
     def validate(self, value):
         if not EmailField.EMAIL_REGEX.match(value):
-            raise DictPunch('Invalid email address', self.field_name, value)
+            raise ShieldException('Invalid email address', self.field_name,
+                                  value)
 
 ###
 ### Numbers
@@ -118,18 +119,18 @@ class NumberField(BaseField):
         try:
             value = self.number_class(value)
         except:
-            raise DictPunch('Not %s' % self.number_type,
-                            self.field_name, value)
+            raise ShieldException('Not %s' % self.number_type, self.field_name,
+                                  value)
 
         if self.min_value is not None and value < self.min_value:
-            raise DictPunch('%s value below min_value: %s' % (self.number_type,
-                                                              self.min_value),
-                            self.field_name, value)
+            raise ShieldException('%s value below min_value: %s'
+                                  % (self.number_type, self.min_value),
+                                  self.field_name, value)
 
         if self.max_value is not None and value > self.max_value:
-            raise DictPunch('%s value above max_value: %s' % (self.number_type,
-                                                              self.max_value),
-                            self.field_name, value)
+            raise ShieldException('%s value above max_value: %s'
+                                  % (self.number_type, self.max_value),
+                                  self.field_name, value)
 
 class IntField(NumberField):
     """A field that validates input as an Integer
@@ -179,16 +180,16 @@ class DecimalField(BaseField):
             try:
                 value = decimal.Decimal(value)
             except Exception:
-                raise DictPunch('Could not convert to decimal',
-                                self.field_name, value)
+                raise ShieldException('Could not convert to decimal',
+                                      self.field_name, value)
 
         if self.min_value is not None and value < self.min_value:
-            raise DictPunch('Decimal value below min_value: %s' % self.min_value,
-                            self.field_name, value)
+            raise ShieldException('Decimal value below min_value: %s'
+                                  % self.min_value, self.field_name, value)
 
         if self.max_value is not None and value > self.max_value:
-            raise DictPunch('Decimal value above max_value: %s' % self.max_value,
-                            self.field_name, value)
+            raise ShieldException('Decimal value above max_value: %s'
+                                  % self.max_value, self.field_name, value)
 
 
 ###
@@ -202,13 +203,13 @@ class MD5Field(BaseField):
 
     def validate(self, value):
         if len(value) != MD5Field.hash_length:
-            raise DictPunch('MD5 value is wrong length',
-                            self.field_name, value)
+            raise ShieldException('MD5 value is wrong length', self.field_name,
+                                  value)
         try:
             int(value, 16)
         except:
-            raise DictPunch('MD5 value is not hex',
-                            self.field_name, value)
+            raise ShieldException('MD5 value is not hex', self.field_name,
+                                  value)
 
         
 class SHA1Field(BaseField):
@@ -218,13 +219,14 @@ class SHA1Field(BaseField):
 
     def validate(self, value):
         if len(value) != SHA1Field.hash_length:
-            raise DictPunch('SHA1 value is wrong length',
-                            self.field_name, value)
+            raise ShieldException('SHA1 value is wrong length', self.field_name,
+                                  value)
         try:
             int(value, 16)
         except:
-            raise DictPunch('SHA1 value is not hex',
-                            self.field_name, value)
+            raise ShieldException('SHA1 value is not hex', self.field_name,
+                                  value)
+
 
 ###
 ### Native type'ish fields
@@ -239,7 +241,8 @@ class BooleanField(BaseField):
 
     def validate(self, value):
         if not isinstance(value, bool):
-            raise DictPunch('Not a boolean', self.field_name, value)
+            raise ShieldException('Not a boolean', self.field_name, value)
+
 
 class DateTimeField(BaseField):
     """A datetime field. 
@@ -293,7 +296,7 @@ class DateTimeField(BaseField):
 
     def validate(self, value):
         if not isinstance(value, datetime.datetime):
-            raise DictPunch('Not a datetime', self.field_name, value)
+            raise ShieldException('Not a datetime', self.field_name, value)
 
     def for_python(self, value):
         return value
@@ -346,14 +349,14 @@ class ListField(BaseField):
         """Make sure that a list of valid fields is being used.
         """
         if not isinstance(value, (list, tuple)):
-            raise DictPunch('Only lists and tuples may be used in a '
-                            'list field', self.field_name, value)
+            error_msg = 'Only lists and tuples may be used in a list field'
+            raise ShieldException(error_msg, self.field_name, value)
 
         try:
             [self.field.validate(item) for item in value]
         except Exception:
-            raise DictPunch('Invalid ListField item',
-                            self.field_name, str(item))
+            raise ShieldException('Invalid ListField item', self.field_name,
+                                  str(item))
 
     def lookup_member(self, member_name):
         return self.field.lookup_member(member_name)
@@ -402,13 +405,13 @@ class DictField(BaseField):
         """Make sure that a list of valid fields is being used.
         """
         if not isinstance(value, dict):
-            raise DictPunch('Only dictionaries may be used in a '
-                            'DictField', self.field_name, value)
+            raise ShieldException('Only dictionaries may be used in a '
+                                  'DictField', self.field_name, value)
 
         if any(('.' in k or '$' in k) for k in value):
-            raise DictPunch('Invalid dictionary key name - keys may not '
-                            'contain "." or "$" characters',
-                            self.field_name, value)
+            raise ShieldException('Invalid dictionary key name - keys may not '
+                                  'contain "." or "$" characters',
+                                  self.field_name, value)
 
     def lookup_member(self, member_name):
         return self.basecls(uniq_field=member_name)
@@ -421,22 +424,23 @@ class GeoPointField(BaseField):
         """Make sure that a geo-value is of type (x, y)
         """
         if not len(value) == 2:
-            raise DictPunch('Value must be a two-dimensional point',
-                            self.field_name, value)
+            raise ShieldException('Value must be a two-dimensional point',
+                                  self.field_name, value)
         if isinstance(value, dict):
             for v in value.values():
                 if not isinstance(v, (float, int)):
-                    raise DictPunch('Both values in point must be float or int',
-                                    self.field_name, value)
+                    error_msg = 'Both values in point must be float or int'
+                    raise ShieldException(error_msg, self.field_name, value)
         elif isinstance(value, (list, tuple)):
             if (not isinstance(value[0], (float, int)) and
                 not isinstance(value[1], (float, int))):
-                raise DictPunch('Both values in point must be float or int',
-                                self.field_name, value)
+                error_msg = 'Both values in point must be float or int'
+                raise ShieldException(error_msg, self.field_name, value)
         else:
-            raise DictPunch('GeoPointField can only accept tuples, '
-                            'lists of (x, y), or dicts of {k1: v1, k2: v2}', 
-                            self.field_name, value)
+            raise ShieldException('GeoPointField can only accept tuples, '
+                                  'lists of (x, y), or dicts of {k1: v1, '
+                                  'k2: v2}',
+                                  self.field_name, value)
 
 
 ###
@@ -451,8 +455,8 @@ class EmbeddedDocumentField(BaseField):
     def __init__(self, document_type, **kwargs):
         if not isinstance(document_type, basestring):
             if not issubclass(document_type, EmbeddedDocument):
-                raise DictPunch('Invalid embedded document class '
-                                'provided to an EmbeddedDocumentField')
+                raise ShieldException('Invalid embedded document class '
+                                      'provided to an EmbeddedDocumentField')
         self.document_type_obj = document_type
         super(EmbeddedDocumentField, self).__init__(**kwargs)
 
@@ -484,8 +488,8 @@ class EmbeddedDocumentField(BaseField):
         """
         # Using isinstance also works for subclasses of self.document
         if not isinstance(value, self.document_type):
-            raise DictPunch('Invalid embedded document instance '
-                            'provided to an EmbeddedDocumentField')
+            raise ShieldException('Invalid embedded document instance '
+                                  'provided to an EmbeddedDocumentField')
         self.document_type.validate(value)
 
     def lookup_member(self, member_name):
