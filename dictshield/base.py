@@ -33,11 +33,6 @@ try:
 except:
     pass
 
-_document_registry = {}
-
-def get_document(name):
-    return _document_registry[name]
-
 
 ###
 ### Exceptions
