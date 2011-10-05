@@ -1,4 +1,9 @@
+<<<<<<< Updated upstream
 from base import BaseField, ObjectIdField, ShieldException, InvalidShield, get_document
+=======
+from base import BaseField, ObjectIdField, ShieldException, InvalidShield
+from datastructures import MultiValueDict
+>>>>>>> Stashed changes
 from document import EmbeddedDocument
 from operator import itemgetter
 
@@ -416,6 +421,34 @@ class DictField(BaseField):
 
     def lookup_member(self, member_name):
         return self.basecls(uniq_field=member_name)
+
+
+class MultiValueDictField(DictField):
+    def __init__(self, basecls=None, *args, **kwargs):
+        self.basecls = basecls or BaseField
+        if not issubclass(self.basecls, BaseField):
+            raise InvalidShield('basecls is not subclass of BaseField')
+        kwargs.setdefault('default', lambda: MultiValueDict())
+        super(MultiValueDictField, self).__init__(*args, **kwargs)
+
+    def validate(self, value):
+        """Make sure that a list of valid fields is being used.
+        """
+        if not isinstance(value, (dict, MultiValueDict)):
+            raise ShieldException('Only dictionaries or MultiValueDict may be '
+                                  'used in a DictField', self.field_name, value)
+
+        if any(('.' in k or '$' in k) for k in value):
+            raise ShieldException('Invalid dictionary key name - keys may not '
+                                  'contain "." or "$" characters',
+                                  self.field_name, value)
+
+    def for_json(self, value):
+        output = {}
+        for key, values in value.iterlists():
+            output[key] = values
+
+        return output
 
 class GeoPointField(BaseField):
     """A list storing a latitude and longitude.
