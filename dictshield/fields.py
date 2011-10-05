@@ -12,7 +12,7 @@ __all__ = ['StringField', 'IntField', 'FloatField', 'LongField', 'BooleanField',
            'DateTimeField', 'EmbeddedDocumentField', 'ListField', 'DictField',
            'ObjectIdField', 'DecimalField', 'URLField', 'MD5Field', 'SHA1Field',
            'SortedListField', 'EmailField', 'GeoPointField',
-           'ShieldException', 'InvalidShield']
+           'ShieldException', 'InvalidShield', 'MultiValueDictField']
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
 
