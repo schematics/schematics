@@ -5,13 +5,16 @@ from operator import itemgetter
 import re
 import datetime
 import decimal
+from time import mktime
 import uuid
 
+from dateutil.tz import tzutc
+
 __all__ = ['StringField', 'IntField', 'FloatField', 'LongField', 'BooleanField',
-           'DateTimeField', 'EmbeddedDocumentField', 'ListField', 'DictField',
-           'ObjectIdField', 'DecimalField', 'URLField', 'MD5Field', 'SHA1Field',
-           'SortedListField', 'EmailField', 'GeoPointField',
-           'ShieldException', 'InvalidShield'] 
+           'DateTimeField', 'TimeStampField', 'EmbeddedDocumentField',
+           'ListField', 'DictField', 'ObjectIdField', 'DecimalField',
+           'URLField', 'MD5Field', 'SHA1Field', 'SortedListField',
+           'EmailField', 'GeoPointField', 'ShieldException', 'InvalidShield']
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
 
@@ -157,11 +160,11 @@ class FloatField(NumberField):
         super(FloatField, self).__init__(number_class=float,
                                          number_type='Float',
                                          *args, **kwargs)
-        
+
 class DecimalField(BaseField):
     """A fixed-point decimal number field.
     """
- 
+
     def __init__(self, min_value=None, max_value=None, **kwargs):
         self.min_value, self.max_value = min_value, max_value
         super(DecimalField, self).__init__(**kwargs)
@@ -212,7 +215,7 @@ class MD5Field(BaseField):
             raise ShieldException('MD5 value is not hex', self.field_name,
                                   value)
 
-        
+
 class SHA1Field(BaseField):
     """A field that validates input as resembling an SHA1 hash.
     """
@@ -246,13 +249,13 @@ class BooleanField(BaseField):
 
 
 class DateTimeField(BaseField):
-    """A datetime field. 
+    """A datetime field.
     """
 
     def __set__(self, instance, value):
         """If `value` is a string, the string should match iso8601 format.
         `iso8601_to_date` is called for conversion.
-        
+
         A datetime may be used (and is encouraged).
         """
         if not value:
@@ -304,6 +307,40 @@ class DateTimeField(BaseField):
 
     def for_json(self, value):
         v = DateTimeField.date_to_iso8601(value)
+        return v
+
+
+class TimeStampField(DateTimeField):
+    """Variant of a datetime field that saves itself as a unix timestamp (int)
+    instead of a ISO-8601 string.
+    """
+
+    def __set__(self, instance, value):
+        """Will try to parse the value as a timestamp.  If that fails it
+        will fallback to DateTimeField's value parsing.
+
+        A datetime may be used (and is encouraged).
+        """
+        if not value:
+            return
+
+        try:
+            value = TimeStampField.timestamp_to_date(value)
+        except TypeError:
+            pass
+
+        super(TimeStampField, self).__set__(instance, value)
+
+    @classmethod
+    def timestamp_to_date(cls, value):
+        return datetime.datetime.fromtimestamp(value, tz=tzutc())
+
+    @classmethod
+    def date_to_timestamp(cls, value):
+        return int(round(mktime(value.astimezone(tzutc()).timetuple())))
+
+    def for_json(self, value):
+        v = TimeStampField.date_to_timestamp(value)
         return v
 
 
@@ -485,7 +522,7 @@ class UUIDField(BaseField):
 ###
 ### Sub structures
 ###
-    
+
 class EmbeddedDocumentField(BaseField):
     """An embedded document field. Only valid values are subclasses of
     :class:`~dictshield.EmbeddedDocument`.
