@@ -363,6 +363,7 @@ DictShield is in [pypi](http://pypi.python.org) so you can use `easy_install` or
 * [Dion Paragas](https://github.com/d1on)
 * [Tom Waits](https://github.com/tomwaits)
 * [Chris McCulloh](https://github.com/st0w)
+* [Sean O'Connor](https://github.com/SeanOC)
 
 
 # License
