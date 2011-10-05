@@ -1,9 +1,5 @@
-<<<<<<< Updated upstream
-from base import BaseField, ObjectIdField, ShieldException, InvalidShield, get_document
-=======
 from base import BaseField, ObjectIdField, ShieldException, InvalidShield
 from datastructures import MultiValueDict
->>>>>>> Stashed changes
 from document import EmbeddedDocument
 from operator import itemgetter
 
@@ -16,7 +12,7 @@ __all__ = ['StringField', 'IntField', 'FloatField', 'LongField', 'BooleanField',
            'DateTimeField', 'EmbeddedDocumentField', 'ListField', 'DictField',
            'ObjectIdField', 'DecimalField', 'URLField', 'MD5Field', 'SHA1Field',
            'SortedListField', 'EmailField', 'GeoPointField',
-           'ShieldException', 'InvalidShield'] 
+           'ShieldException', 'InvalidShield']
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
 
@@ -162,11 +158,11 @@ class FloatField(NumberField):
         super(FloatField, self).__init__(number_class=float,
                                          number_type='Float',
                                          *args, **kwargs)
-        
+
 class DecimalField(BaseField):
     """A fixed-point decimal number field.
     """
- 
+
     def __init__(self, min_value=None, max_value=None, **kwargs):
         self.min_value, self.max_value = min_value, max_value
         super(DecimalField, self).__init__(**kwargs)
@@ -217,7 +213,7 @@ class MD5Field(BaseField):
             raise ShieldException('MD5 value is not hex', self.field_name,
                                   value)
 
-        
+
 class SHA1Field(BaseField):
     """A field that validates input as resembling an SHA1 hash.
     """
@@ -251,13 +247,13 @@ class BooleanField(BaseField):
 
 
 class DateTimeField(BaseField):
-    """A datetime field. 
+    """A datetime field.
     """
 
     def __set__(self, instance, value):
         """If `value` is a string, the string should match iso8601 format.
         `iso8601_to_date` is called for conversion.
-        
+
         A datetime may be used (and is encouraged).
         """
         if not value:
@@ -518,7 +514,7 @@ class UUIDField(BaseField):
 ###
 ### Sub structures
 ###
-    
+
 class EmbeddedDocumentField(BaseField):
     """An embedded document field. Only valid values are subclasses of
     :class:`~dictshield.EmbeddedDocument`.
