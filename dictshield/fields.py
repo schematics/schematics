@@ -1,4 +1,4 @@
-from base import BaseField, ObjectIdField, ShieldException, InvalidShield, get_document
+from base import BaseField, ObjectIdField, ShieldException, InvalidShield
 from document import EmbeddedDocument
 from operator import itemgetter
 
@@ -8,7 +8,7 @@ import decimal
 from time import mktime
 import uuid
 
-from dateutil.tz import tzutc
+from dateutil.tz import tzlocal, tzutc
 
 __all__ = ['StringField', 'IntField', 'FloatField', 'LongField', 'BooleanField',
            'DateTimeField', 'TimeStampField', 'EmbeddedDocumentField',
@@ -337,6 +337,8 @@ class TimeStampField(DateTimeField):
 
     @classmethod
     def date_to_timestamp(cls, value):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=tzlocal())
         return int(round(mktime(value.astimezone(tzutc()).timetuple())))
 
     def for_json(self, value):
@@ -548,8 +550,6 @@ class EmbeddedDocumentField(BaseField):
         if isinstance(self.document_type_obj, basestring):
             if self.document_type_obj == RECURSIVE_REFERENCE_CONSTANT:
                 self.document_type_obj = self.owner_document
-            else:
-                self.document_type_obj = get_document(self.document_type_obj)
         return self.document_type_obj
 
     def for_python(self, value):
