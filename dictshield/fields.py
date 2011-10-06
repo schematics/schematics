@@ -1,8 +1,6 @@
 from base import BaseField, ObjectIdField, ShieldException, InvalidShield
-<<<<<<< HEAD
-=======
 from datastructures import MultiValueDict
->>>>>>> MultiValueDictField
+
 from document import EmbeddedDocument
 from operator import itemgetter
 
@@ -15,17 +13,10 @@ import uuid
 from dateutil.tz import tzutc
 
 __all__ = ['StringField', 'IntField', 'FloatField', 'LongField', 'BooleanField',
-<<<<<<< HEAD
-           'DateTimeField', 'TimeStampField', 'EmbeddedDocumentField',
-           'ListField', 'DictField', 'ObjectIdField', 'DecimalField',
-           'URLField', 'MD5Field', 'SHA1Field', 'SortedListField',
-           'EmailField', 'GeoPointField', 'ShieldException', 'InvalidShield']
-=======
            'DateTimeField', 'EmbeddedDocumentField', 'ListField', 'DictField',
            'ObjectIdField', 'DecimalField', 'URLField', 'MD5Field', 'SHA1Field',
            'SortedListField', 'EmailField', 'GeoPointField',
            'ShieldException', 'InvalidShield', 'MultiValueDictField']
->>>>>>> MultiValueDictField
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
 
