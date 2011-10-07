@@ -1,6 +1,5 @@
 from base import BaseField, ObjectIdField, ShieldException, InvalidShield
 from datastructures import MultiValueDict
-
 from document import EmbeddedDocument
 from operator import itemgetter
 
@@ -10,7 +9,7 @@ import decimal
 from time import mktime
 import uuid
 
-from dateutil.tz import tzutc
+from dateutil.tz import tzlocal, tzutc
 
 __all__ = ['StringField', 'IntField', 'FloatField', 'LongField', 'BooleanField',
            'DateTimeField', 'EmbeddedDocumentField', 'ListField', 'DictField',
@@ -339,6 +338,8 @@ class TimeStampField(DateTimeField):
 
     @classmethod
     def date_to_timestamp(cls, value):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=tzlocal())
         return int(round(mktime(value.astimezone(tzutc()).timetuple())))
 
     def for_json(self, value):
