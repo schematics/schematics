@@ -1,4 +1,5 @@
-from base import BaseField, ObjectIdField, ShieldException, InvalidShield, get_document
+from base import BaseField, ObjectIdField, ShieldException, InvalidShield
+from datastructures import MultiValueDict
 from document import EmbeddedDocument
 from operator import itemgetter
 
@@ -11,7 +12,7 @@ __all__ = ['StringField', 'IntField', 'FloatField', 'LongField', 'BooleanField',
            'DateTimeField', 'EmbeddedDocumentField', 'ListField', 'DictField',
            'ObjectIdField', 'DecimalField', 'URLField', 'MD5Field', 'SHA1Field',
            'SortedListField', 'EmailField', 'GeoPointField',
-           'ShieldException', 'InvalidShield'] 
+           'ShieldException', 'InvalidShield', 'MultiValueDictField']
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
 
@@ -157,11 +158,11 @@ class FloatField(NumberField):
         super(FloatField, self).__init__(number_class=float,
                                          number_type='Float',
                                          *args, **kwargs)
-        
+
 class DecimalField(BaseField):
     """A fixed-point decimal number field.
     """
- 
+
     def __init__(self, min_value=None, max_value=None, **kwargs):
         self.min_value, self.max_value = min_value, max_value
         super(DecimalField, self).__init__(**kwargs)
@@ -212,7 +213,7 @@ class MD5Field(BaseField):
             raise ShieldException('MD5 value is not hex', self.field_name,
                                   value)
 
-        
+
 class SHA1Field(BaseField):
     """A field that validates input as resembling an SHA1 hash.
     """
@@ -246,13 +247,13 @@ class BooleanField(BaseField):
 
 
 class DateTimeField(BaseField):
-    """A datetime field. 
+    """A datetime field.
     """
 
     def __set__(self, instance, value):
         """If `value` is a string, the string should match iso8601 format.
         `iso8601_to_date` is called for conversion.
-        
+
         A datetime may be used (and is encouraged).
         """
         if not value:
@@ -417,6 +418,34 @@ class DictField(BaseField):
     def lookup_member(self, member_name):
         return self.basecls(uniq_field=member_name)
 
+
+class MultiValueDictField(DictField):
+    def __init__(self, basecls=None, *args, **kwargs):
+        self.basecls = basecls or BaseField
+        if not issubclass(self.basecls, BaseField):
+            raise InvalidShield('basecls is not subclass of BaseField')
+        kwargs.setdefault('default', lambda: MultiValueDict())
+        super(MultiValueDictField, self).__init__(*args, **kwargs)
+
+    def validate(self, value):
+        """Make sure that a list of valid fields is being used.
+        """
+        if not isinstance(value, (dict, MultiValueDict)):
+            raise ShieldException('Only dictionaries or MultiValueDict may be '
+                                  'used in a DictField', self.field_name, value)
+
+        if any(('.' in k or '$' in k) for k in value):
+            raise ShieldException('Invalid dictionary key name - keys may not '
+                                  'contain "." or "$" characters',
+                                  self.field_name, value)
+
+    def for_json(self, value):
+        output = {}
+        for key, values in value.iterlists():
+            output[key] = values
+
+        return output
+
 class GeoPointField(BaseField):
     """A list storing a latitude and longitude.
     """
@@ -485,7 +514,7 @@ class UUIDField(BaseField):
 ###
 ### Sub structures
 ###
-    
+
 class EmbeddedDocumentField(BaseField):
     """An embedded document field. Only valid values are subclasses of
     :class:`~dictshield.EmbeddedDocument`.
