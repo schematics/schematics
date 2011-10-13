@@ -21,17 +21,13 @@ An `InvalidShield` exception is thrown when the input data can't be mapped
 to a `Document`.
 """
 
+import uuid
+
 ### If you're using Python 2.6, you should use simplejson
 try:
     import simplejson as json
 except:
     import json
-
-### If you wear a diaper, you can't use ObjectIdFields
-try:
-    import bson
-except:
-    pass
 
 
 ###
@@ -135,26 +131,43 @@ class BaseField(object):
         self.validate(value)
 
 
-### ID Fields
-
-class ObjectIdField(BaseField):
-    """An field wrapper around MongoDB ObjectIds.
+class UUIDField(BaseField):
+    """A field that stores a valid UUID value and optionally auto-populates
+    empty values with new UUIDs.
     """
 
-    def to_python(self, value):
-        try:
-            return bson.objectid.ObjectId(unicode(value))
-        except Exception, e:
-            raise InvalidShield(unicode(e))
+    def __init__(self, auto_fill=True, **kwargs):
+        self.auto_fill = auto_fill
+        super(UUIDField, self).__init__(**kwargs)
 
-    def for_json(self, value):
-        return str(value)
+    def __set__(self, instance, value):
+        """Convert any text values provided into Python UUID objects and
+        auto-populate any empty values should auto_fill be set to True.
+        """
+        if not value:
+            value = uuid.uuid4()
+
+        if isinstance(value, (str, unicode)):
+            value = uuid.UUID(value)
+
+        instance._data[self.field_name] = value
 
     def validate(self, value):
-        try:
-            bson.objectid.ObjectId(unicode(value))
-        except Exception, e:
-            raise ShieldException('Invalid ObjectId', self.field_name, value)
+        """Make sure the value is a valid uuid representation.  See
+        http://docs.python.org/library/uuid.html for accepted formats.
+        """
+        if not isinstance(value, (uuid.UUID,)):
+            try:
+                uuid.UUID(value)
+            except ValueError:
+                raise ShieldException('Not a valid UUID value',
+                    self.field_name, value)
+
+    def for_json(self, value):
+        """Return a JSON safe version of the UUID object.
+        """
+
+        return str(value)
 
 
 ###
@@ -292,7 +305,7 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
 
         if not new_class._meta['id_field']:
             new_class._meta['id_field'] = 'id'
-            new_class._fields['id'] = ObjectIdField(uniq_field='_id')
+            new_class._fields['id'] = UUIDField(uniq_field='_id')
             new_class.id = new_class._fields['id']
 
         return new_class

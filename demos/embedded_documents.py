@@ -105,7 +105,13 @@ JSON:
 """
 
 from dictshield.document import Document, EmbeddedDocument
-from dictshield.fields import *
+from dictshield.fields import (IntField,
+                               StringField,
+                               FloatField,
+                               ListField,
+                               DateTimeField,
+                               EmailField,
+                               EmbeddedDocumentField)
 import datetime
 import json
 

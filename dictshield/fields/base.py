@@ -1,8 +1,9 @@
-from base import BaseField, ObjectIdField, ShieldException, InvalidShield
-from datastructures import MultiValueDict
-from document import EmbeddedDocument
-from operator import itemgetter
 
+from dictshield.base import BaseField, UUIDField, ShieldException, InvalidShield
+from dictshield.datastructures import MultiValueDict
+from dictshield.document import EmbeddedDocument
+
+from operator import itemgetter
 import re
 import datetime
 import decimal
@@ -10,12 +11,6 @@ from time import mktime
 import uuid
 
 from dateutil.tz import tzlocal, tzutc
-
-__all__ = ['StringField', 'IntField', 'FloatField', 'LongField', 'BooleanField',
-           'DateTimeField', 'EmbeddedDocumentField', 'ListField', 'DictField',
-           'ObjectIdField', 'DecimalField', 'URLField', 'MD5Field', 'SHA1Field',
-           'SortedListField', 'EmailField', 'GeoPointField',
-           'ShieldException', 'InvalidShield', 'MultiValueDictField']
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
 
@@ -357,7 +352,7 @@ class ListField(BaseField):
             raise InvalidShield('Argument to ListField constructor must be '
                                 'a valid field')
         self.field = field
-        kwargs.setdefault('default', list())
+        kwargs.setdefault('default', list)
         super(ListField, self).__init__(**kwargs)
 
     def __set__(self, instance, value):
@@ -511,44 +506,6 @@ class GeoPointField(BaseField):
                                   'k2: v2}',
                                   self.field_name, value)
 
-
-class UUIDField(BaseField):
-    """A field that stores a valid UUID value and optionally auto-populates empty
-    values with new UUIDs.
-    """
-
-    def __init__(self, auto_fill=True, **kwargs):
-        self.auto_fill = auto_fill
-        super(UUIDField, self).__init__(**kwargs)
-
-    def __set__(self, instance, value):
-        """Convert any text values provided into Python UUID objects and
-        auto-populate any empty values should auto_fill be set to True.
-        """
-        if not value:
-            value = uuid.uuid4()
-
-        if isinstance(value, (str, unicode)):
-            value = uuid.UUID(value)
-
-        instance._data[self.field_name] = value
-
-    def validate(self, value):
-        """Make sure the value is a valid uuid representation.  See
-        http://docs.python.org/library/uuid.html for accepted formats.
-        """
-        if not isinstance(value, (uuid.UUID,)):
-            try:
-                uuid.UUID(value)
-            except ValueError:
-                raise ShieldException('Not a valid UUID value',
-                    self.field_name, value)
-
-    def for_json(self, value):
-        """Return a JSON safe version of the UUID object.
-        """
-
-        return str(value)
 
 ###
 ### Sub structures
