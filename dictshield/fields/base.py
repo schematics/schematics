@@ -310,7 +310,7 @@ class ListField(BaseField):
             raise InvalidShield('Argument to ListField constructor must be '
                                 'a valid field')
         self.field = field
-        kwargs.setdefault('default', list())
+        kwargs.setdefault('default', list)
         super(ListField, self).__init__(**kwargs)
 
     def __set__(self, instance, value):
