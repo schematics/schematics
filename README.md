@@ -204,7 +204,7 @@ Next, we seed the instance with some data and validate it.
     try:
         user.validate()
     except ShieldException, se:
-        print 'ShieldException caught: %s' % (se))
+        print 'ShieldException caught: %s' % (se)
 
 This calling `validate()` on a model validates an instance by looping through
 it's fields and calling `field.validate()` on each one. 
@@ -223,7 +223,7 @@ We might write some server code that looks like this:
 
     json_string = request.get_arg('data')
     user_input = json.loads(json_string)
-    u.validate(**user_input)
+    user.validate(**user_input)
 
 This method builds a User instance out of the input, which also throws away 
 keys that aren't in the User definition.
