@@ -3,9 +3,10 @@
 from distutils.core import setup
  
 setup(name='dictshield',
-      version='0.3.1',
+      license='BSD',
+      version='0.3.2',
       description='Python Library for typed dictionaries... sorta',
       author='James Dennis',
       author_email='jdennis@gmail.com',
       url='http://github.com/j2labs/dictshield',
-      packages=['dictshield'])
+      packages=['dictshield', 'dictshield.fields'])
