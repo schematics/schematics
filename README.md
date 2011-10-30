@@ -167,8 +167,23 @@ A complete list of the types supported by DictShield:
         <th>Notes</th>
     </tr>
     <tr>
-        <td></td>
-        <td></td>
+        <td colspan="2">String-like fields</td>
+    </tr>
+    <tr>
+        <td>StringField</td>
+        <td>A unicode string</td>
+    </tr>
+    <tr>
+        <td>URLField</td>
+        <td>A valid URL (and validated as such)</td>
+    </tr>
+    <tr>
+        <td>EmailField</td>
+        <td>A valid email address (and validated as such)</td>
+    </tr>
+    <tr>
+        <td>UUIDField</td>
+        <td>A valid UUID value, optionally auto-populates empty values with new UUIDs</td>
     </tr>
     
 </table>
