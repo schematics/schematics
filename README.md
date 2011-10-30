@@ -163,11 +163,11 @@ A complete list of the types supported by DictShield:
 
 <table>
     <tr>
-        <th>Type</th>
-        <th>Notes</th>
+        <th>TYPE</th>
+        <th>DESCRIPTION</th>
     </tr>
     <tr>
-        <td colspan="2"><b>TEXT FIELDS</b></td>
+        <td colspan="2"><b>Text fields</b></td>
     </tr>
     <tr>
         <td>StringField</td>
@@ -175,16 +175,66 @@ A complete list of the types supported by DictShield:
     </tr>
     <tr>
         <td>URLField</td>
-        <td>A valid URL (and validated as such)</td>
+        <td>A valid URL</td>
     </tr>
     <tr>
         <td>EmailField</td>
-        <td>A valid email address (and validated as such)</td>
+        <td>A valid email address</td>
     </tr>
     <tr>
         <td>UUIDField</td>
         <td>A valid UUID value, optionally auto-populates empty values with new UUIDs</td>
     </tr>
+    <tr>
+        <td colspan="2"><b>Numeric fields</b></td>
+    </tr>
+    <tr>
+        <td>NumberField</td>
+        <td>A number</td>
+    </tr>
+    <tr>
+        <td>IntField</td>
+        <td>An integer</td>
+    </tr>
+    <tr>
+        <td>LongField</td>
+        <td>A long</td>
+    </tr>
+    <tr>
+        <td>FloatField</td>
+        <td>A float</td>
+    </tr>
+    <tr>
+        <td>DecimalField</td>
+        <td>A fixed-point decimal number</td>
+    </tr>
+    <tr>
+        <td colspan="2"><b>Hashing fields</b></td>
+    </tr>
+    <tr>
+        <td>MD5Field</td>
+        <td>An MD5 hash</td>
+    </tr>
+    <tr>
+        <td>SHA1Field</td>
+        <td>An SHA1 hash</td>
+    </tr>
+    <tr>
+        <td colspan="2"><b>Native type-style fields</b></td>
+    </tr>
+    <tr>
+        <td>BooleanField</td>
+        <td>A boolean</td>
+    </tr>
+    <tr>
+        <td>DateTimeField</td>
+        <td>A datetime</td>
+    </tr>
+    <tr>
+        <td>ListField</td>
+        <td>Wraps a standard field, allowing multiple instances of the field to be used as a list in the model</td>
+    </tr>
+    
     
 </table>
 
