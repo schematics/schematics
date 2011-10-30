@@ -231,8 +231,27 @@ A complete list of the types supported by DictShield:
         <td>A datetime</td>
     </tr>
     <tr>
+        <td>GeoPointField</td>
+        <td>A geo-value of the form x, y (latitude, longitude)</td>
+    </tr>
+    <tr>
+        <td colspan="2"><b>Container fields</b></td>
+    </tr>
+    <tr>
         <td>ListField</td>
         <td>Wraps a standard field, allowing multiple instances of the field to be used as a list in the model</td>
+    </tr>
+    <tr>
+        <td>SortedListField</td>
+        <td>A `ListField` which sorts the list before saving, to ensure that the retrieved list is always sorted</td>
+    </tr>
+    <tr>
+        <td>DictField</td>
+        <td>Wraps a standard Python dictionary</td>
+    </tr>
+    <tr>
+        <td>EmbeddedDocumentField</td>
+        <td>Stores a DictShield `EmbeddedDocument`</td>
     </tr>
     
     
