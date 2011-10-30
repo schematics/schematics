@@ -190,7 +190,7 @@ A complete list of the types supported by DictShield:
     </tr>
     <tr>
         <td>NumberField</td>
-        <td>A number</td>
+        <td>Any number (the parent of all the other numeric fields)</td>
     </tr>
     <tr>
         <td>IntField</td>
