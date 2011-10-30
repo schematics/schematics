@@ -155,6 +155,26 @@ Or maybe we're storing json in a memcached.
 
 ## A Type System
 
+DictShield has its own type system - every field within a `Document` is defined with a specific type, for example a string will be defined as `StringField`. This "strong typing" makes serialising/deserialising semi-structured data to and from Python much more robust.
+
+### All Types
+
+A complete list of the types supported by DictShield:
+
+<table>
+    <tr>
+        <th>Type</th>
+        <th>Notes</th>
+    </tr>
+    <tr>
+        <td></td>
+        <td></td>
+    </tr>
+    
+</table>
+
+### A Close Look at the MD5Field
+
 This is what the MD5Field looks like. Notice that it's basically just
 an implementation of a `validate()` function, which raises a `ShieldException`
 exception if validation fails.
