@@ -167,7 +167,7 @@ A complete list of the types supported by DictShield:
         <th>Notes</th>
     </tr>
     <tr>
-        <td colspan="2">String-like fields</td>
+        <td colspan="2"><b>TEXT FIELDS</b></td>
     </tr>
     <tr>
         <td>StringField</td>
