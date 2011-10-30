@@ -243,7 +243,7 @@ A complete list of the types supported by DictShield:
     </tr>
     <tr>
         <td>SortedListField</td>
-        <td>A `ListField` which sorts the list before saving, to ensure that the retrieved list is always sorted</td>
+        <td>A ListField which sorts the list before saving, to ensure that the retrieved list is always sorted</td>
     </tr>
     <tr>
         <td>DictField</td>
@@ -251,7 +251,7 @@ A complete list of the types supported by DictShield:
     </tr>
     <tr>
         <td>EmbeddedDocumentField</td>
-        <td>Stores a DictShield `EmbeddedDocument`</td>
+        <td>Stores a DictShield EmbeddedDocument</td>
     </tr>
     
     
