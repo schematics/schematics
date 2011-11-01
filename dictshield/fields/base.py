@@ -18,6 +18,18 @@ class StringField(BaseField):
         self.min_length = min_length
         super(StringField, self).__init__(**kwargs)
 
+    def _jsonschema_type(self):
+        return "string"
+
+    def _jsonschema_maxLength(self):
+        return self.max_length
+
+    def _jsonschema_minLength(self):
+        return self.min_length
+
+    def _jsonschema_pattern(self):
+        return self.regex
+    
     def for_python(self, value):
         return unicode(value)
 
@@ -61,6 +73,9 @@ class URLField(StringField):
         self.verify_exists = verify_exists
         super(URLField, self).__init__(**kwargs)
 
+    def _jsonschema_format(cls):
+        return "url"
+
     def validate(self, value):
         if not URLField.URL_REGEX.match(value):
             raise ShieldException('Invalid URL', self.field_name, value)
@@ -90,12 +105,29 @@ class EmailField(StringField):
             raise ShieldException('Invalid email address', self.field_name,
                                   value)
 
+    def _jsonschema_format(cls):
+        return "email"
+
 ###
 ### Numbers
 ###
 
-class NumberField(BaseField):
-    """An integer field.
+class JsonNumberMixin(object):
+    """A mixin to support json schema validation for max, min, and type for all number fields
+    """
+
+    def _jsonschema_type(self):
+        return "number"        
+
+    def _jsonschema_maximum(self):
+        return self.max_value
+
+    def _jsonschema_minimum(self):
+        return self.min_value
+
+
+class NumberField(BaseField, JsonNumberMixin):
+    """A number field.
     """
 
     def __init__(self, number_class, number_type,
@@ -106,8 +138,10 @@ class NumberField(BaseField):
         self.max_value = max_value
         super(NumberField, self).__init__(**kwargs)
 
+
     def for_python(self, value):
         return self.number_class(value)
+
 
     def validate(self, value):
         try:
@@ -135,6 +169,9 @@ class IntField(NumberField):
                                        number_type='Int',
                                        *args, **kwargs)
 
+    def _jsonschema_type(self):
+        return "integer"
+
 class LongField(NumberField):
     """A field that validates input as a Long
     """
@@ -142,7 +179,6 @@ class LongField(NumberField):
         super(LongField, self).__init__(number_class=long,
                                         number_type='Long',
                                         *args, **kwargs)
-
 class FloatField(NumberField):
     """A field that validates input as a Float
     """
@@ -150,11 +186,11 @@ class FloatField(NumberField):
         super(FloatField, self).__init__(number_class=float,
                                          number_type='Float',
                                          *args, **kwargs)
-        
-class DecimalField(BaseField):
+
+class DecimalField(BaseField, JsonNumberMixin):
     """A fixed-point decimal number field.
     """
- 
+
     def __init__(self, min_value=None, max_value=None, **kwargs):
         self.min_value, self.max_value = min_value, max_value
         super(DecimalField, self).__init__(**kwargs)
@@ -190,7 +226,19 @@ class DecimalField(BaseField):
 ### Hashing fields
 ###
 
-class MD5Field(BaseField):
+class JsonHashMixin:
+    """A mixin to support jsonschema validation for hashes
+    """
+
+    def _jsonschema_type(self):
+        return "string"      
+
+    def _jsonschema_maxLength(self):
+        return self.hash_length
+
+
+
+class MD5Field(BaseField, JsonHashMixin):
     """A field that validates input as resembling an MD5 hash.
     """
     hash_length = 32
@@ -206,7 +254,7 @@ class MD5Field(BaseField):
                                   value)
 
         
-class SHA1Field(BaseField):
+class SHA1Field(BaseField, JsonHashMixin):
     """A field that validates input as resembling an SHA1 hash.
     """
     hash_length = 40
@@ -230,6 +278,10 @@ class BooleanField(BaseField):
     """A boolean field type.
     """
 
+    def _jsonschema_type(self):
+        return "boolean"
+
+
     def for_python(self, value):
         return bool(value)
 
@@ -241,6 +293,12 @@ class BooleanField(BaseField):
 class DateTimeField(BaseField):
     """A datetime field. 
     """
+
+    def _jsonschema_type(self):
+        return "string"
+
+    def _jsonschema_format(self):
+        return "date-time"
 
     def __set__(self, instance, value):
         """If `value` is a string, the string should match iso8601 format.
@@ -326,6 +384,12 @@ class ListField(BaseField):
             value = list_of_docs
         instance._data[self.field_name] = value
 
+    def _jsonschema_type(self):
+        return "array"
+
+    def _jsonschema_items(self):
+        pass
+
     def for_python(self, value):
         if value is None:
             return list()
@@ -334,7 +398,7 @@ class ListField(BaseField):
     def for_json(self, value):
         """for_json must be careful to expand embedded documents into Python,
         not JSON.
-        """
+    pp    """
         if value is None:
             return list()
         return [self.field.for_json(item) for item in value]
