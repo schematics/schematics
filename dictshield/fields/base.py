@@ -398,7 +398,7 @@ class ListField(BaseField):
     def for_json(self, value):
         """for_json must be careful to expand embedded documents into Python,
         not JSON.
-    pp    """
+        """
         if value is None:
             return list()
         return [self.field.for_json(item) for item in value]
