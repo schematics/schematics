@@ -19,7 +19,7 @@ class StringField(BaseField):
         super(StringField, self).__init__(**kwargs)
 
     def _jsonschema_type(self):
-        return "string"
+        return 'string'
 
     def _jsonschema_maxLength(self):
         return self.max_length
@@ -73,8 +73,8 @@ class URLField(StringField):
         self.verify_exists = verify_exists
         super(URLField, self).__init__(**kwargs)
 
-    def _jsonschema_format(cls):
-        return "url"
+    def _jsonschema_format(self):
+        return 'url'
 
     def validate(self, value):
         if not URLField.URL_REGEX.match(value):
@@ -105,19 +105,20 @@ class EmailField(StringField):
             raise ShieldException('Invalid email address', self.field_name,
                                   value)
 
-    def _jsonschema_format(cls):
-        return "email"
+    def _jsonschema_format(self):
+        return 'email'
 
 ###
 ### Numbers
 ###
 
 class JsonNumberMixin(object):
-    """A mixin to support json schema validation for max, min, and type for all number fields
+    """A mixin to support json schema validation for max, min, and type for all number fields,
+    including DecimalField, which does not inherit from NumberField.
     """
 
     def _jsonschema_type(self):
-        return "number"        
+        return 'number'
 
     def _jsonschema_maximum(self):
         return self.max_value
@@ -170,7 +171,7 @@ class IntField(NumberField):
                                        *args, **kwargs)
 
     def _jsonschema_type(self):
-        return "integer"
+        return 'integer'
 
 class LongField(NumberField):
     """A field that validates input as a Long
@@ -231,11 +232,13 @@ class JsonHashMixin:
     """
 
     def _jsonschema_type(self):
-        return "string"      
+        return 'string'
 
     def _jsonschema_maxLength(self):
         return self.hash_length
-
+    
+    def _jsonschema_minLength(self):
+        return self.hash_length
 
 
 class MD5Field(BaseField, JsonHashMixin):
@@ -279,8 +282,7 @@ class BooleanField(BaseField):
     """
 
     def _jsonschema_type(self):
-        return "boolean"
-
+        return 'boolean'
 
     def for_python(self, value):
         return bool(value)
@@ -295,10 +297,10 @@ class DateTimeField(BaseField):
     """
 
     def _jsonschema_type(self):
-        return "string"
+        return 'string'
 
     def _jsonschema_format(self):
-        return "date-time"
+        return 'date-time'
 
     def __set__(self, instance, value):
         """If `value` is a string, the string should match iso8601 format.
@@ -385,10 +387,10 @@ class ListField(BaseField):
         instance._data[self.field_name] = value
 
     def _jsonschema_type(self):
-        return "array"
+        return 'array'
 
     def _jsonschema_items(self):
-        pass
+        return self.field.for_jsonschema()
 
     def for_python(self, value):
         if value is None:
@@ -452,6 +454,9 @@ class DictField(BaseField):
     similar to an embedded document, but the structure is not defined.
     """
 
+    def _jsonschema_type(self):
+        return 'object'
+
     def __init__(self, basecls=None, *args, **kwargs):
         self.basecls = basecls or BaseField
         if not issubclass(self.basecls, BaseField):
@@ -477,6 +482,18 @@ class DictField(BaseField):
 class GeoPointField(BaseField):
     """A list storing a latitude and longitude.
     """
+
+    def _jsonschema_type(self):
+        return 'array'
+    
+    def _jsonschema_items(self):
+        return NumberField().for_jsonschema()
+
+    def _jsonschema_maxLength(self):
+        return 2
+    
+    def _jsonschema_minLength(self):
+        return 2
 
     def validate(self, value):
         """Make sure that a geo-value is of type (x, y)
@@ -533,6 +550,15 @@ class EmbeddedDocumentField(BaseField):
             else:
                 self.document_type_obj = get_document(self.document_type_obj)
         return self.document_type_obj
+
+    def _jsonschema_type(self):
+        return 'object'
+
+    def for_jsonschema(self):
+        fieldDict = self.for_jsonschema()
+        fieldDict.update(self._data[self.field_name].for_jsonschema())
+        
+        return fieldDict
 
     def for_python(self, value):
         return value
