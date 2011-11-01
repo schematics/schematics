@@ -65,7 +65,7 @@ class BaseField(object):
     """
 
     def __init__(self, uniq_field=None, field_name=None, required=False,
-                 default=None, id_field=False, validation=None, choices=None):
+                 default=None, id_field=False, validation=None, choices=None, description=""):
         
         self.uniq_field = '_id' if id_field else uniq_field or field_name
         self.field_name = field_name
@@ -74,6 +74,7 @@ class BaseField(object):
         self.validation = validation
         self.choices = choices
         self.id_field = id_field
+        self.description = description
 
     def __get__(self, instance, owner):
         """Descriptor for retrieving a value from a field in a document. Do 
@@ -130,6 +131,20 @@ class BaseField(object):
 
         self.validate(value)
 
+    def _jsonschema_description(self):
+        return self.description
+
+    def _jsonschema_type(self):
+        raise NotImplementedError
+
+    def for_jsonschema(self):
+        schema = {}
+        schema['description'] = self._jsonschema_description()
+        funcs = filter(callable, dir(self)).filter(lambda x: x.__name__.startswith("_jsonschema"))
+        for func in funcs:
+            attr_name = func.__name__.split("_")[-1]
+            schema[attr_name] = func()
+        return schema
 
 class UUIDField(BaseField):
     """A field that stores a valid UUID value and optionally auto-populates

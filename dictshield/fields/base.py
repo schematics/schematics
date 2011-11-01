@@ -18,16 +18,16 @@ class StringField(BaseField):
         self.min_length = min_length
         super(StringField, self).__init__(**kwargs)
 
-    def jsonschema_type(self):
+    def _jsonschema_type(self):
         return "string"
 
-    def jsonschema_maxLength(self):
+    def _jsonschema_maxLength(self):
         return self.max_length
 
-    def jsonschema_minLength(self):
+    def _jsonschema_minLength(self):
         return self.min_length
 
-    def jsonschema_pattern(self):
+    def _jsonschema_pattern(self):
         return self.regex
     
     def for_python(self, value):
@@ -73,7 +73,7 @@ class URLField(StringField):
         self.verify_exists = verify_exists
         super(URLField, self).__init__(**kwargs)
 
-    def jsonschema_format(cls):
+    def _jsonschema_format(cls):
         return "url"
 
     def validate(self, value):
@@ -105,7 +105,7 @@ class EmailField(StringField):
             raise ShieldException('Invalid email address', self.field_name,
                                   value)
 
-    def jsonschema_format(cls):
+    def _jsonschema_format(cls):
         return "email"
 
 ###
@@ -116,13 +116,13 @@ class JsonNumberMixin(object):
     """A mixin to support json schema validation for max, min, and type for all number fields
     """
 
-    def jsonschema_type(self):
+    def _jsonschema_type(self):
         return "number"        
 
-    def jsonschema_maximum(self):
+    def _jsonschema_maximum(self):
         return self.max_value
 
-    def jsonschema_minimum(self):
+    def _jsonschema_minimum(self):
         return self.min_value
 
 
@@ -169,7 +169,7 @@ class IntField(NumberField):
                                        number_type='Int',
                                        *args, **kwargs)
 
-    def jsonschema_type(self):
+    def _jsonschema_type(self):
         return "integer"
 
 class LongField(NumberField):
@@ -230,10 +230,10 @@ class JsonHashMixin:
     """A mixin to support jsonschema validation for hashes
     """
 
-    def jsonschema_type(self):
+    def _jsonschema_type(self):
         return "string"      
 
-    def jsonschema_maxLength(self):
+    def _jsonschema_maxLength(self):
         return self.hash_length
 
 
@@ -278,7 +278,7 @@ class BooleanField(BaseField):
     """A boolean field type.
     """
 
-    def jsonschema_type(self):
+    def _jsonschema_type(self):
         return "boolean"
 
 
@@ -294,10 +294,10 @@ class DateTimeField(BaseField):
     """A datetime field. 
     """
 
-    def jsonschema_type(self):
+    def _jsonschema_type(self):
         return "string"
 
-    def jsonschema_format(self):
+    def _jsonschema_format(self):
         return "date-time"
 
     def __set__(self, instance, value):
@@ -384,10 +384,10 @@ class ListField(BaseField):
             value = list_of_docs
         instance._data[self.field_name] = value
 
-    def jsonschema_type(self):
+    def _jsonschema_type(self):
         return "array"
 
-    def jsonschema_items(self):
+    def _jsonschema_items(self):
         pass
 
     def for_python(self, value):
@@ -398,7 +398,7 @@ class ListField(BaseField):
     def for_json(self, value):
         """for_json must be careful to expand embedded documents into Python,
         not JSON.
-        """
+    pp    """
         if value is None:
             return list()
         return [self.field.for_json(item) for item in value]
