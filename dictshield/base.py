@@ -65,7 +65,7 @@ class BaseField(object):
     """
 
     def __init__(self, uniq_field=None, field_name=None, required=False,
-                 default=None, id_field=False, validation=None, choices=None, description=""):
+                 default=None, id_field=False, validation=None, choices=None, description=None):
         
         self.uniq_field = '_id' if id_field else uniq_field or field_name
         self.field_name = field_name
@@ -135,15 +135,31 @@ class BaseField(object):
         return self.description
 
     def _jsonschema_type(self):
+        # BaseField subclasses must override _jsonschema_type to generate a jsonschema.
         raise NotImplementedError
 
+    def _jsonschema_id(self):
+        if self.field_name:
+            return self.field_name
+        else:
+            return None
+
     def for_jsonschema(self):
+        """Generate the jsonschema by mapping the value of all methods beginning
+        `_jsonschema_' to a key that is the name of the method afte `_jsonschema_'.
+        
+        For example, `_jsonschema_type' will populate the schema key 'type'.
+        """
+        
         schema = {}
-        schema['description'] = self._jsonschema_description()
-        funcs = filter(callable, dir(self)).filter(lambda x: x.__name__.startswith("_jsonschema"))
-        for func in funcs:
-            attr_name = func.__name__.split("_")[-1]
-            schema[attr_name] = func()
+        #funcs = filter(callable, dir(self))
+        # #funcs = filter(lambda x: x.__name__.startswith("_jsonschema"))
+        #for func in funcs:
+        for func_name in filter(lambda x: x.startswith('_jsonschema'), dir(self)):
+            attr_name = func_name.split('_')[-1]
+            attr_value = getattr(self, func_name)()
+            if attr_value is not None:
+                schema[attr_name] = attr_value
         return schema
 
 class UUIDField(BaseField):
@@ -167,6 +183,9 @@ class UUIDField(BaseField):
 
         instance._data[self.field_name] = value
 
+    def _jsonschema_type(self):
+        return 'string'
+
     def validate(self, value):
         """Make sure the value is a valid uuid representation.  See
         http://docs.python.org/library/uuid.html for accepted formats.
@@ -183,7 +202,6 @@ class UUIDField(BaseField):
         """
 
         return str(value)
-
 
 ###
 ### Metaclass design
@@ -430,7 +448,28 @@ class BaseDocument(object):
         return '%s object' % self.__class__.__name__
 
     ###
-    ### Serialization
+    ### Class serialization
+    ###
+    
+    @classmethod
+    def for_jsonschema(cls):
+        
+        properties = {}
+        for name, field in cls._fields.items():
+            
+            properties[ name ] = field.for_jsonschema()
+
+        return {
+            'type'       : 'object',
+            'properties' : properties
+            }
+
+    @classmethod
+    def to_jsonschema(cls):
+        return json.dumps(cls.for_jsonschema())
+
+    ###
+    ### Instance Serialization
     ###
 
     def _to_fields(self, field_converter):
