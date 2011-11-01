@@ -169,6 +169,16 @@ class UUIDField(BaseField):
 
         return str(value)
 
+class JSONSchemableFieldMixin:
+    """
+    """
+    
+    @classmethod
+    def jsonschema_type:
+        """
+        """
+        
+        pass
 
 ###
 ### Metaclass design

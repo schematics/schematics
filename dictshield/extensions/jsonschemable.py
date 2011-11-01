@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 
-import json
+### If you're using Python 2.6, you should use simplejson
+try:
+    import simplejson as json
+except:
+    import json
+
+# import json
 from dictshield.document import Document
 
 __all__ = ['JsonschemableMixin', 'JsonschemableDocument']
