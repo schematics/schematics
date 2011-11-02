@@ -161,53 +161,21 @@ DictShield has its own type system - every field within a `Document` is defined 
 
 A complete list of the types supported by DictShield:
 
+| TYPE           | DESCRIPTION                                                               |
+|:---------------|--------------------------------------------------------------------------:|
+| Text fields    |                                                                           |    
+| `StringField`  | A unicode string                                                          |    
+|    `URLField`  | A valid URL                                                               |     
+|  `EmailField`  | A valid email address                                                     |    
+|   `UUIDField`  | A valid UUID value, optionally auto-populates empty values with new UUIDs |    
+| Numeric fields |                                                                           |
+| `NumberField`  | Any number (the parent of all the other numeric fields)                   |
+| `IntField`     | An integer                                                                |
+| `LongField`    | A long                                                                    |
+| `FloatField`   | A float                                                                   |
+| `DecimalField` | A fixed-point decimal number                                              |
+
 <table>
-    <tr>
-        <th>TYPE</th>
-        <th>DESCRIPTION</th>
-    </tr>
-    <tr>
-        <td colspan="2"><b>Text fields</b></td>
-    </tr>
-    <tr>
-        <td>StringField</td>
-        <td>A unicode string</td>
-    </tr>
-    <tr>
-        <td>URLField</td>
-        <td>A valid URL</td>
-    </tr>
-    <tr>
-        <td>EmailField</td>
-        <td>A valid email address</td>
-    </tr>
-    <tr>
-        <td>UUIDField</td>
-        <td>A valid UUID value, optionally auto-populates empty values with new UUIDs</td>
-    </tr>
-    <tr>
-        <td colspan="2"><b>Numeric fields</b></td>
-    </tr>
-    <tr>
-        <td>NumberField</td>
-        <td>Any number (the parent of all the other numeric fields)</td>
-    </tr>
-    <tr>
-        <td>IntField</td>
-        <td>An integer</td>
-    </tr>
-    <tr>
-        <td>LongField</td>
-        <td>A long</td>
-    </tr>
-    <tr>
-        <td>FloatField</td>
-        <td>A float</td>
-    </tr>
-    <tr>
-        <td>DecimalField</td>
-        <td>A fixed-point decimal number</td>
-    </tr>
     <tr>
         <td colspan="2"><b>Hashing fields</b></td>
     </tr>
