@@ -161,32 +161,24 @@ DictShield has its own type system - every field within a `Document` is defined 
 
 A complete list of the types supported by DictShield:
 
-| TYPE           | DESCRIPTION                                                               |
-|:---------------|--------------------------------------------------------------------------:|
-| Text fields    |                                                                           |    
-| `StringField`  | A unicode string                                                          |    
-|    `URLField`  | A valid URL                                                               |     
-|  `EmailField`  | A valid email address                                                     |    
-|   `UUIDField`  | A valid UUID value, optionally auto-populates empty values with new UUIDs |    
-| Numeric fields |                                                                           |
-| `NumberField`  | Any number (the parent of all the other numeric fields)                   |
-| `IntField`     | An integer                                                                |
-| `LongField`    | A long                                                                    |
-| `FloatField`   | A float                                                                   |
-| `DecimalField` | A fixed-point decimal number                                              |
+| **TYPE**           | **DESCRIPTION**                                                           |
+|-------------------:|:--------------------------------------------------------------------------|
+|    **Text fields** |                                                                           |    
+|      `StringField` | A unicode string                                                          |    
+|         `URLField` | A valid URL                                                               |     
+|       `EmailField` | A valid email address                                                     |    
+|        `UUIDField` | A valid UUID value, optionally auto-populates empty values with new UUIDs |    
+| **Numeric fields** |                                                                           |
+|      `NumberField` | Any number (the parent of all the other numeric fields)                   |
+|         `IntField` | An integer                                                                |
+|        `LongField` | A long                                                                    |
+|       `FloatField` | A float                                                                   |
+|     `DecimalField` | A fixed-point decimal number                                              |
+| **Hashing fields** |                                                                           |
+|         `MD5Field` | An MD5 hash                                                               |
+|        `SHA1Field` | An SHA1 hash                                                              |
 
 <table>
-    <tr>
-        <td colspan="2"><b>Hashing fields</b></td>
-    </tr>
-    <tr>
-        <td>MD5Field</td>
-        <td>An MD5 hash</td>
-    </tr>
-    <tr>
-        <td>SHA1Field</td>
-        <td>An SHA1 hash</td>
-    </tr>
     <tr>
         <td colspan="2"><b>Native type-style fields</b></td>
     </tr>
