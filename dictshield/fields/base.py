@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 
+=======
+>>>>>>> timestamp-field
 from dictshield.base import BaseField, UUIDField, ShieldException, InvalidShield
 from dictshield.datastructures import MultiValueDict
 from dictshield.document import EmbeddedDocument
@@ -7,12 +10,16 @@ from operator import itemgetter
 import re
 import datetime
 import decimal
+<<<<<<< HEAD
 from time import mktime
 import uuid
 
 from dateutil.tz import tzlocal, tzutc
+=======
+>>>>>>> timestamp-field
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
+
 
 class StringField(BaseField):
     """A unicode string field.
@@ -303,42 +310,6 @@ class DateTimeField(BaseField):
 
     def for_json(self, value):
         v = DateTimeField.date_to_iso8601(value)
-        return v
-
-
-class TimeStampField(DateTimeField):
-    """Variant of a datetime field that saves itself as a unix timestamp (int)
-    instead of a ISO-8601 string.
-    """
-
-    def __set__(self, instance, value):
-        """Will try to parse the value as a timestamp.  If that fails it
-        will fallback to DateTimeField's value parsing.
-
-        A datetime may be used (and is encouraged).
-        """
-        if not value:
-            return
-
-        try:
-            value = TimeStampField.timestamp_to_date(value)
-        except TypeError:
-            pass
-
-        super(TimeStampField, self).__set__(instance, value)
-
-    @classmethod
-    def timestamp_to_date(cls, value):
-        return datetime.datetime.fromtimestamp(value, tz=tzutc())
-
-    @classmethod
-    def date_to_timestamp(cls, value):
-        if value.tzinfo is None:
-            value = value.replace(tzinfo=tzlocal())
-        return int(round(mktime(value.astimezone(tzutc()).timetuple())))
-
-    def for_json(self, value):
-        v = TimeStampField.date_to_timestamp(value)
         return v
 
 
