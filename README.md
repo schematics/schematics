@@ -179,7 +179,7 @@ A complete list of the types supported by DictShield:
 |      **Hashing fields** |                                                                           |
 |              `MD5Field` | An MD5 hash                                                               |
 |             `SHA1Field` | An SHA1 hash                                                              |
-|      **'Native types'** |                                                                           |
+|**'Native type' fields** |                                                                           |
 |          `BooleanField` | A boolean                                                                 |
 |         `DateTimeField` | A datetime                                                                |
 |         `GeoPointField` | A geo-value of the form x, y (latitude, longitude)                        |
@@ -187,7 +187,7 @@ A complete list of the types supported by DictShield:
 |             `ListField` | Wraps a standard field, so multiple instances of the field can be used    |
 |       `SortedListField` | A ListField which sorts the list before saving, so list is always sorted  |
 |             `DictField` | Wraps a standard Python dictionary                                        |
-| `EmbeddedDocumentField` | Stores a DictShield EmbeddedDocument                                      |
+| `EmbeddedDocumentField` | Stores a DictShield `EmbeddedDocument`                                    |
 
 ### A Close Look at the MD5Field
 
