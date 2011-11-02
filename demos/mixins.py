@@ -25,8 +25,7 @@ from dictshield.fields import (StringField,
                                URLField,
                                EmailField,
                                LongField,
-                               ListField,
-                               ObjectIdField)
+                               ListField)
 
 
 class InterestMixin(EmbeddedDocument):

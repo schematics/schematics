@@ -155,6 +155,70 @@ Or maybe we're storing json in a memcached.
 
 ## A Type System
 
+DictShield has its own type system - every field within a `Document` is defined with a specific type, for example a string will be defined as `StringField`. This "strong typing" makes serialising/deserialising semi-structured data to and from Python much more robust.
+
+### All Types
+
+A complete list of the types supported by DictShield:
+
+| **TYPE**           | **DESCRIPTION**                                                           |
+|-------------------:|:--------------------------------------------------------------------------|
+|    **Text fields** |                                                                           |    
+|      `StringField` | A unicode string                                                          |    
+|         `URLField` | A valid URL                                                               |     
+|       `EmailField` | A valid email address                                                     |    
+|        `UUIDField` | A valid UUID value, optionally auto-populates empty values with new UUIDs |    
+| **Numeric fields** |                                                                           |
+|      `NumberField` | Any number (the parent of all the other numeric fields)                   |
+|         `IntField` | An integer                                                                |
+|        `LongField` | A long                                                                    |
+|       `FloatField` | A float                                                                   |
+|     `DecimalField` | A fixed-point decimal number                                              |
+| **Hashing fields** |                                                                           |
+|         `MD5Field` | An MD5 hash                                                               |
+|        `SHA1Field` | An SHA1 hash                                                              |
+
+<table>
+    <tr>
+        <td colspan="2"><b>Native type-style fields</b></td>
+    </tr>
+    <tr>
+        <td>BooleanField</td>
+        <td>A boolean</td>
+    </tr>
+    <tr>
+        <td>DateTimeField</td>
+        <td>A datetime</td>
+    </tr>
+    <tr>
+        <td>GeoPointField</td>
+        <td>A geo-value of the form x, y (latitude, longitude)</td>
+    </tr>
+    <tr>
+        <td colspan="2"><b>Container fields</b></td>
+    </tr>
+    <tr>
+        <td>ListField</td>
+        <td>Wraps a standard field, allowing multiple instances of the field to be used as a list in the model</td>
+    </tr>
+    <tr>
+        <td>SortedListField</td>
+        <td>A ListField which sorts the list before saving, to ensure that the retrieved list is always sorted</td>
+    </tr>
+    <tr>
+        <td>DictField</td>
+        <td>Wraps a standard Python dictionary</td>
+    </tr>
+    <tr>
+        <td>EmbeddedDocumentField</td>
+        <td>Stores a DictShield EmbeddedDocument</td>
+    </tr>
+    
+    
+</table>
+
+### A Close Look at the MD5Field
+
 This is what the MD5Field looks like. Notice that it's basically just
 an implementation of a `validate()` function, which raises a `ShieldException`
 exception if validation fails.
@@ -204,7 +268,7 @@ Next, we seed the instance with some data and validate it.
     try:
         user.validate()
     except ShieldException, se:
-        print 'ShieldException caught: %s' % (se))
+        print 'ShieldException caught: %s' % (se)
 
 This calling `validate()` on a model validates an instance by looping through
 it's fields and calling `field.validate()` on each one. 
@@ -223,7 +287,7 @@ We might write some server code that looks like this:
 
     json_string = request.get_arg('data')
     user_input = json.loads(json_string)
-    u.validate(**user_input)
+    user.validate(**user_input)
 
 This method builds a User instance out of the input, which also throws away 
 keys that aren't in the User definition.
