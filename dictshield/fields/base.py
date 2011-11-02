@@ -10,6 +10,7 @@ import decimal
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
 
+
 class StringField(BaseField):
     """A unicode string field.
     """
@@ -496,8 +497,6 @@ class EmbeddedDocumentField(BaseField):
         if isinstance(self.document_type_obj, basestring):
             if self.document_type_obj == RECURSIVE_REFERENCE_CONSTANT:
                 self.document_type_obj = self.owner_document
-            else:
-                self.document_type_obj = get_document(self.document_type_obj)
         return self.document_type_obj
 
     def for_python(self, value):
