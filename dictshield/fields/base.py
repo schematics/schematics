@@ -421,6 +421,12 @@ class MultiValueDictField(DictField):
         kwargs.setdefault('default', lambda: MultiValueDict())
         super(MultiValueDictField, self).__init__(*args, **kwargs)
 
+    def __set__(self, instance, value):
+        if value is not None and not isinstance(value, MultiValueDict):
+            value = MultiValueDict(value)
+
+        super(MultiValueDictField, self).__set__(instance, value)
+
     def validate(self, value):
         """Make sure that a list of valid fields is being used.
         """
