@@ -1,22 +1,12 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> timestamp-field
 from dictshield.base import BaseField, UUIDField, ShieldException, InvalidShield
 from dictshield.datastructures import MultiValueDict
 from dictshield.document import EmbeddedDocument
+from ..datastructures import MultiValueDict
 
 from operator import itemgetter
 import re
 import datetime
 import decimal
-<<<<<<< HEAD
-from time import mktime
-import uuid
-
-from dateutil.tz import tzlocal, tzutc
-=======
->>>>>>> timestamp-field
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
 
