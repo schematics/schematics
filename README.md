@@ -185,7 +185,7 @@ A complete list of the types supported by DictShield:
 |         `GeoPointField` | A geo-value of the form x, y (latitude, longitude)                        |
 |          **Containers** |                                                                           | 
 |             `ListField` | Wraps a standard field, so multiple instances of the field can be used    |
-|       `SortedListField` | A ListField which sorts the list before saving, so list is always sorted  |
+|       `SortedListField` | A `ListField` which sorts the list before saving, so list is always sorted|
 |             `DictField` | Wraps a standard Python dictionary                                        |
 | `EmbeddedDocumentField` | Stores a DictShield `EmbeddedDocument`                                    |
 
