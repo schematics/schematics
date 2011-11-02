@@ -169,7 +169,7 @@ A complete list of the types supported by DictShield:
 |            `EmailField` | A valid email address                                                     |
 |           **ID fields** |                                                                           |    
 |             `UUIDField` | A valid UUID value, optionally auto-populates empty values with new UUIDs |    
-|         `ObjectIDField` |                                                                           |
+|         `ObjectIDField` | Wraps a MongoDB "BSON" ObjectId                                           |
 |      **Numeric fields** |                                                                           |
 |           `NumberField` | Any number (the parent of all the other numeric fields)                   |
 |              `IntField` | An integer                                                                |
