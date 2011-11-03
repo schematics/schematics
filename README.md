@@ -285,7 +285,7 @@ Document class and everything else is discarded.
 Here is our `Movie` document safe for transmitting to the owner of the document.
 We achieve this by calling `Movie.make_json_ownersafe`. This function is a 
 classmethod available on the `Document` class. It knows to remove `_cls` and
-`_types` because they are in `Document._internal_fields`. _You can  add any 
+`_types` because they are in `Document._internal_fields`. You can add any 
 fields that should be treated as internal to your system by adding a list named
 `_private_fields` to your Document and listing each field.
 
