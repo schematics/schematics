@@ -1,6 +1,7 @@
 import unittest
 import json
 import datetime
+import copy
 from fixtures import demos
 
 class TestMedia(unittest.TestCase):
@@ -10,11 +11,11 @@ class TestMedia(unittest.TestCase):
         obj_from_json = json.loads(demos.m.to_json())
         self.assertEquals(36, len(obj_from_json.pop('_id')))
         self.assertEquals({
-                        u'_cls'  : u'Media',
-                        u'_types': [u'Media'],
-                        u'title' : u'Misc Media'
-                        }, obj_from_json)
-                
+                u'_cls'  : u'Media',
+                u'_types': [u'Media'],
+                u'title' : u'Misc Media'
+                }, obj_from_json)
+        
         
     def test_media_class_to_jsonschema(self):
         self.assertEquals({
@@ -32,8 +33,7 @@ class TestMedia(unittest.TestCase):
                         'maxLength': 40
                         }
                     }}, json.loads(demos.Media.to_jsonschema())
-            )
-
+                          )
 
 class TestMovie(unittest.TestCase):
     
@@ -78,30 +78,30 @@ class TestProduct(unittest.TestCase):
         pass
     
     PRODUCT_SCHEMA = {
-                'type' : 'object',
-                'title': 'Product',
-                'properties': {
-                    'sku'     : {
-                        'type'     : 'integer',
-                        'title'    : 'sku',
-                        'required' : True,
-                        'minimum'  : 1,
-                        'maximum'  : 9999 },
-                    'title'   : {
-                        'type'     : 'string',
-                        'title'    : 'title',
-                        'required' : True,
-                        'maxLength': 30 },
-                    'description' : {
-                        'type' : 'string',
-                        'title': 'description' },
-                    'price' : {
-                        'type'     : 'number',
-                        'title'    : 'price',
-                        'required' : True },
-                    'num_in_stock' : {
-                        'type' : 'integer',
-                        'title': 'num_in_stock' }}}
+        'type' : 'object',
+        'title': 'Product',
+        'properties': {
+            'sku'     : {
+                'type'     : 'integer',
+                'title'    : 'sku',
+                'required' : True,
+                'minimum'  : 1,
+                'maximum'  : 9999 },
+            'title'   : {
+                'type'     : 'string',
+                'title'    : 'title',
+                'required' : True,
+                'maxLength': 30 },
+            'description' : {
+                'type' : 'string',
+                'title': 'description' },
+            'price' : {
+                'type'     : 'number',
+                'title'    : 'price',
+                'required' : True },
+            'num_in_stock' : {
+                'type' : 'integer',
+                'title': 'num_in_stock' }}}
 
     def test_product_class_to_jsonschema(self):
         self.assertEquals(self.PRODUCT_SCHEMA, json.loads(demos.Product.to_jsonschema()))
@@ -111,26 +111,26 @@ class TestOrder(unittest.TestCase):
         pass
 
     ORDER_SCHEMA = {
-                'type' : 'object',
-                'title': 'Order',
-                'properties': {
-                    'date_made': {
-                        'title'   : 'date_made',
-                        'type'    : 'string',
-                        'format'  : 'date-time',
-                        'required': True },
-                    'date_changed' : {
-                        'title'   : 'date_changed',
-                        'type'    : 'string',
-                        'format'  : 'date-time' },
-                    'line_items' : {
-                        'type'  : 'array',
-                        'title' : 'line_items',
-                        # if items is changed to produce an array of valid items, this will break.
-                        'items' : TestProduct.PRODUCT_SCHEMA },
-                    'total' : {
-                        'type' : 'number',
-                        'title': 'total'}}}
+        'type' : 'object',
+        'title': 'Order',
+        'properties': {
+            'date_made': {
+                'title'   : 'date_made',
+                'type'    : 'string',
+                'format'  : 'date-time',
+                'required': True },
+            'date_changed' : {
+                'title'   : 'date_changed',
+                'type'    : 'string',
+                'format'  : 'date-time' },
+            'line_items' : {
+                'type'  : 'array',
+                'title' : 'line_items',
+                # if items is changed to produce an array of valid items, this will break.
+                'items' : TestProduct.PRODUCT_SCHEMA },
+            'total' : {
+                'type' : 'number',
+                'title': 'total'}}}
     
     def test_order_class_to_jsonschema(self):
         self.assertEquals(self.ORDER_SCHEMA, json.loads(demos.Order.to_jsonschema()))
@@ -138,11 +138,12 @@ class TestOrder(unittest.TestCase):
 class TestUser(unittest.TestCase):
     def test_user_instance_to_json(self):
         pass
-    
+
     USER_SCHEMA = {
         'type'   : 'object',
         'title'  : 'User',
         'properties': {
+            'id'       : { 'type' : 'string' },
             'username' : {
                 'type'      : 'string',
                 'title'     : 'username',
@@ -151,6 +152,7 @@ class TestUser(unittest.TestCase):
                 'required'  : True },
             'email' : {
                 'type'      : 'string',
+                'title'     : 'email',
                 'format'    : 'email',
                 'maxLength' : 30,
                 'required'  : True }}}
@@ -160,9 +162,9 @@ class TestUser(unittest.TestCase):
 
 class TestCustomer(unittest.TestCase):
     
-    CUSTOMER_SCHEMA = TestUser.USER_SCHEMA.update({
-            'title' : 'Customer',
-            'properties' : TestUser.USER_SCHEMA['properties'].update({
+    CUSTOMER_SCHEMA = copy.copy(TestUser.USER_SCHEMA)
+    CUSTOMER_PROPERTIES = copy.copy(TestUser.USER_SCHEMA['properties'])
+    CUSTOMER_PROPERTIES.update({
                     'date_made' : {
                         'title'   : 'date_made',
                         'type'    : 'string',
@@ -181,7 +183,10 @@ class TestCustomer(unittest.TestCase):
                     'orders' : {
                         'title'    : 'orders',
                         'type'     : 'array',
-                        'items'    : TestOrder.ORDER_SCHEMA }})})
+                        'items'    : TestOrder.ORDER_SCHEMA }})
+    CUSTOMER_SCHEMA.update({
+            'title'      : 'Customer',
+            'properties' : CUSTOMER_PROPERTIES })
 
     def test_customer_instance_to_json(self):
         pass
@@ -189,7 +194,7 @@ class TestCustomer(unittest.TestCase):
     def test_customer_class_to_jsonschema(self):
         self.assertEquals(self.CUSTOMER_SCHEMA, json.loads(demos.Customer.to_jsonschema()))
 
-class SomeDocTest(unittest.TestCase):
+class TestSomeDoc(unittest.TestCase):
     def test_somedoc_instance_to_json(self):
         pass
     
@@ -197,6 +202,7 @@ class SomeDocTest(unittest.TestCase):
         'type'   : 'object',
         'title'  : 'SomeDoc',
         'properties': {
+            'id' : { 'type' : 'string' },
             'liked' : {
                 'title'  : 'liked',
                 'type'   : 'boolean',
@@ -219,7 +225,7 @@ class SomeDocTest(unittest.TestCase):
     def test_somedoc_class_to_jsonschema(self):
         self.assertEquals(self.SOME_DOC_SCHEMA, json.loads(demos.SomeDoc().to_jsonschema()))
 
-class AuthorTest(unittest.TestCase):
+class TestAuthor(unittest.TestCase):
     def test_author_instance_to_json(self):
         pass
     
@@ -238,7 +244,7 @@ class AuthorTest(unittest.TestCase):
     def test_author_class_to_jsonschema(self):
         self.assertEquals(self.AUTHOR_SCHEMA, json.loads(demos.Author().to_jsonschema()))
 
-class CommentTest(unittest.TestCase):
+class TestComment(unittest.TestCase):
     def test_comment_instance_to_json(self):
         pass
     
@@ -257,7 +263,7 @@ class CommentTest(unittest.TestCase):
     def test_comment_class_to_jsonschema(self):
         self.assertEquals(self.COMMENT_SCHEMA, json.loads(demos.Comment().to_jsonschema()))
 
-class BlogPostTest(unittest.TestCase):
+class TestBlogPost(unittest.TestCase):
     def test_blog_post_instance_to_json(self):
         pass
     
@@ -266,19 +272,20 @@ class BlogPostTest(unittest.TestCase):
         'title' : 'BlogPost',
         'type'  : 'object',
         'properties' : {
-            'author' : AuthorTest.AUTHOR_SCHEMA,
+            'id'     : { 'type' : 'string' },
+            'author' : TestAuthor.AUTHOR_SCHEMA,
             'comments' : {
-               'title' : 'comments',
-               'type'  : 'array',
-               'items' : CommentTest.COMMENT_SCHEMA },
+                'title' : 'comments',
+                'type'  : 'array',
+                'items' : TestComment.COMMENT_SCHEMA },
             'content' : {
-               'title' : 'content',
-               'type'  : 'string' }}}
-   
+                'title' : 'content',
+                'type'  : 'string' }}}
+    
     def test_blog_post_class_to_jsonschema(self):
         self.assertEquals(self.BLOG_POST_SCHEMA, json.loads(demos.BlogPost().to_jsonschema()))
 
-class ActionTest(unittest.TestCase):
+class TestAction(unittest.TestCase):
     def test_action_instance_to_json(self):
         pass
     
@@ -286,20 +293,20 @@ class ActionTest(unittest.TestCase):
         'title' : 'Action',
         'type'  : 'object',
         'properties' : {
-           'value' : {
-               'title'    : 'value',
-               'required' : True,
-               'maxLength': 256,
-               'type'     : 'string' },
-           'tags' : {
-               'title'  : 'tags',
-               'type'   : 'array',
-               'items'  : { 'type' : 'string' }}}}
-   
+            'value' : {
+                'title'    : 'value',
+                'required' : True,
+                'maxLength': 256,
+                'type'     : 'string' },
+            'tags' : {
+                'title'  : 'tags',
+                'type'   : 'array',
+                'items'  : { 'type' : 'string' }}}}
+    
     def test_action_class_to_jsonschema(self):
         self.assertEquals(self.ACTION_SCHEMA, json.loads(demos.Action().to_jsonschema()))
 
-class SingleTaskTest(unittest.TestCase):
+class TestSingleTask(unittest.TestCase):
     def test_single_task_instance_to_json(self):
         pass
     
@@ -307,16 +314,17 @@ class SingleTaskTest(unittest.TestCase):
         'title' : 'SingleTask',
         'type'  : 'object',
         'properties' : {
-           'action'       : ActionTest.ACTION_SCHEMA,
-           'created_date' : {
-               'type'   : 'string',
-               'format' : 'date-time',
-               'title'  : 'created_date' }}}
-        
+            'id' : { 'type' : 'string' },
+            'action'       : TestAction.ACTION_SCHEMA,
+            'created_date' : {
+                'type'   : 'string',
+                'format' : 'date-time',
+                'title'  : 'created_date' }}}
+    
     def test_single_task_class_to_jsonschema(self):
         self.assertEquals(self.SINGLE_TASK_SCHEMA, json.loads(demos.SingleTask().to_jsonschema()))
 
-class TaskListTest(unittest.TestCase):
+class TestTaskList(unittest.TestCase):
     def test_task_list_instance_to_json(self):
         pass
     
@@ -324,29 +332,30 @@ class TaskListTest(unittest.TestCase):
         'title' : 'TaskList',
         'type'  : 'object',
         'properties' : {
-           'actions' : {
-               'type'   : 'array',
-               'title'  : 'actions',
-               'items'  : ActionTest.ACTION_SCHEMA },
-           'created_date' : {
-               'title'  : 'created_date',
-               'type'   : 'string',
-               'format' : 'date-time',
-               'default': datetime.datetime.now },
-           'updated_date' : {
-               'title'  : 'updated_date',
-               'type'   : 'string',
-               'format' : 'date-time',
-               'default': datetime.datetime.now },
-           'num_completed' : {
-               'type'   : 'integer',
-               'title'  : 'num_completed',
-               'default': 0 }}}
-        
+            'id' : { 'type' : 'string' },
+            'actions' : {
+                'type'   : 'array',
+                'title'  : 'actions',
+                'items'  : TestAction.ACTION_SCHEMA },
+            'created_date' : {
+                'title'  : 'created_date',
+                'type'   : 'string',
+                'format' : 'date-time' },
+            #'default': datetime.datetime.now },
+            'updated_date' : {
+                'title'  : 'updated_date',
+                'type'   : 'string',
+                'format' : 'date-time' },
+            # 'default': datetime.datetime.now },
+            'num_completed' : {
+                'type'   : 'integer',
+                'title'  : 'num_completed',
+                'default': 0 }}}
+    
     def test_task_list_class_to_jsonschema(self):
         self.assertEquals(self.TASK_LIST_SCHEMA, json.loads(demos.TaskList().to_jsonschema()))
 
-class BasicUserTest(unittest.TestCase):
+class TestBasicUser(unittest.TestCase):
     def test_basic_user_instance_to_json(self):
         pass
     
@@ -355,16 +364,17 @@ class BasicUserTest(unittest.TestCase):
         'title' : 'BasicUser',
         'type'  : 'object',
         'properties' : {
-           'name' : {
+            'id'   : { 'type' : 'string' },
+            'name' : {
                 'type'     : 'string',
                 'title'    : 'name',
                 'maxLength': 50,
                 'required' : True },
-           'bio'  : {
+            'bio'  : {
                 'type'     : 'string',
                 'title'    : 'bio',
                 'maxLength': 100 }}} # baby bio!
-        
+    
     def test_basic_user_class_to_jsonschema(self):
         self.assertEquals(self.BASIC_USER_SCHEMA, json.loads(demos.BasicUser().to_jsonschema()))
 
