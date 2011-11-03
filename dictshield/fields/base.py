@@ -316,6 +316,8 @@ class ListField(BaseField):
     def __set__(self, instance, value):
         """Descriptor for assigning a value to a field in a document.
         """
+        if value is None:
+            value = [] #have to use a list
         if isinstance(self.field, EmbeddedDocumentField):
             list_of_docs = list()
             for doc in value:
