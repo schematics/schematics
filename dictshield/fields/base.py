@@ -339,6 +339,8 @@ class ListField(BaseField):
             embedded_fields.remove(self.primary_embedded)
             embedded_fields.insert(0, self.primary_embedded)
 
+        if value is None:
+            value = [] #have to use a list
         if embedded_fields: 
             list_of_docs = list()
             for doc in value:
