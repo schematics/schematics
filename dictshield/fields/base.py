@@ -1,6 +1,6 @@
 from dictshield.base import BaseField, UUIDField, ShieldException, InvalidShield
-from dictshield.document import EmbeddedDocument
 
+from itertools import ifilter, ifilterfalse
 from operator import itemgetter
 import re
 import datetime
@@ -305,39 +305,78 @@ class ListField(BaseField):
     of the field to be used as a list in the model.
     """
 
-    def __init__(self, field, **kwargs):
-        if not isinstance(field, BaseField):
+    def __init__(self, field_or_fields, **kwargs):
+        if isinstance(field_or_fields, BaseField): # is it a field instance
+            if isinstance(field_or_fields, EmbeddedDocumentField):
+                kwargs.setdefault('primary_embedded', field_or_fields)
+            field_or_fields = [field_or_fields]
+        # is it something other than a list
+        elif not isinstance(field_or_fields, list):
             raise InvalidShield('Argument to ListField constructor must be '
-                                'a valid field')
-        self.field = field
+                                'a valid field or list of fields')
+        #did we get some bad stuff in the list?
+        elif ifilterfalse(lambda field: isinstance(field, BaseField), field_or_fields):
+            raise InvalidShield('Argument to ListField constructor must be '
+                                'a valid field or list of valid fields')
+        else:
+            docs = ifilter(lambda field: isinstance(field, EmbeddedDocumentField), field_or_fields)
+            dicts = ifilter(lambda field: isinstance(field, DictField), field_or_fields)
+            if dicts:
+                kwargs.setdefault('primary_embedded', None)
+            if docs:
+                kwargs.setdefault('primary_embedded', docs[0])
+        self.fields = field_or_fields
         kwargs.setdefault('default', list)
+        self.primary_embedded = kwargs.pop('primary_embeded')
         super(ListField, self).__init__(**kwargs)
 
     def __set__(self, instance, value):
         """Descriptor for assigning a value to a field in a document.
         """
-        if isinstance(self.field, EmbeddedDocumentField):
+        embedded_fields = filter(lambda field: isinstance(field, EmbeddedDocumentField), self.fields)
+        embedded_fields.remove(self.primary_embedded)
+        embedded_fields.insert(0, self.primary_embedded)
+
+        if embedded_fields: 
             list_of_docs = list()
             for doc in value:
                 if isinstance(doc, dict):
-                    doc_obj = self.field.document_type_obj(**doc)
-                    doc = doc_obj
+                    for embedded_field in embedded_fields:
+                        doc_obj = embedded_field(**doc)
+                        try:
+                            doc_obj.validate()
+                        except ShieldException:
+                            continue
+                        doc = doc_obj
+                        break
                 list_of_docs.append(doc)
             value = list_of_docs
         instance._data[self.field_name] = value
 
-    def for_python(self, value):
+    def _jsonschema_type(self):
+        return 'array'
+
+    def _jsonschema_items(self):
+        return [field.for_jsonschema() for field in self.fields]
+
+    def for_output_format(self, output_format_method_name, value):
         if value is None:
             return list()
-        return [self.field.for_python(item) for item in value]
+        for item in value:
+            for field in self.fields:
+                try:
+                    yield getattr(field, output_format_method_name)(item)
+                except ValueError:
+                    continue
+
+    def for_python(self, value):
+        return self.for_output_format('for_python', value)
 
     def for_json(self, value):
         """for_json must be careful to expand embedded documents into Python,
         not JSON.
         """
-        if value is None:
-            return list()
-        return [self.field.for_json(item) for item in value]
+        return self.for_output_format('for_json', value)
 
     def validate(self, value):
         """Make sure that a list of valid fields is being used.
@@ -346,17 +385,20 @@ class ListField(BaseField):
             error_msg = 'Only lists and tuples may be used in a list field'
             raise ShieldException(error_msg, self.field_name, value)
 
-        try:
-            [self.field.validate(item) for item in value]
-        except Exception:
-            raise ShieldException('Invalid ListField item', self.field_name,
-                                  str(item))
-
-    def lookup_member(self, member_name):
-        return self.field.lookup_member(member_name)
+        for item in value:
+            for field in self.fields:
+                try:
+                    field.validate(item)
+                    break
+                except ShieldException:
+                    continue
+            else:
+                raise ShieldException('Invalid ListField item', self.field_name,
+                                      str(item))
 
     def _set_owner_document(self, owner_document):
-        self.field.owner_document = owner_document
+        for field in self.fields:
+            field.owner_document = owner_document
         self._owner_document = owner_document
 
     def _get_owner_document(self, owner_document):
@@ -440,13 +482,13 @@ class GeoPointField(BaseField):
 ###
 ### Sub structures
 ###
-    
 class EmbeddedDocumentField(BaseField):
     """An embedded document field. Only valid values are subclasses of
     :class:`~dictshield.EmbeddedDocument`.
     """
-
+    
     def __init__(self, document_type, **kwargs):
+        from dictshield.document import EmbeddedDocument
         if not isinstance(document_type, basestring):
             if not issubclass(document_type, EmbeddedDocument):
                 raise ShieldException('Invalid embedded document class '
