@@ -134,12 +134,18 @@ class BaseField(object):
     def _jsonschema_description(self):
         return self.description
 
+    def _jsonschema_title(self):
+        if self.field_name:
+            return self.field_name
+        else:
+            return None
+
     def _jsonschema_type(self):
         return 'any'
 
-    def _jsonschema_id(self):
-        if self.field_name:
-            return self.field_name
+    def _jsonschema_required(self):
+        if self.required is True:
+            return self.required
         else:
             return None
 
@@ -345,6 +351,4 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
 
 def subclass_exception(name, parents, module):
     return type(name, parents, {'__module__': module})
-
-
 

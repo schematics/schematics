@@ -127,7 +127,7 @@ class JsonNumberMixin(object):
         return self.min_value
 
 
-class NumberField(BaseField, JsonNumberMixin):
+class NumberField(JsonNumberMixin, BaseField):
     """A number field.
     """
 
@@ -555,10 +555,10 @@ class EmbeddedDocumentField(BaseField):
         return 'object'
 
     def for_jsonschema(self):
-        fieldDict = self.for_jsonschema()
-        fieldDict.update(self._data[self.field_name].for_jsonschema())
-        
-        return fieldDict
+        # fieldDict = self.document_type.for_jsonschema()
+        # fieldDict.update(self.document_type._data[self.field_name].for_jsonschema())
+        #return fieldDict
+        return self.document_type.for_jsonschema()
 
     def for_python(self, value):
         return value
