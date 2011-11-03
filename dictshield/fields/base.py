@@ -327,15 +327,17 @@ class ListField(BaseField):
                 kwargs.setdefault('primary_embedded', docs[0])
         self.fields = field_or_fields
         kwargs.setdefault('default', list)
-        self.primary_embedded = kwargs.pop('primary_embeded')
+
+        self.primary_embedded = kwargs.pop('primary_embedded', None)
         super(ListField, self).__init__(**kwargs)
 
     def __set__(self, instance, value):
         """Descriptor for assigning a value to a field in a document.
         """
         embedded_fields = filter(lambda field: isinstance(field, EmbeddedDocumentField), self.fields)
-        embedded_fields.remove(self.primary_embedded)
-        embedded_fields.insert(0, self.primary_embedded)
+        if self.primary_embedded:
+            embedded_fields.remove(self.primary_embedded)
+            embedded_fields.insert(0, self.primary_embedded)
 
         if embedded_fields: 
             list_of_docs = list()
@@ -360,12 +362,10 @@ class ListField(BaseField):
         return [field.for_jsonschema() for field in self.fields]
 
     def for_output_format(self, output_format_method_name, value):
-        if value is None:
-            return list()
         for item in value:
             for field in self.fields:
                 try:
-                    yield getattr(field, output_format_method_name)(item)
+                     getattr(field, output_format_method_name)(item)
                 except ValueError:
                     continue
 
