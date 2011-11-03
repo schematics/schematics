@@ -134,15 +134,22 @@ class BaseField(object):
     def _jsonschema_description(self):
         return self.description
 
-    def _jsonschema_type(self):
-        # BaseField subclasses must override _jsonschema_type to generate a jsonschema.
-        raise NotImplementedError
 
-    def _jsonschema_id(self):
+    def _jsonschema_title(self):
         if self.field_name:
             return self.field_name
         else:
             return None
+
+    def _jsonschema_required(self):
+        if self.required is True:
+            return self.required
+        else:
+            return None
+
+    def _jsonschema_type(self):
+        return 'any'
+
 
     def for_jsonschema(self):
         """Generate the jsonschema by mapping the value of all methods beginning
@@ -461,6 +468,7 @@ class BaseDocument(object):
 
         return {
             'type'       : 'object',
+            'title'      : cls.__name__,
             'properties' : properties
             }
 

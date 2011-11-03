@@ -56,7 +56,6 @@ class Movie(Media):
     _public_fields = ['title','year']
     year = IntField(min_value=1950, max_value=datetime.datetime.now().year)
     personal_thoughts = StringField(max_length=255)
-
 mv = Movie()
 mv.title = 'Total Recall'
 mv.year = 1990
@@ -273,7 +272,7 @@ loaded_customer = Customer(**customer_dict)
 ### Reserialize to JSON
 #print 'JSON:\n', loaded_customer.to_json(), '\n'
 
-"""This thing to notice in this example is that the class hierarcy is not
+"""This thing to notice in this example is that the class hierarchy is not
 influenced by subclassing EmbeddedDocuments with meta['mixin'] = True. This
 can be useful if you know you're going to use something of an EmbeddedDocument
 in the top level document structure
@@ -580,7 +579,7 @@ Public safe doc:
 ### Basic User model
 ###
 
-class User(Document):
+class BasicUser(Document):
     _public_fields = ['name', 'bio']
     
     secret = MD5Field()
@@ -597,7 +596,7 @@ class User(Document):
 ###
 
 ### Create instance with bogus password
-u = User()
+u = BasicUser()
 u.secret = 'whatevz'
 u.name = 'test hash'
 
@@ -634,7 +633,7 @@ total_input = {
 ### Checking for any failure. Exception thrown on first failure.
 #print 'Attempting validation on:\n\n    %s\n' % (total_input)
 # try:
-#     User.validate_class_fields(total_input)
+#     BasicUser.validate_class_fields(total_input)
 #     print 'Validation passed'
 # except ShieldException, se:
 #     print('ShieldException caught: %s' % (se))
@@ -642,7 +641,7 @@ total_input = {
 
 
 ### Check all fields and collect all failures
-exceptions = User.validate_class_fields(total_input, validate_all=True)
+exceptions = BasicUser.validate_class_fields(total_input, validate_all=True)
 
 # if len(exceptions) == 0:
 #     print 'Validation passed\n'
@@ -658,10 +657,10 @@ exceptions = User.validate_class_fields(total_input, validate_all=True)
 # Add the rogue field back to `total_input`
 total_input['rogue_field'] = 'MWAHAHA'
 
-user_doc = User(**total_input)
+user_doc = BasicUser(**total_input)
 #print 'Document as Python:\n    %s\n' % (user_doc.to_python())
-safe_doc = User.make_json_ownersafe(user_doc)
+safe_doc = BasicUser.make_json_ownersafe(user_doc)
 #print 'Owner safe doc:\n    %s\n' % (safe_doc)
-public_safe_doc = User.make_json_publicsafe(user_doc)
+public_safe_doc = BasicUser.make_json_publicsafe(user_doc)
 #print 'Public safe doc:\n    %s\n' % (public_safe_doc)
 
