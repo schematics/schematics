@@ -131,6 +131,14 @@ class BaseField(object):
 
         self.validate(value)
 
+    def _jsonschema_default(self):
+        if callable(self.default):
+            # jsonschema doesn't support procedural defaults
+            return None
+            
+        else:
+            return self.default
+
     def _jsonschema_description(self):
         return self.description
 
