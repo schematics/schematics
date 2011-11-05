@@ -375,12 +375,12 @@ class ListField(BaseField):
             raise InvalidShield('Argument to ListField constructor must be '
                                 'a valid field or list of fields')
         #did we get some bad stuff in the list?
-        elif ifilterfalse(lambda field: isinstance(field, BaseField), field_or_fields):
+        elif list(ifilterfalse(lambda field: isinstance(field, BaseField), field_or_fields)):
             raise InvalidShield('Argument to ListField constructor must be '
                                 'a valid field or list of valid fields')
         else:
-            docs = ifilter(lambda field: isinstance(field, EmbeddedDocumentField), field_or_fields)
-            dicts = ifilter(lambda field: isinstance(field, DictField), field_or_fields)
+            docs = filter(lambda field: isinstance(field, EmbeddedDocumentField), field_or_fields)
+            dicts = filter(lambda field: isinstance(field, DictField), field_or_fields)
             if dicts:
                 kwargs.setdefault('primary_embedded', None)
             if docs:
@@ -407,7 +407,7 @@ class ListField(BaseField):
             for doc in value:
                 if isinstance(doc, dict):
                     for embedded_field in embedded_fields:
-                        doc_obj = embedded_field(**doc)
+                        doc_obj = embedded_field.document_type_obj(**doc)
                         try:
                             doc_obj.validate()
                         except ShieldException:
@@ -428,18 +428,18 @@ class ListField(BaseField):
         for item in value:
             for field in self.fields:
                 try:
-                     getattr(field, output_format_method_name)(item)
+                    yield getattr(field, output_format_method_name)(item)
                 except ValueError:
                     continue
 
     def for_python(self, value):
-        return self.for_output_format('for_python', value)
+        return list(self.for_output_format('for_python', value))
 
     def for_json(self, value):
         """for_json must be careful to expand embedded documents into Python,
         not JSON.
         """
-        return self.for_output_format('for_json', value)
+        return list(self.for_output_format('for_json', value))
 
     def validate(self, value):
         """Make sure that a list of valid fields is being used.
@@ -482,11 +482,17 @@ class SortedListField(ListField):
             self._ordering = kwargs.pop('ordering')
         super(SortedListField, self).__init__(field, **kwargs)
 
-    def for_json(self, value):
+    def for_thing(self, value, meth):
+        unsorted = getattr(super(SortedListField, self), meth)(value)
         if self._ordering is not None:
-            return sorted([self.field.for_json(item) for item in value],
-                          key=itemgetter(self._ordering))
-        return sorted([self.field.for_json(item) for item in value])
+            return sorted(unsorted, key=itemgetter(self._ordering))
+        return sorted(unsorted)
+
+    def for_python(self, value):
+        return self.for_thing(value, 'for_python')
+
+    def for_json(self, value):
+        return self.for_thing(value, 'for_json')
 
 class DictField(BaseField):
     """A dictionary field that wraps a standard Python dictionary. This is
@@ -565,10 +571,10 @@ class EmbeddedDocumentField(BaseField):
     :class:`~dictshield.EmbeddedDocument`.
     """
     
-    def __init__(self, document_type, **kwargs):
+    def __init__(self, document_type=None, **kwargs):
         from dictshield.document import EmbeddedDocument
         if not isinstance(document_type, basestring):
-            if not issubclass(document_type, EmbeddedDocument):
+            if not document_type or not issubclass(document_type, EmbeddedDocument):
                 raise ShieldException('Invalid embedded document class '
                                       'provided to an EmbeddedDocumentField')
         self.document_type_obj = document_type
