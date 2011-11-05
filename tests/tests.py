@@ -18,8 +18,6 @@ class TestMedia(unittest.TestCase):
         
         
     def test_media_class_to_jsonschema(self):
-        self.maxDiff = None
-        print demos.Media.to_jsonschema()
         self.assertEquals({
                 'title' : 'Media',
                 'type'  : 'object',
