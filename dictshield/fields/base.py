@@ -1,5 +1,4 @@
 from dictshield.base import BaseField, UUIDField, ShieldException, InvalidShield
-from dictshield.document import EmbeddedDocument
 
 from operator import itemgetter
 import re
@@ -528,6 +527,10 @@ class EmbeddedDocumentField(BaseField):
     """
 
     def __init__(self, document_type, **kwargs):
+        # BADBADBAD
+        print ' you are running bad code:: this import statement should not be here! '
+        from dictshield.document import EmbeddedDocument
+        
         if not isinstance(document_type, basestring):
             if not issubclass(document_type, EmbeddedDocument):
                 raise ShieldException('Invalid embedded document class '
