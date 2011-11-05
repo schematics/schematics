@@ -142,6 +142,8 @@ class BaseField(object):
     def _jsonschema_description(self):
         return self.description
 
+    def _jsonschema_type(self):
+        return 'any'
 
     def _jsonschema_title(self):
         if self.field_name:
@@ -154,10 +156,6 @@ class BaseField(object):
             return self.required
         else:
             return None
-
-    def _jsonschema_type(self):
-        return 'any'
-
 
     def for_jsonschema(self):
         """Generate the jsonschema by mapping the value of all methods beginning
@@ -355,105 +353,8 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
 
         return new_class
 
-        
-###
-### Document structures
-###
 
-class BaseDocument(object):
-
-    def __init__(self, **values):
-        self._data = {}
-
-        # Assign default values to instance
-        for attr_name, attr_value in self._fields.items():
-            # Use default value if present
-            value = getattr(self, attr_name, None)
-            setattr(self, attr_name, value)
-
-        # Assign initial values to instance
-        for attr_name,attr_value in values.items():
-            try:
-                if attr_name == '_id':
-                    attr_name = 'id'
-                setattr(self, attr_name, attr_value)
-            # Put a diaper on the keys that don't belong and send 'em home
-            except AttributeError:
-                pass
-
-    def validate(self):
-        """Ensure that all fields' values are valid and that required fields
-        are present.
-        """
-        # Get a list of tuples of field names and their current values
-        fields = [(field, getattr(self, name)) 
-                  for name, field in self._fields.items()]
-
-        # Ensure that each field is matched to a valid value
-        for field, value in fields:
-            if value is not None and value != '': # treat empty strings is nonexistent
-                try:
-                    field._validate(value)
-                except (ValueError, AttributeError, AssertionError):
-                    raise ShieldException('Invalid value', field.field_name,
-                                          value)
-            elif field.required:
-                raise ShieldException('Required field missing', field.field_name,
-                                      value)
-
-    @classmethod
-    def _get_subclasses(cls):
-        """Return a dictionary of all subclasses (found recursively).
-        """
-        try:
-            subclasses = cls.__subclasses__()
-        except:
-            subclasses = cls.__subclasses__(cls)
-
-        all_subclasses = {}
-        for subclass in subclasses:
-            all_subclasses[subclass._class_name] = subclass
-            all_subclasses.update(subclass._get_subclasses())
-        return all_subclasses
-
-    def __iter__(self):
-        return iter(self._fields)
-
-    def __getitem__(self, name):
-        """Dictionary-style field access, return a field's value if present.
-        """
-        try:
-            if name in self._fields:
-                return getattr(self, name)
-        except AttributeError:
-            pass
-        raise KeyError(name)
-
-    def __setitem__(self, name, value):
-        """Dictionary-style field access, set a field's value.
-        """
-        # Ensure that the field exists before settings its value
-        if name not in self._fields:
-            raise KeyError(name)
-        return setattr(self, name, value)
-
-    def __contains__(self, name):
-        try:
-            val = getattr(self, name)
-            return val is not None
-        except AttributeError:
-            return False
-
-    def __len__(self):
-        return len(self._data)
-
-    def __repr__(self):
-        try:
-            u = unicode(self)
-        except (UnicodeEncodeError, UnicodeDecodeError):
-            u = '[Bad Unicode data]'
-        return u'<%s: %s>' % (self.__class__.__name__, u)
-
+<<<<<<< HEAD
     def __str__(self):
         if hasattr(self, '__unicode__'):
             return unicode(self).encode('utf-8')
@@ -537,49 +438,8 @@ class BaseDocument(object):
         else:
             return data
 
-    @classmethod
-    def _from_son(cls, son):
-        """Create an instance of a Document (subclass) from a BSON.
-        """
-        # get the class name from the document, falling back to the given
-        # class if unavailable
-        class_name = son.get(u'_cls', cls._class_name)
-
-        data = dict((str(key), value) for key, value in son.items())
-
-        if '_types' in data:
-            del data['_types']
-
-        if '_cls' in data:
-            del data['_cls']
-
-        # Return correct subclass for document type
-        if class_name != cls._class_name:
-            subclasses = cls._get_subclasses()
-            if class_name not in subclasses:
-                # Type of document is probably more generic than the class
-                # that has been queried to return this SON
-                return None
-            cls = subclasses[class_name]
-
-        present_fields = data.keys()
-        # BUGFIX: changed fb_field to field_name and to_python to for_python
-        for field_name, field in cls._fields.items():
-            if field.field_name in data:
-                value = data[field.uniq_field]
-                data[field_name] = (value if value is None
-                                    else field.for_python(value))
-
-        obj = cls(**data)
-        obj._present_fields = present_fields
-        return obj
-
-    def __eq__(self, other):
-        if isinstance(other, self.__class__) and hasattr(other, 'id'):
-            if self.id == other.id:
-                return True
-        return False
-
-
 def subclass_exception(name, parents, module):
     return type(name, parents, {'__module__': module})
+
+
+
