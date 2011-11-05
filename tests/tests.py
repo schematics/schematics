@@ -18,6 +18,8 @@ class TestMedia(unittest.TestCase):
         
         
     def test_media_class_to_jsonschema(self):
+        self.maxDiff = None
+        print demos.Media.to_jsonschema()
         self.assertEquals({
                 'title' : 'Media',
                 'type'  : 'object',
@@ -66,6 +68,7 @@ class TestMovie(unittest.TestCase):
                           json.loads(demos.Movie.to_jsonschema()))
 
 class TestProduct(unittest.TestCase):
+    @unittest.skip('Tests for instance not yet written.')
     def test_product_instance_to_json(self):
         pass
     
@@ -99,6 +102,7 @@ class TestProduct(unittest.TestCase):
         self.assertEquals(self.PRODUCT_SCHEMA, json.loads(demos.Product.to_jsonschema()))
 
 class TestOrder(unittest.TestCase):
+    @unittest.skip('Tests for instance not yet written.')
     def test_order_instance_to_json(self):
         pass
 
@@ -127,6 +131,7 @@ class TestOrder(unittest.TestCase):
         self.assertEquals(self.ORDER_SCHEMA, json.loads(demos.Order.to_jsonschema()))
 
 class TestUser(unittest.TestCase):
+    @unittest.skip('Tests for instance not yet written.')
     def test_user_instance_to_json(self):
         pass
 
@@ -179,6 +184,7 @@ class TestCustomer(unittest.TestCase):
             'title'      : 'Customer',
             'properties' : CUSTOMER_PROPERTIES })
 
+    @unittest.skip('Tests for instance not yet written.')
     def test_customer_instance_to_json(self):
         pass
 
@@ -186,6 +192,7 @@ class TestCustomer(unittest.TestCase):
         self.assertEquals(self.CUSTOMER_SCHEMA, json.loads(demos.Customer.to_jsonschema()))
 
 class TestSomeDoc(unittest.TestCase):
+    @unittest.skip('Tests for instance not yet written.')
     def test_somedoc_instance_to_json(self):
         pass
     
@@ -217,6 +224,7 @@ class TestSomeDoc(unittest.TestCase):
         self.assertEquals(self.SOME_DOC_SCHEMA, json.loads(demos.SomeDoc.to_jsonschema()))
 
 class TestAuthor(unittest.TestCase):
+    @unittest.skip('Tests for instance not yet written.')
     def test_author_instance_to_json(self):
         pass
     
@@ -235,6 +243,7 @@ class TestAuthor(unittest.TestCase):
         self.assertEquals(self.AUTHOR_SCHEMA, json.loads(demos.Author.to_jsonschema()))
 
 class TestComment(unittest.TestCase):
+    @unittest.skip('Tests for instance not yet written.')
     def test_comment_instance_to_json(self):
         pass
     
@@ -254,6 +263,7 @@ class TestComment(unittest.TestCase):
         self.assertEquals(self.COMMENT_SCHEMA, json.loads(demos.Comment.to_jsonschema()))
 
 class TestBlogPost(unittest.TestCase):
+    @unittest.skip('Tests for instance not yet written.')
     def test_blog_post_instance_to_json(self):
         pass
     
@@ -275,6 +285,7 @@ class TestBlogPost(unittest.TestCase):
         self.assertEquals(self.BLOG_POST_SCHEMA, json.loads(demos.BlogPost.to_jsonschema()))
 
 class TestAction(unittest.TestCase):
+    @unittest.skip('Tests for instance not yet written.')
     def test_action_instance_to_json(self):
         pass
     
@@ -296,6 +307,7 @@ class TestAction(unittest.TestCase):
         self.assertEquals(self.ACTION_SCHEMA, json.loads(demos.Action.to_jsonschema()))
 
 class TestSingleTask(unittest.TestCase):
+    @unittest.skip('Tests for instance not yet written.')
     def test_single_task_instance_to_json(self):
         pass
     
@@ -314,6 +326,7 @@ class TestSingleTask(unittest.TestCase):
         self.assertEquals(self.SINGLE_TASK_SCHEMA, json.loads(demos.SingleTask.to_jsonschema()))
 
 class TestTaskList(unittest.TestCase):
+    @unittest.skip('Tests for instance not yet written.')
     def test_task_list_instance_to_json(self):
         pass
     
@@ -345,6 +358,7 @@ class TestTaskList(unittest.TestCase):
         self.assertEquals(self.TASK_LIST_SCHEMA, json.loads(demos.TaskList.to_jsonschema()))
 
 class TestBasicUser(unittest.TestCase):
+    @unittest.skip('Tests for instance not yet written.')
     def test_basic_user_instance_to_json(self):
         pass
     

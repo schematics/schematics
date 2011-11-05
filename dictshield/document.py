@@ -153,19 +153,43 @@ class BaseDocument(object):
     @classmethod
     def for_jsonschema(cls):
         
+        # Place all fields in the schema unless public ones are specified.
+        if cls._public_fields is None:
+            field_names = cls._fields.keys()
+        else:
+            field_names = cls._public_fields
+
         properties = {}
-        for name, field in cls._fields.items():
-            
-            properties[ name ] = field.for_jsonschema()
+
+        for name in field_names:
+            properties[ name ] = cls._fields[ name ].for_jsonschema()
 
         return {
             'type'       : 'object',
+            'title'      : cls.__name__,
             'properties' : properties
             }
 
     @classmethod
     def to_jsonschema(cls):
         return json.dumps(cls.for_jsonschema())
+
+    # @classmethod
+    # def for_jsonschema(cls):
+        
+    #     properties = {}
+    #     for name, field in cls._fields.items():
+            
+    #         properties[ name ] = field.for_jsonschema()
+
+    #     return {
+    #         'type'       : 'object',
+    #         'properties' : properties
+    #         }
+
+    # @classmethod
+    # def to_jsonschema(cls):
+    #     return json.dumps(cls.for_jsonschema())
 
     ###
     ### Instance Serialization
