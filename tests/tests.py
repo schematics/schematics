@@ -2,75 +2,124 @@ import unittest
 import json
 import datetime
 import copy
+import inspect
 from fixtures import demos
+from fixtures.demos import Document
 
-class TestMedia(unittest.TestCase):
+# class skipIfUndefined(object):
     
-    def test_media_instance_to_json(self):
-        
-        obj_from_json = json.loads(demos.m.to_json())
+#     def __init__(self, attribute, msg):
+#         self.skipIt = not hasattr(self, attribute)
+#         self.msg = msg
+    
+#     def __call__(self, testFunc):
+#         if self.skipIt is True:
+#             @unittest.skip(self.msg)
+#             def skipped(self):
+#                 pass
+#             return skipped
+#         else:
+#             return testFunc
+
+def skipIfUndefined(attribute, message):
+    """This decorator will skip `testFunc' with `msg' if `attribute' is
+    not defined in the test class in which the decorator is used.
+
+    Example:
+    @skipIfUndefined('foo', 'Your foo is weak!')
+    def myTest(self):
+      assertEquals('bar', self.foo)
+    """
+    def wrapper(testFunc):
+        def wrapped(self):
+            if hasattr(self, attribute):
+                return testFunc(self)
+            else:
+                @unittest.skip(message)
+                def skipped(self):
+                    pass
+                return skipped(self)
+
+        return wrapped
+    return wrapper
+
+class FixtureMixin():
+    """Make sure to mix this in to a class that is descended from
+    unittest.TestCase .  You will need to define:
+
+    self.instance   : a DictShield document instance
+    self.klass      : a DictShield document class
+    self.json       : the JSON you expect the instance to turn into from
+                      instance.to_json()
+    self.jsonschema : the JSON schema you expect the class to turn into
+                      from klass.to_jsonschema()
+
+    Tests will be skipped otherwise.
+    """
+    
+    @skipIfUndefined('json', 'Instance JSON not provided.')
+    def test_instance_to_json(self):
+        obj_from_json = json.loads(self.instance.to_json())
         self.assertEquals(36, len(obj_from_json.pop('_id')))
-        self.assertEquals({
-                u'_cls'  : u'Media',
-                u'_types': [u'Media'],
-                u'title' : u'Misc Media'
-                }, obj_from_json)
+        self.assertEquals(self.json, obj_from_json)
         
-        
-    def test_media_class_to_jsonschema(self):
-        self.assertEquals({
-                'title' : 'Media',
-                'type'  : 'object',
-                'properties': {
-                    'id' : { 'type' : 'string' },
-                    'owner' : {
-                        'type' : 'string',
-                        'title': 'owner'
-                        },
-                    'title' : {
-                        'type' : 'string',
-                        'title': 'title',
-                        'maxLength': 40
-                        }
-                    }}, json.loads(demos.Media.to_jsonschema())
-                          )
+    @skipIfUndefined('jsonschema', 'JSON schema not provided.')
+    def test_class_to_jsonschema(self):
+        self.assertEquals(self.jsonschema, json.loads(self.klass.to_jsonschema()))
 
-class TestMovie(unittest.TestCase):
-    
-    def test_movie_instance_to_json(self):
-        obj_from_json = json.loads(demos.mv.to_json())
+    @unittest.expectedFailure
+    def test_class_from_jsonschema(self):
+        self.assertEquals(self.jsonschema, json.loads(Document.from_jsonschema(self.klass).to_jsonschema()))
         
-        self.assertEquals(36, len(obj_from_json.pop('_id')))
-        self.assertEquals({
-                u'_cls'  : u'Media.Movie',
-                u'_types': [u'Media', u'Media.Movie'],
-                u'title' : u'Total Recall',
-                u'year'  : 1990,
-                u'personal_thoughts' : u'I wish I had three hands...'
-                }, obj_from_json)
-        
-    def test_movie_class_to_jsonschema(self):
-        self.assertEquals({
-                'title' : 'Movie',
-                'type'  : 'object',
-                'properties' : {
-                    'title' : {
-                        'maxLength': 40,
-                        'type'     : 'string',
-                        'title'    : 'title' },
-                    'year' : {
-                        'maximum': datetime.datetime.now().year,
-                        'minimum': 1950,
-                        'title'  : 'year',
-                        'type'   : 'integer' }}},
-                          json.loads(demos.Movie.to_jsonschema()))
+class TestMedia(unittest.TestCase, FixtureMixin):
+    instance = demos.m
+    klass = demos.Media
+    json = {
+        u'_cls'  : u'Media',
+        u'_types': [u'Media'],
+        u'title' : u'Misc Media'
+        }
+    jsonschema = {
+        'title' : 'Media',
+        'type'  : 'object',
+        'properties': {
+            'id' : { 'type' : 'string' },
+            'owner' : {
+                'type' : 'string',
+                'title': 'owner'
+                },
+            'title' : {
+                'type' : 'string',
+                'title': 'title',
+                'maxLength': 40
+                }
+            }}
 
-class TestProduct(unittest.TestCase):
-    @unittest.skip('Tests for instance not yet written.')
-    def test_product_instance_to_json(self):
-        pass
-    
-    PRODUCT_SCHEMA = {
+class TestMovie(unittest.TestCase, FixtureMixin):
+    instance = demos.mv
+    klass = demos.Movie
+    json = { u'_cls'  : u'Media.Movie',
+             u'_types': [u'Media', u'Media.Movie'],
+             u'title' : u'Total Recall',
+             u'year'  : 1990,
+             u'personal_thoughts' : u'I wish I had three hands...' }
+    jsonschema = {
+        'title' : 'Movie',
+        'type'  : 'object',
+        'properties' : {
+            'title' : {
+                'maxLength': 40,
+                'type'     : 'string',
+                'title'    : 'title' },
+            'year' : {
+                'maximum': datetime.datetime.now().year,
+                'minimum': 1950,
+                'title'  : 'year',
+                'type'   : 'integer' }}}
+                     
+class TestProduct(unittest.TestCase, FixtureMixin):
+    klass = demos.Product
+    jsonschema = {
         'type' : 'object',
         'title': 'Product',
         'properties': {
@@ -96,15 +145,9 @@ class TestProduct(unittest.TestCase):
                 'type' : 'integer',
                 'title': 'num_in_stock' }}}
 
-    def test_product_class_to_jsonschema(self):
-        self.assertEquals(self.PRODUCT_SCHEMA, json.loads(demos.Product.to_jsonschema()))
-
-class TestOrder(unittest.TestCase):
-    @unittest.skip('Tests for instance not yet written.')
-    def test_order_instance_to_json(self):
-        pass
-
-    ORDER_SCHEMA = {
+class TestOrder(unittest.TestCase, FixtureMixin):
+    klass = demos.Order
+    jsonschema = {
         'type' : 'object',
         'title': 'Order',
         'properties': {
@@ -120,20 +163,14 @@ class TestOrder(unittest.TestCase):
             'line_items' : {
                 'type'  : 'array',
                 'title' : 'line_items',
-                'items' : TestProduct.PRODUCT_SCHEMA },
+                'items' : TestProduct.jsonschema },
             'total' : {
                 'type' : 'number',
                 'title': 'total'}}}
-    
-    def test_order_class_to_jsonschema(self):
-        self.assertEquals(self.ORDER_SCHEMA, json.loads(demos.Order.to_jsonschema()))
 
-class TestUser(unittest.TestCase):
-    @unittest.skip('Tests for instance not yet written.')
-    def test_user_instance_to_json(self):
-        pass
-
-    USER_SCHEMA = {
+class TestUser(unittest.TestCase, FixtureMixin):
+    klass = demos.User
+    jsonschema = {
         'type'   : 'object',
         'title'  : 'User',
         'properties': {
@@ -151,14 +188,11 @@ class TestUser(unittest.TestCase):
                 'maxLength' : 30,
                 'required'  : True }}}
 
-    def test_user_class_to_jsonschema(self):
-        self.assertEquals(self.USER_SCHEMA, json.loads(demos.User.to_jsonschema()))
-
-class TestCustomer(unittest.TestCase):
-    
-    CUSTOMER_SCHEMA = copy.copy(TestUser.USER_SCHEMA)
-    CUSTOMER_PROPERTIES = copy.copy(TestUser.USER_SCHEMA['properties'])
-    CUSTOMER_PROPERTIES.update({
+class TestCustomer(unittest.TestCase, FixtureMixin):
+    klass = demos.Customer
+    jsonschema = copy.copy(TestUser.jsonschema)
+    customer_properties = copy.copy(TestUser.jsonschema['properties'])
+    customer_properties.update({
                     'date_made' : {
                         'title'   : 'date_made',
                         'type'    : 'string',
@@ -177,24 +211,14 @@ class TestCustomer(unittest.TestCase):
                     'orders' : {
                         'title'    : 'orders',
                         'type'     : 'array',
-                        'items'    : TestOrder.ORDER_SCHEMA }})
-    CUSTOMER_SCHEMA.update({
+                        'items'    : TestOrder.jsonschema }})
+    jsonschema.update({
             'title'      : 'Customer',
-            'properties' : CUSTOMER_PROPERTIES })
+            'properties' : customer_properties })
 
-    @unittest.skip('Tests for instance not yet written.')
-    def test_customer_instance_to_json(self):
-        pass
-
-    def test_customer_class_to_jsonschema(self):
-        self.assertEquals(self.CUSTOMER_SCHEMA, json.loads(demos.Customer.to_jsonschema()))
-
-class TestSomeDoc(unittest.TestCase):
-    @unittest.skip('Tests for instance not yet written.')
-    def test_somedoc_instance_to_json(self):
-        pass
-    
-    SOME_DOC_SCHEMA = {
+class TestSomeDoc(unittest.TestCase, FixtureMixin):
+    klass = demos.SomeDoc
+    jsonschema = {
         'type'   : 'object',
         'title'  : 'SomeDoc',
         'properties': {
@@ -218,15 +242,9 @@ class TestSomeDoc(unittest.TestCase):
                 'title'  : 'body',
                 'type'   : 'string' }}}
 
-    def test_somedoc_class_to_jsonschema(self):
-        self.assertEquals(self.SOME_DOC_SCHEMA, json.loads(demos.SomeDoc.to_jsonschema()))
-
-class TestAuthor(unittest.TestCase):
-    @unittest.skip('Tests for instance not yet written.')
-    def test_author_instance_to_json(self):
-        pass
-    
-    AUTHOR_SCHEMA = {
+class TestAuthor(unittest.TestCase, FixtureMixin):
+    klass = demos.Author
+    jsonschema = {
         'title' : 'Author',
         'type'  : 'object',
         'properties' : {
@@ -237,16 +255,9 @@ class TestAuthor(unittest.TestCase):
                 'title' : 'username',
                 'type'  : 'string' }}}
 
-    def test_author_class_to_jsonschema(self):
-        self.assertEquals(self.AUTHOR_SCHEMA, json.loads(demos.Author.to_jsonschema()))
-
-class TestComment(unittest.TestCase):
-    @unittest.skip('Tests for instance not yet written.')
-    def test_comment_instance_to_json(self):
-        pass
-    
-    # only public fields should appear in the schema.
-    COMMENT_SCHEMA = {
+class TestComment(unittest.TestCase, FixtureMixin):
+    klass = demos.Comment
+    jsonschema = {
         'title' : 'Comment',
         'type'  : 'object',
         'properties' : {
@@ -257,37 +268,24 @@ class TestComment(unittest.TestCase):
                 'title' : 'username',
                 'type'  : 'string' }}}
 
-    def test_comment_class_to_jsonschema(self):
-        self.assertEquals(self.COMMENT_SCHEMA, json.loads(demos.Comment.to_jsonschema()))
-
-class TestBlogPost(unittest.TestCase):
-    @unittest.skip('Tests for instance not yet written.')
-    def test_blog_post_instance_to_json(self):
-        pass
-    
-    # only public fields should appear in the schema.
-    BLOG_POST_SCHEMA = {
+class TestBlogPost(unittest.TestCase, FixtureMixin):
+    klass = demos.BlogPost
+    jsonschema = {
         'title' : 'BlogPost',
         'type'  : 'object',
         'properties' : {
-            'author' : TestAuthor.AUTHOR_SCHEMA,
+            'author' : TestAuthor.jsonschema,
             'comments' : {
                 'title' : 'comments',
                 'type'  : 'array',
-                'items' : TestComment.COMMENT_SCHEMA },
+                'items' : TestComment.jsonschema },
             'content' : {
                 'title' : 'content',
                 'type'  : 'string' }}}
-    
-    def test_blog_post_class_to_jsonschema(self):
-        self.assertEquals(self.BLOG_POST_SCHEMA, json.loads(demos.BlogPost.to_jsonschema()))
 
-class TestAction(unittest.TestCase):
-    @unittest.skip('Tests for instance not yet written.')
-    def test_action_instance_to_json(self):
-        pass
-    
-    ACTION_SCHEMA = {
+class TestAction(unittest.TestCase, FixtureMixin):
+    klass = demos.Action
+    jsonschema = {
         'title' : 'Action',
         'type'  : 'object',
         'properties' : {
@@ -300,35 +298,23 @@ class TestAction(unittest.TestCase):
                 'title'  : 'tags',
                 'type'   : 'array',
                 'items'  : { 'type' : 'string' }}}}
-    
-    def test_action_class_to_jsonschema(self):
-        self.assertEquals(self.ACTION_SCHEMA, json.loads(demos.Action.to_jsonschema()))
 
-class TestSingleTask(unittest.TestCase):
-    @unittest.skip('Tests for instance not yet written.')
-    def test_single_task_instance_to_json(self):
-        pass
-    
-    SINGLE_TASK_SCHEMA = {
+class TestSingleTask(unittest.TestCase, FixtureMixin):
+    klass = demos.SingleTask
+    jsonschema = {
         'title' : 'SingleTask',
         'type'  : 'object',
         'properties' : {
             'id' : { 'type' : 'string' },
-            'action'       : TestAction.ACTION_SCHEMA,
+            'action'       : TestAction.jsonschema,
             'created_date' : {
                 'type'   : 'string',
                 'format' : 'date-time',
                 'title'  : 'created_date' }}}
-    
-    def test_single_task_class_to_jsonschema(self):
-        self.assertEquals(self.SINGLE_TASK_SCHEMA, json.loads(demos.SingleTask.to_jsonschema()))
 
-class TestTaskList(unittest.TestCase):
-    @unittest.skip('Tests for instance not yet written.')
-    def test_task_list_instance_to_json(self):
-        pass
-    
-    TASK_LIST_SCHEMA = {
+class TestTaskList(unittest.TestCase, FixtureMixin):
+    klass = demos.TaskList
+    jsonschema = {
         'title' : 'TaskList',
         'type'  : 'object',
         'properties' : {
@@ -336,7 +322,7 @@ class TestTaskList(unittest.TestCase):
             'actions' : {
                 'type'   : 'array',
                 'title'  : 'actions',
-                'items'  : TestAction.ACTION_SCHEMA },
+                'items'  : TestAction.jsonschema },
             'created_date' : {
                 'title'  : 'created_date',
                 'type'   : 'string',
@@ -351,17 +337,10 @@ class TestTaskList(unittest.TestCase):
                 'type'   : 'integer',
                 'title'  : 'num_completed',
                 'default': 0 }}}
-    
-    def test_task_list_class_to_jsonschema(self):
-        self.assertEquals(self.TASK_LIST_SCHEMA, json.loads(demos.TaskList.to_jsonschema()))
 
-class TestBasicUser(unittest.TestCase):
-    @unittest.skip('Tests for instance not yet written.')
-    def test_basic_user_instance_to_json(self):
-        pass
-    
-    # only public fields should appear in schema
-    BASIC_USER_SCHEMA = {
+class TestBasicUser(unittest.TestCase, FixtureMixin):
+    klass = demos.BasicUser
+    jsonschema = {
         'title' : 'BasicUser',
         'type'  : 'object',
         'properties' : {
@@ -374,9 +353,6 @@ class TestBasicUser(unittest.TestCase):
                 'type'     : 'string',
                 'title'    : 'bio',
                 'maxLength': 100 }}} # baby bio!
-    
-    def test_basic_user_class_to_jsonschema(self):
-        self.assertEquals(self.BASIC_USER_SCHEMA, json.loads(demos.BasicUser.to_jsonschema()))
 
 if __name__ == '__main__':
     unittest.main()

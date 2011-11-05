@@ -246,16 +246,29 @@ class BaseDocument(object):
 
 
     @classmethod
-    def from_schema(cls, schema):
-        class_name = schema['title']
-        doc = schema['description'] #figure out way to put this in to resulting obj
-        dictfields = {}
-        for field_name, schema_field in schema['properties'].iteritems():
-            dictfields[field_name] = cls.map_jsonschema_field_to_dictshield(schema_field)
-        return type(class_name,
-                    (cls,),
-                    dictfields,
-                    )
+    def from_jsonschema(cls, schema):
+        """ Generate a dictshield Document class from a JSON schema.  The JSON schema's
+        title field will be the name of the class.  You must specify a title and at 
+        least one property or there will be an AttributeError.
+        """
+        if schema.has_key('title'):
+            class_name = schema['title']
+        else:
+            raise AttributeError('Your JSON schema must specify a title to be the Document class name')
+
+        if schema.has_key('description'):
+            doc = schema['description'] #figure out way to put this in to resulting obj
+            
+        if schema.has_key('properties'):
+            dictfields = {}
+            for field_name, schema_field in schema['properties'].iteritems():
+                dictfields[field_name] = cls.map_jsonschema_field_to_dictshield(schema_field)
+                return type(class_name,
+                            (cls,),
+                            dictfields,
+                            )
+        else:
+            raise AttributeError('Your JSON schema must have at least one property')
         
 
     @classmethod
@@ -267,7 +280,6 @@ class BaseDocument(object):
         dictshield_field_type = dictshield_fields.get((tipe, fmt,), None)
         if not dictshield_field_type:
             raise DictFieldNotFound
-
 
         kwargs =  {}
         if 'item' in schema_field: #list types
