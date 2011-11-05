@@ -215,9 +215,14 @@ class BaseDocument(object):
             return data
 
     def __eq__(self, other):
-        if isinstance(other, self.__class__) and hasattr(other, 'id'):
-            if self.id == other.id:
-                return True
+        if isinstance(other, self.__class__):
+            keys = self._fields
+            if not hasattr(other, '_id'):
+                keys.pop("_id", None)
+            for key in keys:
+                if self[key] != other[key]:
+                    return False
+            return True
         return False
 
 
