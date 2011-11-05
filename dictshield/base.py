@@ -353,8 +353,6 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
 
         return new_class
 
-
-<<<<<<< HEAD
     def __str__(self):
         if hasattr(self, '__unicode__'):
             return unicode(self).encode('utf-8')
