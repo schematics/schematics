@@ -51,7 +51,7 @@ m.title = 'Misc Media'
 
 class Movie(Media):
     """Subclass of Foo. Adds bar and limits publicly shareable
-    fields to only 'bar'.
+    fields to only 'title' and 'year'.
     """
     _public_fields = ['title','year']
     year = IntField(min_value=1950, max_value=datetime.datetime.now().year)

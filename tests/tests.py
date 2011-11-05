@@ -54,14 +54,6 @@ class TestMovie(unittest.TestCase):
                 'title' : 'Movie',
                 'type'  : 'object',
                 'properties' : {
-                    'id' : { 'type' : 'string' },
-                    'owner': {
-                        'title': 'owner',
-                        'type' : 'string' },
-                    'personal_thoughts' : {
-                        'maxLength' : 255,
-                        'title'     : 'personal_thoughts',
-                        'type'      : 'string' },
                     'title' : {
                         'maxLength': 40,
                         'type'     : 'string',
@@ -126,7 +118,6 @@ class TestOrder(unittest.TestCase):
             'line_items' : {
                 'type'  : 'array',
                 'title' : 'line_items',
-                # if items is changed to produce an array of valid items, this will break.
                 'items' : TestProduct.PRODUCT_SCHEMA },
             'total' : {
                 'type' : 'number',
@@ -223,13 +214,12 @@ class TestSomeDoc(unittest.TestCase):
                 'type'   : 'string' }}}
 
     def test_somedoc_class_to_jsonschema(self):
-        self.assertEquals(self.SOME_DOC_SCHEMA, json.loads(demos.SomeDoc().to_jsonschema()))
+        self.assertEquals(self.SOME_DOC_SCHEMA, json.loads(demos.SomeDoc.to_jsonschema()))
 
 class TestAuthor(unittest.TestCase):
     def test_author_instance_to_json(self):
         pass
     
-    # only public fields should appear in the schema.
     AUTHOR_SCHEMA = {
         'title' : 'Author',
         'type'  : 'object',
@@ -242,7 +232,7 @@ class TestAuthor(unittest.TestCase):
                 'type'  : 'string' }}}
 
     def test_author_class_to_jsonschema(self):
-        self.assertEquals(self.AUTHOR_SCHEMA, json.loads(demos.Author().to_jsonschema()))
+        self.assertEquals(self.AUTHOR_SCHEMA, json.loads(demos.Author.to_jsonschema()))
 
 class TestComment(unittest.TestCase):
     def test_comment_instance_to_json(self):
@@ -261,7 +251,7 @@ class TestComment(unittest.TestCase):
                 'type'  : 'string' }}}
 
     def test_comment_class_to_jsonschema(self):
-        self.assertEquals(self.COMMENT_SCHEMA, json.loads(demos.Comment().to_jsonschema()))
+        self.assertEquals(self.COMMENT_SCHEMA, json.loads(demos.Comment.to_jsonschema()))
 
 class TestBlogPost(unittest.TestCase):
     def test_blog_post_instance_to_json(self):
@@ -272,7 +262,6 @@ class TestBlogPost(unittest.TestCase):
         'title' : 'BlogPost',
         'type'  : 'object',
         'properties' : {
-            'id'     : { 'type' : 'string' },
             'author' : TestAuthor.AUTHOR_SCHEMA,
             'comments' : {
                 'title' : 'comments',
@@ -283,7 +272,7 @@ class TestBlogPost(unittest.TestCase):
                 'type'  : 'string' }}}
     
     def test_blog_post_class_to_jsonschema(self):
-        self.assertEquals(self.BLOG_POST_SCHEMA, json.loads(demos.BlogPost().to_jsonschema()))
+        self.assertEquals(self.BLOG_POST_SCHEMA, json.loads(demos.BlogPost.to_jsonschema()))
 
 class TestAction(unittest.TestCase):
     def test_action_instance_to_json(self):
@@ -304,7 +293,7 @@ class TestAction(unittest.TestCase):
                 'items'  : { 'type' : 'string' }}}}
     
     def test_action_class_to_jsonschema(self):
-        self.assertEquals(self.ACTION_SCHEMA, json.loads(demos.Action().to_jsonschema()))
+        self.assertEquals(self.ACTION_SCHEMA, json.loads(demos.Action.to_jsonschema()))
 
 class TestSingleTask(unittest.TestCase):
     def test_single_task_instance_to_json(self):
@@ -322,7 +311,7 @@ class TestSingleTask(unittest.TestCase):
                 'title'  : 'created_date' }}}
     
     def test_single_task_class_to_jsonschema(self):
-        self.assertEquals(self.SINGLE_TASK_SCHEMA, json.loads(demos.SingleTask().to_jsonschema()))
+        self.assertEquals(self.SINGLE_TASK_SCHEMA, json.loads(demos.SingleTask.to_jsonschema()))
 
 class TestTaskList(unittest.TestCase):
     def test_task_list_instance_to_json(self):
@@ -353,7 +342,7 @@ class TestTaskList(unittest.TestCase):
                 'default': 0 }}}
     
     def test_task_list_class_to_jsonschema(self):
-        self.assertEquals(self.TASK_LIST_SCHEMA, json.loads(demos.TaskList().to_jsonschema()))
+        self.assertEquals(self.TASK_LIST_SCHEMA, json.loads(demos.TaskList.to_jsonschema()))
 
 class TestBasicUser(unittest.TestCase):
     def test_basic_user_instance_to_json(self):
@@ -364,7 +353,6 @@ class TestBasicUser(unittest.TestCase):
         'title' : 'BasicUser',
         'type'  : 'object',
         'properties' : {
-            'id'   : { 'type' : 'string' },
             'name' : {
                 'type'     : 'string',
                 'title'    : 'name',
@@ -376,7 +364,7 @@ class TestBasicUser(unittest.TestCase):
                 'maxLength': 100 }}} # baby bio!
     
     def test_basic_user_class_to_jsonschema(self):
-        self.assertEquals(self.BASIC_USER_SCHEMA, json.loads(demos.BasicUser().to_jsonschema()))
+        self.assertEquals(self.BASIC_USER_SCHEMA, json.loads(demos.BasicUser.to_jsonschema()))
 
 if __name__ == '__main__':
     unittest.main()
