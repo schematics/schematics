@@ -244,8 +244,8 @@ class BaseDocument(object):
 
     @classmethod
     def from_jsonschema(cls, schema):
-        """ Generate a dictshield Document class from a JSON schema.  The JSON schema's
-        title field will be the name of the class.  You must specify a title and at 
+        """Generate a dictshield Document class from a JSON schema.  The JSON schema's
+        title field will be the name of the class.  You must specify a title and at
         least one property or there will be an AttributeError.
         """
         if schema.has_key('title'):
@@ -255,7 +255,7 @@ class BaseDocument(object):
 
         if schema.has_key('description'):
             doc = schema['description'] #figure out way to put this in to resulting obj
-            
+
         if schema.has_key('properties'):
             dictfields = {}
             for field_name, schema_field in schema['properties'].iteritems():
@@ -266,7 +266,6 @@ class BaseDocument(object):
                             )
         else:
             raise AttributeError('Your JSON schema must have at least one property')
-        
 
     @classmethod
     def map_jsonschema_field_to_dictshield(cls, schema_field):
