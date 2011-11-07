@@ -530,7 +530,7 @@ class EmbeddedDocumentField(BaseField):
         # BADBADBAD
         print ' you are running bad code:: this import statement should not be here! '
         from dictshield.document import EmbeddedDocument
-        
+
         if not isinstance(document_type, basestring):
             if not issubclass(document_type, EmbeddedDocument):
                 raise ShieldException('Invalid embedded document class '
@@ -558,9 +558,6 @@ class EmbeddedDocumentField(BaseField):
         return 'object'
 
     def for_jsonschema(self):
-        # fieldDict = self.document_type.for_jsonschema()
-        # fieldDict.update(self.document_type._data[self.field_name].for_jsonschema())
-        #return fieldDict
         return self.document_type.for_jsonschema()
 
     def for_python(self, value):
