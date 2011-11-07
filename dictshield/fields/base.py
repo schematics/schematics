@@ -1,5 +1,5 @@
-
 from dictshield.base import BaseField, UUIDField, ShieldException, InvalidShield
+from dictshield.datastructures import MultiValueDict
 from dictshield.document import EmbeddedDocument
 from ..datastructures import MultiValueDict
 
@@ -9,6 +9,7 @@ import datetime
 import decimal
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
+
 
 class StringField(BaseField):
     """A unicode string field.
@@ -490,6 +491,12 @@ class MultiValueDictField(DictField):
         kwargs.setdefault('default', lambda: MultiValueDict())
         super(MultiValueDictField, self).__init__(*args, **kwargs)
 
+    def __set__(self, instance, value):
+        if value is not None and not isinstance(value, MultiValueDict):
+            value = MultiValueDict(value)
+
+        super(MultiValueDictField, self).__set__(instance, value)
+
     def validate(self, value):
         """Make sure that a list of valid fields is being used.
         """
@@ -577,8 +584,6 @@ class EmbeddedDocumentField(BaseField):
         if isinstance(self.document_type_obj, basestring):
             if self.document_type_obj == RECURSIVE_REFERENCE_CONSTANT:
                 self.document_type_obj = self.owner_document
-            else:
-                self.document_type_obj = get_document(self.document_type_obj)
         return self.document_type_obj
 
     def _jsonschema_type(self):
