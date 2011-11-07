@@ -228,57 +228,49 @@ class BaseDocument(object):
 
     @classmethod
     def from_schema(cls, schema):
-        class_name = schema['title']
-        doc = schema['description'] #figure out way to put this in to resulting obj
+        class_name = schema.pop('title')
+        doc = schema.pop('description', None) #figure out way to put this in to resulting obj
         dictfields = {}
         for field_name, schema_field in schema['properties'].iteritems():
-            dictfields[field_name] = cls.map_jsonschema_field_to_dictshield(schema_field)
+            dictfields[field_name] = cls.map_jsonschema_field_to_dictshield(schema_field, field_name)
         return type(class_name,
                     (cls,),
                     dictfields,
                     )
-        
 
     @classmethod
-    def map_jsonschema_field_to_dictshield(cls, schema_field):
+    def map_jsonschema_field_to_dictshield(cls, schema_field, field_name=None):
         #get the kind of field this is
+        if not 'type' in schema_field: 
+            return #not data, so ignore
         tipe = schema_field.pop('type')
         fmt = schema_field.pop('format', None)
-        #do we have an embedded subfield
+
         dictshield_field_type = dictshield_fields.get((tipe, fmt,), None)
         if not dictshield_field_type:
             raise DictFieldNotFound
 
-
         kwargs =  {}
-        if 'item' in schema_field: #list types
+        
+        if tipe == 'array': #list types
             assert dictshield_field_type == ListField
             items = schema_field.pop('items', None)
-            if None: #any possible item isn't allowed by listfield
-                raise NotImplementedError
-            elif isinstance(items, list): #multiple different items - listfield currently restricted to a single item
+            if items == None: #any possible item isn't allowed by listfield
                 raise NotImplementedError
             elif isinstance(items, dict): #list of a single type
-                list_type = cls.map_jsonschema_to_dictshield(items)
-                kwargs['field'] = list_type
+                items = [items]
+            kwargs['fields'] = [cls.map_jsonschema_field_to_dictshield(item) for item in items]
 
-        elif 'properties' in schema_field: #embedded objects
-            properties = schema_field.pop('properties')
-            first_positional = EmbeddedDocument.map_jsonschema_field_to_dictshield(properties)
+        elif tipe == "object": #embedded objects
+            schema_field.setdefault('title', field_name)
+            kwargs['document_type'] = EmbeddedDocument.from_schema(schema_field)
+            schema_field.pop('properties') #since it's now a embeddoc
 
-        for k, v in schema_field.items():
-            if k in schema_kwargs_to_dictshield:
-                kwarg_name = schema_kwargs_to_dictshield[k]
-                kwargs[kwarg_name] = v
-
-        if embedded_doc:
-            return dictshield_field_type(embedded_doc, **kwargs)
-        else:
-            import pdb
-            pdb.set_trace()
-            return dictshield_field_type(**kwargs)
-
-
+        for kwarg_name, v in schema_field.items():
+            if kwarg_name in schema_kwargs_to_dictshield:
+                kwarg_name = schema_kwargs_to_dictshield[kwarg_name]
+            kwargs[kwarg_name] = v
+        return dictshield_field_type(**kwargs)
 
 
 class SafeableMixin:
