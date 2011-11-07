@@ -365,27 +365,27 @@ class ListField(BaseField):
     of the field to be used as a list in the model.
     """
 
-    def __init__(self, field_or_fields, **kwargs):
-        if isinstance(field_or_fields, BaseField): # is it a field instance
-            if isinstance(field_or_fields, EmbeddedDocumentField):
-                kwargs.setdefault('primary_embedded', field_or_fields)
-            field_or_fields = [field_or_fields]
+    def __init__(self, fields=None, **kwargs):
+        if isinstance(fields, BaseField): # is it a field instance
+            if isinstance(fields, EmbeddedDocumentField):
+                kwargs.setdefault('primary_embedded', fields)
+            fields = [fields]
         # is it something other than a list
-        elif not isinstance(field_or_fields, list):
+        elif not isinstance(fields, list):
             raise InvalidShield('Argument to ListField constructor must be '
                                 'a valid field or list of fields')
         #did we get some bad stuff in the list?
-        elif list(ifilterfalse(lambda field: isinstance(field, BaseField), field_or_fields)):
+        elif list(ifilterfalse(lambda field: isinstance(field, BaseField), fields)):
             raise InvalidShield('Argument to ListField constructor must be '
                                 'a valid field or list of valid fields')
         else:
-            docs = filter(lambda field: isinstance(field, EmbeddedDocumentField), field_or_fields)
-            dicts = filter(lambda field: isinstance(field, DictField), field_or_fields)
+            docs = filter(lambda field: isinstance(field, EmbeddedDocumentField), fields)
+            dicts = filter(lambda field: isinstance(field, DictField), fields)
             if dicts:
                 kwargs.setdefault('primary_embedded', None)
             if docs:
                 kwargs.setdefault('primary_embedded', docs[0])
-        self.fields = field_or_fields
+        self.fields = fields
         kwargs.setdefault('default', list)
 
         self.primary_embedded = kwargs.pop('primary_embedded', None)
