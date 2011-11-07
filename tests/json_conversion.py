@@ -1,25 +1,23 @@
+
+
+"""These are tests that attempt to convert the DictShield classes and
+instances from fixtures/demos.py to and from JSON.
+
+Instances are created through a DictShield class and compared to JSON,
+testing the .to_json(self) instance method.
+
+Classes are converted into JSON schema, testing the .to_jsonschema(cls)
+DictShield class method.  Classes are also built from JSON schema, and then
+converted back into JSON schema to test Document.from_jsonschema().
+"""
+
 import unittest
 import json
 import datetime
 import copy
-import inspect
+from dictshield.base import json
 from fixtures import demos
 from fixtures.demos import Document
-
-# class skipIfUndefined(object):
-    
-#     def __init__(self, attribute, msg):
-#         self.skipIt = not hasattr(self, attribute)
-#         self.msg = msg
-    
-#     def __call__(self, testFunc):
-#         if self.skipIt is True:
-#             @unittest.skip(self.msg)
-#             def skipped(self):
-#                 pass
-#             return skipped
-#         else:
-#             return testFunc
 
 def skipIfUndefined(attribute, message):
     """This decorator will skip `testFunc' with `msg' if `attribute' is
@@ -56,13 +54,13 @@ class FixtureMixin():
 
     Tests will be skipped otherwise.
     """
-    
+
     @skipIfUndefined('json', 'Instance JSON not provided.')
     def test_instance_to_json(self):
         obj_from_json = json.loads(self.instance.to_json())
         self.assertEquals(36, len(obj_from_json.pop('_id')))
         self.assertEquals(self.json, obj_from_json)
-        
+
     @skipIfUndefined('jsonschema', 'JSON schema not provided.')
     def test_class_to_jsonschema(self):
         self.assertEquals(self.jsonschema, json.loads(self.klass.to_jsonschema()))
@@ -70,7 +68,7 @@ class FixtureMixin():
     @unittest.expectedFailure
     def test_class_from_jsonschema(self):
         self.assertEquals(self.jsonschema, json.loads(Document.from_jsonschema(self.klass).to_jsonschema()))
-        
+
 class TestMedia(unittest.TestCase, FixtureMixin):
     instance = demos.m
     klass = demos.Media
@@ -116,7 +114,7 @@ class TestMovie(unittest.TestCase, FixtureMixin):
                 'minimum': 1950,
                 'title'  : 'year',
                 'type'   : 'integer' }}}
-                     
+
 class TestProduct(unittest.TestCase, FixtureMixin):
     klass = demos.Product
     jsonschema = {
