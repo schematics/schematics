@@ -135,7 +135,6 @@ class BaseField(object):
         if callable(self.default):
             # jsonschema doesn't support procedural defaults
             return None
-            
         else:
             return self.default
 
@@ -159,11 +158,11 @@ class BaseField(object):
 
     def for_jsonschema(self):
         """Generate the jsonschema by mapping the value of all methods beginning
-        `_jsonschema_' to a key that is the name of the method afte `_jsonschema_'.
-        
+        `_jsonschema_' to a key that is the name of the method after `_jsonschema_'.
+
         For example, `_jsonschema_type' will populate the schema key 'type'.
         """
-        
+
         schema = {}
         for func_name in filter(lambda x: x.startswith('_jsonschema'), dir(self)):
             attr_name = func_name.split('_')[-1]

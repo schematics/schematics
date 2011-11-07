@@ -149,10 +149,17 @@ class BaseDocument(object):
     ###
     ### Class serialization
     ###
-    
+
     @classmethod
     def for_jsonschema(cls):
-        
+        """Returns a representation of this DictShield class as a JSON schema,
+        but not yet serialized to JSON. If certain fields are marked public,
+        only those fields will be represented in the schema.
+
+        Certain DictShield fields do not map precisely to JSON schema types or
+        formats.
+        """
+
         # Place all fields in the schema unless public ones are specified.
         if cls._public_fields is None:
             field_names = cls._fields.keys()
@@ -172,24 +179,14 @@ class BaseDocument(object):
 
     @classmethod
     def to_jsonschema(cls):
+        """Returns a representation of this DictShield class as a JSON schema.
+        If certain fields are marked public, only those fields will be represented
+        in the schema.
+
+        Certain DictShield fields do not map precisely to JSON schema types or
+        formats.
+        """
         return json.dumps(cls.for_jsonschema())
-
-    # @classmethod
-    # def for_jsonschema(cls):
-        
-    #     properties = {}
-    #     for name, field in cls._fields.items():
-            
-    #         properties[ name ] = field.for_jsonschema()
-
-    #     return {
-    #         'type'       : 'object',
-    #         'properties' : properties
-    #         }
-
-    # @classmethod
-    # def to_jsonschema(cls):
-    #     return json.dumps(cls.for_jsonschema())
 
     ###
     ### Instance Serialization
@@ -206,7 +203,7 @@ class BaseDocument(object):
             value = getattr(self, field_name, None)
             if value is not None:
                 data[field.uniq_field] = field_converter(field, value)
-                
+
         # Only add _cls and _types if allow_inheritance is not False
         if not (hasattr(self, '_meta') and
                 self._meta.get('allow_inheritance', True) == False):
