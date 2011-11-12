@@ -2,7 +2,8 @@ import copy
 import unittest
 import json
 from dictshield.document import Document, EmbeddedDocument
-from dictshield.fields.base import SortedListField, IntField, EmbeddedDocumentField, StringField, ListField
+from dictshield.fields import  IntField, StringField
+from dictshield.fields.compound import SortedListField, EmbeddedDocumentField, ListField
 from dictshield.base import ShieldException
 
 class TestSetGetSingleScalarData(unittest.TestCase):

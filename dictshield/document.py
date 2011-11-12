@@ -1,8 +1,12 @@
+import copy
+
 from dictshield.base import ShieldException,  json
 
 __all__ = ['DocumentMetaclass', 'TopLevelDocumentMetaclass', 'BaseDocument', 'Document', 'EmbeddedDocument', 'ShieldException']
 
-from dictshield.fields import (StringField,
+from dictshield.fields import (BaseField,
+                               UUIDField,
+                               StringField,
                                URLField,
                                EmailField,
                                NumberField,
@@ -349,13 +353,16 @@ class BaseDocument(object):
         if cls._public_fields is None:
             field_names = cls._fields.keys()
         else:
-            field_names = cls._public_fields
-
-        properties = {}
+            field_names = copy.copy(cls._public_fields)
+        
+        properties = {}        
+        if 'id' in field_names:
+            field_names.remove('id')
+            properties['_id'] = cls._fields[ 'id' ].for_jsonschema()
 
         for name in field_names:
             properties[ name ] = cls._fields[ name ].for_jsonschema()
-
+        
         return {
             'type'       : 'object',
             'title'      : cls.__name__,
@@ -438,22 +445,25 @@ class BaseDocument(object):
         title field will be the name of the class.  You must specify a title and at
         least one property or there will be an AttributeError.
         """
-        if 'title' in schema:
+        schema = copy.deepcopy(schema) # this is a desctructive op. This should be only strings/dicts, so this should be cheap
+        if schema.has_key('title'):
             class_name = schema['title']
         else:
             raise AttributeError('Your JSON schema must specify a title to be the Document class name')
 
-        if 'description' in schema:
+        if schema.has_key('description'):
             doc = schema['description'] #figure out way to put this in to resulting obj
 
         if schema.has_key('properties'):
             dictfields = {}
             for field_name, schema_field in schema['properties'].iteritems():
+                if field_name == "_id":
+                    field_name = "id"
                 dictfields[field_name] = cls.map_jsonschema_field_to_dictshield(schema_field)
-                return type(class_name,
-                            (cls,),
-                            dictfields,
-                            )
+            return type(class_name,
+                        (cls,),
+                        dictfields,
+                        )
         else:
             raise AttributeError('Your JSON schema must have at least one property')
 
@@ -470,7 +480,6 @@ class BaseDocument(object):
             raise DictFieldNotFound
 
         kwargs =  {}
-        
         if tipe == 'array': #list types
             assert dictshield_field_type == ListField
             items = schema_field.pop('items', None)
@@ -481,9 +490,11 @@ class BaseDocument(object):
             kwargs['fields'] = [cls.map_jsonschema_field_to_dictshield(item) for item in items]
 
         elif tipe == "object": #embedded objects
-            schema_field.setdefault('title', field_name)
+            schema_field['title'] = field_name
             kwargs['document_type'] = EmbeddedDocument.from_schema(schema_field)
             schema_field.pop('properties') #since it's now a embeddoc
+        else:
+            schema_field.pop('title', None) # make sure this isn't in here
 
         for kwarg_name, v in schema_field.items():
             if kwarg_name in schema_kwargs_to_dictshield:

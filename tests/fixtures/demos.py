@@ -16,17 +16,20 @@ Making mv json public safe (only ['title', 'year'] should show):
 """
 
 import datetime
-from dictshield.base import BaseField, ShieldException
+
+from dictshield.base import ShieldException
 from dictshield.document import Document, EmbeddedDocument
-from dictshield.fields import (IntField,
+
+from dictshield.fields import (BaseField,
+                               IntField,
                                BooleanField,
                                StringField,
                                FloatField,
-                               ListField,
                                DateTimeField,
                                EmailField,
-                               EmbeddedDocumentField,
                                MD5Field)
+
+from dictshield.fields.compound import ListField, EmbeddedDocumentField
 from dictshield.fields.bson import ObjectIdField
 import hashlib
 import json

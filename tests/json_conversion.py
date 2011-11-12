@@ -16,6 +16,7 @@ import json
 import datetime
 import copy
 from dictshield.base import json
+from dictshield.document import Document
 from fixtures import demos
 from fixtures.demos import Document
 
@@ -65,9 +66,10 @@ class FixtureMixin():
     def test_class_to_jsonschema(self):
         self.assertEquals(self.jsonschema, json.loads(self.klass.to_jsonschema()))
 
-    @unittest.expectedFailure
+    @skipIfUndefined('jsonschema', 'JSON schema not provided.')
     def test_class_from_jsonschema(self):
-        self.assertEquals(self.jsonschema, json.loads(Document.from_jsonschema(self.klass).to_jsonschema()))
+        if issubclass(self.klass, Document) and not self.klass._public_fields:
+            self.assertEquals(self.jsonschema, json.loads(Document.from_jsonschema(self.jsonschema).to_jsonschema()))
 
 class TestMedia(unittest.TestCase, FixtureMixin):
     instance = demos.m
@@ -81,7 +83,7 @@ class TestMedia(unittest.TestCase, FixtureMixin):
         'title' : 'Media',
         'type'  : 'object',
         'properties': {
-            'id' : { 'type' : 'string' },
+            '_id' : { 'type' : 'string' },
             'owner' : {
                 'type' : 'string',
                 'title': 'owner'
@@ -161,18 +163,19 @@ class TestOrder(unittest.TestCase, FixtureMixin):
             'line_items' : {
                 'type'  : 'array',
                 'title' : 'line_items',
-                'items' : TestProduct.jsonschema },
+                'items' : [TestProduct.jsonschema]},
             'total' : {
                 'type' : 'number',
                 'title': 'total'}}}
 
 class TestUser(unittest.TestCase, FixtureMixin):
     klass = demos.User
+    maxDiff = None
     jsonschema = {
         'type'   : 'object',
         'title'  : 'User',
         'properties': {
-            'id'       : { 'type' : 'string' },
+            '_id'       : {'type' : 'string', },
             'username' : {
                 'type'      : 'string',
                 'title'     : 'username',
@@ -209,7 +212,7 @@ class TestCustomer(unittest.TestCase, FixtureMixin):
                     'orders' : {
                         'title'    : 'orders',
                         'type'     : 'array',
-                        'items'    : TestOrder.jsonschema }})
+                        'items'    : [TestOrder.jsonschema] }})
     jsonschema.update({
             'title'      : 'Customer',
             'properties' : customer_properties })
@@ -220,7 +223,7 @@ class TestSomeDoc(unittest.TestCase, FixtureMixin):
         'type'   : 'object',
         'title'  : 'SomeDoc',
         'properties': {
-            'id' : { 'type' : 'string' },
+            '_id' : { 'type' : 'string' },
             'liked' : {
                 'title'  : 'liked',
                 'type'   : 'boolean',
@@ -276,7 +279,7 @@ class TestBlogPost(unittest.TestCase, FixtureMixin):
             'comments' : {
                 'title' : 'comments',
                 'type'  : 'array',
-                'items' : TestComment.jsonschema },
+                'items' : [TestComment.jsonschema] },
             'content' : {
                 'title' : 'content',
                 'type'  : 'string' }}}
@@ -295,7 +298,7 @@ class TestAction(unittest.TestCase, FixtureMixin):
             'tags' : {
                 'title'  : 'tags',
                 'type'   : 'array',
-                'items'  : { 'type' : 'string' }}}}
+                'items'  : [{ 'type' : 'string' }]}}}
 
 class TestSingleTask(unittest.TestCase, FixtureMixin):
     klass = demos.SingleTask
@@ -303,7 +306,7 @@ class TestSingleTask(unittest.TestCase, FixtureMixin):
         'title' : 'SingleTask',
         'type'  : 'object',
         'properties' : {
-            'id' : { 'type' : 'string' },
+            '_id' : { 'type' : 'string' },
             'action'       : TestAction.jsonschema,
             'created_date' : {
                 'type'   : 'string',
@@ -316,11 +319,11 @@ class TestTaskList(unittest.TestCase, FixtureMixin):
         'title' : 'TaskList',
         'type'  : 'object',
         'properties' : {
-            'id' : { 'type' : 'string' },
+            '_id' : { 'type' : 'string' },
             'actions' : {
                 'type'   : 'array',
                 'title'  : 'actions',
-                'items'  : TestAction.jsonschema },
+                'items'  : [TestAction.jsonschema ]},
             'created_date' : {
                 'title'  : 'created_date',
                 'type'   : 'string',
@@ -338,6 +341,7 @@ class TestTaskList(unittest.TestCase, FixtureMixin):
 
 class TestBasicUser(unittest.TestCase, FixtureMixin):
     klass = demos.BasicUser
+    maxDiff = None
     jsonschema = {
         'title' : 'BasicUser',
         'type'  : 'object',
