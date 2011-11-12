@@ -1,22 +1,19 @@
-from base import (ShieldException,
-                  DocumentMetaclass,
-                  TopLevelDocumentMetaclass)
+from dictshield.base import ShieldException,  json
 
-from base import json
+__all__ = ['DocumentMetaclass', 'TopLevelDocumentMetaclass', 'BaseDocument', 'Document', 'EmbeddedDocument', 'ShieldException']
 
-__all__ = ['BaseDocument', 'Document', 'EmbeddedDocument', 'ShieldException']
+from dictshield.fields import (StringField,
+                               URLField,
+                               EmailField,
+                               NumberField,
+                               IntField,
+                               BooleanField,
+                               DateTimeField,
+                               DictFieldNotFound)
 
-from fields import (StringField,
-                    URLField,
-                    EmailField,
-                    NumberField,
-                    IntField,
-                    BooleanField,
-                    DateTimeField,
-                    ListField,
-                    EmbeddedDocumentField,
-                    DictFieldNotFound)
-                    
+
+
+
 
 schema_kwargs_to_dictshield  = {
     'maxLength': 'max_length',
@@ -36,13 +33,201 @@ dictshield_fields = {
     ('string', 'date-time'): DateTimeField,
     ('string', 'date'): DateTimeField,
     ('string', 'time'): DateTimeField,
-    ('array', None): ListField,
-    ('object', None): EmbeddedDocumentField,
     }
     
 
+###
+### Metaclass design
+###
+ 
+class DocumentMetaclass(type):
+    """Metaclass for all documents.
+    """
 
-        
+    def __new__(cls, name, bases, attrs):
+        metaclass = attrs.get('__metaclass__')
+        super_new = super(DocumentMetaclass, cls).__new__
+        if metaclass and issubclass(metaclass, DocumentMetaclass):
+            return super_new(cls, name, bases, attrs)
+
+        doc_fields = {}
+        class_name = [name]
+        superclasses = {}
+        simple_class = True
+        for base in bases:
+            # Include all fields present in superclasses
+            if hasattr(base, '_fields'):
+                doc_fields.update(base._fields)
+                class_name.append(base._class_name)
+                # Get superclasses from superclass
+                superclasses[base._class_name] = base
+                superclasses.update(base._superclasses)
+
+            if hasattr(base, '_meta'):
+                # Ensure that the Document class may be subclassed - 
+                # inheritance may be disabled to remove dependency on 
+                # additional fields _cls and _types
+                if base._meta.get('allow_inheritance', True) == False:
+                    raise ValueError('Document %s may not be subclassed' %
+                                     base.__name__)
+                else:
+                    simple_class = False
+
+                if base._meta.get('mixin', False) == True:
+                    # A dictshield mixin means it adds fields with no effet
+                    # on class hierarchy
+                    class_name.pop()
+                    del superclasses[base._class_name]
+
+
+        meta = attrs.get('_meta', attrs.get('meta', {}))
+
+        if 'allow_inheritance' not in meta:
+            meta['allow_inheritance'] = True
+
+        # Only simple classes - direct subclasses of Document - may set
+        # allow_inheritance to False
+        if not simple_class and not meta['allow_inheritance']:
+            raise ValueError('Only direct subclasses of Document may set '
+                             '"allow_inheritance" to False')
+        attrs['_meta'] = meta
+
+        attrs['_class_name'] = '.'.join(reversed(class_name))
+        attrs['_superclasses'] = superclasses        
+
+        # Add the document's fields to the _fields attribute
+        for attr_name, attr_value in attrs.items():
+            if hasattr(attr_value, "__class__") and \
+               issubclass(attr_value.__class__, BaseField):
+                attr_value.field_name = attr_name
+                if not attr_value.uniq_field:
+                    attr_value.uniq_field = attr_name
+                doc_fields[attr_name] = attr_value
+        attrs['_fields'] = doc_fields
+
+        new_class = super_new(cls, name, bases, attrs)
+        for field in new_class._fields.values():
+            field.owner_document = new_class
+
+        return new_class
+
+    def add_to_class(self, name, value):
+        setattr(self, name, value)
+
+class TopLevelDocumentMetaclass(DocumentMetaclass):
+    """Metaclass for top-level documents (i.e. documents that have their own
+    collection in the database.
+    """
+
+    def __new__(cls, name, bases, attrs):
+        super_new = super(TopLevelDocumentMetaclass, cls).__new__
+        # Classes defined in this package are abstract and should not have 
+        # their own metadata with DB collection, etc.
+        # __metaclass__ is only set on the class with the __metaclass__ 
+        # attribute (i.e. it is not set on subclasses). This differentiates
+        # 'real' documents from the 'Document' class
+        if attrs.get('__metaclass__') == TopLevelDocumentMetaclass:
+            return super_new(cls, name, bases, attrs)
+
+        collection = name.lower()
+        id_field = None
+
+        base_meta = {}
+
+        # Subclassed documents inherit collection from superclass
+        for base in bases:
+            if hasattr(base, '_meta'):
+                if 'collection' in base._meta:
+                    collection = base._meta['collection']
+                id_field = id_field or base._meta.get('id_field')
+
+        meta = {
+            'collection': collection,
+            'max_documents': None,
+            'max_size': None,
+            'id_field': id_field,            
+        }
+        meta.update(base_meta)
+
+        # Apply document-defined meta options
+        meta.update(attrs.get('meta', {}))
+        attrs['_meta'] = meta
+
+        # Set up collection manager, needs the class to have fields so use
+        # DocumentMetaclass before instantiating CollectionManager object
+        new_class = super_new(cls, name, bases, attrs)
+
+        for field_name, field in new_class._fields.items():
+            # Check for custom id key
+            if field.id_field:
+                current_id = new_class._meta['id_field']
+                if current_id and current_id != field_name:
+                    raise ValueError('Cannot override id_field')
+
+                new_class._meta['id_field'] = field_name
+                # Make 'Document.id' an alias to the real primary key field
+                new_class.id = field
+
+        if not new_class._meta['id_field']:
+            new_class._meta['id_field'] = 'id'
+            new_class._fields['id'] = UUIDField(uniq_field='_id')
+            new_class.id = new_class._fields['id']
+
+        return new_class
+
+    def __str__(self):
+        if hasattr(self, '__unicode__'):
+            return unicode(self).encode('utf-8')
+        return '%s object' % self.__class__.__name__
+
+
+    ###
+    ### Instance Serialization
+    ###
+
+    def _to_fields(self, field_converter):
+        """Returns a Python dictionary representing the Document's metastructure
+        and values.
+        """
+        data = {}
+
+        # First map the subclasses of BaseField
+        for field_name, field in self._fields.items():
+            value = getattr(self, field_name, None)
+            if value is not None:
+                data[field.uniq_field] = field_converter(field, value)
+                
+        # Only add _cls and _types if allow_inheritance is not False
+        if not (hasattr(self, '_meta') and
+                self._meta.get('allow_inheritance', True) == False):
+            data['_cls'] = self._class_name
+            data['_types'] = self._superclasses.keys() + [self._class_name]
+            
+        if data.has_key('_id') and not data['_id']:
+            del data['_id']
+            
+        return data
+
+    def to_python(self):
+        """Returns a Python dictionary representing the Document's metastructure
+        and values.
+        """
+        fun = lambda f, v: f.for_python(v)
+        data = self._to_fields(fun)
+        return data
+
+    def to_json(self, encode=True):
+        """Return data prepared for JSON. By default, it returns a JSON encoded
+        string, but disabling the encoding to prevent double encoding with
+        embedded documents.
+        """
+        fun = lambda f, v: f.for_json(v)
+        data = self._to_fields(fun)
+        if encode:
+            return json.dumps(data)
+        else:
+            return data
+
 ###
 ### Document structures
 ###
@@ -139,7 +324,7 @@ class BaseDocument(object):
             u = unicode(self)
         except (UnicodeEncodeError, UnicodeDecodeError):
             u = '[Bad Unicode data]'
-        return u'<%s: %s>' % (self.__class__.__name__, u)
+        return u"<%s: %s>" % (self.__class__.__name__, u)
 
     def __str__(self):
         if hasattr(self, '__unicode__'):

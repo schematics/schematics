@@ -1,12 +1,171 @@
-from dictshield.base import BaseField, UUIDField, ShieldException, InvalidShield
-
-from itertools import ifilter, ifilterfalse
-from operator import itemgetter
+try:
+    from itertools import filterfalse #python3 wutwut
+except:
+    from itertools import ifilterfalse
+import uuid
 import re
 import datetime
 import decimal
 
-RECURSIVE_REFERENCE_CONSTANT = 'self'
+from dictshield.base import ShieldException, InvalidShield
+
+###
+### Fields
+###
+
+class BaseField(object):
+    """A base class for fields in a DictShield document. Instances of this class
+    may be added to subclasses of `Document` to define a document's schema.
+    """
+
+    def __init__(self, uniq_field=None, field_name=None, required=False,
+                 default=None, id_field=False, validation=None, choices=None, description=None):
+        
+        self.uniq_field = '_id' if id_field else uniq_field or field_name
+        self.field_name = field_name
+        self.required = required
+        self.default = default
+        self.validation = validation
+        self.choices = choices
+        self.id_field = id_field
+        self.description = description
+
+    def __get__(self, instance, owner):
+        """Descriptor for retrieving a value from a field in a document. Do 
+        any necessary conversion between Python and `DictShield` types.
+        """
+        if instance is None:
+            # Document class being used rather than a document object
+            return self
+
+        value = instance._data.get(self.field_name)
+
+        if value is None:
+            value = self.default
+            # Allow callable default values
+            if callable(value):
+                value = value()
+        return value
+
+    def __set__(self, instance, value):
+        """Descriptor for assigning a value to a field in a document.
+        """
+        instance._data[self.field_name] = value
+
+    def for_python(self, value):
+        """Convert a DictShield type into native Python value
+        """
+        return value
+
+    def for_json(self, value):
+        """Convert a DictShield type into a value safe for JSON encoding
+        """
+        return self.for_python(value)
+
+    def validate(self, value):
+        """Perform validation on a value.
+        """
+        pass
+
+    def _validate(self, value):
+        # check choices
+        if self.choices is not None:
+            if value not in self.choices:
+                raise ShieldException("Value must be one of %s."
+                    % unicode(self.choices))
+
+        # check validation argument
+        if self.validation is not None:
+            if callable(self.validation):
+                if not self.validation(value):
+                    raise ShieldException('Value does not match custom' \
+                                          'validation method.')
+            else:
+                raise ValueError('validation argument must be a callable.')
+
+        self.validate(value)
+
+    def _jsonschema_default(self):
+        if callable(self.default):
+            # jsonschema doesn't support procedural defaults
+            return None
+        else:
+            return self.default
+
+    def _jsonschema_description(self):
+        return self.description
+
+    def _jsonschema_title(self):
+        if self.field_name:
+            return self.field_name
+        else:
+            return None
+
+    def _jsonschema_type(self):
+        return 'any'
+
+    def _jsonschema_required(self):
+        if self.required is True:
+            return self.required
+        else:
+            return None
+
+    def for_jsonschema(self):
+        """Generate the jsonschema by mapping the value of all methods beginning
+        `_jsonschema_' to a key that is the name of the method after `_jsonschema_'.
+
+        For example, `_jsonschema_type' will populate the schema key 'type'.
+        """
+
+        schema = {}
+        for func_name in filter(lambda x: x.startswith('_jsonschema'), dir(self)):
+            attr_name = func_name.split('_')[-1]
+            attr_value = getattr(self, func_name)()
+            if attr_value is not None:
+                schema[attr_name] = attr_value
+        return schema
+
+class UUIDField(BaseField):
+    """A field that stores a valid UUID value and optionally auto-populates
+    empty values with new UUIDs.
+    """
+
+    def __init__(self, auto_fill=True, **kwargs):
+        self.auto_fill = auto_fill
+        super(UUIDField, self).__init__(**kwargs)
+
+    def __set__(self, instance, value):
+        """Convert any text values provided into Python UUID objects and
+        auto-populate any empty values should auto_fill be set to True.
+        """
+        if not value:
+            value = uuid.uuid4()
+
+        if isinstance(value, (str, unicode)):
+            value = uuid.UUID(value)
+
+        instance._data[self.field_name] = value
+
+    def _jsonschema_type(self):
+        return 'string'
+
+    def validate(self, value):
+        """Make sure the value is a valid uuid representation.  See
+        http://docs.python.org/library/uuid.html for accepted formats.
+        """
+        if not isinstance(value, (uuid.UUID,)):
+            try:
+                uuid.UUID(value)
+            except ValueError:
+                raise ShieldException('Not a valid UUID value',
+                    self.field_name, value)
+
+    def for_json(self, value):
+        """Return a JSON safe version of the UUID object.
+        """
+
+        return str(value)
+
 
 class StringField(BaseField):
     """A unicode string field.
@@ -359,141 +518,6 @@ class DateTimeField(BaseField):
         v = DateTimeField.date_to_iso8601(value)
         return v
 
-
-class ListField(BaseField):
-    """A list field that wraps a standard field, allowing multiple instances
-    of the field to be used as a list in the model.
-    """
-
-    def __init__(self, fields=None, **kwargs):
-        if isinstance(fields, BaseField): # is it a field instance
-            if isinstance(fields, EmbeddedDocumentField):
-                kwargs.setdefault('primary_embedded', fields)
-            fields = [fields]
-        # is it something other than a list
-        elif not isinstance(fields, list):
-            raise InvalidShield('Argument to ListField constructor must be '
-                                'a valid field or list of fields')
-        #did we get some bad stuff in the list?
-        elif list(ifilterfalse(lambda field: isinstance(field, BaseField), fields)):
-            raise InvalidShield('Argument to ListField constructor must be '
-                                'a valid field or list of valid fields')
-        else:
-            docs = filter(lambda field: isinstance(field, EmbeddedDocumentField), fields)
-            dicts = filter(lambda field: isinstance(field, DictField), fields)
-            if dicts:
-                kwargs.setdefault('primary_embedded', None)
-            if docs:
-                kwargs.setdefault('primary_embedded', docs[0])
-        self.fields = fields
-        kwargs.setdefault('default', list)
-
-        self.primary_embedded = kwargs.pop('primary_embedded', None)
-        super(ListField, self).__init__(**kwargs)
-
-    def __set__(self, instance, value):
-        """Descriptor for assigning a value to a field in a document.
-        """
-        embedded_fields = filter(lambda field: isinstance(field, EmbeddedDocumentField), self.fields)
-        if self.primary_embedded:
-            embedded_fields.remove(self.primary_embedded)
-            embedded_fields.insert(0, self.primary_embedded)
-
-        if value is None:
-            value = [] #have to use a list
-
-        if embedded_fields: 
-            list_of_docs = list()
-            for doc in value:
-                if isinstance(doc, dict):
-                    for embedded_field in embedded_fields:
-                        doc_obj = embedded_field.document_type_obj(**doc)
-                        try:
-                            doc_obj.validate()
-                        except ShieldException:
-                            continue
-                        doc = doc_obj
-                        break
-                list_of_docs.append(doc)
-            value = list_of_docs
-        instance._data[self.field_name] = value
-
-    def _jsonschema_type(self):
-        return 'array'
-
-    def _jsonschema_items(self):
-        return [field.for_jsonschema() for field in self.fields]
-
-    def for_output_format(self, output_format_method_name, value):
-        for item in value:
-            for field in self.fields:
-                try:
-                    yield getattr(field, output_format_method_name)(item)
-                except ValueError:
-                    continue
-
-    def for_python(self, value):
-        return list(self.for_output_format('for_python', value))
-
-    def for_json(self, value):
-        """for_json must be careful to expand embedded documents into Python,
-        not JSON.
-        """
-        return list(self.for_output_format('for_json', value))
-
-    def validate(self, value):
-        """Make sure that a list of valid fields is being used.
-        """
-        if not isinstance(value, (list, tuple)):
-            error_msg = 'Only lists and tuples may be used in a list field'
-            raise ShieldException(error_msg, self.field_name, value)
-
-        for item in value:
-            for field in self.fields:
-                try:
-                    field.validate(item)
-                    break
-                except ShieldException:
-                    continue
-            else:
-                raise ShieldException('Invalid ListField item', self.field_name,
-                                      str(item))
-
-    def _set_owner_document(self, owner_document):
-        for field in self.fields:
-            field.owner_document = owner_document
-        self._owner_document = owner_document
-
-    def _get_owner_document(self, owner_document):
-        self._owner_document = owner_document
-
-    owner_document = property(_get_owner_document, _set_owner_document)
-
-class SortedListField(ListField):
-    """A ListField that sorts the contents of its list before writing to
-    the database in order to ensure that a sorted list is always
-    retrieved.
-    """
-
-    _ordering = None
-
-    def __init__(self, field, **kwargs):
-        if 'ordering' in kwargs.keys():
-            self._ordering = kwargs.pop('ordering')
-        super(SortedListField, self).__init__(field, **kwargs)
-
-    def for_thing(self, value, meth):
-        unsorted = getattr(super(SortedListField, self), meth)(value)
-        if self._ordering is not None:
-            return sorted(unsorted, key=itemgetter(self._ordering))
-        return sorted(unsorted)
-
-    def for_python(self, value):
-        return self.for_thing(value, 'for_python')
-
-    def for_json(self, value):
-        return self.for_thing(value, 'for_json')
-
 class DictField(BaseField):
     """A dictionary field that wraps a standard Python dictionary. This is
     similar to an embedded document, but the structure is not defined.
@@ -562,63 +586,3 @@ class GeoPointField(BaseField):
                                   'k2: v2}',
                                   self.field_name, value)
 
-
-###
-### Sub structures
-###
-class EmbeddedDocumentField(BaseField):
-    """An embedded document field. Only valid values are subclasses of
-    :class:`~dictshield.EmbeddedDocument`.
-    """
-    def __init__(self, document_type, **kwargs):
-        # BADBADBAD
-        print ' you are running bad code:: this import statement should not be here! '
-        from dictshield.document import EmbeddedDocument
-
-        if not isinstance(document_type, basestring):
-            if not document_type or not issubclass(document_type, EmbeddedDocument):
-                raise ShieldException('Invalid embedded document class '
-                                      'provided to an EmbeddedDocumentField')
-        self.document_type_obj = document_type
-        super(EmbeddedDocumentField, self).__init__(**kwargs)
-
-    def __set__(self, instance, value):
-        if value is None:
-            return
-        if not isinstance(value, self.document_type):
-            value = self.document_type(**value)
-        instance._data[self.field_name] = value
-
-    @property
-    def document_type(self):
-        if isinstance(self.document_type_obj, basestring):
-            if self.document_type_obj == RECURSIVE_REFERENCE_CONSTANT:
-                self.document_type_obj = self.owner_document
-            else:
-                self.document_type_obj = get_document(self.document_type_obj)
-        return self.document_type_obj
-
-    def _jsonschema_type(self):
-        return 'object'
-
-    def for_jsonschema(self):
-        return self.document_type.for_jsonschema()
-
-    def for_python(self, value):
-        return value
-
-    def for_json(self, value):
-        return value.to_json(encode=False)
-
-    def validate(self, value):
-        """Make sure that the document instance is an instance of the
-        EmbeddedDocument subclass provided when the document was defined.
-        """
-        # Using isinstance also works for subclasses of self.document
-        if not isinstance(value, self.document_type):
-            raise ShieldException('Invalid embedded document instance '
-                                  'provided to an EmbeddedDocumentField')
-        self.document_type.validate(value)
-
-    def lookup_member(self, member_name):
-        return self.document_type._fields.get(member_name)
