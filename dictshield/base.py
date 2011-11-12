@@ -135,7 +135,6 @@ class BaseField(object):
         if callable(self.default):
             # jsonschema doesn't support procedural defaults
             return None
-            
         else:
             return self.default
 
@@ -159,15 +158,12 @@ class BaseField(object):
 
     def for_jsonschema(self):
         """Generate the jsonschema by mapping the value of all methods beginning
-        `_jsonschema_' to a key that is the name of the method afte `_jsonschema_'.
-        
+        `_jsonschema_' to a key that is the name of the method after `_jsonschema_'.
+
         For example, `_jsonschema_type' will populate the schema key 'type'.
         """
-        
+
         schema = {}
-        #funcs = filter(callable, dir(self))
-        # #funcs = filter(lambda x: x.__name__.startswith("_jsonschema"))
-        #for func in funcs:
         for func_name in filter(lambda x: x.startswith('_jsonschema'), dir(self)):
             attr_name = func_name.split('_')[-1]
             attr_value = getattr(self, func_name)()
@@ -356,6 +352,58 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
 
         return new_class
 
+    def __str__(self):
+        if hasattr(self, '__unicode__'):
+            return unicode(self).encode('utf-8')
+        return '%s object' % self.__class__.__name__
+
+
+    ###
+    ### Instance Serialization
+    ###
+
+    def _to_fields(self, field_converter):
+        """Returns a Python dictionary representing the Document's metastructure
+        and values.
+        """
+        data = {}
+
+        # First map the subclasses of BaseField
+        for field_name, field in self._fields.items():
+            value = getattr(self, field_name, None)
+            if value is not None:
+                data[field.uniq_field] = field_converter(field, value)
+                
+        # Only add _cls and _types if allow_inheritance is not False
+        if not (hasattr(self, '_meta') and
+                self._meta.get('allow_inheritance', True) == False):
+            data['_cls'] = self._class_name
+            data['_types'] = self._superclasses.keys() + [self._class_name]
+            
+        if data.has_key('_id') and not data['_id']:
+            del data['_id']
+            
+        return data
+
+    def to_python(self):
+        """Returns a Python dictionary representing the Document's metastructure
+        and values.
+        """
+        fun = lambda f, v: f.for_python(v)
+        data = self._to_fields(fun)
+        return data
+
+    def to_json(self, encode=True):
+        """Return data prepared for JSON. By default, it returns a JSON encoded
+        string, but disabling the encoding to prevent double encoding with
+        embedded documents.
+        """
+        fun = lambda f, v: f.for_json(v)
+        data = self._to_fields(fun)
+        if encode:
+            return json.dumps(data)
+        else:
+            return data
 
 def subclass_exception(name, parents, module):
     return type(name, parents, {'__module__': module})

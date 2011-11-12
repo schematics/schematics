@@ -149,22 +149,43 @@ class BaseDocument(object):
     ###
     ### Class serialization
     ###
-    
+
     @classmethod
     def for_jsonschema(cls):
-        
+        """Returns a representation of this DictShield class as a JSON schema,
+        but not yet serialized to JSON. If certain fields are marked public,
+        only those fields will be represented in the schema.
+
+        Certain DictShield fields do not map precisely to JSON schema types or
+        formats.
+        """
+
+        # Place all fields in the schema unless public ones are specified.
+        if cls._public_fields is None:
+            field_names = cls._fields.keys()
+        else:
+            field_names = cls._public_fields
+
         properties = {}
-        for name, field in cls._fields.items():
-            
-            properties[ name ] = field.for_jsonschema()
+
+        for name in field_names:
+            properties[ name ] = cls._fields[ name ].for_jsonschema()
 
         return {
             'type'       : 'object',
+            'title'      : cls.__name__,
             'properties' : properties
             }
 
     @classmethod
     def to_jsonschema(cls):
+        """Returns a representation of this DictShield class as a JSON schema.
+        If certain fields are marked public, only those fields will be represented
+        in the schema.
+
+        Certain DictShield fields do not map precisely to JSON schema types or
+        formats.
+        """
         return json.dumps(cls.for_jsonschema())
 
     ###
@@ -182,7 +203,7 @@ class BaseDocument(object):
             value = getattr(self, field_name, None)
             if value is not None:
                 data[field.uniq_field] = field_converter(field, value)
-                
+
         # Only add _cls and _types if allow_inheritance is not False
         if not (hasattr(self, '_meta') and
                 self._meta.get('allow_inheritance', True) == False):
@@ -227,16 +248,29 @@ class BaseDocument(object):
 
 
     @classmethod
-    def from_schema(cls, schema):
-        class_name = schema.pop('title')
-        doc = schema.pop('description', None) #figure out way to put this in to resulting obj
-        dictfields = {}
-        for field_name, schema_field in schema['properties'].iteritems():
-            dictfields[field_name] = cls.map_jsonschema_field_to_dictshield(schema_field, field_name)
-        return type(class_name,
-                    (cls,),
-                    dictfields,
-                    )
+    def from_jsonschema(cls, schema):
+        """Generate a dictshield Document class from a JSON schema.  The JSON schema's
+        title field will be the name of the class.  You must specify a title and at
+        least one property or there will be an AttributeError.
+        """
+        if 'title' in schema:
+            class_name = schema['title']
+        else:
+            raise AttributeError('Your JSON schema must specify a title to be the Document class name')
+
+        if 'description' in schema:
+            doc = schema['description'] #figure out way to put this in to resulting obj
+
+        if schema.has_key('properties'):
+            dictfields = {}
+            for field_name, schema_field in schema['properties'].iteritems():
+                dictfields[field_name] = cls.map_jsonschema_field_to_dictshield(schema_field)
+                return type(class_name,
+                            (cls,),
+                            dictfields,
+                            )
+        else:
+            raise AttributeError('Your JSON schema must have at least one property')
 
     @classmethod
     def map_jsonschema_field_to_dictshield(cls, schema_field, field_name=None):
