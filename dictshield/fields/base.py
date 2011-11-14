@@ -9,6 +9,28 @@ import decimal
 
 from dictshield.base import ShieldException, InvalidShield
 
+from dictshield.fields import dictshield_fields
+    ## ('string', None): StringField,
+    ## ('string', 'phone'): StringField,
+    ## ('string', 'url'): URLField,
+    ## ('string', 'email'): EmailField,
+    ## ('number', None): IntField,
+    ## ('integer', None): IntField,
+    ## ('boolean', None): BooleanField,
+    ## ('string', 'date-time'): DateTimeField,
+    ## ('string', 'date'): DateTimeField,
+    ## ('string', 'time'): DateTimeField,
+    ## }
+
+class BaseFieldMetaClass(type):
+
+    def __init__(cls, name, bases, dct):
+        if hasattr(cls, '_from_jsonschema_formats'):
+            for fmt in cls._from_jsonschema_formats():
+                for tipe in cls._from_jsonschema_types():
+                    dictshield_fields[(tipe, fmt)] = cls
+        super(BaseFieldMetaClass, cls).__init__(name, bases, dct)
+        
 ###
 ### Fields
 ###
@@ -17,6 +39,8 @@ class BaseField(object):
     """A base class for fields in a DictShield document. Instances of this class
     may be added to subclasses of `Document` to define a document's schema.
     """
+
+    __metaclass__ = BaseFieldMetaClass
 
     def __init__(self, uniq_field=None, field_name=None, required=False,
                  default=None, id_field=False, validation=None, choices=None, description=None):
@@ -180,6 +204,14 @@ class StringField(BaseField):
     def _jsonschema_type(self):
         return 'string'
 
+    @classmethod
+    def _from_jsonschema_types(self):
+        return ['string']
+
+    @classmethod
+    def _from_jsonschema_formats(self):
+        return [None, 'phone']
+
     def _jsonschema_maxLength(self):
         return self.max_length
 
@@ -235,6 +267,10 @@ class URLField(StringField):
     def _jsonschema_format(self):
         return 'url'
 
+    @classmethod
+    def _from_jsonschema_formats(self):
+        return ['url']
+
     def validate(self, value):
         if not URLField.URL_REGEX.match(value):
             raise ShieldException('Invalid URL', self.field_name, value)
@@ -266,6 +302,10 @@ class EmailField(StringField):
 
     def _jsonschema_format(self):
         return 'email'
+
+    @classmethod
+    def _from_jsonschema_formats(self):
+        return ['email']
 
 ###
 ### Numbers
@@ -330,7 +370,15 @@ class IntField(NumberField):
                                        *args, **kwargs)
 
     def _jsonschema_type(self):
-        return 'integer'
+        return 'number'
+
+    @classmethod
+    def _from_jsonschema_types(self):
+        return ['number', 'integer']
+
+    @classmethod
+    def _from_jsonschema_formats(self):
+        return [None]
 
 class LongField(NumberField):
     """A field that validates input as a Long
@@ -443,6 +491,14 @@ class BooleanField(BaseField):
     def _jsonschema_type(self):
         return 'boolean'
 
+    @classmethod
+    def _from_jsonschema_types(self):
+        return ['boolean']
+
+    @classmethod
+    def _from_jsonschema_formats(self):
+        return [None]
+
     def for_python(self, value):
         return bool(value)
 
@@ -460,6 +516,16 @@ class DateTimeField(BaseField):
 
     def _jsonschema_format(self):
         return 'date-time'
+
+    @classmethod
+    def _from_jsonschema_types(self):
+        return ['string']
+
+    @classmethod
+    def _from_jsonschema_formats(self):
+        return ['date-time', 'date', 'time']
+
+
 
     def __set__(self, instance, value):
         """If `value` is a string, the string should match iso8601 format.

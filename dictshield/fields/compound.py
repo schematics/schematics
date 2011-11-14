@@ -71,6 +71,14 @@ class ListField(BaseField):
     def _jsonschema_type(self):
         return 'array'
 
+    @classmethod
+    def _from_jsonschema_types(self):
+        return ['array']
+
+    @classmethod
+    def _from_jsonschema_formats(self):
+        return [None]
+
     def _jsonschema_items(self):
         return [field.for_jsonschema() for field in self.fields]
 
@@ -130,7 +138,7 @@ class SortedListField(ListField):
 
     _ordering = None
 
-    def __init__(self, field, **kwargs):
+    def __init__(self, field=None, **kwargs):
         if 'ordering' in kwargs.keys():
             self._ordering = kwargs.pop('ordering')
         super(SortedListField, self).__init__(field, **kwargs)
@@ -147,6 +155,14 @@ class SortedListField(ListField):
     def for_json(self, value):
         return self.for_thing(value, 'for_json')
 
+
+    @classmethod
+    def _from_jsonschema_types(self):
+        return []
+
+    @classmethod
+    def _from_jsonschema_formats(self):
+        return []
 
 
 
@@ -183,6 +199,14 @@ class EmbeddedDocumentField(BaseField):
 
     def _jsonschema_type(self):
         return 'object'
+
+    @classmethod
+    def _from_jsonschema_types(self):
+        return ['object']
+
+    @classmethod
+    def _from_jsonschema_formats(self):
+        return [None]
 
     def for_jsonschema(self):
         return self.document_type.for_jsonschema()

@@ -71,6 +71,7 @@ class FixtureMixin():
         if issubclass(self.klass, Document) and not self.klass._public_fields:
             self.assertEquals(self.jsonschema, json.loads(Document.from_jsonschema(self.jsonschema).to_jsonschema()))
 
+
 class TestMedia(unittest.TestCase, FixtureMixin):
     instance = demos.m
     klass = demos.Media
@@ -115,7 +116,7 @@ class TestMovie(unittest.TestCase, FixtureMixin):
                 'maximum': datetime.datetime.now().year,
                 'minimum': 1950,
                 'title'  : 'year',
-                'type'   : 'integer' }}}
+                'type'   : 'number' }}}
 
 class TestProduct(unittest.TestCase, FixtureMixin):
     klass = demos.Product
@@ -124,7 +125,7 @@ class TestProduct(unittest.TestCase, FixtureMixin):
         'title': 'Product',
         'properties': {
             'sku'     : {
-                'type'     : 'integer',
+                'type'     : 'number',
                 'title'    : 'sku',
                 'required' : True,
                 'minimum'  : 1,
@@ -142,7 +143,7 @@ class TestProduct(unittest.TestCase, FixtureMixin):
                 'title'    : 'price',
                 'required' : True },
             'num_in_stock' : {
-                'type' : 'integer',
+                'type' : 'number',
                 'title': 'num_in_stock' }}}
 
 class TestOrder(unittest.TestCase, FixtureMixin):
@@ -170,7 +171,6 @@ class TestOrder(unittest.TestCase, FixtureMixin):
 
 class TestUser(unittest.TestCase, FixtureMixin):
     klass = demos.User
-    maxDiff = None
     jsonschema = {
         'type'   : 'object',
         'title'  : 'User',
@@ -335,13 +335,12 @@ class TestTaskList(unittest.TestCase, FixtureMixin):
                 'format' : 'date-time' },
             # 'default': datetime.datetime.now },
             'num_completed' : {
-                'type'   : 'integer',
+                'type'   : 'number',
                 'title'  : 'num_completed',
                 'default': 0 }}}
 
 class TestBasicUser(unittest.TestCase, FixtureMixin):
     klass = demos.BasicUser
-    maxDiff = None
     jsonschema = {
         'title' : 'BasicUser',
         'type'  : 'object',

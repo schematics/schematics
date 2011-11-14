@@ -4,41 +4,20 @@ from dictshield.base import ShieldException,  json
 
 __all__ = ['DocumentMetaclass', 'TopLevelDocumentMetaclass', 'BaseDocument', 'Document', 'EmbeddedDocument', 'ShieldException']
 
-from dictshield.fields import (BaseField,
+from dictshield.fields import (DictFieldNotFound,
+                               dictshield_fields,
+                               BaseField,
                                UUIDField,
-                               StringField,
-                               URLField,
-                               EmailField,
-                               NumberField,
-                               IntField,
-                               BooleanField,
-                               DateTimeField,
-                               DictFieldNotFound)
-
-
-
-
+                               )
 
 schema_kwargs_to_dictshield  = {
     'maxLength': 'max_length',
     'minLength': 'min_length',
     'pattern' : 'regex',
+    'minimum': 'min_value',
+    'maximum': 'max_value',
     }
 
-
-dictshield_fields = {
-    ('string', None): StringField,
-    ('string', 'phone'): StringField,
-    ('string', 'url'): URLField,
-    ('string', 'email'): EmailField,
-    ('number', None): NumberField,
-    ('integer', None): IntField,
-    ('boolean', None): BooleanField,
-    ('string', 'date-time'): DateTimeField,
-    ('string', 'date'): DateTimeField,
-    ('string', 'time'): DateTimeField,
-    }
-    
 
 ###
 ### Metaclass design
@@ -445,14 +424,17 @@ class BaseDocument(object):
         title field will be the name of the class.  You must specify a title and at
         least one property or there will be an AttributeError.
         """
+        os = schema
         schema = copy.deepcopy(schema) # this is a desctructive op. This should be only strings/dicts, so this should be cheap
-        if schema.has_key('title'):
+        if schema.get('title', False):
             class_name = schema['title']
         else:
+            import pdb
+            pdb.set_trace()
             raise AttributeError('Your JSON schema must specify a title to be the Document class name')
 
         if schema.has_key('description'):
-            doc = schema['description'] #figure out way to put this in to resulting obj
+            doc = schema['description'] #TODO: figure out way to put this in to resulting obj
 
         if schema.has_key('properties'):
             dictfields = {}
@@ -461,9 +443,9 @@ class BaseDocument(object):
                     field_name = "id"
                 dictfields[field_name] = cls.map_jsonschema_field_to_dictshield(schema_field)
             return type(class_name,
-                        (cls,),
-                        dictfields,
-                        )
+                    (cls,),
+                    dictfields,
+                    )
         else:
             raise AttributeError('Your JSON schema must have at least one property')
 
@@ -481,27 +463,28 @@ class BaseDocument(object):
 
         kwargs =  {}
         if tipe == 'array': #list types
-            assert dictshield_field_type == ListField
             items = schema_field.pop('items', None)
             if items == None: #any possible item isn't allowed by listfield
                 raise NotImplementedError
             elif isinstance(items, dict): #list of a single type
                 items = [items]
             kwargs['fields'] = [cls.map_jsonschema_field_to_dictshield(item) for item in items]
+            
 
-        elif tipe == "object": #embedded objects
-            schema_field['title'] = field_name
-            kwargs['document_type'] = EmbeddedDocument.from_schema(schema_field)
-            schema_field.pop('properties') #since it's now a embeddoc
-        else:
-            schema_field.pop('title', None) # make sure this isn't in here
+        if tipe == "object": #embedded objects
+            #schema_field['title'] = field_name
+            kwargs['document_type'] = EmbeddedDocument.from_jsonschema(schema_field)
+            schema_field.pop('properties')
+
+        schema_field.pop('title', None) # make sure this isn't in here
+
 
         for kwarg_name, v in schema_field.items():
             if kwarg_name in schema_kwargs_to_dictshield:
                 kwarg_name = schema_kwargs_to_dictshield[kwarg_name]
             kwargs[kwarg_name] = v
         return dictshield_field_type(**kwargs)
-
+        
 
 class SafeableMixin:
     """A `SafeableMixin` is used to add unix style permissions to fields in a
