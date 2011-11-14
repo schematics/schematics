@@ -1,6 +1,6 @@
 import copy
 
-from dictshield.base import ShieldException,  json
+from dictshield.base import ShieldException, json
 
 __all__ = ['DocumentMetaclass', 'TopLevelDocumentMetaclass', 'BaseDocument', 'Document', 'EmbeddedDocument', 'ShieldException']
 
@@ -211,9 +211,30 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
         else:
             return data
 
+
+class QueryableTopLevelDocumentMetaclass(DocumentMetaclass):
+    def __new__(cls, name, bases, attrs):
+        new_class = super(QueryableTopLevelDocumentMetaclass, cls).__new__(cls, name, bases, attrs)
+        for attr_name, attr_value in attrs.items():
+            if hasattr(attr_value, 'set_document_class'):
+                if isinstance(attr_value, type):
+                    attr_value = attr_value()
+                attr_value.set_document_class(new_class)
+
+        return new_class
+
 ###
 ### Document structures
 ###
+
+class BaseDocumentManager(object):
+    '''A base class which can be extended to add querying functionality to
+    documents.
+    '''
+
+    def set_document_class(self, document_class):
+        self.document_class = document_class
+
 
 class BaseDocument(object):
 
@@ -586,7 +607,7 @@ class SafeableMixin:
         """
         trimmed = cls.make_ownersafe(doc_dict_or_dicts)
         return json.dumps(trimmed)
-    
+
     @classmethod
     def make_publicsafe(cls, doc_dict_or_dicts):
         """This funciton ensures found_data only contains the keys as
@@ -601,7 +622,7 @@ class SafeableMixin:
         """
         if cls._public_fields is None:
             return cls.make_ownersafe(doc_dict_or_dicts)
-        
+
         # This `handle_doc` implementation behaves as a whitelist
         containers = (list, dict)
         def handle_doc(doc_dict):
@@ -615,7 +636,7 @@ class SafeableMixin:
                         doc_dict[k] = [doc.make_publicsafe(doc.to_python())
                                        for doc in v]
             return doc_dict
-        
+
         trimmed = cls._safe_data_from_input(handle_doc, doc_dict_or_dicts)
         return trimmed
 
@@ -706,7 +727,7 @@ class SafeableMixin:
                     continue
                 # treat empty strings as empty values and skip
                 if isinstance(datum, (str, unicode)) and len(datum.strip()) == 0:
-                    continue                
+                    continue
                 try:
                     v.validate(datum)
                 except ShieldException, e:
@@ -773,3 +794,7 @@ class Document(BaseDocument, SafeableMixin):
 
     __metaclass__ = TopLevelDocumentMetaclass
 
+
+class QueryableDocument(BaseDocument, SafeableMixin):
+
+    __metaclass__ = QueryableTopLevelDocumentMetaclass

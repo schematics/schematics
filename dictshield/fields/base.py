@@ -191,6 +191,7 @@ class UUIDField(BaseField):
         return str(value)
 
 
+
 class StringField(BaseField):
     """A unicode string field.
     """
@@ -508,7 +509,7 @@ class BooleanField(BaseField):
 
 
 class DateTimeField(BaseField):
-    """A datetime field. 
+    """A datetime field.
     """
 
     def _jsonschema_type(self):
@@ -530,7 +531,7 @@ class DateTimeField(BaseField):
     def __set__(self, instance, value):
         """If `value` is a string, the string should match iso8601 format.
         `iso8601_to_date` is called for conversion.
-        
+
         A datetime may be used (and is encouraged).
         """
         if not value:
@@ -613,6 +614,40 @@ class DictField(BaseField):
 
     def lookup_member(self, member_name):
         return self.basecls(uniq_field=member_name)
+
+
+class MultiValueDictField(DictField):
+    def __init__(self, basecls=None, *args, **kwargs):
+        self.basecls = basecls or BaseField
+        if not issubclass(self.basecls, BaseField):
+            raise InvalidShield('basecls is not subclass of BaseField')
+        kwargs.setdefault('default', lambda: MultiValueDict())
+        super(MultiValueDictField, self).__init__(*args, **kwargs)
+
+    def __set__(self, instance, value):
+        if value is not None and not isinstance(value, MultiValueDict):
+            value = MultiValueDict(value)
+
+        super(MultiValueDictField, self).__set__(instance, value)
+
+    def validate(self, value):
+        """Make sure that a list of valid fields is being used.
+        """
+        if not isinstance(value, (dict, MultiValueDict)):
+            raise ShieldException('Only dictionaries or MultiValueDict may be '
+                                  'used in a DictField', self.field_name, value)
+
+        if any(('.' in k or '$' in k) for k in value):
+            raise ShieldException('Invalid dictionary key name - keys may not '
+                                  'contain "." or "$" characters',
+                                  self.field_name, value)
+
+    def for_json(self, value):
+        output = {}
+        for key, values in value.iterlists():
+            output[key] = values
+
+        return output
 
 class GeoPointField(BaseField):
     """A list storing a latitude and longitude.

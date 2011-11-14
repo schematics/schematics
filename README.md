@@ -155,6 +155,42 @@ Or maybe we're storing json in a memcached.
 
 ## A Type System
 
+DictShield has its own type system - every field within a `Document` is defined with a specific type, for example a string will be defined as `StringField`. This "strong typing" makes serialising/deserialising semi-structured data to and from Python much more robust.
+
+### All Types
+
+A complete list of the types supported by DictShield:
+
+| **TYPE**                | **DESCRIPTION**                                                           |
+|------------------------:|:--------------------------------------------------------------------------|
+|         **Text fields** |                                                                           |    
+|           `StringField` | A unicode string                                                          |    
+|              `URLField` | A valid URL                                                               |     
+|            `EmailField` | A valid email address                                                     |
+|           **ID fields** |                                                                           |    
+|             `UUIDField` | A valid UUID value, optionally auto-populates empty values with new UUIDs |    
+|         `ObjectIDField` | Wraps a MongoDB "BSON" ObjectId                                           |
+|      **Numeric fields** |                                                                           |
+|           `NumberField` | Any number (the parent of all the other numeric fields)                   |
+|              `IntField` | An integer                                                                |
+|             `LongField` | A long                                                                    |
+|            `FloatField` | A float                                                                   |
+|          `DecimalField` | A fixed-point decimal number                                              |
+|      **Hashing fields** |                                                                           |
+|              `MD5Field` | An MD5 hash                                                               |
+|             `SHA1Field` | An SHA1 hash                                                              |
+|**'Native type' fields** |                                                                           |
+|          `BooleanField` | A boolean                                                                 |
+|         `DateTimeField` | A datetime                                                                |
+|         `GeoPointField` | A geo-value of the form x, y (latitude, longitude)                        |
+|          **Containers** |                                                                           | 
+|             `ListField` | Wraps a standard field, so multiple instances of the field can be used    |
+|       `SortedListField` | A `ListField` which sorts the list before saving, so list is always sorted|
+|             `DictField` | Wraps a standard Python dictionary                                        |
+| `EmbeddedDocumentField` | Stores a DictShield `EmbeddedDocument`                                    |
+
+### A Close Look at the MD5Field
+
 This is what the MD5Field looks like. Notice that it's basically just
 an implementation of a `validate()` function, which raises a `ShieldException`
 exception if validation fails.
@@ -285,7 +321,7 @@ Document class and everything else is discarded.
 Here is our `Movie` document safe for transmitting to the owner of the document.
 We achieve this by calling `Movie.make_json_ownersafe`. This function is a 
 classmethod available on the `Document` class. It knows to remove `_cls` and
-`_types` because they are in `Document._internal_fields`. _You can  add any 
+`_types` because they are in `Document._internal_fields`. You can add any 
 fields that should be treated as internal to your system by adding a list named
 `_private_fields` to your Document and listing each field.
 
