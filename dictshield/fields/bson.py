@@ -10,6 +10,9 @@ class ObjectIdField(BaseField):
     bson fields, but I am unaware of bson being used outside MongoDB.
     """
 
+    def _jsonschema_type(self):
+        return 'string'
+
     def to_python(self, value):
         try:
             return bson.objectid.ObjectId(unicode(value))
