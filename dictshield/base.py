@@ -66,7 +66,6 @@ class BaseField(object):
 
     def __init__(self, uniq_field=None, field_name=None, required=False,
                  default=None, id_field=False, validation=None, choices=None, description=None):
-        
         self.uniq_field = '_id' if id_field else uniq_field or field_name
         self.field_name = field_name
         self.required = required
@@ -77,7 +76,7 @@ class BaseField(object):
         self.description = description
 
     def __get__(self, instance, owner):
-        """Descriptor for retrieving a value from a field in a document. Do 
+        """Descriptor for retrieving a value from a field in a document. Do
         any necessary conversion between Python and `DictShield` types.
         """
         if instance is None:
@@ -216,7 +215,7 @@ class UUIDField(BaseField):
 ###
 ### Metaclass design
 ###
- 
+
 class DocumentMetaclass(type):
     """Metaclass for all documents.
     """
@@ -241,8 +240,8 @@ class DocumentMetaclass(type):
                 superclasses.update(base._superclasses)
 
             if hasattr(base, '_meta'):
-                # Ensure that the Document class may be subclassed - 
-                # inheritance may be disabled to remove dependency on 
+                # Ensure that the Document class may be subclassed -
+                # inheritance may be disabled to remove dependency on
                 # additional fields _cls and _types
                 if base._meta.get('allow_inheritance', True) == False:
                     raise ValueError('Document %s may not be subclassed' %
@@ -270,7 +269,7 @@ class DocumentMetaclass(type):
         attrs['_meta'] = meta
 
         attrs['_class_name'] = '.'.join(reversed(class_name))
-        attrs['_superclasses'] = superclasses        
+        attrs['_superclasses'] = superclasses
 
         # Add the document's fields to the _fields attribute
         for attr_name, attr_value in attrs.items():
@@ -299,9 +298,9 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
 
     def __new__(cls, name, bases, attrs):
         super_new = super(TopLevelDocumentMetaclass, cls).__new__
-        # Classes defined in this package are abstract and should not have 
+        # Classes defined in this package are abstract and should not have
         # their own metadata with DB collection, etc.
-        # __metaclass__ is only set on the class with the __metaclass__ 
+        # __metaclass__ is only set on the class with the __metaclass__
         # attribute (i.e. it is not set on subclasses). This differentiates
         # 'real' documents from the 'Document' class
         if attrs.get('__metaclass__') == TopLevelDocumentMetaclass:
@@ -323,7 +322,7 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
             'collection': collection,
             'max_documents': None,
             'max_size': None,
-            'id_field': id_field,            
+            'id_field': id_field,
         }
         meta.update(base_meta)
 
@@ -353,6 +352,124 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
 
         return new_class
 
+class BaseDocumentManager(object):
+    '''A base class which can be extended to add querying functionality to
+    documents.
+    '''
+
+    def set_document_class(self, document_class):
+        self.document_class = document_class
+
+
+class QueryableTopLevelDocumentMetaclass(DocumentMetaclass):
+    def __new__(cls, name, bases, attrs):
+        new_class = super(QueryableTopLevelDocumentMetaclass, cls).__new__(cls, name, bases, attrs)
+        for attr_name, attr_value in attrs.items():
+            if hasattr(attr_value, 'set_document_class'):
+                if isinstance(attr_value, type):
+                    attr_value = attr_value()
+                attr_value.set_document_class(new_class)
+
+        return new_class
+
+###
+### Document structures
+###
+
+class BaseDocument(object):
+
+    def __init__(self, **values):
+        self._data = {}
+
+        # Assign default values to instance
+        for attr_name, attr_value in self._fields.items():
+            # Use default value if present
+            value = getattr(self, attr_name, None)
+            setattr(self, attr_name, value)
+
+        # Assign initial values to instance
+        for attr_name,attr_value in values.items():
+            try:
+                if attr_name == '_id':
+                    attr_name = 'id'
+                setattr(self, attr_name, attr_value)
+            # Put a diaper on the keys that don't belong and send 'em home
+            except AttributeError:
+                pass
+
+    def validate(self):
+        """Ensure that all fields' values are valid and that required fields
+        are present.
+        """
+        # Get a list of tuples of field names and their current values
+        fields = [(field, getattr(self, name))
+                  for name, field in self._fields.items()]
+
+        # Ensure that each field is matched to a valid value
+        for field, value in fields:
+            if value is not None and value != '': # treat empty strings is nonexistent
+                try:
+                    field._validate(value)
+                except (ValueError, AttributeError, AssertionError):
+                    raise ShieldException('Invalid value', field.field_name,
+                                          value)
+            elif field.required:
+                raise ShieldException('Required field missing', field.field_name,
+                                      value)
+
+    @classmethod
+    def _get_subclasses(cls):
+        """Return a dictionary of all subclasses (found recursively).
+        """
+        try:
+            subclasses = cls.__subclasses__()
+        except:
+            subclasses = cls.__subclasses__(cls)
+
+        all_subclasses = {}
+        for subclass in subclasses:
+            all_subclasses[subclass._class_name] = subclass
+            all_subclasses.update(subclass._get_subclasses())
+        return all_subclasses
+
+    def __iter__(self):
+        return iter(self._fields)
+
+    def __getitem__(self, name):
+        """Dictionary-style field access, return a field's value if present.
+        """
+        try:
+            if name in self._fields:
+                return getattr(self, name)
+        except AttributeError:
+            pass
+        raise KeyError(name)
+
+    def __setitem__(self, name, value):
+        """Dictionary-style field access, set a field's value.
+        """
+        # Ensure that the field exists before settings its value
+        if name not in self._fields:
+            raise KeyError(name)
+        return setattr(self, name, value)
+
+    def __contains__(self, name):
+        try:
+            val = getattr(self, name)
+            return val is not None
+        except AttributeError:
+            return False
+
+    def __len__(self):
+        return len(self._data)
+
+    def __repr__(self):
+        try:
+            u = unicode(self)
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            u = '[Bad Unicode data]'
+        return u'<%s: %s>' % (self.__class__.__name__, u)
+
     def __str__(self):
         if hasattr(self, '__unicode__'):
             return unicode(self).encode('utf-8')
@@ -374,16 +491,16 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
             value = getattr(self, field_name, None)
             if value is not None:
                 data[field.uniq_field] = field_converter(field, value)
-                
+
         # Only add _cls and _types if allow_inheritance is not False
         if not (hasattr(self, '_meta') and
                 self._meta.get('allow_inheritance', True) == False):
             data['_cls'] = self._class_name
             data['_types'] = self._superclasses.keys() + [self._class_name]
-            
+
         if data.has_key('_id') and not data['_id']:
             del data['_id']
-            
+
         return data
 
     def to_python(self):

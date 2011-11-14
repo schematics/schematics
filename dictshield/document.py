@@ -1,6 +1,7 @@
 from base import (ShieldException,
                   DocumentMetaclass,
-                  TopLevelDocumentMetaclass)
+                  TopLevelDocumentMetaclass,
+                  QueryableTopLevelDocumentMetaclass)
 
 from base import json
 
@@ -400,7 +401,7 @@ class SafeableMixin:
         """
         trimmed = cls.make_ownersafe(doc_dict_or_dicts)
         return json.dumps(trimmed)
-    
+
     @classmethod
     def make_publicsafe(cls, doc_dict_or_dicts):
         """This funciton ensures found_data only contains the keys as
@@ -415,7 +416,7 @@ class SafeableMixin:
         """
         if cls._public_fields is None:
             return cls.make_ownersafe(doc_dict_or_dicts)
-        
+
         # This `handle_doc` implementation behaves as a whitelist
         containers = (list, dict)
         def handle_doc(doc_dict):
@@ -429,7 +430,7 @@ class SafeableMixin:
                         doc_dict[k] = [doc.make_publicsafe(doc.to_python())
                                        for doc in v]
             return doc_dict
-        
+
         trimmed = cls._safe_data_from_input(handle_doc, doc_dict_or_dicts)
         return trimmed
 
@@ -520,7 +521,7 @@ class SafeableMixin:
                     continue
                 # treat empty strings as empty values and skip
                 if isinstance(datum, (str, unicode)) and len(datum.strip()) == 0:
-                    continue                
+                    continue
                 try:
                     v.validate(datum)
                 except ShieldException, e:
@@ -587,3 +588,7 @@ class Document(BaseDocument, SafeableMixin):
 
     __metaclass__ = TopLevelDocumentMetaclass
 
+
+class QueryableDocument(BaseDocument, SafeableMixin):
+
+    __metaclass__ = QueryableTopLevelDocumentMetaclass
