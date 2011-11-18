@@ -9,4 +9,4 @@ setup(name='dictshield',
       author='James Dennis',
       author_email='jdennis@gmail.com',
       url='http://github.com/j2labs/dictshield',
-      packages=['dictshield', 'dictshield.fields', 'dictshield.extensions'])
+      packages=['dictshield', 'dictshield.fields'])
