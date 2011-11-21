@@ -2,7 +2,7 @@
 as part of the pymongo distribution.
 """
 
-from dictshield.base import BaseField
+from dictshield.fields import BaseField
 import bson
 
 class ObjectIdField(BaseField):
