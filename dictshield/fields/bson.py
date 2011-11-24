@@ -2,7 +2,8 @@
 as part of the pymongo distribution.
 """
 
-from dictshield.base import BaseField
+from dictshield.base import BaseField, ShieldException
+
 import bson
 
 class ObjectIdField(BaseField):
