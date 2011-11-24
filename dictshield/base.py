@@ -49,7 +49,7 @@ class ShieldException(Exception):
         self.field_value = field_value
 
     def __str__(self):
-        return '%s - %s:%s)' % (self.reason, self.field_name, self.field_value)
+        return '%s - %s:%s' % (self.reason, self.field_name, self.field_value)
 
 # Here from my younger, less venerable days.
 DictPunch = ShieldException
