@@ -14,11 +14,11 @@ class ObjectIdField(BaseField):
     def _jsonschema_type(self):
         return 'string'
 
-    def to_python(self, value):
+    def for_python(self, value):
         try:
             return bson.objectid.ObjectId(unicode(value))
         except Exception, e:
-            raise InvalidShield(unicode(e))
+            raise ShieldException('Invalid ObjectId', self.field_name, value)
 
     def for_json(self, value):
         return str(value)
