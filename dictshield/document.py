@@ -9,6 +9,24 @@ from base import json
 __all__ = ['Document', 'EmbeddedDocument', 'ShieldException']
 
 
+###
+### Model Manipulation Functions
+###
+
+def swap_field(klass, id_field, fields):
+    """This function takes an existing class definiation `klass` and create a
+    new version of the structure with the fields in `fields` converted to
+    `id_field` instances.
+
+    Effectively doing this:
+
+        class.field_name = id_field()  # like ObjectIdField, perhaps
+    """
+    klass_name = klass.__name__
+    fields_dict = dict(((f, id_field()) for f in fields))
+    return type(klass_name, (klass,), fields_dict)
+
+
 class SafeableMixin:
     """A `SafeableMixin` is used to add unix style permissions to fields in a
     `Document`. It creates this by using a black list and a white list in the
