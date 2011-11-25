@@ -174,7 +174,7 @@ class UUIDField(BaseField):
         """Convert any text values provided into Python UUID objects and
         auto-populate any empty values should auto_fill be set to True.
         """
-        if not value:
+        if not value and self.auto_fill is True:
             value = uuid.uuid4()
 
         if isinstance(value, (str, unicode)):
