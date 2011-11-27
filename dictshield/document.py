@@ -13,19 +13,57 @@ __all__ = ['Document', 'EmbeddedDocument', 'ShieldException']
 ### Model Manipulation Functions
 ###
 
-def swap_field(klass, id_field, fields):
-    """This function takes an existing class definiation `klass` and create a
+def swap_field(klass, new_field, fields):
+    """This function takes an existing class definition `klass` and create a
     new version of the structure with the fields in `fields` converted to
-    `id_field` instances.
+    `field` instances.
 
     Effectively doing this:
 
         class.field_name = id_field()  # like ObjectIdField, perhaps
-    """
-    klass_name = klass.__name__
-    fields_dict = dict(((f, id_field()) for f in fields))
-    return type(klass_name, (klass,), fields_dict)
 
+    Returns the class for compatibility, making it compatible with a decorator.
+    """
+    ### The metaclass attributes will fake not having inheritance
+    cn = klass._class_name
+    sc = klass._superclasses
+    klass_name = klass.__name__
+
+    ### Generate the id_fields for each field we're updating. Mark the actual
+    ### id_field as the uniq_field named '_id'
+    fields_dict = dict()
+    for f in fields:
+        if f is klass._meta['id_field']:
+            fields_dict[f] = new_field(uniq_field='_id')
+        else:
+            fields_dict[f] = new_field()
+        
+    ### Generate new class
+    new_klass = type(klass_name, (klass,), fields_dict)
+
+    ### Meta attributes act like it never happened. :)
+    new_klass._class_name = cn
+    new_klass._superclasses = sc
+    
+    return new_klass
+
+
+def diff_id_field(id_field, field_list):
+    """This function is a decorator that takes an id field, like ObjectIdField,
+    and replaces the fields in `field_list` to use `id_field` instead.
+
+    Wrap a class definition and it will apply the field swap in an simply and
+    expressive way.
+    """
+    def wrap(klass):
+        klass = swap_field(klass, id_field, field_list)
+        return klass
+    return wrap
+
+
+###
+### Documents Models
+###
 
 class SafeableMixin:
     """A `SafeableMixin` is used to add unix style permissions to fields in a
