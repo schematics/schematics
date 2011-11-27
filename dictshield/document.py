@@ -13,7 +13,7 @@ __all__ = ['Document', 'EmbeddedDocument', 'ShieldException']
 ### Model Manipulation Functions
 ###
 
-def swap_field(klass, new_field, fields):
+def _swap_field(klass, new_field, fields):
     """This function takes an existing class definition `klass` and create a
     new version of the structure with the fields in `fields` converted to
     `field` instances.
@@ -48,15 +48,21 @@ def swap_field(klass, new_field, fields):
     return new_klass
 
 
-def diff_id_field(id_field, field_list):
+def diff_id_field(id_field, field_list, *arg):
     """This function is a decorator that takes an id field, like ObjectIdField,
     and replaces the fields in `field_list` to use `id_field` instead.
 
     Wrap a class definition and it will apply the field swap in an simply and
     expressive way.
+
+    The function can be used as a decorator OR the adjusted class can be passed
+    as an optional third argument.
     """
+    if len(arg) == 1:
+        return _swap_field(arg[0], id_field, field_list)
+    
     def wrap(klass):
-        klass = swap_field(klass, id_field, field_list)
+        klass = _swap_field(klass, id_field, field_list)
         return klass
     return wrap
 
