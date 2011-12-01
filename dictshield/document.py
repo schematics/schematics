@@ -107,7 +107,7 @@ class SafeableMixin:
         return internal_fields
 
     @classmethod
-    def _safe_data_from_input(cls, fun, data):
+    def _safe_data_from_input(cls, fun, data, field_converter):
         """Helper function for handling variable inputs to make_json_*safe
         functions.
 
@@ -118,7 +118,7 @@ class SafeableMixin:
         """
         # single cls instance
         if isinstance(data, cls):
-            return fun(data.to_python())
+            return fun(field_converter(data))
 
         # single dict instance
         elif isinstance(data, dict):
@@ -131,85 +131,110 @@ class SafeableMixin:
             elif isinstance(data[0], dict):
                 pass # written for clarity
             elif isinstance(data[0], cls):
-                data = [d.to_python() for d in data]
+                data = [field_converter(d) for d in data]
             return map(fun, data)
 
+
+    ###
+    ### Make Safe Functions
+    ###
+        
     @classmethod
-    def make_ownersafe(cls, doc_dict_or_dicts):
-        """This function removes internal fields and handles any steps
-        required for making the data stucture (list, dict or Document)
-        safe for transmission to the owner of the data.
+    def make_safe(cls, doc_dict_or_dicts, field_converter=None, field_list=None,
+                  safer_fun=None, white_list=True):
+        """This function is the building block of the safe mechanism. This
+        class method takes a doc, dict or dicts and converts them into the
+        equivalent structure with three basic rules applied.
 
-        It also knows to check for EmbeddedDocument's which contain their own
-        private/public data.
+          1. The fields must be converted from the model into a type. This is
+             currently scene as calling `to_python()` or `to_json()` on fields.
 
-        It attempts to handle multiple inputs types to avoid as many
-        translation steps as possible.
+          2. A function that knows how to handle `EmbeddedDocument` instances,
+             using the same security parameters as the caller; this function.
+
+          3. The field list that acts as either a white list or a black list. A
+             white list preserves only the keys explicitly listed. A black list
+             preserves any keys not explicitly listed.
+          
         """
-        internal_fields = cls._get_internal_fields()
+        ### If no safer is provided, we set it to the identity function
+        if safer_fun is None:
+            print 'YEEEEEEEEE'
+            safer_fun = lambda x: field_converter(x)
 
-        # This `handle_doc` implementation behaves as a blacklist
-        containers = (list, dict)
+        ### Field list defaults to `_internal_fields` + `_public_fields`
+        if field_list is None:
+            field_list = cls._get_internal_fields()
+
+        ### Apply rules to structure, recursing when necessary via `safe()`
         def handle_doc(doc_dict):
+            ### Setup white or black list detection
+            should_delete = lambda k: k not in field_list
+            if not white_list:
+                should_delete = lambda k: k in field_list
+
             for k,v in doc_dict.items():
-                if k in internal_fields:
+                if should_delete(k): #not white_list and k in field_list:
                     del doc_dict[k]
                 elif isinstance(v, EmbeddedDocument):
-                    doc_dict[k] = v.make_ownersafe(v.to_python())
-                elif isinstance(v, containers) and len(v) > 0:
+                    doc_dict[k] = safer_fun(v)
+                elif isinstance(v, list) and len(v) > 0:
                     if isinstance(v[0], EmbeddedDocument):
-                        doc_dict[k] = [doc.make_ownersafe(doc.to_python())
-                                       for doc in v]
+                        doc_dict[k] = [safer_fun(doc) for doc in v]
             return doc_dict
 
-        trimmed = cls._safe_data_from_input(handle_doc, doc_dict_or_dicts)
+        trimmed = cls._safe_data_from_input(handle_doc, doc_dict_or_dicts,
+                                            field_converter)
         return trimmed
+
+    @classmethod
+    def make_ownersafe(cls, doc_dict_or_dicts, field_converter=None):
+        ### A field converter function calls either `to_python` or `to_json`
+        if field_converter is None:
+            field_converter = lambda f: f.to_python()
+
+        internal_fields = cls._get_internal_fields()
+        safer = lambda v: v.make_ownersafe(field_converter(v))
+
+        return cls.make_safe(doc_dict_or_dicts, field_converter=field_converter,
+                             field_list=internal_fields, safer_fun=safer,
+                             white_list=False)
 
     @classmethod
     def make_json_ownersafe(cls, doc_dict_or_dicts):
         """Trims the object using make_ownersafe and dumps to JSON
         """
-        trimmed = cls.make_ownersafe(doc_dict_or_dicts)
+        field_converter = lambda f: f.make_ownersafe(f)
+        trimmed = cls.make_ownersafe(doc_dict_or_dicts, field_converter)
         return json.dumps(trimmed)
-
+    
     @classmethod
-    def make_publicsafe(cls, doc_dict_or_dicts):
-        """This funciton ensures found_data only contains the keys as
-        listed in cls._public_fields.
+    def make_publicsafe(cls, doc_dict_or_dicts, field_converter=None):
+        ### A field converter function calls either `to_python` or `to_json`
+        if field_converter is None:
+            field_converter = lambda f: f.to_python()
 
-        It also knows to check for EmbeddedDocument's which contain their own
-        private/public data.
-
-        This function can be safely called without calling make_json_ownersafe
-        first because it treats cls._public_fields as a whitelist and
-        removes anything not listed.
-        """
         if cls._public_fields is None:
             return cls.make_ownersafe(doc_dict_or_dicts)
+        
+        safer = lambda v: v.make_publicsafe(field_converter(v))
 
-        # This `handle_doc` implementation behaves as a whitelist
-        containers = (list, dict)
-        def handle_doc(doc_dict):
-            for k,v in doc_dict.items():
-                if k not in cls._public_fields:
-                    del doc_dict[k]
-                elif isinstance(v, EmbeddedDocument):
-                    doc_dict[k] = v.make_publicsafe(v.to_python())
-                elif isinstance(v, containers) and len(v) > 0:
-                    if isinstance(v[0], EmbeddedDocument):
-                        doc_dict[k] = [doc.make_publicsafe(doc.to_python())
-                                       for doc in v]
-            return doc_dict
-
-        trimmed = cls._safe_data_from_input(handle_doc, doc_dict_or_dicts)
-        return trimmed
+        return cls.make_safe(doc_dict_or_dicts, field_converter=field_converter,
+                             field_list=cls._public_fields, safer_fun=safer,
+                             white_list=True)
 
     @classmethod
     def make_json_publicsafe(cls, doc_dict_or_dicts):
-        """Trims the object using make_publicsafe and dumps to JSON
+        """Trims the object using make_ownersafe and dumps to JSON
         """
-        trimmed = cls.make_publicsafe(doc_dict_or_dicts)
+        field_converter = lambda f: f.make_publicsafe(f.to_json(encode=False))
+        trimmed = cls.make_publicsafe(doc_dict_or_dicts, field_converter)
         return json.dumps(trimmed)
+
+
+    ###
+    ### Validation
+    ###
 
     @classmethod
     def _gen_handle_exception(cls, validate_all, exception_list):
@@ -308,7 +333,6 @@ class SafeableMixin:
             return exceptions
         else:
             return True
-
 
     @classmethod
     def validate_class_fields(cls, values, validate_all=False):

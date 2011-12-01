@@ -23,7 +23,7 @@ class SimpleDoc(Document):
 
 
 sd = SimpleDoc()
-sd.title = 'foo'
+sd.title = 'simple doc'
 sd.num = 1998
 sd.id = ObjectId()
 print 'SimpleDoc:', sd.to_python()
@@ -42,10 +42,12 @@ class ComplexDoc(SimpleDoc):
 
 
 cd = ComplexDoc()
+cd.title = 'complex title'
+cd.num = 1996
+cd.id = ObjectId()
 print 'ComplexDoc:', cd.to_python()
 print 'ComplexDoc JSON:', cd.to_json()
 print 'ComplexDoc ownersafe:', ComplexDoc.make_ownersafe(cd)
-cd.id = ObjectId()
 
 print 'Validating ComplexDoc instance'
 cd.validate()

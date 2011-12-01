@@ -20,7 +20,7 @@ Making mv json public safe (only ['title', 'year'] should show):
 import datetime
 from dictshield.document import Document
 from dictshield.fields import StringField, IntField
-from dictshield.fields.bson import ObjectIdField
+from dictshield.fields.mongo import ObjectIdField
 
 ###
 ### The base class

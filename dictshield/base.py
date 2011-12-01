@@ -199,7 +199,6 @@ class UUIDField(BaseField):
     def for_json(self, value):
         """Return a JSON safe version of the UUID object.
         """
-
         return str(value)
 
 ###

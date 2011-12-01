@@ -29,12 +29,13 @@ BLOG POST:
 - json public: {"author": {"username": "j2d2", "name": "james"}, "comments": [{"username": "bro", "text": "This post was awesome!"}, {"username": "barbie", "text": "This post is ridiculous"}], "content": "Retro single-origin coffee chambray stumptown, scenester VHS\nbicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free\ntrust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed\n"} 
 """
 
-
+import datetime
 from dictshield.document import Document, EmbeddedDocument
 from dictshield.fields import (StringField,
                                EmailField,
                                ListField,
                                BooleanField,
+                               DateTimeField,
                                EmbeddedDocumentField)
 
 
@@ -61,30 +62,33 @@ class BlogPost(Document):
     title = StringField()    
     content = StringField()
     author = EmbeddedDocumentField(Author)
+    post_date = DateTimeField(default=datetime.datetime.now)
     comments = ListField(EmbeddedDocumentField(Comment))
     deleted = BooleanField()   
     
 
 author = Author(name='james', username='j2d2', email='jdennis@gmail.com',
                 a_setting=True, is_active=True)
-print 'AUTHOR:'
-print '- as python:  ', author.to_python(), '\n'
-print '- json owner: ', Author.make_json_ownersafe(author), '\n'
-print '- json public:', Author.make_json_publicsafe(author), '\n'
+
+#print 'AUTHOR ]%s' % ('-' * 40)
+#print '- as python:  ', author.to_python(), '\n'
+#print '- json owner: ', Author.make_json_ownersafe(author), '\n'
+#print '- json public:', Author.make_json_publicsafe(author), '\n'
 
 comment1 = Comment(text='This post was awesome!', username='bro',
                    email='bru@dudegang.com')
-print 'COMMENT 1:'
-print '- as python:  ', comment1.to_python(), '\n'
-print '- json owner: ', Comment.make_json_ownersafe(comment1), '\n'
-print '- json public:', Comment.make_json_publicsafe(comment1), '\n'
+
+#print 'COMMENT 1 ]%s' % ('-' * 40)
+#print '- as python:  ', comment1.to_python(), '\n'
+#print '- json owner: ', Comment.make_json_ownersafe(comment1), '\n'
+#print '- json public:', Comment.make_json_publicsafe(comment1), '\n'
 
 comment2 = Comment(text='This post is ridiculous', username='barbie',
                    email='barbie@dudegang.com')
-print 'COMMENT 2:'
-print '- as python:  ', comment2.to_python(), '\n'
-print '- json owner: ', Comment.make_json_ownersafe(comment2), '\n'
-print '- json public:', Comment.make_json_publicsafe(comment2), '\n'
+#print 'COMMENT 2 ]%s' % ('-' * 40)
+#print '- as python:  ', comment2.to_python(), '\n'
+#print '- json owner: ', Comment.make_json_ownersafe(comment2), '\n'
+#print '- json public:', Comment.make_json_publicsafe(comment2), '\n'
 
 content = """Retro single-origin coffee chambray stumptown, scenester VHS
 bicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free
@@ -93,7 +97,10 @@ trust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed
 
 blogpost = BlogPost(title='Hipster Hodgepodge', author=author, content=content,
                     comments=[comment1, comment2], deleted=False)
-print 'BLOG POST:'
+print 'BLOG POST ]%s' % ('-' * 40)
 print '- as python:  ', blogpost.to_python(), '\n'
-print '- json owner: ', BlogPost.make_json_ownersafe(blogpost), '\n'
-print '- json public:', BlogPost.make_json_publicsafe(blogpost), '\n'
+print '- owner: ', BlogPost.make_ownersafe(blogpost), '\n'
+print '- public:', BlogPost.make_publicsafe(blogpost), '\n'
+
+print '- owner: ', BlogPost.make_json_ownersafe(blogpost), '\n'
+print '- public:', BlogPost.make_json_publicsafe(blogpost), '\n'
