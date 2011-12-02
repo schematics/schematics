@@ -147,7 +147,7 @@ class SafeableMixin:
         equivalent structure with three basic rules applied.
 
           1. The fields must be converted from the model into a type. This is
-             currently scene as calling `to_python()` or `to_json()` on fields.
+             currently scene as calling `for_python()` or `for_json()` on fields.
 
           2. A function that knows how to handle `EmbeddedDocument` instances,
              using the same security parameters as the caller; this function.
