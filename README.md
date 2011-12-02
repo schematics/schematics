@@ -400,9 +400,9 @@ DictShield is in [pypi](http://pypi.python.org) so you can use `easy_install` or
 * [Tom Waits](https://github.com/tomwaits)
 * [Chris McCulloh](https://github.com/st0w)
 * [Sean O'Connor](https://github.com/SeanOC)
+* [Alexander Dean](https://github.com/alexanderdean)
 
 
 # License
 
 BSD!
-
