@@ -141,10 +141,9 @@ class SafeableMixin:
         if isinstance(doc_dict_or_dicts, BaseDocument):
             doc_dict = dict((f, doc_dict_or_dicts[f]) for f in doc_dict_or_dicts)
         else:
-            doc_dict = dict((k, v) for k,v in doc_dict_or_dicts.iteritems())
+            doc_dict = doc_dict_or_dicts
 
         ### Transform each field (Docs implement dictionary-style field access)
-        #for k,v in doc_dict.items():
         for k,v in doc_dict.items():
             if gottago(k):
                 del doc_dict[k]
