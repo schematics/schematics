@@ -106,34 +106,6 @@ class SafeableMixin:
             internal_fields = internal_fields.union(private_fields)
         return internal_fields
 
-    @classmethod
-    def _safe_data_from_input(cls, fun, data, field_converter):
-        """Helper function for handling variable inputs to make_json_*safe
-        functions.
-
-        Returns a safe doc if given one element.
-
-        Returns an list if given a list. Can handle a list of dicts or
-        list of docs.
-        """
-        # single cls instance
-        if isinstance(data, cls):
-            return fun(field_converter(data))
-
-        # single dict instance
-        elif isinstance(data, dict):
-            return fun(data)
-
-        # list of cls instances or list of dicts
-        elif isinstance(data, list):
-            if len(data) < 1:
-                return list()
-            elif isinstance(data[0], dict):
-                pass # written for clarity
-            elif isinstance(data[0], cls):
-                data = [field_converter(d) for d in data]
-            return map(fun, data)
-
 
     ###
     ### Make Safe Functions
