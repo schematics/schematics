@@ -130,16 +130,29 @@ class BaseField(object):
 
         self.validate(value)
 
+    def _jsonschema_default(self):
+        if callable(self.default):
+            # jsonschema doesn't support procedural defaults
+            return None
+            
+        else:
+            return self.default
+
     def _jsonschema_description(self):
         return self.description
 
     def _jsonschema_type(self):
-        # BaseField subclasses must override _jsonschema_type to generate a jsonschema.
-        raise NotImplementedError
+        return 'any'
 
-    def _jsonschema_id(self):
+    def _jsonschema_title(self):
         if self.field_name:
             return self.field_name
+        else:
+            return None
+
+    def _jsonschema_required(self):
+        if self.required is True:
+            return self.required
         else:
             return None
 
@@ -151,9 +164,6 @@ class BaseField(object):
         """
         
         schema = {}
-        #funcs = filter(callable, dir(self))
-        # #funcs = filter(lambda x: x.__name__.startswith("_jsonschema"))
-        #for func in funcs:
         for func_name in filter(lambda x: x.startswith('_jsonschema'), dir(self)):
             attr_name = func_name.split('_')[-1]
             attr_value = getattr(self, func_name)()
@@ -341,7 +351,6 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
 
         return new_class
 
-
 class BaseDocumentManager(object):
     '''A base class which can be extended to add querying functionality to
     documents.
@@ -465,26 +474,6 @@ class BaseDocument(object):
             return unicode(self).encode('utf-8')
         return '%s object' % self.__class__.__name__
 
-    ###
-    ### Class serialization
-    ###
-    
-    @classmethod
-    def for_jsonschema(cls):
-        
-        properties = {}
-        for name, field in cls._fields.items():
-            
-            properties[ name ] = field.for_jsonschema()
-
-        return {
-            'type'       : 'object',
-            'properties' : properties
-            }
-
-    @classmethod
-    def to_jsonschema(cls):
-        return json.dumps(cls.for_jsonschema())
 
     ###
     ### Instance Serialization
@@ -533,49 +522,8 @@ class BaseDocument(object):
         else:
             return data
 
-    @classmethod
-    def _from_son(cls, son):
-        """Create an instance of a Document (subclass) from a BSON.
-        """
-        # get the class name from the document, falling back to the given
-        # class if unavailable
-        class_name = son.get(u'_cls', cls._class_name)
-
-        data = dict((str(key), value) for key, value in son.items())
-
-        if '_types' in data:
-            del data['_types']
-
-        if '_cls' in data:
-            del data['_cls']
-
-        # Return correct subclass for document type
-        if class_name != cls._class_name:
-            subclasses = cls._get_subclasses()
-            if class_name not in subclasses:
-                # Type of document is probably more generic than the class
-                # that has been queried to return this SON
-                return None
-            cls = subclasses[class_name]
-
-        present_fields = data.keys()
-        # BUGFIX: changed fb_field to field_name and to_python to for_python
-        for field_name, field in cls._fields.items():
-            if field.field_name in data:
-                value = data[field.uniq_field]
-                data[field_name] = (value if value is None
-                                    else field.for_python(value))
-
-        obj = cls(**data)
-        obj._present_fields = present_fields
-        return obj
-
-    def __eq__(self, other):
-        if isinstance(other, self.__class__) and hasattr(other, 'id'):
-            if self.id == other.id:
-                return True
-        return False
-
-
 def subclass_exception(name, parents, module):
     return type(name, parents, {'__module__': module})
+
+
+

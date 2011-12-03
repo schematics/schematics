@@ -4,3 +4,6 @@ more specific modules as they grow.
 """
 
 from dictshield.fields.base import *
+class DictFieldNotFound(Exception):
+    pass
+

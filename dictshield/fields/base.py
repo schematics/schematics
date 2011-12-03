@@ -1,7 +1,6 @@
 from dictshield.base import BaseField, UUIDField, ShieldException, InvalidShield
 from dictshield.datastructures import MultiValueDict
-from dictshield.document import EmbeddedDocument
-from ..datastructures import MultiValueDict
+
 
 from operator import itemgetter
 import re
@@ -130,7 +129,7 @@ class JsonNumberMixin(object):
         return self.min_value
 
 
-class NumberField(BaseField, JsonNumberMixin):
+class NumberField(JsonNumberMixin, BaseField):
     """A number field.
     """
 
@@ -379,6 +378,8 @@ class ListField(BaseField):
     def __set__(self, instance, value):
         """Descriptor for assigning a value to a field in a document.
         """
+        if value is None:
+            value = [] #have to use a list
         if isinstance(self.field, EmbeddedDocumentField):
             list_of_docs = list()
             for doc in value:
@@ -403,7 +404,7 @@ class ListField(BaseField):
     def for_json(self, value):
         """for_json must be careful to expand embedded documents into Python,
         not JSON.
-    pp    """
+        """
         if value is None:
             return list()
         return [self.field.for_json(item) for item in value]
@@ -565,6 +566,10 @@ class EmbeddedDocumentField(BaseField):
     """
 
     def __init__(self, document_type, **kwargs):
+        # BADBADBAD
+        print ' you are running bad code:: this import statement should not be here! '
+        from dictshield.document import EmbeddedDocument
+        
         if not isinstance(document_type, basestring):
             if not issubclass(document_type, EmbeddedDocument):
                 raise ShieldException('Invalid embedded document class '
@@ -590,10 +595,10 @@ class EmbeddedDocumentField(BaseField):
         return 'object'
 
     def for_jsonschema(self):
-        fieldDict = self.for_jsonschema()
-        fieldDict.update(self._data[self.field_name].for_jsonschema())
-        
-        return fieldDict
+        # fieldDict = self.document_type.for_jsonschema()
+        # fieldDict.update(self.document_type._data[self.field_name].for_jsonschema())
+        #return fieldDict
+        return self.document_type.for_jsonschema()
 
     def for_python(self, value):
         return value
