@@ -155,6 +155,9 @@ class SafeableMixin:
                     doc_dict[k] = [doc_converter(vi) for vi in v]
             else:
                 doc_dict[k] = field_converter(k, v)
+            if doc_dict.has_key(k) and cls._fields.has_key(k) and cls._fields[k].minimized_field_name:
+              doc_dict[cls._fields[k].minimized_field_name] = doc_dict[k]
+              del doc_dict[k]
                     
         return doc_dict
 

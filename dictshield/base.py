@@ -65,7 +65,7 @@ class BaseField(object):
     """
 
     def __init__(self, uniq_field=None, field_name=None, required=False,
-                 default=None, id_field=False, validation=None, choices=None, description=None):
+                 default=None, id_field=False, validation=None, choices=None, description=None, minimized_field_name=None):
         self.uniq_field = '_id' if id_field else uniq_field or field_name
         self.field_name = field_name
         self.required = required
@@ -74,6 +74,7 @@ class BaseField(object):
         self.choices = choices
         self.id_field = id_field
         self.description = description
+        self.minimized_field_name = minimized_field_name
 
     def __get__(self, instance, owner):
         """Descriptor for retrieving a value from a field in a document. Do
@@ -370,19 +371,25 @@ class BaseDocument(object):
 
     def __init__(self, **values):
         self._data = {}
+        
+        minimize_field_map = {}
 
         # Assign default values to instance
         for attr_name, attr_value in self._fields.items():
             # Use default value if present
             value = getattr(self, attr_name, None)
             setattr(self, attr_name, value)
+            if attr_value.minimized_field_name:
+              minimize_field_map[attr_value.minimized_field_name] = attr_value.uniq_field
 
         # Assign initial values to instance
-        for attr_name,attr_value in values.items():
+        for attr_name, attr_value in values.items():
             try:
                 if attr_name == '_id':
                     attr_name = 'id'
                 setattr(self, attr_name, attr_value)
+                if minimize_field_map.has_key(attr_name):
+                  setattr(self, minimize_field_map[attr_name], attr_value)
             # Put a diaper on the keys that don't belong and send 'em home
             except AttributeError:
                 pass
