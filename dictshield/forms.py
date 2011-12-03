@@ -49,8 +49,8 @@ Using it looks a bit like this:
 """
 
 
-from dictshield.base import TopLevelDocumentMetaclass
-from dictshield.base import BaseField
+from dictshield.document import TopLevelDocumentMetaclass
+from dictshield.fields.base import BaseField
 
 
 # ClassName => input type
