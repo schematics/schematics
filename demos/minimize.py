@@ -50,4 +50,6 @@ print m2.title
 print m2.year
 print m2.personal_thoughts
 
-print Movie.make_publicsafe(m)
+print Movie.make_publicsafe(m2)
+
+print m2.to_python()
