@@ -4,7 +4,7 @@ from distutils.core import setup
  
 setup(name='dictshield',
       license='BSD',
-      version='0.3.3',
+      version='0.3.4',
       description='Python Library for typed dictionaries... sorta',
       author='James Dennis',
       author_email='jdennis@gmail.com',
