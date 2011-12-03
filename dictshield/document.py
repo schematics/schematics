@@ -162,7 +162,7 @@ class SafeableMixin:
     def make_ownersafe(cls, doc_dict_or_dicts):
         field_converter = lambda f, v: v
         doc_encoder = lambda d: d.to_python()
-        doc_converter = lambda d: d.make_ownersafe(doc_encoder(d))
+        doc_converter = lambda d: d.make_ownersafe(d)
         field_list = cls._get_internal_fields()
         white_list = False
 
@@ -174,7 +174,7 @@ class SafeableMixin:
     def make_json_ownersafe(cls, doc_dict_or_dicts, encode=True):
         field_converter = lambda f, v: cls._fields[f].for_json(v)
         doc_encoder = lambda d: d.to_json(encode=False)
-        doc_converter = lambda d: d.make_json_ownersafe(doc_encoder(d), encode=False)
+        doc_converter = lambda d: d.make_json_ownersafe(d, encode=False)
         field_list = cls._get_internal_fields()
         white_list = False
 
@@ -190,7 +190,7 @@ class SafeableMixin:
     def make_publicsafe(cls, doc_dict_or_dicts):
         field_converter = lambda f, v: v
         doc_encoder = lambda d: d.to_python()
-        doc_converter = lambda d: d.make_publicsafe(doc_encoder(d))
+        doc_converter = lambda d: d.make_publicsafe(d)
         field_list = cls._public_fields
         white_list = True
 
@@ -202,7 +202,7 @@ class SafeableMixin:
     def make_json_publicsafe(cls, doc_dict_or_dicts, encode=True):
         field_converter = lambda f, v: cls._fields[f].for_json(v)
         doc_encoder = lambda d: d.to_json(encode=False)
-        doc_converter = lambda d: d.make_json_publicsafe(doc_encoder(d), encode=False)
+        doc_converter = lambda d: d.make_json_publicsafe(d, encode=False)
         field_list = cls._public_fields
         white_list = True
 
