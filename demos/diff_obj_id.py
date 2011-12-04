@@ -48,6 +48,7 @@ cd.id = ObjectId()
 print 'ComplexDoc:', cd.to_python()
 print 'ComplexDoc JSON:', cd.to_json()
 print 'ComplexDoc ownersafe:', ComplexDoc.make_ownersafe(cd)
+print 'ComplexDoc publicsafe:', ComplexDoc.make_publicsafe(cd)
 
 print 'Validating ComplexDoc instance'
 cd.validate()

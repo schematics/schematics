@@ -38,10 +38,10 @@ import datetime
 from dictshield.document import Document, EmbeddedDocument
 from dictshield.fields import (StringField,
                                EmailField,
-                               ListField,
                                BooleanField,
-                               DateTimeField,
-                               EmbeddedDocumentField)
+                               DateTimeField)
+from dictshield.fields.compound import (ListField,
+                                        EmbeddedDocumentField)
 
 
 class Author(EmbeddedDocument):

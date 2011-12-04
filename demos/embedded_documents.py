@@ -108,10 +108,10 @@ from dictshield.document import Document, EmbeddedDocument
 from dictshield.fields import (IntField,
                                StringField,
                                FloatField,
-                               ListField,
                                DateTimeField,
-                               EmailField,
-                               EmbeddedDocumentField)
+                               EmailField)
+from dictshield.fields.compound import (ListField,
+                                        EmbeddedDocumentField)
 import datetime
 import json
 

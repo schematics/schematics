@@ -2,13 +2,13 @@ import copy
 
 from dictshield.base import ShieldException, json
 
-__all__ = ['DocumentMetaclass', 'TopLevelDocumentMetaclass', 'BaseDocument', 'Document', 'EmbeddedDocument', 'ShieldException']
+__all__ = ['DocumentMetaclass', 'TopLevelDocumentMetaclass', 'BaseDocument',
+           'Document', 'EmbeddedDocument', 'ShieldException']
 
 from dictshield.fields import (DictFieldNotFound,
                                dictshield_fields,
                                BaseField,
-                               UUIDField,
-                               )
+                               UUIDField)
 
 schema_kwargs_to_dictshield  = {
     'maxLength': 'max_length',
@@ -16,7 +16,7 @@ schema_kwargs_to_dictshield  = {
     'pattern' : 'regex',
     'minimum': 'min_value',
     'maximum': 'max_value',
-    }
+}
 
 
 ###
@@ -535,7 +535,7 @@ def _swap_field(klass, new_field, fields):
             fields_dict[f] = new_field(uniq_field='_id')
         else:
             fields_dict[f] = new_field()
-        
+
     ### Generate new class
     new_klass = type(klass_name, (klass,), fields_dict)
 
