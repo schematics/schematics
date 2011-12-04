@@ -632,9 +632,9 @@ class SafeableMixin:
             field_list = cls._get_internal_fields()
 
         ### Setup white or black list detection
-        gottago = lambda k: k not in field_list
+        gottago = lambda k,v: k not in field_list or v is None
         if not white_list:
-            gottago = lambda k: k in field_list
+            gottago = lambda k,v: k in field_list or v is None
 
         if isinstance(doc_dict_or_dicts, BaseDocument):
             doc_dict = dict((f, doc_dict_or_dicts[f]) for f in doc_dict_or_dicts)
@@ -643,7 +643,7 @@ class SafeableMixin:
 
         ### Transform each field (Docs implement dictionary-style field access)
         for k,v in doc_dict.items():
-            if gottago(k):
+            if gottago(k, v):
                 del doc_dict[k]
             elif isinstance(v, EmbeddedDocument):
                 doc_dict[k] = doc_converter(v)
