@@ -41,9 +41,10 @@ print '     owner ::', Movie.make_ownersafe(m)
 print '    public ::', Movie.make_json_publicsafe(m)
 print
 
-movie_json = m.to_json()
+#movie_json = m.to_json()
+movie_json = Movie.make_json_ownersafe(m)
 print 'Movie as JSON ]', ('-' * 32)
-print '      json:', movie_json
+print '      json ::', movie_json
 print
 
 ### Reload movie
