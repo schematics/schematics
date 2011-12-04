@@ -24,7 +24,7 @@ class Movie(Document):
     """Simple document that has one StringField member
     """
     
-    _public_fields = ["title", "year", "personal_thoughts"]
+    _public_fields = ["title", "year"]
     
     title = StringField(max_length=40, minimized_field_name="t")
     year = IntField(min_value=1950, max_value=datetime.datetime.now().year, minimized_field_name="y")
@@ -34,22 +34,25 @@ m = Movie(title='Some Movie',
           year=2011,
           personal_thoughts='It was pretty good')
 
-# print m.for_jsonschema()
-# print m.to_python()
-print Movie.make_json_publicsafe(m)
+print 'MOVIE ]', ('-' * 40)
+print '    schema ::', m.for_jsonschema()
+print '    python ::', m.to_python()
+print '     owner ::', Movie.make_ownersafe(m)
+print '    public ::', Movie.make_json_publicsafe(m)
+print
 
-print Movie.make_publicsafe(m)
+movie_json = m.to_json()
+print 'Movie as JSON ]', ('-' * 32)
+print '      json:', movie_json
+print
 
-data = json.loads(Movie.make_json_publicsafe(m))
-print data
+### Reload movie
+movie_data = json.loads(movie_json)
+m2 = Movie(**movie_data)
 
-print "====="
+print 'RESTORED MOVIE ]', ('-' * 31)
+print '    schema ::', m2.for_jsonschema()
+print '    python ::', m2.to_python()
+print '     owner ::', Movie.make_ownersafe(m2)
+print '    public ::', Movie.make_json_publicsafe(m2)
 
-m2 = Movie(**data)
-print m2.title
-print m2.year
-print m2.personal_thoughts
-
-print Movie.make_publicsafe(m2)
-
-print m2.to_python()
