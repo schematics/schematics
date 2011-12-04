@@ -455,8 +455,6 @@ class BaseDocument(object):
         if schema.get('title', False):
             class_name = schema['title']
         else:
-            import pdb
-            pdb.set_trace()
             raise AttributeError('Your JSON schema must specify a title to be the Document class name')
 
         if schema.has_key('description'):
