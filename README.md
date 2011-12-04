@@ -401,6 +401,9 @@ DictShield is in [pypi](http://pypi.python.org) so you can use `easy_install` or
 * [Chris McCulloh](https://github.com/st0w)
 * [Sean O'Connor](https://github.com/SeanOC)
 * [Alexander Dean](https://github.com/alexanderdean)
+* [Rob Spychala](https://github.com/robspychala)
+* [Ben Beecher](https://github.com/gone)
+* [John Krauss](https://github.com/talos)
 
 
 # License
