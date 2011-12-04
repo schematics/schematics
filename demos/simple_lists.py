@@ -71,10 +71,10 @@ import datetime
 
 from dictshield.document import EmbeddedDocument, Document
 from dictshield.fields import (StringField,
-                               EmbeddedDocumentField,
-                               ListField,
                                DateTimeField,
                                IntField)
+from dictshield.fields.compound import (EmbeddedDocumentField,
+                                        ListField)
 
 
 ###

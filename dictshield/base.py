@@ -54,4 +54,3 @@ DictPunch = ShieldException
 
 def subclass_exception(name, parents, module):
     return type(name, parents, {'__module__': module})
-

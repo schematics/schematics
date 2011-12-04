@@ -24,9 +24,8 @@ from dictshield.fields import (StringField,
                                BooleanField,
                                URLField,
                                EmailField,
-                               LongField,
-                               ListField)
-
+                               LongField)
+from dictshield.fields.compound import ListField
 
 class InterestMixin(EmbeddedDocument):
     liked = BooleanField(default=False)
