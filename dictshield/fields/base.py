@@ -43,7 +43,8 @@ class BaseField(object):
     __metaclass__ = BaseFieldMetaClass
 
     def __init__(self, uniq_field=None, field_name=None, required=False,
-                 default=None, id_field=False, validation=None, choices=None, description=None):
+                 default=None, id_field=False, validation=None, choices=None,
+                 description=None, minimized_field_name=None):
         
         self.uniq_field = '_id' if id_field else uniq_field or field_name
         self.field_name = field_name
@@ -53,6 +54,7 @@ class BaseField(object):
         self.choices = choices
         self.id_field = id_field
         self.description = description
+        self.minimized_field_name = minimized_field_name
 
     def __get__(self, instance, owner):
         """Descriptor for retrieving a value from a field in a document. Do 

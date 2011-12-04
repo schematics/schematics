@@ -240,19 +240,24 @@ class BaseDocument(object):
 
     def __init__(self, **values):
         self._data = {}
+        minimized_field_map = {}
 
         # Assign default values to instance
         for attr_name, attr_value in self._fields.items():
             # Use default value if present
             value = getattr(self, attr_name, None)
             setattr(self, attr_name, value)
+            if attr_value.minimized_field_name:
+                minimized_field_map[attr_value.minimized_field_name] = attr_value.uniq_field
 
         # Assign initial values to instance
-        for attr_name,attr_value in values.items():
+        for attr_name, attr_value in values.items():
             try:
                 if attr_name == '_id':
                     attr_name = 'id'
                 setattr(self, attr_name, attr_value)
+                if minimized_field_map.has_key(attr_name):
+                    setattr(self, minimized_field_map[attr_name], attr_value)
             # Put a diaper on the keys that don't belong and send 'em home
             except AttributeError:
                 pass
@@ -652,6 +657,10 @@ class SafeableMixin:
                     doc_dict[k] = [doc_converter(vi) for vi in v]
             else:
                 doc_dict[k] = field_converter(k, v)
+                
+            if k in doc_dict and k in cls._fields and cls._fields[k].minimized_field_name:
+              doc_dict[cls._fields[k].minimized_field_name] = doc_dict[k]
+              del doc_dict[k]
                     
         return doc_dict
 
