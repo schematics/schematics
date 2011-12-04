@@ -30,7 +30,7 @@ from dictshield.fields import (BaseField,
                                MD5Field)
 
 from dictshield.fields.compound import ListField, EmbeddedDocumentField
-from dictshield.fields.bson import ObjectIdField
+from dictshield.fields.mongo import ObjectIdField
 import hashlib
 import json
 
