@@ -5,13 +5,6 @@ import json
 import sys
 sys.path.append('..')
 
-"""This demo simply shows how the specifics of a DictShield's model design can
-be translated easily into a JSON schema definition.
-
-$ ./json_schema.py 
-{'type': 'object', 'properties': {'personal_thoughts': {'type': 'string', 'id': 'personal_thoughts', 'maxLength': 255}, 'title': {'type': 'string', 'id': 'title', 'maxLength': 40}, 'id': {'type': 'string'}, 'year': {'minimum': 1950, 'type': 'integer', 'id': 'year', 'maximum': 2011}}}
-"""
-
 import datetime
 from dictshield.document import Document
 from dictshield.fields import StringField, IntField
@@ -37,6 +30,7 @@ m = Movie(title='Some Movie',
 print 'MOVIE ]', ('-' * 40)
 print '    schema ::', m.for_jsonschema()
 print '    python ::', m.to_python()
+print '      json ::', m.to_json()
 print '     owner ::', Movie.make_ownersafe(m)
 print '    public ::', Movie.make_json_publicsafe(m)
 print
@@ -54,6 +48,7 @@ m2 = Movie(**movie_data)
 print 'RESTORED MOVIE ]', ('-' * 31)
 print '    schema ::', m2.for_jsonschema()
 print '    python ::', m2.to_python()
+print '      json ::', m2.to_json()
 print '     owner ::', Movie.make_ownersafe(m2)
 print '    public ::', Movie.make_json_publicsafe(m2)
 
