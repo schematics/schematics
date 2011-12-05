@@ -517,7 +517,7 @@ class DateTimeField(BaseField):
     def _jsonschema_type(self):
         return 'string'
 
-    def __init__(self, format=None, **kwargs):
+    def __init__(self, format=lambda dt: dt.isoformat(), **kwargs):
         self.format = format
         super(DateTimeField, self).__init__(**kwargs)
 
@@ -574,21 +574,18 @@ class DateTimeField(BaseField):
         return value
 
     @classmethod
-    def date_to_iso8601(cls, dt, format=None):
+    def date_to_iso8601(cls, dt, format):
         """Classmethod that goes the opposite direction of iso8601_to_date.
            Defaults to using isoformat(), but can use the optional format
            argument either as a strftime format string or as a custom
            date formatting function or lambda.
         """
-        if format is not None:
-            if isinstance(format, str):
-                iso_dt = dt.strftime(format)
-            elif hasattr(format, '__call__'):
-                iso_dt = format(dt)
-            else:
-                raise ShieldException('DateTimeField format must be a string or callable')
+        if isinstance(format, str):
+            iso_dt = dt.strftime(format)
+        elif hasattr(format, '__call__'):
+            iso_dt = format(dt)
         else:
-            iso_dt = dt.isoformat()
+            raise ShieldException('DateTimeField format must be a string or callable')
         return iso_dt
 
     def validate(self, value):
