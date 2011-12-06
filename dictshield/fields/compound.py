@@ -185,13 +185,12 @@ class EmbeddedDocumentField(BaseField):
     :class:`~dictshield.EmbeddedDocument`.
     """
     def __init__(self, document_type, **kwargs):
-        is_embeddeddoc = lambda field: isinstance(field, EmbeddedDocumentField)
+        is_embeddable = lambda dt: issubclass(dt, EmbeddedDocument)
         if not isinstance(document_type, basestring):
-            if not document_type or not is_embeddeddoc(document_type):
-                raise ShieldException('Invalid embedded document class ' \
+            if not document_type or not is_embeddable(document_type):
+                raise ShieldException('Invalid embedded document class '
                                       'provided to an EmbeddedDocumentField',
-                                      document_type,
-                                      'WOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOORD')
+                                      self.field_name, document_type)
         self.document_type_obj = document_type
         super(EmbeddedDocumentField, self).__init__(**kwargs)
 
@@ -238,7 +237,8 @@ class EmbeddedDocumentField(BaseField):
         # Using isinstance also works for subclasses of self.document
         if not isinstance(value, self.document_type):
             raise ShieldException('Invalid embedded document instance '
-                                  'provided to an EmbeddedDocumentField')
+                                  'provided to an EmbeddedDocumentField',
+                                  self.field_name, value)
         self.document_type.validate(value)
 
     def lookup_member(self, member_name):
