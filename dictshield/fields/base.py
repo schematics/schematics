@@ -1,7 +1,3 @@
-try:
-    from itertools import filterfalse  # python3 wutwut
-except:
-    from itertools import ifilterfalse
 import uuid
 import re
 import datetime
