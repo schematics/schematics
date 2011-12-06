@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 
 """These are tests that attempt to convert the DictShield classes and
 instances from fixtures/demos.py to and from JSON.
