@@ -12,7 +12,8 @@ class MultiValueDict(dict):
 
     The code from this class was borrowed from the Django code base.
 
-    >>> d = MultiValueDict({'name': ['Adrian', 'Simon'], 'position': ['Developer']})
+    >>> attrs = {'name': ['Adrian', 'Simon'], 'position': ['Developer']}
+    >>> d = MultiValueDict(attrs)
     >>> d['name']
     'Simon'
     >>> d.getlist('name')
@@ -44,7 +45,8 @@ class MultiValueDict(dict):
         try:
             list_ = super(MultiValueDict, self).__getitem__(key)
         except KeyError:
-            raise MultiValueDictKeyError("Key %r not found in %r" % (key, self))
+            error_msg = "Key %r not found in %r" % (key, self)
+            raise MultiValueDictKeyError(error_msg)
         try:
             return list_[-1]
         except IndexError:
@@ -121,7 +123,8 @@ class MultiValueDict(dict):
     def appendlist(self, key, value):
         """Appends an item to the internal list associated with key."""
         self.setlistdefault(key, [])
-        super(MultiValueDict, self).__setitem__(key, self.getlist(key) + [value])
+        super(MultiValueDict, self).__setitem__(key,
+                                                self.getlist(key) + [value])
 
     def items(self):
         """
@@ -165,7 +168,9 @@ class MultiValueDict(dict):
         Also accepts keyword args.
         """
         if len(args) > 1:
-            raise TypeError("update expected at most 1 arguments, got %d" % len(args))
+            error_msg = "update expected at most 1 arguments, got %d" \
+                        % len(args)
+            raise TypeError(error_msg)
         if args:
             other_dict = args[0]
             if isinstance(other_dict, MultiValueDict):
@@ -176,7 +181,9 @@ class MultiValueDict(dict):
                     for key, value in other_dict.items():
                         self.setlistdefault(key, []).append(value)
                 except TypeError:
-                    raise ValueError("MultiValueDict.update() takes either a MultiValueDict or dictionary")
+                    error_msg = "MultiValueDict.update() takes either a " \
+                                "MultiValueDict or dictionary"
+                    raise ValueError(error_msg)
         for key, value in kwargs.iteritems():
             self.setlistdefault(key, []).append(value)
 

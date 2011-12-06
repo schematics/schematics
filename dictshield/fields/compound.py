@@ -1,14 +1,16 @@
 try:
-    from itertools import filterfalse #wtf python3
+    from itertools import filterfalse  # python3 wutwut
 except:
-    from itertools import ifilterfalse 
+    from itertools import ifilterfalse
 from operator import itemgetter
 
 from dictshield.document import EmbeddedDocument
 from dictshield.base import  ShieldException, InvalidShield
 from dictshield.fields import BaseField, DictField
 
+
 RECURSIVE_REFERENCE_CONSTANT = 'self'
+
 
 class ListField(BaseField):
     """A list field that wraps a standard field, allowing multiple instances
@@ -16,21 +18,29 @@ class ListField(BaseField):
     """
 
     def __init__(self, fields=None, **kwargs):
-        if isinstance(fields, BaseField): # is it a field instance
-            if isinstance(fields, EmbeddedDocumentField):
+        # Some helpful functions
+        is_basefield = lambda field: isinstance(field, BaseField)
+        is_embeddeddoc = lambda field: isinstance(field, EmbeddedDocumentField)
+        is_dictfield = lambda field: isinstance(field, DictField)
+
+        # field instance
+        #if isinstance(fields, BaseField):
+        if is_basefield(fields):
+            #if isinstance(fields, EmbeddedDocumentField):
+            if is_embeddeddoc(fields):
                 kwargs.setdefault('primary_embedded', fields)
             fields = [fields]
-        # is it something other than a list
+        # something other than a list
         elif not isinstance(fields, list):
             raise InvalidShield('Argument to ListField constructor must be '
                                 'a valid field or list of fields')
-        #did we get some bad stuff in the list?
-        elif list(ifilterfalse(lambda field: isinstance(field, BaseField), fields)):
+        # some bad stuff in the list
+        elif list(ifilterfalse(is_basefield, fields)):
             raise InvalidShield('Argument to ListField constructor must be '
                                 'a valid field or list of valid fields')
         else:
-            docs = filter(lambda field: isinstance(field, EmbeddedDocumentField), fields)
-            dicts = filter(lambda field: isinstance(field, DictField), fields)
+            docs = filter(is_embeddeddoc, fields)
+            dicts = filter(is_dictfield, fields)
             if dicts:
                 kwargs.setdefault('primary_embedded', None)
             if docs:
@@ -44,15 +54,16 @@ class ListField(BaseField):
     def __set__(self, instance, value):
         """Descriptor for assigning a value to a field in a document.
         """
-        embedded_fields = filter(lambda field: isinstance(field, EmbeddedDocumentField), self.fields)
+        is_embeddeddoc = lambda field: isinstance(field, EmbeddedDocumentField)
+        embedded_fields = filter(is_embeddeddoc, self.fields)
         if self.primary_embedded:
             embedded_fields.remove(self.primary_embedded)
             embedded_fields.insert(0, self.primary_embedded)
 
         if value is None:
-            value = [] #have to use a list
+            value = []  # have to use a list
 
-        if embedded_fields: 
+        if embedded_fields:
             list_of_docs = list()
             for doc in value:
                 if isinstance(doc, dict):
@@ -105,10 +116,10 @@ class ListField(BaseField):
         if not isinstance(value, (list, tuple)):
             error_msg = 'Only lists and tuples may be used in a list field'
             raise ShieldException(error_msg, self.field_name, value)
-        
-        if not self.fields: #if we want everything to validate
+
+        if not self.fields:  # if we want everything to validate
             return
-        
+
         for item in value:
             for field in self.fields:
                 try:
@@ -117,8 +128,8 @@ class ListField(BaseField):
                 except ShieldException:
                     continue
             else:
-                raise ShieldException('Invalid ListField item', self.field_name,
-                                      str(item))
+                raise ShieldException('Invalid ListField item',
+                                      self.field_name, str(item))
 
     def _set_owner_document(self, owner_document):
         for field in self.fields:
@@ -129,6 +140,7 @@ class ListField(BaseField):
         self._owner_document = owner_document
 
     owner_document = property(_get_owner_document, _set_owner_document)
+
 
 class SortedListField(ListField):
     """A ListField that sorts the contents of its list before writing to
@@ -155,7 +167,6 @@ class SortedListField(ListField):
     def for_json(self, value):
         return self.for_thing(value, 'for_json')
 
-
     @classmethod
     def _from_jsonschema_types(self):
         return []
@@ -165,19 +176,22 @@ class SortedListField(ListField):
         return []
 
 
-
 ###
 ### Sub structures
 ###
+
 class EmbeddedDocumentField(BaseField):
     """An embedded document field. Only valid values are subclasses of
     :class:`~dictshield.EmbeddedDocument`.
     """
     def __init__(self, document_type, **kwargs):
+        is_embeddeddoc = lambda field: isinstance(field, EmbeddedDocumentField)
         if not isinstance(document_type, basestring):
-            if not document_type or not issubclass(document_type, EmbeddedDocument):
-                raise ShieldException('Invalid embedded document class '
-                                      'provided to an EmbeddedDocumentField')
+            if not document_type or not is_embeddeddoc(document_type):
+                raise ShieldException('Invalid embedded document class ' \
+                                      'provided to an EmbeddedDocumentField',
+                                      document_type,
+                                      'WOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOORD')
         self.document_type_obj = document_type
         super(EmbeddedDocumentField, self).__init__(**kwargs)
 

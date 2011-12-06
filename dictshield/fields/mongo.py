@@ -7,6 +7,7 @@ from dictshield.fields import BaseField
 
 import bson
 
+
 class ObjectIdField(BaseField):
     """An field wrapper around MongoDB ObjectIds.  It is correct to say they're
     bson fields, but I am unaware of bson being used outside MongoDB.
@@ -17,7 +18,7 @@ class ObjectIdField(BaseField):
 
     def __init__(self, auto_fill=False, **kwargs):
         self.auto_fill = auto_fill
-        super(ObjectIdField, self).__init__(**kwargs)    
+        super(ObjectIdField, self).__init__(**kwargs)
 
     def __set__(self, instance, value):
         """Convert any text values provided into Python UUID objects and
@@ -30,7 +31,7 @@ class ObjectIdField(BaseField):
             value = bson.objectid.ObjectId(unicode(value))
 
         instance._data[self.field_name] = value
-    
+
     def _jsonschema_type(self):
         return 'string'
 

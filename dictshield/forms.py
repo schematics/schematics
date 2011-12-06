@@ -16,7 +16,7 @@ Using it looks a bit like this:
         o = ObjectIdField()
         u = StringField()
         t = StringField(max_length=40)
-    
+
     # Instantiate both
     s = Something()
     s.title = 'Misc something'
@@ -33,7 +33,7 @@ Using it looks a bit like this:
 
     # Print a form, prepopulated with values from `s`
     print f.as_div(s)
-    
+
     # This call would throw an error as f is bound to `Something` because `se`
     # is a `SomethingElse` instance.
     print f.as_div(se)
@@ -45,7 +45,6 @@ Using it looks a bit like this:
         'input_class': 'form_value',
     }
     print f.as_div(s, **style_dict)
-    
 """
 
 
@@ -94,15 +93,14 @@ class Form(object):
 
         # `fields` is treated as a way to override DictShield field privacy
         #
-        # This behavior is desireable for letting users update fields that might
-        # have privacy restraints for serializable forms.
+        # This behavior is desireable for letting users update fields that
+        # might have privacy restraints for serializable forms.
         if private_fields:
             internal_fields = set(model._internal_fields)
             private_overrides = set(private_fields)
             self._hidden_fields = internal_fields.union(private_overrides)
         else:
             self._hidden_fields = self._model._get_internal_fields()
-            
 
     ###
     ### Formatting Helpers
@@ -113,7 +111,7 @@ class Form(object):
         in a formatting outputter, like `as_p`.
         """
         for name, field in self._model._fields.items():
-            if field.field_name: # field itself must be correct
+            if field.field_name:  # field itself must be correct
                 if field.field_name in self._hidden_fields:
                     continue
 
@@ -124,7 +122,7 @@ class Form(object):
                 # These values are keys in override maps
                 field_name = field.field_name
                 field_class = field.__class__.__name__
-                
+
                 # If field is named in _name_map, use that field
                 if field_name in self._name_map:
                     field_type = self._name_map[field_name]
@@ -133,10 +131,9 @@ class Form(object):
                     field_type = self._field_map[field_class]
                 # Default to text input
                 else:
-                    field_type = 'text'            
+                    field_type = 'text'
 
                 yield (name, field_type, field.field_name)
-
 
     def _format_loop(self, format_str, values, style_values, skip_fields=None):
         """The fundamental loop for generating a formatted output string for
@@ -146,8 +143,8 @@ class Form(object):
         Allows passing in a `DictShield` instance or a dictionary. Anything
         else throws an error.
 
-        The `DictShield` instance will be converted to a dictionary using a call
-        to `.to_python()`.
+        The `DictShield` instance will be converted to a dictionary using a
+        call to `.to_python()`.
 
         CAUTION: style_values is subject to side-effects for speed
         """
@@ -187,24 +184,22 @@ class Form(object):
     def _class_str(self, attr_value):
         if attr_value:
             return ' class="%s"' % attr_value
-        
-        return ''
 
+        return ''
 
     def _value_str(self, value):
         """An internal function for printing a value= attribute string as
         commonly found in html output.
         """
-        # value is a Class 
+        # value is a Class
         if isinstance(value, BaseField):
             return ''
 
         # value is not a class
         if value:
             return 'value="%s" ' % value
-        
-        return ''
 
+        return ''
 
     ###
     ### Form Generation
@@ -212,23 +207,27 @@ class Form(object):
 
     def as_p(self, values=dict(), p_class=None, input_class=None):
         style_values = {}
-        
+
         style_values['p_class'] = self._class_str(p_class)
         style_values['input_class'] = self._class_str(input_class)
-        
-        s = '<p%(p_class)s>%(name)s: <input%(input_class)s type="%(type)s" name="%(field)s" %(value_str)s/></p>'
+
+        # If I have to break the line, might as well do it by attribute
+        s = '<p%(p_class)s>%(name)s: ' \
+            '<input%(input_class)s ' \
+            'type="%(type)s" ' \
+            'name="%(field)s" ' \
+            '%(value_str)s/></p>'
 
         return self._format_loop(s, values, style_values)
-
 
     def as_div(self, values=dict(), div_class=None, label_class=None,
                input_class=None, **kwargs):
         style_values = {}
-        
+
         style_values['div_class'] = self._class_str(div_class)
         style_values['label_class'] = self._class_str(label_class)
         style_values['input_class'] = self._class_str(input_class)
-        
+
         s = """<div%(div_class)s>
     <label%(label_class)s>%(name)s:</label>
     <input%(input_class)s type="%(type)s" name="%(field)s" %(value_str)s/>

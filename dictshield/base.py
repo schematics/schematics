@@ -3,8 +3,8 @@
 """This module puts the basic framework for the Document and it's Metaclass
 together. The Metaclass attribute `_fields`_ informs the validation system
 about *what* to validate. `_fields` is also used for mapping inputs and outputs
-to corresponding members of the Document, fascilitating easy document validating
-like:
+to corresponding members of the Document, fascilitating easy document
+validating like:
 
     d = Document(**key_map)
     try:
@@ -36,6 +36,7 @@ class InvalidShield(Exception):
     """A shield has been put together incorrectly
     """
     pass
+
 
 class ShieldException(Exception):
     """The field did not pass validation.
