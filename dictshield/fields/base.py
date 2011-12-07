@@ -161,17 +161,17 @@ class UUIDField(BaseField):
     empty values with new UUIDs.
     """
 
-    def __init__(self, auto_fill=True, **kwargs):
-        self.auto_fill = auto_fill
+    def __init__(self, auto_fill=False, **kwargs):
         super(UUIDField, self).__init__(**kwargs)
+        self.auto_fill = auto_fill
 
     def __set__(self, instance, value):
         """Convert any text values provided into Python UUID objects and
         auto-populate any empty values should auto_fill be set to True.
         """
-        if not value:
+        if not value and self.auto_fill is True:
             value = uuid.uuid4()
-
+        
         if isinstance(value, (str, unicode)):
             value = uuid.UUID(value)
 
