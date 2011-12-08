@@ -198,7 +198,7 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
         data = self._to_fields(fun)
         return data
 
-    def to_json(self, encode=True):
+    def to_json(self, encode=True, sort_keys=False):
         """Return data prepared for JSON. By default, it returns a JSON encoded
         string, but disabling the encoding to prevent double encoding with
         embedded documents.
@@ -206,7 +206,7 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
         fun = lambda f, v: f.for_json(v)
         data = self._to_fields(fun)
         if encode:
-            return json.dumps(data)
+            return json.dumps(data, sort_keys=sort_keys)
         else:
             return data
 
@@ -424,7 +424,7 @@ class BaseDocument(object):
         data = self._to_fields(fun)
         return data
 
-    def to_json(self, encode=True):
+    def to_json(self, encode=True, sort_keys=False):
         """Return data prepared for JSON. By default, it returns a JSON encoded
         string, but disabling the encoding to prevent double encoding with
         embedded documents.
@@ -432,7 +432,7 @@ class BaseDocument(object):
         fun = lambda f, v: f.for_json(v)
         data = self._to_fields(fun)
         if encode:
-            return json.dumps(data)
+            return json.dumps(data, sort_keys=sort_keys)
         else:
             return data
 
@@ -684,10 +684,12 @@ class SafeableMixin:
                              white_list=white_list)
 
     @classmethod
-    def make_json_ownersafe(cls, doc_dict_or_dicts, encode=True):
+    def make_json_ownersafe(cls, doc_dict_or_dicts, encode=True,
+                            sort_keys=False):
         field_converter = lambda f, v: cls._fields[f].for_json(v)
         doc_encoder = lambda d: d.to_json(encode=False)
-        doc_converter = lambda d: d.make_json_ownersafe(d, encode=False)
+        doc_converter = lambda d: d.make_json_ownersafe(d, encode=False,
+                                                        sort_keys=sort_keys)
         field_list = cls._get_internal_fields()
         white_list = False
 
@@ -695,7 +697,7 @@ class SafeableMixin:
                               doc_converter, doc_encoder,
                               field_list=field_list, white_list=white_list)
         if encode:
-            return json.dumps(safed)
+            return json.dumps(safed, sort_keys=sort_keys)
         else:
             return safed
 
@@ -712,10 +714,12 @@ class SafeableMixin:
                              white_list=white_list)
 
     @classmethod
-    def make_json_publicsafe(cls, doc_dict_or_dicts, encode=True):
+    def make_json_publicsafe(cls, doc_dict_or_dicts, encode=True,
+                             sort_keys=False):
         field_converter = lambda f, v: cls._fields[f].for_json(v)
         doc_encoder = lambda d: d.to_json(encode=False)
-        doc_converter = lambda d: d.make_json_publicsafe(d, encode=False)
+        doc_converter = lambda d: d.make_json_publicsafe(d, encode=False,
+                                                         sort_keys=sort_keys)
         field_list = cls._public_fields
         white_list = True
 
@@ -723,7 +727,7 @@ class SafeableMixin:
                               doc_converter, doc_encoder,
                               field_list=field_list, white_list=white_list)
         if encode:
-            return json.dumps(safed)
+            return json.dumps(safed, sort_keys=sort_keys)
         else:
             return safed
 
