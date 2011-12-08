@@ -225,7 +225,7 @@ class EmbeddedDocumentField(BaseField):
         return self.document_type.for_jsonschema()
 
     def for_python(self, value):
-        return value
+        return value.to_python()
 
     def for_json(self, value):
         return value.to_json(encode=False)
