@@ -84,14 +84,12 @@ class TestGetSingleEmbeddedData(unittest.TestCase):
         self.TestDoc = TestDocument
         self.testdoc = TestDocument()
 
-    @unittest.expectedFailure #because the set shouldn't upcast until validation
     def test_good_value_for_python_upcasts(self):
         self.testdoc.the_doc = [{'bandname': 'fugazi'}]
-        actual = self.testdoc.the_doc
-        embeded_test = self.embeded_test_document()
-        embeded_test['bandname'] = 'fugazi'
-        expected = [embeded_test]
-        self.assertEqual(actual, expected)
+        from_testdoc = self.testdoc.the_doc[0]
+        new_embedded_test = self.embeded_test_document()
+        new_embedded_test['bandname'] = 'fugazi'
+        self.assertEqual(from_testdoc, new_embedded_test)
 
 
 class TestMultipleEmbeddedData(unittest.TestCase):
