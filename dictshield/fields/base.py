@@ -1,7 +1,3 @@
-try:
-    from itertools import filterfalse  # python3 wutwut
-except:
-    from itertools import ifilterfalse
 import uuid
 import re
 import datetime
@@ -10,17 +6,6 @@ import decimal
 from dictshield.base import ShieldException, InvalidShield
 
 from dictshield.fields import dictshield_fields
-    ## ('string', None): StringField,
-    ## ('string', 'phone'): StringField,
-    ## ('string', 'url'): URLField,
-    ## ('string', 'email'): EmailField,
-    ## ('number', None): IntField,
-    ## ('integer', None): IntField,
-    ## ('boolean', None): BooleanField,
-    ## ('string', 'date-time'): DateTimeField,
-    ## ('string', 'date'): DateTimeField,
-    ## ('string', 'time'): DateTimeField,
-    ## }
 
 
 class BaseFieldMetaClass(type):
