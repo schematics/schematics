@@ -1,71 +1,31 @@
 #!/usr/bin/env python
 
-"""ACTION: # As Python, then JSON
 
-     {
-       '_types': ['Action'],
-       '_cls': 'Action',
-       'value': u'Hello Mike',
-       'tags': [u'Erlang', u'Mike Williams']
-     }
-     {
-       "_types": ["Action"],
-       "_cls": "Action",
-       "value": "Hello Joe",
-       "tags": ["Erlang", "Joe Armstrong"]
-     }
+"""Action 1 as Python:
 
-SINGLETASK: # As Python, then JSON
+    {'_types': ['Action'], '_cls': 'Action', 'value': u'Hello Mike', 'tags': [u'Erlang', u'Mike Williams']}
 
-     {
-       'action': <Action: Action object>,
-       '_types': ['SingleTask'],
-       '_cls': 'SingleTask',
-       'created_date': datetime.datetime(2011, 8, 7, 1, 41, 46, 363909)
-     }
-     {
-       "action": {
-         "_types": ["Action"],
-         "_cls": "Action",
-         "value": "Hello Mike",
-         "tags": ["Erlang", "Mike Williams"]
-       },
-       "_types": ["SingleTask"],
-       "_cls": "SingleTask",
-       "created_date": "2011-08-07T01:41:46.363909"
-     }
+Action 2 as JSON:
 
-TASKLIST: # As Python, then JSON
+    {"_types": ["Action"], "_cls": "Action", "value": "Hello Joe", "tags": ["Erlang", "Joe Armstrong"]}
 
-     {
-       'updated_date': datetime.datetime(2011, 8, 7, 1, 41, 46, 364019),
-       '_types': ['TaskList'],
-       'num_completed': 0,
-       'actions': [<Action: Action object>, <Action: Action object>],
-       '_cls': 'TaskList',
-       'created_date': datetime.datetime(2011, 8, 7, 1, 41, 46, 364031)
-     }
-     {
-       "updated_date": "2011-08-07T01:41:46.364019",
-       "_types": ["TaskList"],
-       "num_completed": 0,
-       "actions": [
-         {
-           "_types": ["Action"],
-           "_cls": "Action",
-           "value": "Hello Mike",
-           "tags": ["Erlang", "Mike Williams"]
-         }, {
-           "_types": ["Action"],
-           "_cls": "Action",
-           "value": "Hello Joe",
-           "tags": ["Erlang", "Joe Armstrong"]
-         }
-       ],
-       "_cls": "TaskList",
-       "created_date": "2011-08-07T01:41:46.364031"
-     }
+Single task as Python:
+
+    {'action': {'_types': ['Action'], '_cls': 'Action', 'value': u'Hello Mike', 'tags': [u'Erlang', u'Mike Williams']}, '_types': ['SingleTask'], '_cls': 'SingleTask', 'created_date': datetime.datetime(2011, 12, 10, 22, 16, 22, 273267)}
+
+Single task as JSON:
+
+    {"action": {"_types": ["Action"], "_cls": "Action", "value": "Hello Mike", "tags": ["Erlang", "Mike Williams"]}, "_types": ["SingleTask"], "_cls": "SingleTask", "created_date": "2011-12-10T22:16:22.273267"}
+
+Tasklist as Python:
+
+    {'updated_date': datetime.datetime(2011, 12, 10, 22, 16, 22, 273521), '_types': ['TaskList'], 'num_completed': 0, 'actions': [{'_types': ['Action'], '_cls': 'Action', 'value': u'Hello Mike', 'tags': [u'Erlang', u'Mike Williams']}, {'_types': ['Action'], '_cls': 'Action', 'value': u'Hello Joe', 'tags': [u'Erlang', u'Joe Armstrong']}], '_cls': 'TaskList', 'created_date': datetime.datetime(2011, 12, 10, 22, 16, 22, 273558)}
+
+Tasklist as JSON:
+
+    {"updated_date": "2011-12-10T22:16:22.273521", "_types": ["TaskList"], "num_completed": 0, "actions": [{"_types": ["Action"], "_cls": "Action", "value": "Hello Mike", "tags": ["Erlang", "Mike Williams"]}, {"_types": ["Action"], "_cls": "Action", "value": "Hello Joe", "tags": ["Erlang", "Joe Armstrong"]}], "_cls": "TaskList", "created_date": "2011-12-10T22:16:22.273558"}
 """
+
 
 import datetime
 
@@ -112,9 +72,8 @@ class TaskList(Document):
 a1 = Action(value='Hello Mike', tags=['Erlang', 'Mike Williams'])
 a2 = Action(value='Hello Joe', tags=['Erlang', 'Joe Armstrong'])
 
-print 'ACTION:\n'
-print '    ', a1.to_python()
-print '    ', a2.to_json()
+print 'Action 1 as Python:\n\n    %s\n' % (a1.to_python())
+print 'Action 2 as JSON:\n\n    %s\n' % (a2.to_json())
 
 
 ###
@@ -124,9 +83,8 @@ print '    ', a2.to_json()
 st = SingleTask()
 st.action = a1
 
-print '\nSINGLETASK:\n'
-print '    ', st.to_python()
-print '    ', st.to_json()
+print 'Single task as Python:\n\n    %s\n' % (st.to_python())
+print 'Single task as JSON:\n\n    %s\n' % (st.to_json())
 
 
 ###
@@ -136,7 +94,6 @@ print '    ', st.to_json()
 tl = TaskList()
 tl.actions = [a1, a2]
 
-print '\nTASKLIST:\n'
-print '    ', tl.to_python()
-print '    ', tl.to_json()
+print 'Tasklist as Python:\n\n    %s\n' % (tl.to_python())
+print 'Tasklist as JSON:\n\n    %s\n' % (tl.to_json())
 

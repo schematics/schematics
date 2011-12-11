@@ -1,108 +1,25 @@
 #!/usr/bin/env python
 
-"""PYTHON:
-    {
-      'username': u'ben',
-      '_types': ['User', 'User.Customer'],
-      'first_name': u'Ben',
-      'last_name': u'G',
-      'date_made': datetime.datetime(2011, 8, 7, 4, 21, 22, 783762),
-      'orders': [<Order: Order object>],
-      '_cls': 'User.Customer',
-      'email': u'ben@ben.com'
-    } 
 
-JSON:
-    {
-      "username": "ben",
-      "_types": ["User", "User.Customer"],
-      "first_name": "Ben",
-      "last_name": "G",
-      "date_made": "2011-08-07T04:21:22.783762",
-      "orders": [
-        {
-          "_types": ["Order"],
-          "line_items": [
-            {
-              "sku": 1,
-              "_types": ["Product"],
-              "description": "A Japanese laquered bowl",
-              "title": "Japanese Bowl",
-              "price": 3.99,
-              "num_in_stock": 3,
-              "_cls": "Product"
-            }, {
-              "sku": 2,
-              "_types": ["Product"],
-              "description": "An African laquered bowl",
-              "title": "African Bowl",
-              "price": 3.99,
-              "num_in_stock": 4,
-              "_cls": "Product"
-            }
-          ],
-          "total": 7.98,
-          "date_made": "2011-08-07T04:21:22.783271",
-          "_cls": "Order"
-        }
-      ],
-      "_cls": "User.Customer",
-      "email": "ben@ben.com"
-    } 
+"""Customer as Python:
 
-Serializing to JSON and reloading...
-    
-PYTHON:
-    {
-      'username': u'ben',
-      '_types': ['User', 'User.Customer'],
-      'first_name': u'Ben',
-      'last_name': u'G',
-      'date_made': datetime.datetime(2011, 8, 7, 4, 21, 22, 783762),
-      'orders': [<Order: Order object>],
-      '_cls': 'User.Customer',
-      'email': u'ben@ben.com'
-    }
-    
-JSON:
-    {
-      "username": "ben",
-      "_types": ["User", "User.Customer"],
-      "first_name": "Ben",
-      "last_name": "G",
-      "date_made": "2011-08-07T04:21:22.783762",
-      "orders": [
-        {
-          "_types": ["Order"],
-          "line_items": [
-            {
-              "sku": 1,
-              "_types": ["Product"],
-              "description": "A Japanese laquered bowl",
-              "title": "Japanese Bowl",
-              "price": 3.99,
-              "num_in_stock": 3,
-              "_cls": "Product"
-            }, {
-              "sku": 2,
-              "_types": ["Product"],
-              "description": "An African laquered bowl",
-              "title": "African Bowl",
-              "price": 3.99,
-              "num_in_stock": 4,
-              "_cls": "Product"
-            }
-          ],
-          "total": 7.98,
-          "date_made": "2011-08-07T04:21:22.783271",
-          "_cls":
-          "Order"
-        }
-      ],
-      "_cls": "User.Customer",
-      "email": "ben@ben.com"
-    } 
+    {'username': u'ben', '_types': ['User', 'User.Customer'], 'first_name': u'Ben', 'last_name': u'G', 'date_made': datetime.datetime(2011, 12, 11, 3, 4, 27, 107500), 'orders': [{'_types': ['Order'], 'line_items': [{'sku': 1, '_types': ['Product'], 'description': u'A Japanese laquered bowl', 'title': u'Japanese Bowl', 'price': 3.99, 'num_in_stock': 3, '_cls': 'Product'}, {'sku': 2, '_types': ['Product'], 'description': u'An African laquered bowl', 'title': u'African Bowl', 'price': 3.99, 'num_in_stock': 4, '_cls': 'Product'}], 'total': 7.98, 'date_made': datetime.datetime(2011, 12, 11, 3, 4, 27, 107004), '_cls': 'Order'}], '_cls': 'User.Customer', 'email': u'ben@ben.com'}
+
+Customer as JSON:
+
+    {"username": "ben", "_types": ["User", "User.Customer"], "first_name": "Ben", "last_name": "G", "date_made": "2011-12-11T03:04:27.107500", "orders": [{"_types": ["Order"], "line_items": [{"sku": 1, "_types": ["Product"], "description": "A Japanese laquered bowl", "title": "Japanese Bowl", "price": 3.99, "num_in_stock": 3, "_cls": "Product"}, {"sku": 2, "_types": ["Product"], "description": "An African laquered bowl", "title": "African Bowl", "price": 3.99, "num_in_stock": 4, "_cls": "Product"}], "total": 7.98, "date_made": "2011-12-11T03:04:27.107004", "_cls": "Order"}], "_cls": "User.Customer", "email": "ben@ben.com"}
+
+Serializing model to JSON and loading into new instance...
+
+Customer as Python:
+
+    {'username': u'ben', '_types': ['User', 'User.Customer'], 'first_name': u'Ben', 'last_name': u'G', 'date_made': datetime.datetime(2011, 12, 11, 3, 4, 27, 107500), 'orders': [{'_types': ['Order'], 'line_items': [{'sku': 1, '_types': ['Product'], 'description': u'A Japanese laquered bowl', 'title': u'Japanese Bowl', 'price': 3.99, 'num_in_stock': 3, '_cls': 'Product'}, {'sku': 2, '_types': ['Product'], 'description': u'An African laquered bowl', 'title': u'African Bowl', 'price': 3.99, 'num_in_stock': 4, '_cls': 'Product'}], 'total': 7.98, 'date_made': datetime.datetime(2011, 12, 11, 3, 4, 27, 107004), '_cls': 'Order'}], '_cls': 'User.Customer', 'email': u'ben@ben.com'}
+
+Customer as JSON:
+
+    {"username": "ben", "_types": ["User", "User.Customer"], "first_name": "Ben", "last_name": "G", "date_made": "2011-12-11T03:04:27.107500", "orders": [{"_types": ["Order"], "line_items": [{"sku": 1, "_types": ["Product"], "description": "A Japanese laquered bowl", "title": "Japanese Bowl", "price": 3.99, "num_in_stock": 3, "_cls": "Product"}, {"sku": 2, "_types": ["Product"], "description": "An African laquered bowl", "title": "African Bowl", "price": 3.99, "num_in_stock": 4, "_cls": "Product"}], "total": 7.98, "date_made": "2011-12-11T03:04:27.107004", "_cls": "Order"}], "_cls": "User.Customer", "email": "ben@ben.com"}
 """
+
 
 from dictshield.document import Document, EmbeddedDocument
 from dictshield.fields import (IntField,
@@ -191,13 +108,13 @@ customer = Customer(username="ben",
 ###
 
 ### Serialize to Python
-print 'PYTHON:\n', customer.to_python(), '\n'
+print 'Customer as Python:\n\n    %s\n' % (customer.to_python())
 
 ### Serialize to JSON
-print 'JSON:\n', customer.to_json(), '\n'
+print 'Customer as JSON:\n\n    %s\n' % (customer.to_json())
 
 ### Serialize data to JSON and load back into Python dictionary.
-print 'Serializing to JSON and reloading...\n'
+print 'Serializing model to JSON and loading into new instance...\n'
 json_data = customer.to_json()
 customer_dict = json.loads(json_data)
 
@@ -205,7 +122,7 @@ customer_dict = json.loads(json_data)
 loaded_customer = Customer(**customer_dict)
 
 ### Reserialize to Python
-print 'PYTHON:\n', loaded_customer.to_python(), '\n'
+print 'Customer as Python:\n\n    %s\n' % (loaded_customer.to_python())
 
 ### Reserialize to JSON
-print 'JSON:\n', loaded_customer.to_json(), '\n'
+print 'Customer as JSON:\n\n    %s\n' % (loaded_customer.to_json())

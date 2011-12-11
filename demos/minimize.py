@@ -1,5 +1,24 @@
 #!/usr/bin/env python
 
+
+"""MOVIE ] ----------------------------------------
+    schema :: {'type': 'object', 'properties': {'year': {'minimum': 1950, 'type': 'number', 'maximum': 2011, 'title': 'year'}, 'title': {'title': 'title', 'type': 'string', 'maxLength': 40}}, 'title': 'Movie'}
+    python :: {'personal_thoughts': u'It was pretty good', '_types': ['Movie'], 'title': u'Some Movie', '_cls': 'Movie', 'year': 2011}
+      json :: {"personal_thoughts": "It was pretty good", "_types": ["Movie"], "title": "Some Movie", "_cls": "Movie", "year": 2011}
+     owner :: {'p': 'It was pretty good', 't': 'Some Movie', 'y': 2011}
+    public :: {"y": 2011, "t": "Some Movie"}
+
+Movie as JSON ] --------------------------------
+      json :: {"p": "It was pretty good", "t": "Some Movie", "y": 2011}
+
+RESTORED MOVIE ] -------------------------------
+    schema :: {'type': 'object', 'properties': {'year': {'minimum': 1950, 'type': 'number', 'maximum': 2011, 'title': 'year'}, 'title': {'title': 'title', 'type': 'string', 'maxLength': 40}}, 'title': 'Movie'}
+    python :: {'personal_thoughts': u'It was pretty good', '_types': ['Movie'], 'title': u'Some Movie', '_cls': 'Movie', 'year': 2011}
+      json :: {"personal_thoughts": "It was pretty good", "_types": ["Movie"], "title": "Some Movie", "_cls": "Movie", "year": 2011}
+     owner :: {'p': u'It was pretty good', 't': u'Some Movie', 'y': 2011}
+    public :: {"y": 2011, "t": "Some Movie"}
+"""
+
 import json
 
 import sys

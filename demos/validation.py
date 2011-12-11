@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
+
 """Attempting validation on:
-    
+
     {"_types": ["User"], "secret": "whatevz", "name": "test hash", "_cls": "User"}
 
 ShieldException caught: MD5 value is wrong length - secret:whatevz
@@ -32,6 +33,7 @@ Owner safe doc:
 Public safe doc:
     {"bio": "J2D2 loves music", "name": "J2D2"}
 """
+
 
 from dictshield.base import ShieldException
 from dictshield.document import Document

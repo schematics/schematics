@@ -1,21 +1,8 @@
 #!/usr/bin/env python
 
-"""This thing to notice in this example is that the class hierarcy is not
-influenced by subclassing EmbeddedDocuments with meta['mixin'] = True. This
-can be useful if you know you're going to use something of an EmbeddedDocument
-in the top level document structure
+"""SomeDoc as JSON:
 
-{
-    "_cls": "SomeDoc", 
-    "_types": [
-        "SomeDoc"
-    ], 
-    "archived": false, 
-    "body": "Scenester twee mlkshk readymade butcher. Letterpress portland +1\nsalvia, vinyl trust fund butcher gentrify farm-to-table brooklyn helvetica DIY.\nSartorial homo 3 wolf moon, banh mi blog retro mlkshk Austin master cleanse.\n", 
-    "deleted": false, 
-    "liked": true, 
-    "title": "Some Document"
-}
+    {"body": "Scenester twee mlkshk readymade butcher. Letterpress portland +1\nsalvia, vinyl trust fund butcher gentrify farm-to-table brooklyn helvetica DIY.\nSartorial homo 3 wolf moon, banh mi blog retro mlkshk Austin master cleanse.\n", "_types": ["SomeDoc"], "liked": true, "title": "Some Document", "deleted": false, "archived": false, "_cls": "SomeDoc"}
 """
 
 from dictshield.document import Document, EmbeddedDocument
@@ -50,4 +37,4 @@ Sartorial homo 3 wolf moon, banh mi blog retro mlkshk Austin master cleanse.
 
 sd.liked = True
 
-print sd.to_json()
+print 'SomeDoc as JSON:\n\n    %s\n' % (sd.to_json())
