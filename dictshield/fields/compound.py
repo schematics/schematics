@@ -121,15 +121,13 @@ class ListField(BaseField):
             return
 
         for item in value:
-            for field in self.fields:
-                try:
+            try:
+                for field in self.fields:
                     field.validate(item)
-                    break
-                except ShieldException:
-                    continue
-            else:
+            except Exception, e:
                 raise ShieldException('Invalid ListField item',
                                       self.field_name, str(item))
+        return value
 
     def _set_owner_document(self, owner_document):
         for field in self.fields:
@@ -240,6 +238,7 @@ class EmbeddedDocumentField(BaseField):
                                   'provided to an EmbeddedDocumentField',
                                   self.field_name, value)
         self.document_type.validate(value)
+        return value
 
     def lookup_member(self, member_name):
         return self.document_type._fields.get(member_name)

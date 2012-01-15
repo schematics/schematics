@@ -96,7 +96,7 @@ class BaseField(object):
             else:
                 raise ValueError('validation argument must be a callable.')
 
-        self.validate(value)
+        return self.validate(value)
 
     def _jsonschema_default(self):
         if callable(self.default):
@@ -157,7 +157,7 @@ class UUIDField(BaseField):
         if not value and self.auto_fill is True:
             value = uuid.uuid4()
         
-        if isinstance(value, (str, unicode)):
+        if value and not isinstance(value, uuid.UUID):
             value = uuid.UUID(value)
 
         instance._data[self.field_name] = value
@@ -171,10 +171,11 @@ class UUIDField(BaseField):
         """
         if not isinstance(value, (uuid.UUID,)):
             try:
-                uuid.UUID(value)
+                value = uuid.UUID(value)
             except ValueError:
                 raise ShieldException('Not a valid UUID value',
                     self.field_name, value)
+        return value
 
     def for_json(self, value):
         """Return a JSON safe version of the UUID object.
@@ -230,6 +231,8 @@ class StringField(BaseField):
         if self.regex is not None and self.regex.match(value) is None:
             message = 'String value did not match validation regex',
             raise ShieldException(message, self.uniq_field, value)
+ 
+        return value
 
     def lookup_member(self, member_name):
         return None
@@ -279,6 +282,8 @@ class URLField(StringField):
                 message = 'URL does not exist'
                 raise ShieldException(message, self.field_name, value)
 
+        return value
+
 
 class EmailField(StringField):
     """A field that validates input as an E-Mail-Address.
@@ -299,6 +304,7 @@ class EmailField(StringField):
         if not EmailField.EMAIL_REGEX.match(value):
             raise ShieldException('Invalid email address', self.field_name,
                                   value)
+        return value
 
     def _jsonschema_format(self):
         return 'email'
@@ -359,6 +365,8 @@ class NumberField(JsonNumberMixin, BaseField):
             raise ShieldException('%s value above max_value: %s'
                                   % (self.number_type, self.max_value),
                                   self.field_name, value)
+
+        return value
 
 
 class IntField(NumberField):
@@ -434,6 +442,8 @@ class DecimalField(BaseField, JsonNumberMixin):
             raise ShieldException('Decimal value above max_value: %s'
                                   % self.max_value, self.field_name, value)
 
+        return value
+
 
 ###
 ### Hashing fields
@@ -467,6 +477,7 @@ class MD5Field(BaseField, JsonHashMixin):
         except:
             raise ShieldException('MD5 value is not hex', self.field_name,
                                   value)
+        return value
 
 
 class SHA1Field(BaseField, JsonHashMixin):
@@ -483,6 +494,7 @@ class SHA1Field(BaseField, JsonHashMixin):
         except:
             raise ShieldException('SHA1 value is not hex', self.field_name,
                                   value)
+        return value
 
 
 ###
@@ -510,6 +522,7 @@ class BooleanField(BaseField):
     def validate(self, value):
         if not isinstance(value, bool):
             raise ShieldException('Not a boolean', self.field_name, value)
+        return value
 
 
 class DateTimeField(BaseField):
@@ -592,6 +605,7 @@ class DateTimeField(BaseField):
     def validate(self, value):
         if not isinstance(value, datetime.datetime):
             raise ShieldException('Not a datetime', self.field_name, value)
+        return value
 
     def for_python(self, value):
         return value
@@ -627,6 +641,7 @@ class DictField(BaseField):
             raise ShieldException('Invalid dictionary key name - keys may not '
                                   'contain "." or "$" characters',
                                   self.field_name, value)
+        return value
 
     def lookup_member(self, member_name):
         return self.basecls(uniq_field=member_name)
@@ -658,6 +673,7 @@ class MultiValueDictField(DictField):
             raise ShieldException('Invalid dictionary key name - keys may not '
                                   'contain "." or "$" characters',
                                   self.field_name, value)
+        return value
 
     def for_json(self, value):
         output = {}
@@ -704,3 +720,4 @@ class GeoPointField(BaseField):
                                   'lists of (x, y), or dicts of {k1: v1, '
                                   'k2: v2}',
                                   self.field_name, value)
+        return value

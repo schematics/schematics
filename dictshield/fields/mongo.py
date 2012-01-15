@@ -45,7 +45,9 @@ class ObjectIdField(BaseField):
         return str(value)
 
     def validate(self, value):
-        try:
-            bson.objectid.ObjectId(unicode(value))
-        except Exception, e:
-            raise ShieldException('Invalid ObjectId', self.field_name, value)
+        if not isinstance(value, bson.objectid.ObjectId):
+            try:
+                value = bson.objectid.ObjectId(unicode(value))
+            except Exception, e:
+                raise ShieldException('Invalid ObjectId', self.field_name, value)
+        return value

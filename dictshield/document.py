@@ -277,7 +277,7 @@ class BaseDocument(object):
             # treat empty strings is nonexistent
             if value is not None and value != '':
                 try:
-                    field._validate(value)
+                    return field._validate(value)
                 except (ValueError, AttributeError, AssertionError):
                     raise ShieldException('Invalid value', field.field_name,
                                           value)
