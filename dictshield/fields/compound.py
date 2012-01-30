@@ -17,7 +17,7 @@ class ListField(BaseField):
     of the field to be used as a list in the model.
     """
 
-    def __init__(self, fields=None, **kwargs):
+    def __init__(self, fields, **kwargs):
         # Some helpful functions
         is_basefield = lambda field: isinstance(field, BaseField)
         is_embeddeddoc = lambda field: isinstance(field, EmbeddedDocumentField)
