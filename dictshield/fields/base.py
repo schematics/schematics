@@ -557,7 +557,7 @@ class DateTimeField(BaseField):
             return
 
         if isinstance(value, (str, unicode)):
-            value = DateTimeField.iso8601_to_date(value)
+            value = DateTimeField.iso8601_to_date("T".join(value.split(" ")))
 
         instance._data[self.field_name] = value
 
