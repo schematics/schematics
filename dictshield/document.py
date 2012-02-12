@@ -24,7 +24,8 @@ schema_kwargs_to_dictshield = {
 ###
 
 class DocumentMetaclass(type):
-    """Metaclass for all documents.
+    """Metaclass for all documents. Additional meta-functionality can be
+    constructed via subclassing this document.
     """
 
     def __new__(cls, name, bases, attrs):
@@ -37,12 +38,12 @@ class DocumentMetaclass(type):
         class_name = [name]
         superclasses = {}
         simple_class = True
+
+        ### Carry over attributes from base class, if one is present
         for base in bases:
-            # Include all fields present in superclasses
             if hasattr(base, '_fields'):
                 doc_fields.update(base._fields)
                 class_name.append(base._class_name)
-                # Get superclasses from superclass
                 superclasses[base._class_name] = base
                 superclasses.update(base._superclasses)
 
@@ -80,7 +81,7 @@ class DocumentMetaclass(type):
         # Add the document's fields to the _fields attribute
         for attr_name, attr_value in attrs.items():
             if hasattr(attr_value, "__class__") and \
-               issubclass(attr_value.__class__, BaseField):
+                   issubclass(attr_value.__class__, BaseField):
                 attr_value.field_name = attr_name
                 if not attr_value.uniq_field:
                     attr_value.uniq_field = attr_name
@@ -98,17 +99,14 @@ class DocumentMetaclass(type):
 
 
 class TopLevelDocumentMetaclass(DocumentMetaclass):
-    """Metaclass for top-level documents (i.e. documents that have their own
-    collection in the database.
+    """Metaclass for top-level documents. A Top-level document in DictShield
+    represents the kind of structure that will be stored in a database. The
+    `TopLevelDocumentMetaclass` is therefore responsible for the kind of
+    attributes that make a document saveable, like an id field.
     """
 
     def __new__(cls, name, bases, attrs):
         super_new = super(TopLevelDocumentMetaclass, cls).__new__
-        # Classes defined in this package are abstract and should not have
-        # their own metadata with DB collection, etc.
-        # __metaclass__ is only set on the class with the __metaclass__
-        # attribute (i.e. it is not set on subclasses). This differentiates
-        # 'real' documents from the 'Document' class
         if attrs.get('__metaclass__') == TopLevelDocumentMetaclass:
             return super_new(cls, name, bases, attrs)
 
