@@ -1,6 +1,6 @@
 # DictShield
 
-Aside from being a cheeky excuse to make people say things that sound sorta 
+Aside from being a cheeky excuse to make people say things that sound sorta
 dirty, DictShield is a database-agnostic modeling system. It provides a way to
 model, validate and reshape data easily. All without requiring any particular
 database.
@@ -64,8 +64,8 @@ also serve for building an RPC.
 
 5. Input / Output Shaping
 
-DictShield also allows for object hierarchy's to be mapped into 
-dictionaries too. This is useful primarily to those who use DictShield 
+DictShield also allows for object hierarchy's to be mapped into
+dictionaries too. This is useful primarily to those who use DictShield
 to instantiate classes representing their data instead of just filtering
 dictionaries through the class's static methods.
 
@@ -88,8 +88,8 @@ Below is an example of a Media class with a single field, the title.
         """Simple document that has one StringField member
         """
         title = StringField(max_length=40)
-    
-You create the class just like you would any Python class. And we'll see 
+
+You create the class just like you would any Python class. And we'll see
 how that class is represented as a Python dictionary.
 
     m = Media()
@@ -105,7 +105,7 @@ The output from this looks like:
     }
 
 All the meta information is removed and we have just a barebones representation
-of our data. Notice that the class information is still there as `_cls` and 
+of our data. Notice that the class information is still there as `_cls` and
 `_types`.
 
 ### More On Object Modeling
@@ -123,7 +123,7 @@ obvious when I subclass Media to create the Movie document below.
         fields to only 'bar'.
         """
         _public_fields = ['title','year']
-        year = IntField(min_value=1950, 
+        year = IntField(min_value=1950,
                         max_value=datetime.datetime.now().year)
         personal_thoughts = StringField(max_length=255)
 
@@ -137,9 +137,9 @@ Here's an instance of the Movie class:
 This is the raw document as converted to a Python dictionary:
 
     {
-        'personal_thoughts': u'I wish I had three hands...', 
-        '_types': ['Media', 'Media.Movie'], 
-        'title': u'Total Recall', 
+        'personal_thoughts': u'I wish I had three hands...',
+        '_types': ['Media', 'Media.Movie'],
+        'title': u'Total Recall',
         '_cls': 'Media.Movie',
         'year': 1990
     }
@@ -150,10 +150,10 @@ Notice that `_types` has kept track of the relationship between `Movie` and
 ### Upgrading Documents
 
 Upgrading documents is then easy because you can add optional fields and remove
-them. 
+them.
 
-As instances are created, two things happen. The fields that don't belong are 
-removed as data is sent back and forth between the client and the server. And 
+As instances are created, two things happen. The fields that don't belong are
+removed as data is sent back and forth between the client and the server. And
 fields that are new are allowed at the data layer, assuming the user experience
 layer will be catching up soon. Until then, the field can just be optional.
 
@@ -184,12 +184,12 @@ A complete list of the types supported by DictShield:
 
 | **TYPE**                | **DESCRIPTION**                                                           |
 |------------------------:|:--------------------------------------------------------------------------|
-|         **Text fields** |                                                                           |    
-|           `StringField` | A unicode string                                                          |    
-|              `URLField` | A valid URL                                                               |     
+|         **Text fields** |                                                                           |
+|           `StringField` | A unicode string                                                          |
+|              `URLField` | A valid URL                                                               |
 |            `EmailField` | A valid email address                                                     |
-|           **ID fields** |                                                                           |    
-|             `UUIDField` | A valid UUID value, optionally auto-populates empty values with new UUIDs |    
+|           **ID fields** |                                                                           |
+|             `UUIDField` | A valid UUID value, optionally auto-populates empty values with new UUIDs |
 |         `ObjectIDField` | Wraps a MongoDB "BSON" ObjectId                                           |
 |      **Numeric fields** |                                                                           |
 |           `NumberField` | Any number (the parent of all the other numeric fields)                   |
@@ -204,7 +204,7 @@ A complete list of the types supported by DictShield:
 |          `BooleanField` | A boolean                                                                 |
 |         `DateTimeField` | A datetime                                                                |
 |         `GeoPointField` | A geo-value of the form x, y (latitude, longitude)                        |
-|          **Containers** |                                                                           | 
+|          **Containers** |                                                                           |
 |             `ListField` | Wraps a standard field, so multiple instances of the field can be used    |
 |       `SortedListField` | A `ListField` which sorts the list before saving, so list is always sorted|
 |             `DictField` | Wraps a standard Python dictionary                                        |
@@ -237,8 +237,8 @@ The exception prints in this pattern `field_name(field_value): reason`.
 
     ShieldException caught: secret(whatevz):  MD5 value is wrong length
 
-If you think the overhead of validation is unnecessary for some use cases, you 
-can skip it by never calling `validate()`. 
+If you think the overhead of validation is unnecessary for some use cases, you
+can skip it by never calling `validate()`.
 
 
 ## Validation Of Types
@@ -256,7 +256,7 @@ First, here is the User model:
         url = URLField()
 
 Next, we seed the instance with some data and validate it.
-    
+
     user = User(**{'secret': 'whatevs', 'name': 'test hash'})
     try:
         user.validate()
@@ -264,9 +264,9 @@ Next, we seed the instance with some data and validate it.
         print 'ShieldException caught: %s' % (se)
 
 This calling `validate()` on a model validates an instance by looping through
-it's fields and calling `field.validate()` on each one. 
+it's fields and calling `field.validate()` on each one.
 
-We can still be leaner. DictShield also allows validating input without 
+We can still be leaner. DictShield also allows validating input without
 instantiating any objects.
 
 
@@ -282,12 +282,12 @@ We might write some server code that looks like this:
     user_input = json.loads(json_string)
     user.validate(**user_input)
 
-This method builds a User instance out of the input, which also throws away 
+This method builds a User instance out of the input, which also throws away
 keys that aren't in the User definition.
 
 We then call `validate()` on that `User` instance to validate each field against
 what the dictionary contained. If the data doesn't pass exception, a
-`ShieldException` is thrown and we handle the error. 
+`ShieldException` is thrown and we handle the error.
 
 If validation passed, we're done. We know the data looks good.
 
@@ -297,7 +297,7 @@ If validation passed, we're done. We know the data looks good.
 Input is coming from everyone online, so who knows what it's in there. We do,
 however, know exactly what fields we want to be there. Same goes for output.
 
-A web system typically has tiers involved with data access, depending on the 
+A web system typically has tiers involved with data access, depending on the
 user logged in. My most common need is to differentiate between internal system
 data (the raw document), data fields for the owner of the data (internal data
 removed) and the data fields that are shareable with the general public.
@@ -308,15 +308,15 @@ Unrecognized fields, in user input, are thrown away. This makes handling input
 fairly easy because you are generally working with a list of fields, what they
 look like and how to turn them into Python or JSON. Not much else.
 
-So here's how you can reduce the user input into just the fields found on a 
+So here's how you can reduce the user input into just the fields found on a
 `User` document.
 
 Consider the following string:
 
     {
-        "rogue_field": "MWAHAHA", 
-        "bio": "Python, Erlang and guitars!", 
-        "secret": "e8b5d682452313a6142c10b045a9a135", 
+        "rogue_field": "MWAHAHA",
+        "bio": "Python, Erlang and guitars!",
+        "secret": "e8b5d682452313a6142c10b045a9a135",
         "name": "J2D2"
     }
 
@@ -330,19 +330,19 @@ Document class and everything else is discarded.
 `user_doc` now looks like below with `rogue_field` removed.
 
     {
-        '_types': ['User'], 
-        'bio': u'Python, Erlang and guitars!, 
-        'secret': 'e8b5d682452313a6142c10b045a9a135', 
-        'name': u'J2D2', 
+        '_types': ['User'],
+        'bio': u'Python, Erlang and guitars!,
+        'secret': 'e8b5d682452313a6142c10b045a9a135',
+        'name': u'J2D2',
         '_cls': 'User'
     }
 
 ### JSON for Owner of Document
 
 Here is our `Movie` document safe for transmitting to the owner of the document.
-We achieve this by calling `Movie.make_json_ownersafe`. This function is a 
+We achieve this by calling `Movie.make_json_ownersafe`. This function is a
 classmethod available on the `Document` class. It knows to remove `_cls` and
-`_types` because they are in `Document._internal_fields`. You can add any 
+`_types` because they are in `Document._internal_fields`. You can add any
 fields that should be treated as internal to your system by adding a list named
 `_private_fields` to your Document and listing each field.
 
@@ -351,7 +351,7 @@ fields that should be treated as internal to your system by adding a list named
         "title": "Total Recall",
         "year": 1990
     }
-   
+
 ### JSON for Public View of Document
 
 This is  dictionary safe for transmitting to the public, not just the owner.
@@ -366,7 +366,7 @@ Get this by calling `make_json_publicsafe`.
 ## Working Without Instances
 
 Consider a user updating some of their settings. Rather than validate the entire
-document, you want to check validation for just the field the client is 
+document, you want to check validation for just the field the client is
 updating and tell your database to store just that field.
 
 DictShield offers a few classmethods to facilitate this.
@@ -374,7 +374,7 @@ DictShield offers a few classmethods to facilitate this.
 ### Class Level Validation
 
 `validate_class_fields` gives us that by checking if some dictionary matches
-the pattern it needs, including required fields. Notice, it's also a 
+the pattern it needs, including required fields. Notice, it's also a
 classmethod. No need to instantiate anything.
 
     user_input = {
@@ -386,11 +386,11 @@ classmethod. No need to instantiate anything.
     except ShieldException, se:
         print('  Validation failure: %s\n' % (dp))
 
-This particular code would throw an exception because the `name` field is 
+This particular code would throw an exception because the `name` field is
 required, but not present.
 
 `validation_class_partial` lets you validate only the fields present in the
-input. This is useful for updating one or two fields in a document at a time, 
+input. This is useful for updating one or two fields in a document at a time,
 like we attempted above.
 
     ...
@@ -399,7 +399,7 @@ like we attempted above.
 
 ### Aggregating Errors
 
-`validate_class_fields` also offers more full validation. Pass 
+`validate_class_fields` also offers more full validation. Pass
 `validate_all=True` to return 0 or more exceptions. 0 exceptions indicates
 validation was successful.
 
