@@ -1,6 +1,12 @@
 import copy
 
 
+'''
+The code in this module has been copied from Django.  See docs/LICENSE.md for
+the full license attached to this code.
+'''
+
+
 class MultiValueDictKeyError(KeyError):
     pass
 
