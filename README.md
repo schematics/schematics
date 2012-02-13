@@ -17,19 +17,40 @@ A blog model might look like this:
 DictShield objects serialize to JSON by default. Store them in Memcached,
 MongoDB, Riak, whatever you need.
 
-Say we have some data coming in from an iPhone:
+    >>> from dictshield.document import Document
+    >>> from dictshield.fields import StringField
+    >>> class Comment(Document):
+    ...   name = StringField(max_length=10)
+    ...   body = StringField(max_length=4000)
+    ...
+    >>> data = {'name':'a hacker', 'body':'DictShield makes validation easy'}
+    >>> Comment(**data).validate()
+    >>> data['name'] = 'a hacker with a name that is too long'
+    >>> Comment(**data).validate()
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+      File "/path/to/site-packages/dictshield/document.py", line 280, in validate
+        field._validate(value)
+      File "/path/to/site-packages/dictshield/fields/base.py", line 99, in _validate
+        self.validate(value)
+      File "/path/to/site-packages/dictshield/fields/base.py", line 224, in validate
+        self.field_name, value)
+    dictshield.base.ShieldException: String value is too long - name:a hacker with a name who is too long
+
+Combining dictshield with JSON coming from a web request is quite
+natural as well. Say we have some data coming in from an iPhone:
 
     json_data = request.post.get('data')
     data = json.loads(json_data)
 
-Validating the data then looks like this: `Model(**data).validate()`.
+Validating the data then looks like this: `Comment(**data).validate()`.
 
 Easy.
 
 
-# The Design 
+# The Design
 
-DictShield aims to provides helpers for a few types of common needs for 
+DictShield aims to provides helpers for a few types of common needs for
 modeling. It has been useful on the server-side so far, but I believe it could
 also serve for building an RPC.
 
