@@ -85,14 +85,15 @@ class BaseField(object):
         if self.choices is not None:
             if value not in self.choices:
                 raise ShieldException("Value must be one of %s."
-                    % unicode(self.choices))
+                    % unicode(self.choices), self.field_name, value)
 
         # check validation argument
         if self.validation is not None:
             if callable(self.validation):
                 if not self.validation(value):
-                    raise ShieldException('Value does not match custom' \
-                                          'validation method.')
+                    raise ShieldException('Value does not match custom'
+                                          'validation method.',
+                                           self.field_name, value)
             else:
                 raise ValueError('validation argument must be a callable.')
 
