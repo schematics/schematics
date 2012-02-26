@@ -1,10 +1,12 @@
-import unittest2
+#!/usr/bin/env python
+
+import unittest
 from dictshield import fields
 from dictshield.document import Document, ShieldException, EmbeddedDocument
 from dictshield.fields.compound import EmbeddedDocumentField, ListField
 
 
-class TestChoices(unittest2.TestCase):
+class TestChoices(unittest.TestCase):
     def setUp(self):
         class Other(EmbeddedDocument):
             info = ListField(fields.StringField())
@@ -39,3 +41,7 @@ class TestChoices(unittest2.TestCase):
 
     def test_validation_failes_with_embedded(self):
         self.assertRaises(ShieldException, self.doc_embedded_invalid.validate)
+
+
+if __name__ == '__main__':
+    unittest.main()
