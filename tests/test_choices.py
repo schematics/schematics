@@ -39,4 +39,3 @@ class TestChoices(unittest.TestCase):
 
     def test_validation_failes_with_embedded(self):
         self.assertRaises(ShieldException, self.doc_embedded_invalid.validate)
-
