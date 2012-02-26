@@ -283,6 +283,7 @@ class BaseDocument(object):
                 raise ShieldException('Required field missing',
                                       field.field_name,
                                       value)
+        return True
 
     @classmethod
     def _get_subclasses(cls):
