@@ -189,10 +189,10 @@ reads your class definition.  It is instantiated when you say something like:
 
 Let's look at a simple example to drive the point home.
 
-    >>> class MetaFoo(type):
+    >>> class MetaBar(type):
     ...     def __new__(cls, name, bases, attrs):
     ...         klass = type.__new__(cls, name, bases, attrs)
-    ...         print 'Hello from MetaFoo
+    ...         print 'Hello from MetaBar
     ...         klass._some_field = 'some field'
     ...         return klass
     ... 
@@ -205,12 +205,12 @@ Let's look at a simple example to drive the point home.
     >>>
 
 Look at that! It printed 'Hello from MetaBar' simply because we created a class
-that uses `MetaFoo` for it's metaclass.  This means we can run code on class
+that uses `MetaBar` for it's metaclass.  This means we can run code on class
 definitions whenever we create them.
 
 What does this let us do?  Well... for starters it let's us dynamically figure
 out how to create that `_fields` dictionary we mentioned before.  If someone 
-subclasses `Bar`, which uses `MetaFoo` as it's metaclass, they automatically
+subclasses `Bar`, which uses `MetaBar` as it's metaclass, they automatically
 populate `_fields` and our validation technique won't depend on any extra work
 from the programmer.
 
@@ -247,7 +247,7 @@ Also notice, however, that we make use of `_fields` in `validate()`.
             for k,v in self._fields.items():
                 v.validate()
 
-Now, here is the fun part.  We'll create a `MetaFoo` that loops through each
+Now, here is the fun part.  We'll create a `MetaDoc` that loops through each
 attribute in `Document` and determines which ones are `IntField` instances.  It
 then populates `_fields` with any `IntField` instances it finds.
 
