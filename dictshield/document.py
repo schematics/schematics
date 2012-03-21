@@ -311,7 +311,7 @@ class BaseDocument(object):
             # treat empty strings is nonexistent
             if value is not None and value != '':
                 try:
-                    return field._validate(value)
+                    field._validate(value)
                 except (ValueError, AttributeError, AssertionError):
                     raise ShieldException('Invalid value', field.field_name,
                                           value)
@@ -319,6 +319,7 @@ class BaseDocument(object):
                 raise ShieldException('Required field missing',
                                       field.field_name,
                                       value)
+        return True
 
     @classmethod
     def _get_subclasses(cls):
