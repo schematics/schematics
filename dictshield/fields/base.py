@@ -156,7 +156,7 @@ class UUIDField(BaseField):
         """
         if not value and self.auto_fill is True:
             value = uuid.uuid4()
-        
+
         if value and not isinstance(value, uuid.UUID):
             value = uuid.UUID(value)
 
@@ -231,7 +231,7 @@ class StringField(BaseField):
         if self.regex is not None and self.regex.match(value) is None:
             message = 'String value did not match validation regex',
             raise ShieldException(message, self.uniq_field, value)
- 
+
         return value
 
     def lookup_member(self, member_name):
@@ -645,42 +645,6 @@ class DictField(BaseField):
 
     def lookup_member(self, member_name):
         return self.basecls(uniq_field=member_name)
-
-
-class MultiValueDictField(DictField):
-    def __init__(self, basecls=None, *args, **kwargs):
-        self.basecls = basecls or BaseField
-        if not issubclass(self.basecls, BaseField):
-            raise InvalidShield('basecls is not subclass of BaseField')
-        kwargs.setdefault('default', lambda: MultiValueDict())
-        super(MultiValueDictField, self).__init__(*args, **kwargs)
-
-    def __set__(self, instance, value):
-        if value is not None and not isinstance(value, MultiValueDict):
-            value = MultiValueDict(value)
-
-        super(MultiValueDictField, self).__set__(instance, value)
-
-    def validate(self, value):
-        """Make sure that a list of valid fields is being used.
-        """
-        if not isinstance(value, (dict, MultiValueDict)):
-            raise ShieldException('Only dictionaries or MultiValueDict may be '
-                                  'used in a DictField', self.field_name,
-                                  value)
-
-        if any(('.' in k or '$' in k) for k in value):
-            raise ShieldException('Invalid dictionary key name - keys may not '
-                                  'contain "." or "$" characters',
-                                  self.field_name, value)
-        return value
-
-    def for_json(self, value):
-        output = {}
-        for key, values in value.iterlists():
-            output[key] = values
-
-        return output
 
 
 class GeoPointField(BaseField):

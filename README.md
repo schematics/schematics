@@ -208,6 +208,7 @@ A complete list of the types supported by DictShield:
 |             `ListField` | Wraps a standard field, so multiple instances of the field can be used    |
 |       `SortedListField` | A `ListField` which sorts the list before saving, so list is always sorted|
 |             `DictField` | Wraps a standard Python dictionary                                        |
+|   `MultiValueDictField` | Wraps Django's implementation of a MultiValueDict.                        |
 | `EmbeddedDocumentField` | Stores a DictShield `EmbeddedDocument`                                    |
 
 ### A Close Look at the MD5Field
