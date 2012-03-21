@@ -24,7 +24,7 @@ schema_kwargs_to_dictshield = {
 ### Options Models
 ###
 
-class DocOptions(object):
+class DocumentOptions(object):
     """This class is a container for all metaclass configuration options. The
     `__init__` method will set the default values for attributes and then
     attempt to map any keyword arguments to attributes of the same name. If an
@@ -45,16 +45,16 @@ class DocOptions(object):
                 setattr(self, k, v)
 
 
-class TopLevelDocOptions(DocOptions):
-    """Extends `DocOptions` to add configuration values for
-    TopLevelDoc instances.
+class TopLevelDocumentOptions(DocumentOptions):
+    """Extends `DocumentOptions` to add configuration values for
+    TopLevelDocument instances.
     """
     def __init__(self, **kwargs):
         self.id_field = UUIDField
         self.id_options = {'uniq_field': 'id'}
         self.bucket = None
         ### The call to super should be last
-        super(TopLevelDocOptions, self).__init__(**kwargs)
+        super(TopLevelDocumentOptions, self).__init__(**kwargs)
 
 
 ###
@@ -79,11 +79,11 @@ def _gen_options(klass, attrs):
     """Processes the attributes and class parameters to generate the correct
     options structure.
 
-    Defaults to `DocOptions` but it's ideal to define `__optionsclass_` on the
+    Defaults to `DocumentOptions` but it's ideal to define `__optionsclass_` on the
     Document's metaclass.
     """
     ### Parse Meta
-    options_class = DocOptions
+    options_class = DocumentOptions
     if hasattr(klass, '__optionsclass__'):
         options_class = klass.__optionsclass__
     options = _parse_meta_config(attrs, options_class)
@@ -180,6 +180,14 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
         if attrs.get('__metaclass__') == TopLevelDocumentMetaclass:
             return klass
 
+        for base in bases:
+            ### Configure `_fields` list
+            if hasattr(base, '_options'):
+
+                if hasattr(base._options, 'id_field'):
+                    ### Carry over id field data
+                    klass._options.id_field = base._options.id_field
+
         for field_name, field in klass._fields.items():
             # Check for custom id key
             if hasattr(field, 'id_field') and field.id_field:
@@ -187,7 +195,7 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
                 if current_id and current_id != field_name:
                     raise ValueError('Cannot override id_field')
 
-                klass._options['id_field'] = field
+                klass._options.id_field = field
                 # Make 'Document.id' an alias to the real primary key field
                 klass.id = field(uniq_field='id')
 
@@ -890,7 +898,7 @@ class EmbeddedDocument(BaseDocument, SafeableMixin):
     """
 
     __metaclass__ = DocumentMetaclass
-    __optionsclass__ = DocOptions
+    __optionsclass__ = DocumentOptions
 
 
 class Document(BaseDocument, SafeableMixin):
@@ -910,5 +918,5 @@ class Document(BaseDocument, SafeableMixin):
     """
 
     __metaclass__ = TopLevelDocumentMetaclass
-    __optionsclass__ = TopLevelDocOptions
+    __optionsclass__ = TopLevelDocumentOptions
 
