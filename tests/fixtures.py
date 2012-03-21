@@ -52,9 +52,8 @@ class InterestMixin(EmbeddedDocument):
     liked = BooleanField(default=False)
     archived = BooleanField(default=False)
     deleted = BooleanField(default=False)
-    meta = {
-        'mixin': True,
-    }
+    class Meta:
+        mixin = True
 
 
 class MixedDoc(Document, InterestMixin):
