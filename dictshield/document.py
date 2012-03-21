@@ -199,7 +199,7 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
                 # Make 'Document.id' an alias to the real primary key field
                 klass.id = field(uniq_field='id')
 
-        id_options = {'uniq_field': 'id'}
+        id_options = {'uniq_field': '_id'}
         if hasattr(klass._options, 'id_options'):
             id_options.update(klass._options.id_options)
 
@@ -241,7 +241,7 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
             data['_cls'] = self._class_name
             data['_types'] = self._superclasses.keys() + [self._class_name]
 
-        if 'in' in data and not data['_id']:
+        if 'id' in data and not data['_id']:
             del data['_id']
 
         return data
