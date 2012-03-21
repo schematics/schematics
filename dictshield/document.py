@@ -1,3 +1,4 @@
+import inspect
 import copy
 
 from dictshield.base import ShieldException, json
@@ -20,6 +21,76 @@ schema_kwargs_to_dictshield = {
 
 
 ###
+### Options Models
+###
+
+class DocOptions(object):
+    """This class is a container for all metaclass configuration options. The
+    `__init__` method will set the default values for attributes and then
+    attempt to map any keyword arguments to attributes of the same name. If an
+    attribute is passed as a keyword but the attribute is not given a default
+    value prior to called `_parse_kwargs_dict`, it will be ignored.
+    """
+    def __init__(self, **kwargs):
+        self.mixin = False
+        ### Relies on attr names above
+        self._parse_kwargs_dict(kwargs)
+
+    def _parse_kwargs_dict(self, kwargs_dict):
+        """This function receives the dictionary with keyword arguments in
+        `__init__` and maps them to existing attributes on the class.
+        """
+        for k, v in kwargs_dict.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+
+
+class TopLevelDocOptions(DocOptions):
+    """Extends `DocOptions` to add configuration values for
+    TopLevelDoc instances.
+    """
+    def __init__(self, **kwargs):
+        self.id_field = UUIDField
+        self.id_options = {'uniq_field': 'id'}
+        self.bucket = None
+        ### The call to super should be last
+        super(TopLevelDocOptions, self).__init__(**kwargs)
+
+
+###
+### Options Parsers
+###
+
+def _parse_meta_config(attrs, options_class):
+    """Parses the Meta object on the class and translates it into an Option
+    instance.
+    """
+    valid_attrs = dict()
+    if 'Meta' in attrs:
+        meta = attrs['Meta']
+        for attr_name, attr_value in inspect.getmembers(meta):
+            if not attr_name.startswith('_'):
+                valid_attrs[attr_name] = attr_value
+    oc = options_class(**valid_attrs)
+    return oc
+
+
+def _gen_options(klass, attrs):
+    """Processes the attributes and class parameters to generate the correct
+    options structure.
+
+    Defaults to `DocOptions` but it's ideal to define `__optionsclass_` on the
+    Document's metaclass.
+    """
+    ### Parse Meta
+    options_class = DocOptions
+    if hasattr(klass, '__optionsclass__'):
+        options_class = klass.__optionsclass__
+    options = _parse_meta_config(attrs, options_class)
+    return options
+
+
+###
 ### Metaclass design
 ###
 
@@ -27,75 +98,71 @@ class DocumentMetaclass(type):
     """Metaclass for all documents. Additional meta-functionality can be
     constructed via subclassing this document.
     """
-
     def __new__(cls, name, bases, attrs):
-        metaclass = attrs.get('__metaclass__')
-        super_new = super(DocumentMetaclass, cls).__new__
-        if metaclass and issubclass(metaclass, DocumentMetaclass):
-            return super_new(cls, name, bases, attrs)
+        """Processes a configuration of a Document type into a class.
+        """
+        ### Gen a class instance
+        klass = type.__new__(cls, name, bases, attrs)
 
+        metaclass = attrs.get('__metaclass__')
+        if metaclass and issubclass(metaclass, DocumentMetaclass):
+            return klass
+
+        ### Parse metaclass config into options structure
+        options = _gen_options(klass, attrs)
+        setattr(klass, '_options', options)
+        if hasattr(klass, 'Meta'):
+            delattr(klass, 'Meta')
+
+        ### Fields for collecting structure information
         doc_fields = {}
         class_name = [name]
         superclasses = {}
         simple_class = True
 
-        ### Carry over attributes from base class, if one is present
+        ###
+        ### Handle Base Classes
+        ###
+        
         for base in bases:
+            ### Configure `_fields` list
             if hasattr(base, '_fields'):
                 doc_fields.update(base._fields)
                 class_name.append(base._class_name)
                 superclasses[base._class_name] = base
                 superclasses.update(base._superclasses)
 
-            if hasattr(base, '_meta'):
-                # Ensure that the Document class may be subclassed -
-                # inheritance may be disabled to remove dependency on
-                # additional fields _cls and _types
-                if base._meta.get('allow_inheritance', True) == False:
-                    raise ValueError('Document %s may not be subclassed' %
-                                     base.__name__)
-                else:
-                    simple_class = False
+                ### Handle class options
+                if hasattr(base, '_options'):
+                    ### Mixin
+                    if base._options.mixin == True:
+                        class_name.pop()
+                        del superclasses[base._class_name]
 
-                if base._meta.get('mixin', False) == True:
-                    # A dictshield mixin means it adds fields with no effet
-                    # on class hierarchy
-                    class_name.pop()
-                    del superclasses[base._class_name]
+        ###
+        ### Construct The Class Instance
+        ###
 
-        meta = attrs.get('_meta', attrs.get('meta', {}))
-
-        if 'allow_inheritance' not in meta:
-            meta['allow_inheritance'] = True
-
-        # Only simple classes - direct subclasses of Document - may set
-        # allow_inheritance to False
-        if not simple_class and not meta['allow_inheritance']:
-            raise ValueError('Only direct subclasses of Document may set '
-                             '"allow_inheritance" to False')
-        attrs['_meta'] = meta
-
-        attrs['_class_name'] = '.'.join(reversed(class_name))
-        attrs['_superclasses'] = superclasses
-
-        # Add the document's fields to the _fields attribute
+        ### Collect field info
         for attr_name, attr_value in attrs.items():
-            if hasattr(attr_value, "__class__") and \
-                   issubclass(attr_value.__class__, BaseField):
+            has_class = hasattr(attr_value, "__class__")
+            if has_class and issubclass(attr_value.__class__, BaseField):
                 attr_value.field_name = attr_name
                 if not attr_value.uniq_field:
                     attr_value.uniq_field = attr_name
                 doc_fields[attr_name] = attr_value
-        attrs['_fields'] = doc_fields
 
-        new_class = super_new(cls, name, bases, attrs)
-        for field in new_class._fields.values():
-            field.owner_document = new_class
+        ### Attach collected data to klass
+        setattr(klass, '_fields', doc_fields)
+        setattr(klass, '_class_name', '.'.join(reversed(class_name)))
+        setattr(klass, '_superclasses', superclasses)
 
-        return new_class
+        ### Set owner in field instances to klass
+        for field in klass._fields.values():
+            field.owner_document = klass
 
-    def add_to_class(self, name, value):
-        setattr(self, name, value)
+        ### Fin.
+        return klass
 
 
 class TopLevelDocumentMetaclass(DocumentMetaclass):
@@ -106,56 +173,39 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
     """
 
     def __new__(cls, name, bases, attrs):
+        ### Gen a class instance
         super_new = super(TopLevelDocumentMetaclass, cls).__new__
+        klass = super_new(cls, name, bases, attrs)
+    
         if attrs.get('__metaclass__') == TopLevelDocumentMetaclass:
-            return super_new(cls, name, bases, attrs)
+            return klass
 
-        collection = name.lower()
-        id_field = None
-
-        base_meta = {}
-
-        # Subclassed documents inherit collection from superclass
-        for base in bases:
-            if hasattr(base, '_meta'):
-                if 'collection' in base._meta:
-                    collection = base._meta['collection']
-                id_field = id_field or base._meta.get('id_field')
-
-        meta = {
-            'collection': collection,
-            'max_documents': None,
-            'max_size': None,
-            'id_field': id_field,
-        }
-        meta.update(base_meta)
-
-        # Apply document-defined meta options
-        meta.update(attrs.get('meta', {}))
-        attrs['_meta'] = meta
-
-        # Set up collection manager, needs the class to have fields so use
-        # DocumentMetaclass before instantiating CollectionManager object
-        new_class = super_new(cls, name, bases, attrs)
-
-        for field_name, field in new_class._fields.items():
+        for field_name, field in klass._fields.items():
             # Check for custom id key
-            if field.id_field:
-                current_id = new_class._meta['id_field']
+            if hasattr(field, 'id_field') and field.id_field:
+                current_id = klass._options.id_field
                 if current_id and current_id != field_name:
                     raise ValueError('Cannot override id_field')
 
-                new_class._meta['id_field'] = field_name
+                klass._options['id_field'] = field
                 # Make 'Document.id' an alias to the real primary key field
-                new_class.id = field
+                klass.id = field(uniq_field='id')
 
-        if not new_class._meta['id_field']:
-            new_class._meta['id_field'] = 'id'
-            new_class._fields['id'] = UUIDField(uniq_field='_id')
-            new_class.id = new_class._fields['id']
+        id_options = {'uniq_field': 'id'}
+        if hasattr(klass._options, 'id_options'):
+            id_options.update(klass._options.id_options)
 
-        return new_class
+        ### Create ID field system
+        if hasattr(klass._options, 'id_field'):
+            id_field = klass._options.id_field
+            klass._fields['id'] = id_field(**id_options)
+            #klass.id = id_field(**id_options)
+            klass.id = id_field(**id_options)
+        else:
+            id_field = UUIDField
 
+        return klass
+        
     def __str__(self):
         if hasattr(self, '__unicode__'):
             return unicode(self).encode('utf-8')
@@ -209,31 +259,9 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
             return data
 
 
-class QueryableTopLevelDocumentMetaclass(DocumentMetaclass):
-    def __new__(cls, name, bases, attrs):
-        new_class = super(QueryableTopLevelDocumentMetaclass,
-                          cls).__new__(cls, name, bases, attrs)
-        for attr_name, attr_value in attrs.items():
-            if hasattr(attr_value, 'set_document_class'):
-                if isinstance(attr_value, type):
-                    attr_value = attr_value()
-                attr_value.set_document_class(new_class)
-
-        return new_class
-
-
 ###
 ### Document structures
 ###
-
-class BaseDocumentManager(object):
-    '''A base class which can be extended to add querying functionality to
-    documents.
-    '''
-
-    def set_document_class(self, document_class):
-        self.document_class = document_class
-
 
 class BaseDocument(object):
 
@@ -862,6 +890,7 @@ class EmbeddedDocument(BaseDocument, SafeableMixin):
     """
 
     __metaclass__ = DocumentMetaclass
+    __optionsclass__ = DocOptions
 
 
 class Document(BaseDocument, SafeableMixin):
@@ -881,8 +910,5 @@ class Document(BaseDocument, SafeableMixin):
     """
 
     __metaclass__ = TopLevelDocumentMetaclass
+    __optionsclass__ = TopLevelDocOptions
 
-
-class QueryableDocument(BaseDocument, SafeableMixin):
-
-    __metaclass__ = QueryableTopLevelDocumentMetaclass
