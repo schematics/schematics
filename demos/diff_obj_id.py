@@ -42,10 +42,12 @@ from bson.objectid import ObjectId
 ### ObjectIdField.
 ###
 
-@diff_id_field(ObjectIdField, ['id'])
 class SimpleDoc(Document):
     title = StringField(max_length=40)
     num = IntField()
+    class Meta:
+        id_field = ObjectIdField
+    
 
 
 sd = SimpleDoc()
