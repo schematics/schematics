@@ -291,7 +291,7 @@ We might write some server code that looks like this:
 
     json_string = request.get_arg('data')
     user_input = json.loads(json_string)
-    user.validate(**user_input)
+    User(**user_input).validate()
 
 This method builds a User instance out of the input, which also throws away
 keys that aren't in the User definition.
