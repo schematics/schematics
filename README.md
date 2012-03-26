@@ -210,15 +210,15 @@ currently accepted arguments are:
 
 | **ARGUMENT**              | **DESCRIPTION**                                                           |
 |------------------------:  |:----------------------------------------------------------------
-|           field_name=None | The name of the field in serialized form.                                 |
-|            required=False | This field must have a value or validation and serialization will fail.   |
-|              default=None | Either a default value or callable that produces a default.               |
-|            id_field=False | Set to `True` if this field should be used as the id field.               |
-|           validation=None | Supply an alternate function for validation for this field.               |
-|              choices=None | Limit the possible values for this field by passing a list.               |
-|          description=None | Set an alternate field description for serialization to jsonschema.       |
-| minimized_field_name=None | Name of the field to use when serializing the document with short names.  |
-|           uniq_field=None | Legacy arg. Will be removed soon.                                         |
+|       **field_name=None** | The name of the field in serialized form.                                 |
+|            **required=False** | This field must have a value or validation and serialization will fail.   |
+|              **default=None** | Either a default value or callable that produces a default.               |
+|            **id_field=False** | Set to `True` if this field should be used as the id field.               |
+|           **validation=None** | Supply an alternate function for validation for this field.               |
+|              **choices=None** | Limit the possible values for this field by passing a list.               |
+|          **description=None** | Set an alternate field description for serialization to jsonschema.       |
+| **minimized_field_name=None** | Name of the field to use when serializing the document with short names.  |
+|           **uniq_field=None** | Legacy arg. Will be removed soon.                                         |
 
 
 ### A Close Look at the MD5Field
