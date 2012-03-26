@@ -208,7 +208,7 @@ A complete list of the types supported by DictShield:
 Fields can also receive some arguments for customizing their behavior. The
 currently accepted arguments are:
 
-| *ARGUMENT**               | **DESCRIPTION**                                                           |
+| **ARGUMENT**              | **DESCRIPTION**                                                           |
 |------------------------:  |:----------------------------------------------------------------
 |           field_name=None | The name of the field in serialized form.                                 |
 |            required=False | This field must have a value or validation and serialization will fail.   |
