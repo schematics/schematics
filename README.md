@@ -25,6 +25,9 @@ MongoDB, Riak, whatever you need.
     ...
     >>> data = {'name':'a hacker', 'body':'DictShield makes validation easy'}
     >>> Comment(**data).validate()
+    
+Let's see what happens if we try using invalid data.
+    
     >>> data['name'] = 'a hacker with a name that is too long'
     >>> Comment(**data).validate()
     Traceback (most recent call last):
@@ -37,8 +40,8 @@ MongoDB, Riak, whatever you need.
         self.field_name, value)
     dictshield.base.ShieldException: String value is too long - name:a hacker with a name who is too long
 
-Combining dictshield with JSON coming from a web request is quite
-natural as well. Say we have some data coming in from an iPhone:
+Combining dictshield with JSON coming from a web request is quite natural as
+well. Say we have some data coming in from an iPhone:
 
     json_data = request.post.get('data')
     data = json.loads(json_data)
@@ -64,10 +67,10 @@ also serve for building an RPC.
 
 5. Input / Output Shaping
 
-DictShield also allows for object hierarchy's to be mapped into
-dictionaries too. This is useful primarily to those who use DictShield
-to instantiate classes representing their data instead of just filtering
-dictionaries through the class's static methods.
+DictShield also allows for object hierarchy's to be mapped into dictionaries
+too. This is useful primarily to those who use DictShield to instantiate
+classes representing their data instead of just filtering dictionaries through
+the class's static methods.
 
 
 # Example Uses
@@ -89,12 +92,12 @@ Below is an example of a Media class with a single field, the title.
         """
         title = StringField(max_length=40)
 
-You create the class just like you would any Python class. And we'll see
-how that class is represented as a Python dictionary.
+You create the class just like you would any Python class. And we'll see how
+that class is represented when serialized to a Python dictionary.
 
     m = Media()
     m.title = 'Misc Media'
-    print 'From Media class as Python structure:\n\n    %s\n' % (m.to_python())
+    m.to_python()
 
 The output from this looks like:
 
@@ -107,6 +110,7 @@ The output from this looks like:
 All the meta information is removed and we have just a barebones representation
 of our data. Notice that the class information is still there as `_cls` and
 `_types`.
+
 
 ### More On Object Modeling
 
@@ -134,7 +138,7 @@ Here's an instance of the Movie class:
     mv.year = 1990
     mv.personal_thoughts = u'I wish I had three hands...'
 
-This is the raw document as converted to a Python dictionary:
+This is the document serialized to a Python dictionary:
 
     {
         'personal_thoughts': u'I wish I had three hands...',
@@ -146,16 +150,6 @@ This is the raw document as converted to a Python dictionary:
 
 Notice that `_types` has kept track of the relationship between `Movie` and
 `Media`.
-
-### Upgrading Documents
-
-Upgrading documents is then easy because you can add optional fields and remove
-them.
-
-As instances are created, two things happen. The fields that don't belong are
-removed as data is sent back and forth between the client and the server. And
-fields that are new are allowed at the data layer, assuming the user experience
-layer will be catching up soon. Until then, the field can just be optional.
 
 
 ## Easy To Use With Databases Or Caches
@@ -208,8 +202,24 @@ A complete list of the types supported by DictShield:
 |             `ListField` | Wraps a standard field, so multiple instances of the field can be used    |
 |       `SortedListField` | A `ListField` which sorts the list before saving, so list is always sorted|
 |             `DictField` | Wraps a standard Python dictionary                                        |
-|   `MultiValueDictField` | Wraps Django's implementation of a MultiValueDict.                        |
+|   `MultiValueDictField` | Django's implementation of a MultiValueDict.                              |
 | `EmbeddedDocumentField` | Stores a DictShield `EmbeddedDocument`                                    |
+
+Fields can also receive some arguments for customizing their behavior. The
+currently accepted arguments are:
+
+| *ARGUMENT**               | **DESCRIPTION**                                                           |
+|------------------------:  |:----------------------------------------------------------------
+|           field_name=None | The name of the field in serialized form.                                 |
+|            required=False | This field must have a value or validation and serialization will fail.   |
+|              default=None | Either a default value or callable that produces a default.               |
+|            id_field=False | Set to `True` if this field should be used as the id field.               |
+|           validation=None | Supply an alternate function for validation for this field.               |
+|              choices=None | Limit the possible values for this field by passing a list.               |
+|          description=None | Set an alternate field description for serialization to jsonschema.       |
+| minimized_field_name=None | Name of the field to use when serializing the document with short names.  |
+|           uniq_field=None | Legacy arg. Will be removed soon.                                         |
+
 
 ### A Close Look at the MD5Field
 
@@ -338,6 +348,7 @@ Document class and everything else is discarded.
         '_cls': 'User'
     }
 
+
 ### JSON for Owner of Document
 
 Here is our `Movie` document safe for transmitting to the owner of the document.
@@ -353,6 +364,7 @@ fields that should be treated as internal to your system by adding a list named
         "year": 1990
     }
 
+
 ### JSON for Public View of Document
 
 This is  dictionary safe for transmitting to the public, not just the owner.
@@ -362,6 +374,30 @@ Get this by calling `make_json_publicsafe`.
         "title": "Total Recall",
         "year": 1990
     }
+    
+
+### JSON Schema
+
+The structure of documents can also be serialized into JSON Schema. Again, with our `Movie` document.
+
+    >>> Movie.to_jsonschema()
+    '{
+        "title": "Movie"
+        "type": "object",
+        "properties": {
+            "year": {
+                "minimum": 1950,
+                "type": "number",
+                "maximum": 2012,
+                "title": "year"
+            }, 
+            "title": {
+                "title": "title",
+                "type": "string", 
+                "maxLength": 40
+            }
+        }, 
+    }'
 
 
 ## Working Without Instances
@@ -371,6 +407,7 @@ document, you want to check validation for just the field the client is
 updating and tell your database to store just that field.
 
 DictShield offers a few classmethods to facilitate this.
+
 
 ### Class Level Validation
 
@@ -397,6 +434,7 @@ like we attempted above.
     ...
         User.validate_class_partial(user_input)
     ...
+
 
 ### Aggregating Errors
 
@@ -426,6 +464,10 @@ DictShield is in [pypi](http://pypi.python.org) so you can use `easy_install` or
 * [Rob Spychala](https://github.com/robspychala)
 * [Ben Beecher](https://github.com/gone)
 * [John Krauss](https://github.com/talos)
+* [Titusz](https://github.com/titusz)
+* [Nicola Iarocci](https://github.com/nicolaiarocci)
+* [Justin Lilly](http://github.com/justinlilly)
+* [Jonathan Halcrow](https://github.com/jhalcrow)
 
 
 # License
