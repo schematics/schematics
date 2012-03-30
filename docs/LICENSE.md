@@ -1,4 +1,4 @@
-# Copyright 2011 J2 Labs LLC. All rights reserved.
+# Copyright 2012 J2 Labs LLC. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -10,8 +10,8 @@ modification, are permitted provided that the following conditions are met:
      notice, this list of conditions and the following disclaimer in the
      documentation and/or other materials provided with the distribution.
 
-  3. Neither the name of Django nor the names of its contributors may be used
-     to endorse or promote products derived from this software without
+  3. Neither the name of DictShield nor the names of its contributors may be
+     used to endorse or promote products derived from this software without
      specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY J2 Labs LLC ``AS IS'' AND ANY EXPRESS OR IMPLIED
