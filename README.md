@@ -25,6 +25,7 @@ MongoDB, Riak, whatever you need.
     ...
     >>> data = {'name':'a hacker', 'body':'DictShield makes validation easy'}
     >>> Comment(**data).validate()
+    True
     
 Let's see what happens if we try using invalid data.
     
@@ -438,11 +439,15 @@ like we attempted above.
 
 ### Aggregating Errors
 
-`validate_class_fields` also offers more full validation. Pass
-`validate_all=True` to return 0 or more exceptions. 0 exceptions indicates
-validation was successful.
+DictShield's validation methods can also give you a list of which individual fields
+failed validation.  Calling a Document's `validate()` method with `validate_all=True`
+will raise a `ShieldDocException` whose `errors_list` attriute is a list of 0 or more
+exceptions, and calling `validate_class_fields` with `validate_all=True` will return the
+same list.
 
     exceptions = User.validate_class_fields(total_input, validate_all=True)
+    if exceptions:
+        # Validation was not successful
 
 
 # Installing

@@ -54,5 +54,20 @@ class ShieldException(Exception):
 DictPunch = ShieldException
 
 
+class ShieldDocException(Exception):
+    """The Document did not pass validation
+            doc - name of the model that did not validate
+            error_list - list of ShieldExceptions that have been raised
+    """
+    def __init__(self, doc_name, error_list, *args, **kwargs):
+        super(ShieldDocException, self).__init__(*args, **kwargs)
+        self.doc = doc_name
+        self.error_list = error_list
+
+    def __str__(self):
+        return 'Document had %d errors - %s' % (len(self.error_list),
+                [e.__str__() for e in self.error_list],)
+
+
 def subclass_exception(name, parents, module):
     return type(name, parents, {'__module__': module})
