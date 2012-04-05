@@ -311,7 +311,11 @@ class BaseDocument(object):
             # treat empty strings is nonexistent
             if value is not None and value != '':
                 try:
-                    field._validate(value)
+                    # the field may modify the value (e.g. cast a string to an int)
+                    # so shouldn't the new value be placed into the dict of fields?
+                    # otherwise, a string will be deemed valid, but stored in an 
+                    # invalid state.
+                    fields[field] = field._validate(value)
                 except (ValueError, AttributeError, AssertionError):
                     raise ShieldException('Invalid value', field.field_name,
                                           value)
