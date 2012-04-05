@@ -25,9 +25,7 @@ class ListField(BaseField):
         is_dictfield = lambda field: isinstance(field, DictField)
 
         # field instance
-        #if isinstance(fields, BaseField):
         if is_basefield(fields):
-            #if isinstance(fields, EmbeddedDocumentField):
             if is_embeddeddoc(fields):
                 kwargs.setdefault('primary_embedded', fields)
             fields = [fields]
@@ -70,12 +68,8 @@ class ListField(BaseField):
                 if isinstance(doc, dict):
                     for embedded_field in embedded_fields:
                         doc_obj = embedded_field.document_type_obj(**doc)
-                        try:
-                            doc_obj.validate()
-                        except ShieldException:
-                            continue
+                        doc_obj.validate()
                         doc = doc_obj
-                        break
                 list_of_docs.append(doc)
             value = list_of_docs
         instance._data[self.field_name] = value
