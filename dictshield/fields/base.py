@@ -347,6 +347,12 @@ class NumberField(JsonNumberMixin, BaseField):
         self.max_value = max_value
         super(NumberField, self).__init__(**kwargs)
 
+    def __set__(self, instance, value):
+        if value != None and not isinstance(value, self.number_class):
+            if self.number_class:
+                value = self.number_class(value)
+        instance._data[self.field_name] = value    
+
     def for_python(self, value):
         return self.number_class(value)
 
