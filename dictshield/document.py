@@ -79,7 +79,7 @@ def _gen_options(klass, attrs):
     """Processes the attributes and class parameters to generate the correct
     options structure.
 
-    Defaults to `DocumentOptions` but it's ideal to define `__optionsclass_` on the
+    Defaults to `DocumentOptions` but it's ideal to define `__optionsclass__` on the
     Document's metaclass.
     """
     ### Parse Meta
@@ -111,19 +111,16 @@ class DocumentMetaclass(type):
         ### Parse metaclass config into options structure
         options = _gen_options(klass, attrs)
         setattr(klass, '_options', options)
-        if hasattr(klass, 'Meta'):
-            delattr(klass, 'Meta')
 
         ### Fields for collecting structure information
         doc_fields = {}
         class_name = [name]
         superclasses = {}
-        simple_class = True
 
         ###
         ### Handle Base Classes
         ###
-        
+
         for base in bases:
             ### Configure `_fields` list
             if hasattr(base, '_fields'):
@@ -176,7 +173,7 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
         ### Gen a class instance
         super_new = super(TopLevelDocumentMetaclass, cls).__new__
         klass = super_new(cls, name, bases, attrs)
-    
+
         if attrs.get('__metaclass__') == TopLevelDocumentMetaclass:
             return klass
 
@@ -213,7 +210,7 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
             id_field = UUIDField
 
         return klass
-        
+
     def __str__(self):
         if hasattr(self, '__unicode__'):
             return unicode(self).encode('utf-8')
