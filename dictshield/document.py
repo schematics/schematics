@@ -111,6 +111,8 @@ class DocumentMetaclass(type):
         ### Parse metaclass config into options structure
         options = _gen_options(klass, attrs)
         setattr(klass, '_options', options)
+        if hasattr(klass, 'Meta'):
+            delattr(klass, 'Meta')
 
         ### Fields for collecting structure information
         doc_fields = {}
