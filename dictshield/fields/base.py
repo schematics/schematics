@@ -2,6 +2,7 @@ import uuid
 import re
 import datetime
 import decimal
+import time
 
 from dictshield.base import ShieldException, InvalidShield
 
@@ -450,6 +451,38 @@ class DecimalField(BaseField, JsonNumberMixin):
                                   % self.max_value, self.field_name, value)
 
         return value
+
+
+class TimestampField(NumberField):
+    """A field that stores a timestamp and optionally auto-populates
+    empty values with new timestamp.
+    """
+
+    def __init__(self, auto_now=False, *args, **kwargs):
+        super(TimestampField, self).__init__(number_class=int,
+                                       number_type='Int',
+                                       *args, **kwargs)
+        self.auto_now = auto_now
+
+    def __set__(self, instance, value):
+        """If auto_now is set to True then auto populate
+        the value with current timestamp.
+        """
+        if not value and self.auto_now is True:
+            value = int(round(time.time() * 1000))
+
+        instance._data[self.field_name] = value
+
+    def _jsonschema_type(self):
+        return 'number'
+
+    @classmethod
+    def _from_jsonschema_types(self):
+        return ['number', 'integer']
+
+    @classmethod
+    def _from_jsonschema_formats(self):
+        return ['utc-millisec']
 
 
 ###
