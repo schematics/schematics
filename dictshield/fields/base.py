@@ -560,9 +560,6 @@ class DateTimeField(BaseField):
 
         A datetime may be used (and is encouraged).
         """
-        if not value:
-            return
-
         if isinstance(value, (str, unicode)):
             value = DateTimeField.iso8601_to_date(value)
 
