@@ -259,7 +259,7 @@ In it's most stripped down form, that looks like this.
             klass._fields = dict()
             
             for attr_name, attr_value in attrs.items():
-            if type(attr_value) is IntField:
+                if type(attr_value) is IntField:
                     klass._fields[attr_name] = attr_value
                     
             return klass
