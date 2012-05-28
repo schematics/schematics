@@ -1,7 +1,7 @@
 import inspect
 import copy
 
-from dictshield.base import ShieldException, json
+from dictshield.base import ShieldException, ShieldDocException, json
 
 __all__ = ['DocumentMetaclass', 'TopLevelDocumentMetaclass', 'BaseDocument',
            'Document', 'EmbeddedDocument', 'ShieldException']
@@ -79,8 +79,8 @@ def _gen_options(klass, attrs):
     """Processes the attributes and class parameters to generate the correct
     options structure.
 
-    Defaults to `DocumentOptions` but it's ideal to define `__optionsclass__` on the
-    Document's metaclass.
+    Defaults to `DocumentOptions` but it's ideal to define `__optionsclass_`
+    on the Document's metaclass.
     """
     ### Parse Meta
     options_class = DocumentOptions
@@ -297,27 +297,45 @@ class BaseDocument(object):
             except AttributeError:
                 pass
 
-    def validate(self):
+    def validate(self, validate_all=False):
         """Ensure that all fields' values are valid and that required fields
         are present.
+
+        Throws a ShieldDocException if Document is invalid
         """
         # Get a list of tuples of field names and their current values
         fields = [(field, getattr(self, name))
                   for name, field in self._fields.items()]
 
         # Ensure that each field is matched to a valid value
+        errs = []
         for field, value in fields:
-            # treat empty strings is nonexistent
+            err = None
+            # treat empty strings as nonexistent
             if value is not None and value != '':
                 try:
                     field._validate(value)
+                except ShieldException, e:
+                    err = e
                 except (ValueError, AttributeError, AssertionError):
-                    raise ShieldException('Invalid value', field.field_name,
+                    err = ShieldException('Invalid value',
+                                          field.field_name,
                                           value)
             elif field.required:
-                raise ShieldException('Required field missing',
+                err = ShieldException('Required field missing',
                                       field.field_name,
                                       value)
+            # If validate_all, save errors to a list
+            # Otherwise, throw the first error
+            if err:
+                errs.append(err)
+            if err and not validate_all:
+                # NB: raising a ShieldDocException in this case would be more
+                # consistent, but existing code might expect ShieldException
+                raise err
+
+        if errs:
+            raise ShieldDocException(self._class_name, errs)
         return True
 
     @classmethod
@@ -569,7 +587,6 @@ def swap_field(klass, new_field, fields):
     sc = klass._superclasses
     klass_name = klass.__name__
     new_klass = type(klass_name, (klass,), {})
-
 
     ### Generate the id_fields for each field we're updating. Mark the actual
     ### id_field as the uniq_field named '_id'
@@ -915,4 +932,3 @@ class Document(BaseDocument, SafeableMixin):
 
     __metaclass__ = TopLevelDocumentMetaclass
     __optionsclass__ = TopLevelDocumentOptions
-
