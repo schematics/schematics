@@ -219,7 +219,7 @@ class StringField(BaseField):
         return unicode(value)
 
     def validate(self, value):
-        assert isinstance(value, (str, unicode))
+        assert isinstance(value, basestring)
 
         if self.max_length is not None and len(value) > self.max_length:
             raise ShieldException('String value is too long',
@@ -423,6 +423,18 @@ class DecimalField(BaseField, JsonNumberMixin):
         self.min_value, self.max_value = min_value, max_value
         super(DecimalField, self).__init__(**kwargs)
 
+    def __set__(self, instance, value):
+        """Convert any text values provided into Python Decimal objects
+        """
+        if value:
+            if isinstance(value, (basestring, int)):
+                value = decimal.Decimal(value)
+
+            elif isinstance(value, float):
+                value = decimal.Decimal(str(value))
+
+        instance._data[self.field_name] = value
+
     def for_python(self, value):
         if not isinstance(value, basestring):
             value = unicode(value)
@@ -560,7 +572,7 @@ class DateTimeField(BaseField):
 
         A datetime may be used (and is encouraged).
         """
-        if isinstance(value, (str, unicode)):
+        if isinstance(value, basestring):
             value = DateTimeField.iso8601_to_date(value)
 
         instance._data[self.field_name] = value
