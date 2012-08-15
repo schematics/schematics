@@ -29,40 +29,40 @@ Tasklist as JSON:
 
 import datetime
 
-from dictshield.document import EmbeddedDocument, Document
-from dictshield.fields import (StringField,
-                               DateTimeField,
-                               IntField)
-from dictshield.fields.compound import (EmbeddedDocumentField,
-                                        ListField)
+from structures.models import EmbeddedModel, Model
+from structures.types import (StringType,
+                               DateTimeType,
+                               IntType)
+from structures.types.compound import (EmbeddedModelType,
+                                        ListType)
 
 
 ###
 ### Models
 ###
 
-class Action(EmbeddedDocument):
+class Action(EmbeddedModel):
     """An `Action` associates an action name with a list of tags.
     """
-    value = StringField(required=True, max_length=256)
-    tags = ListField(StringField())
+    value = StringType(required=True, max_length=256)
+    tags = ListType(StringType())
 
 
-class SingleTask(Document):
+class SingleTask(Model):
     """A `SingleTask` associates a creation date with an `Action` instance.
     """
-    action = EmbeddedDocumentField(Action)
-    created_date = DateTimeField(default=datetime.datetime.now)
+    action = EmbeddedModelType(Action)
+    created_date = DateTimeType(default=datetime.datetime.now)
 
 
-class TaskList(Document):
+class TaskList(Model):
     """A `TaskList` associated a creation date and updated_date with a list of
     `Action` instances.
     """
-    actions = ListField(EmbeddedDocumentField(Action))
-    created_date = DateTimeField(default=datetime.datetime.now)
-    updated_date = DateTimeField(default=datetime.datetime.now)
-    num_completed = IntField(default=0)
+    actions = ListType(EmbeddedModelType(Action))
+    created_date = DateTimeType(default=datetime.datetime.now)
+    updated_date = DateTimeType(default=datetime.datetime.now)
+    num_completed = IntType(default=0)
 
 
 ###

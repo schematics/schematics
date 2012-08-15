@@ -3,31 +3,30 @@ import re
 import datetime
 import decimal
 
-from dictshield.base import ShieldException, InvalidShield
+from structures.base import TypeException, NotAModelException
 
-from dictshield.fields import dictshield_fields
+from structures.types import structure_types
 
 
-class BaseFieldMetaClass(type):
+class BaseTypeMetaClass(type):
     def __init__(cls, name, bases, dct):
         if hasattr(cls, '_from_jsonschema_formats'):
             for fmt in cls._from_jsonschema_formats():
                 for tipe in cls._from_jsonschema_types():
-                    dictshield_fields[(tipe, fmt)] = cls
-        super(BaseFieldMetaClass, cls).__init__(name, bases, dct)
+                    structure_types[(tipe, fmt)] = cls
+        super(BaseTypeMetaClass, cls).__init__(name, bases, dct)
 
 
 ###
-### Fields
+### Types
 ###
 
-class BaseField(object):
-    """A base class for fields in a DictShield document. Instances of this
-    class may be added to subclasses of `Document` to define a document's
-    schema.
+class BaseType(object):
+    """A base class for Types in a Structures model. Instances of this
+    class may be added to subclasses of `Model` to define a model schema.
     """
 
-    __metaclass__ = BaseFieldMetaClass
+    __metaclass__ = BaseTypeMetaClass
 
     def __init__(self, uniq_field=None, field_name=None, required=False,
                  default=None, id_field=False, validation=None, choices=None,
@@ -44,11 +43,11 @@ class BaseField(object):
         self.minimized_field_name = minimized_field_name
 
     def __get__(self, instance, owner):
-        """Descriptor for retrieving a value from a field in a document. Do
-        any necessary conversion between Python and `DictShield` types.
+        """Descriptor for retrieving a value from a field in a model. Do
+        any necessary conversion between Python and `Structures` types.
         """
         if instance is None:
-            # Document class being used rather than a document object
+            # Model class being used rather than a model object
             return self
 
         value = instance._data.get(self.field_name)
@@ -61,17 +60,17 @@ class BaseField(object):
         return value
 
     def __set__(self, instance, value):
-        """Descriptor for assigning a value to a field in a document.
+        """Descriptor for assigning a value to a field in a model.
         """
         instance._data[self.field_name] = value
 
     def for_python(self, value):
-        """Convert a DictShield type into native Python value
+        """Convert a Structures type into native Python value
         """
         return value
 
     def for_json(self, value):
-        """Convert a DictShield type into a value safe for JSON encoding
+        """Convert a Structures type into a value safe for JSON encoding
         """
         return self.for_python(value)
 
@@ -84,14 +83,14 @@ class BaseField(object):
         # check choices
         if self.choices is not None:
             if value not in self.choices:
-                raise ShieldException("Value must be one of %s."
+                raise TypeException("Value must be one of %s."
                     % unicode(self.choices), self.field_name, value)
 
         # check validation argument
         if self.validation is not None:
             if callable(self.validation):
                 if not self.validation(value):
-                    raise ShieldException('Value does not match custom'
+                    raise TypeException('Value does not match custom'
                                           'validation method.',
                                            self.field_name, value)
             else:
@@ -142,13 +141,13 @@ class BaseField(object):
         return schema
 
 
-class UUIDField(BaseField):
+class UUIDType(BaseType):
     """A field that stores a valid UUID value and optionally auto-populates
     empty values with new UUIDs.
     """
 
     def __init__(self, auto_fill=False, **kwargs):
-        super(UUIDField, self).__init__(**kwargs)
+        super(UUIDType, self).__init__(**kwargs)
         self.auto_fill = auto_fill
 
     def __set__(self, instance, value):
@@ -174,7 +173,7 @@ class UUIDField(BaseField):
             try:
                 value = uuid.UUID(value)
             except ValueError:
-                raise ShieldException('Not a valid UUID value',
+                raise TypeException('Not a valid UUID value',
                     self.field_name, value)
         return value
 
@@ -185,7 +184,7 @@ class UUIDField(BaseField):
         return str(value)
 
 
-class StringField(BaseField):
+class StringType(BaseType):
     """A unicode string field.
     """
 
@@ -193,7 +192,7 @@ class StringField(BaseField):
         self.regex = re.compile(regex) if regex else None
         self.max_length = max_length
         self.min_length = min_length
-        super(StringField, self).__init__(**kwargs)
+        super(StringType, self).__init__(**kwargs)
 
     def _jsonschema_type(self):
         return 'string'
@@ -222,16 +221,16 @@ class StringField(BaseField):
         assert isinstance(value, (str, unicode))
 
         if self.max_length is not None and len(value) > self.max_length:
-            raise ShieldException('String value is too long',
+            raise TypeException('String value is too long',
                                   self.field_name, value)
 
         if self.min_length is not None and len(value) < self.min_length:
-            raise ShieldException('String value is too short',
+            raise TypeException('String value is too short',
                                   self.uniq_field, value)
 
         if self.regex is not None and self.regex.match(value) is None:
             message = 'String value did not match validation regex',
-            raise ShieldException(message, self.uniq_field, value)
+            raise TypeException(message, self.uniq_field, value)
 
         return value
 
@@ -243,7 +242,7 @@ class StringField(BaseField):
 ### Web fields
 ###
 
-class URLField(StringField):
+class URLType(StringType):
     """A field that validates input as an URL.
 
     If verify_exists=True is passed the validate function will make sure
@@ -261,7 +260,7 @@ class URLField(StringField):
 
     def __init__(self, verify_exists=False, **kwargs):
         self.verify_exists = verify_exists
-        super(URLField, self).__init__(**kwargs)
+        super(URLType, self).__init__(**kwargs)
 
     def _jsonschema_format(self):
         return 'url'
@@ -271,8 +270,8 @@ class URLField(StringField):
         return ['url']
 
     def validate(self, value):
-        if not URLField.URL_REGEX.match(value):
-            raise ShieldException('Invalid URL', self.field_name, value)
+        if not URLType.URL_REGEX.match(value):
+            raise TypeException('Invalid URL', self.field_name, value)
 
         if self.verify_exists:
             import urllib2
@@ -281,12 +280,12 @@ class URLField(StringField):
                 urllib2.urlopen(request)
             except Exception:
                 message = 'URL does not exist'
-                raise ShieldException(message, self.field_name, value)
+                raise TypeException(message, self.field_name, value)
 
         return value
 
 
-class EmailField(StringField):
+class EmailType(StringType):
     """A field that validates input as an E-Mail-Address.
     """
 
@@ -302,8 +301,8 @@ class EmailField(StringField):
     )
 
     def validate(self, value):
-        if not EmailField.EMAIL_REGEX.match(value):
-            raise ShieldException('Invalid email address', self.field_name,
+        if not EmailType.EMAIL_REGEX.match(value):
+            raise TypeException('Invalid email address', self.field_name,
                                   value)
         return value
 
@@ -321,8 +320,8 @@ class EmailField(StringField):
 
 class JsonNumberMixin(object):
     """A mixin to support json schema validation for max, min, and type for all
-    number fields, including DecimalField, which does not inherit from
-    NumberField.
+    number fields, including DecimalType, which does not inherit from
+    NumberType.
     """
 
     def _jsonschema_type(self):
@@ -335,7 +334,7 @@ class JsonNumberMixin(object):
         return self.min_value
 
 
-class NumberField(JsonNumberMixin, BaseField):
+class NumberType(JsonNumberMixin, BaseType):
     """A number field.
     """
 
@@ -345,7 +344,7 @@ class NumberField(JsonNumberMixin, BaseField):
         self.number_type = number_type
         self.min_value = min_value
         self.max_value = max_value
-        super(NumberField, self).__init__(**kwargs)
+        super(NumberType, self).__init__(**kwargs)
 
     def __set__(self, instance, value):
         if value != None and not isinstance(value, self.number_class):
@@ -360,28 +359,28 @@ class NumberField(JsonNumberMixin, BaseField):
         try:
             value = self.number_class(value)
         except:
-            raise ShieldException('Not %s' % self.number_type, self.field_name,
+            raise TypeException('Not %s' % self.number_type, self.field_name,
                                   value)
 
         if self.min_value is not None and value < self.min_value:
-            raise ShieldException('%s value below min_value: %s'
+            raise TypeException('%s value below min_value: %s'
                                   % (self.number_type, self.min_value),
                                   self.field_name, value)
 
         if self.max_value is not None and value > self.max_value:
-            raise ShieldException('%s value above max_value: %s'
+            raise TypeException('%s value above max_value: %s'
                                   % (self.number_type, self.max_value),
                                   self.field_name, value)
 
         return value
 
 
-class IntField(NumberField):
+class IntType(NumberType):
     """A field that validates input as an Integer
     """
 
     def __init__(self, *args, **kwargs):
-        super(IntField, self).__init__(number_class=int,
+        super(IntType, self).__init__(number_class=int,
                                        number_type='Int',
                                        *args, **kwargs)
 
@@ -397,31 +396,31 @@ class IntField(NumberField):
         return [None]
 
 
-class LongField(NumberField):
+class LongType(NumberType):
     """A field that validates input as a Long
     """
     def __init__(self, *args, **kwargs):
-        super(LongField, self).__init__(number_class=long,
+        super(LongType, self).__init__(number_class=long,
                                         number_type='Long',
                                         *args, **kwargs)
 
 
-class FloatField(NumberField):
+class FloatType(NumberType):
     """A field that validates input as a Float
     """
     def __init__(self, *args, **kwargs):
-        super(FloatField, self).__init__(number_class=float,
+        super(FloatType, self).__init__(number_class=float,
                                          number_type='Float',
                                          *args, **kwargs)
 
 
-class DecimalField(BaseField, JsonNumberMixin):
+class DecimalType(BaseType, JsonNumberMixin):
     """A fixed-point decimal number field.
     """
 
     def __init__(self, min_value=None, max_value=None, **kwargs):
         self.min_value, self.max_value = min_value, max_value
-        super(DecimalField, self).__init__(**kwargs)
+        super(DecimalType, self).__init__(**kwargs)
 
     def for_python(self, value):
         if not isinstance(value, basestring):
@@ -438,15 +437,15 @@ class DecimalField(BaseField, JsonNumberMixin):
             try:
                 value = decimal.Decimal(value)
             except Exception:
-                raise ShieldException('Could not convert to decimal',
+                raise TypeException('Could not convert to decimal',
                                       self.field_name, value)
 
         if self.min_value is not None and value < self.min_value:
-            raise ShieldException('Decimal value below min_value: %s'
+            raise TypeException('Decimal value below min_value: %s'
                                   % self.min_value, self.field_name, value)
 
         if self.max_value is not None and value > self.max_value:
-            raise ShieldException('Decimal value above max_value: %s'
+            raise TypeException('Decimal value above max_value: %s'
                                   % self.max_value, self.field_name, value)
 
         return value
@@ -470,36 +469,36 @@ class JsonHashMixin:
         return self.hash_length
 
 
-class MD5Field(BaseField, JsonHashMixin):
+class MD5Type(BaseType, JsonHashMixin):
     """A field that validates input as resembling an MD5 hash.
     """
     hash_length = 32
 
     def validate(self, value):
-        if len(value) != MD5Field.hash_length:
-            raise ShieldException('MD5 value is wrong length', self.field_name,
+        if len(value) != MD5Type.hash_length:
+            raise TypeException('MD5 value is wrong length', self.field_name,
                                   value)
         try:
             int(value, 16)
         except:
-            raise ShieldException('MD5 value is not hex', self.field_name,
+            raise TypeException('MD5 value is not hex', self.field_name,
                                   value)
         return value
 
 
-class SHA1Field(BaseField, JsonHashMixin):
+class SHA1Type(BaseType, JsonHashMixin):
     """A field that validates input as resembling an SHA1 hash.
     """
     hash_length = 40
 
     def validate(self, value):
-        if len(value) != SHA1Field.hash_length:
-            raise ShieldException('SHA1 value is wrong length',
+        if len(value) != SHA1Type.hash_length:
+            raise TypeException('SHA1 value is wrong length',
                                   self.field_name, value)
         try:
             int(value, 16)
         except:
-            raise ShieldException('SHA1 value is not hex', self.field_name,
+            raise TypeException('SHA1 value is not hex', self.field_name,
                                   value)
         return value
 
@@ -508,7 +507,7 @@ class SHA1Field(BaseField, JsonHashMixin):
 ### Native type'ish fields
 ###
 
-class BooleanField(BaseField):
+class BooleanType(BaseType):
     """A boolean field type.
     """
 
@@ -528,11 +527,11 @@ class BooleanField(BaseField):
 
     def validate(self, value):
         if not isinstance(value, bool):
-            raise ShieldException('Not a boolean', self.field_name, value)
+            raise TypeException('Not a boolean', self.field_name, value)
         return value
 
 
-class DateTimeField(BaseField):
+class DateTimeType(BaseType):
     """A datetime field.
     """
 
@@ -541,7 +540,7 @@ class DateTimeField(BaseField):
 
     def __init__(self, format=lambda dt: dt.isoformat(), **kwargs):
         self.format = format
-        super(DateTimeField, self).__init__(**kwargs)
+        super(DateTimeType, self).__init__(**kwargs)
 
     def _jsonschema_format(self):
         return 'date-time'
@@ -561,7 +560,7 @@ class DateTimeField(BaseField):
         A datetime may be used (and is encouraged).
         """
         if isinstance(value, (str, unicode)):
-            value = DateTimeField.iso8601_to_date(value)
+            value = DateTimeType.iso8601_to_date(value)
 
         instance._data[self.field_name] = value
 
@@ -603,46 +602,46 @@ class DateTimeField(BaseField):
         elif hasattr(format, '__call__'):
             iso_dt = format(dt)
         else:
-            raise ShieldException('DateTimeField format must be a string or callable')
+            raise TypeException('DateTimeType format must be a string or callable')
         return iso_dt
 
     def validate(self, value):
         if not isinstance(value, datetime.datetime):
-            raise ShieldException('Not a datetime', self.field_name, value)
+            raise TypeException('Not a datetime', self.field_name, value)
         return value
 
     def for_python(self, value):
         return value
 
     def for_json(self, value):
-        v = DateTimeField.date_to_iso8601(value, self.format)
+        v = DateTimeType.date_to_iso8601(value, self.format)
         return v
 
 
-class DictField(BaseField):
+class DictType(BaseType):
     """A dictionary field that wraps a standard Python dictionary. This is
-    similar to an embedded document, but the structure is not defined.
+    similar to an embedded model, but the structure is not defined.
     """
 
     def _jsonschema_type(self):
         return 'object'
 
     def __init__(self, basecls=None, *args, **kwargs):
-        self.basecls = basecls or BaseField
-        if not issubclass(self.basecls, BaseField):
-            raise InvalidShield('basecls is not subclass of BaseField')
+        self.basecls = basecls or BaseType
+        if not issubclass(self.basecls, BaseType):
+            raise NotATypeException('basecls is not subclass of BaseType')
         kwargs.setdefault('default', lambda: {})
-        super(DictField, self).__init__(*args, **kwargs)
+        super(DictType, self).__init__(*args, **kwargs)
 
     def validate(self, value):
         """Make sure that a list of valid fields is being used.
         """
         if not isinstance(value, dict):
-            raise ShieldException('Only dictionaries may be used in a '
-                                  'DictField', self.field_name, value)
+            raise TypeException('Only dictionaries may be used in a '
+                                  'DictType', self.field_name, value)
 
         if any(('.' in k or '$' in k) for k in value):
-            raise ShieldException('Invalid dictionary key name - keys may not '
+            raise TypeException('Invalid dictionary key name - keys may not '
                                   'contain "." or "$" characters',
                                   self.field_name, value)
         return value
@@ -651,7 +650,7 @@ class DictField(BaseField):
         return self.basecls(uniq_field=member_name)
 
 
-class GeoPointField(BaseField):
+class GeoPointType(BaseType):
     """A list storing a latitude and longitude.
     """
 
@@ -659,7 +658,7 @@ class GeoPointField(BaseField):
         return 'array'
 
     def _jsonschema_items(self):
-        return NumberField().for_jsonschema()
+        return NumberType().for_jsonschema()
 
     def _jsonschema_maxLength(self):
         return 2
@@ -671,20 +670,20 @@ class GeoPointField(BaseField):
         """Make sure that a geo-value is of type (x, y)
         """
         if not len(value) == 2:
-            raise ShieldException('Value must be a two-dimensional point',
+            raise TypeException('Value must be a two-dimensional point',
                                   self.field_name, value)
         if isinstance(value, dict):
             for v in value.values():
                 if not isinstance(v, (float, int)):
                     error_msg = 'Both values in point must be float or int'
-                    raise ShieldException(error_msg, self.field_name, value)
+                    raise TypeException(error_msg, self.field_name, value)
         elif isinstance(value, (list, tuple)):
             if (not isinstance(value[0], (float, int)) and
                 not isinstance(value[1], (float, int))):
                 error_msg = 'Both values in point must be float or int'
-                raise ShieldException(error_msg, self.field_name, value)
+                raise TypeException(error_msg, self.field_name, value)
         else:
-            raise ShieldException('GeoPointField can only accept tuples, '
+            raise TypeException('GeoPointType can only accept tuples, '
                                   'lists of (x, y), or dicts of {k1: v1, '
                                   'k2: v2}',
                                   self.field_name, value)

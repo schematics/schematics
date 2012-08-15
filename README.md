@@ -1,29 +1,38 @@
-# DictShield
+# Structures
 
-Aside from being a cheeky excuse to make people say things that sound sorta
-dirty, DictShield is a database-agnostic modeling system. It provides a way to
-model, validate and reshape data easily. All without requiring any particular
-database.
+Structures is an easy way to model data.  It provides mechanisms for structuring
+data, initializing data, serializing data, formatting data and validating data
+against type definitions, like an email address.
+
+The library provides data types, in the form of fields. Each field controls the
+details of how a it's data should look in various formats.  It also provides a 
+`validate()` function which is responsible for determining if the data looks
+correct.
+
+Structures' main goal is to provide similar functionality to a type system
+along with a way to generate the structures we send to the Internet, or store
+in a database, or send to some Java process, or basically any use case with
+structured data.
 
 A blog model might look like this:
 
-    from dictshield.document import Document
-    from dictshield.fields import StringField
+    from structures.models import Document
+    from structures.types import StringField
 
-    class BlogPost(Document):
-        title = StringField(max_length=40)
-        body = StringField(max_length=4096)
+    class BlogPost(Model):
+        title = StringType(max_length=40)
+        body = StringType(max_length=4096)
 
-DictShield objects serialize to JSON by default. Store them in Memcached,
+Structures objects serialize to JSON by default. Store them in Memcached,
 MongoDB, Riak, whatever you need.
 
-    >>> from dictshield.document import Document
-    >>> from dictshield.fields import StringField
-    >>> class Comment(Document):
-    ...   name = StringField(max_length=10)
-    ...   body = StringField(max_length=4000)
+    >>> from structures.models import Document
+    >>> from structures.types import StringField
+    >>> class Comment(Model):
+    ...   name = StringType(max_length=10)
+    ...   body = StringType(max_length=4000)
     ...
-    >>> data = {'name':'a hacker', 'body':'DictShield makes validation easy'}
+    >>> data = {'name':'a hacker', 'body':'structures makes validation easy'}
     >>> Comment(**data).validate()
     True
     
@@ -33,15 +42,15 @@ Let's see what happens if we try using invalid data.
     >>> Comment(**data).validate()
     Traceback (most recent call last):
       File "<stdin>", line 1, in <module>
-      File "/path/to/site-packages/dictshield/document.py", line 280, in validate
+      File "/path/to/site-packages/structures/models.py", line 280, in validate
         field._validate(value)
-      File "/path/to/site-packages/dictshield/fields/base.py", line 99, in _validate
+      File "/path/to/site-packages/structures/fields/base.py", line 99, in _validate
         self.validate(value)
-      File "/path/to/site-packages/dictshield/fields/base.py", line 224, in validate
+      File "/path/to/site-packages/structures/fields/base.py", line 224, in validate
         self.field_name, value)
-    dictshield.base.ShieldException: String value is too long - name:a hacker with a name who is too long
+    structures.base.TypeException: String value is too long - name:a hacker with a name who is too long
 
-Combining dictshield with JSON coming from a web request is quite natural as
+Combining structures with JSON coming from a web request is quite natural as
 well. Say we have some data coming in from an iPhone:
 
     json_data = request.post.get('data')
@@ -54,11 +63,11 @@ Easy.
 
 # The Design
 
-DictShield aims to provides helpers for a few types of common needs for
-modeling. It has been useful on the server-side so far, but I believe it could
+Structures aims to provides helpers for a few types of common needs for
+Modeling. It has been useful on the server-side so far, but I believe it could
 also serve for building an RPC.
 
-1. Creating Flexible Documents
+1. Creating Flexible models
 
 2. Easy To Use With Databases Or Caches
 
@@ -68,30 +77,30 @@ also serve for building an RPC.
 
 5. Input / Output Shaping
 
-DictShield also allows for object hierarchy's to be mapped into dictionaries
-too. This is useful primarily to those who use DictShield to instantiate
-classes representing their data instead of just filtering dictionaries through
+Structures also allows for object hierarchy's to be mapped into dictionaries
+Too. This is useful primarily to those who use structures to instantiate
+Classes Representing their data instead of just filtering dictionaries through
 the class's static methods.
 
 
 # Example Uses
 
-There are a few ways to use DictShield.  A simple case is to create a class
-structure that has typed fields.  DictShield offers multiple types in
-`fields.py`, like an EmailField or DecimalField.
+There are a few ways to use structures.  A simple case is to create a class
+Structure that has typed fields.  structures offers multiple types in
+`Fields.Py`, like an EmailField or DecimalField.
 
 
-## Creating Flexible Documents
+## Creating Flexible models
 
 Below is an example of a Media class with a single field, the title.
 
-    from dictshield.document import Document
-    from dictshield.fields import StringField
+    from structures.models import model
+    from structures.types import StringType
 
-    class Media(Document):
-        """Simple document that has one StringField member
+    class Media(Model):
+        """Simple model that has one Stringtype member
         """
-        title = StringField(max_length=40)
+        title = StringType(max_length=40)
 
 You create the class just like you would any Python class. And we'll see how
 that class is represented when serialized to a Python dictionary.
@@ -116,21 +125,21 @@ of our data. Notice that the class information is still there as `_cls` and
 ### More On Object Modeling
 
 We see two keys that come from Media's meta class: `_types` and `_cls`.
-`_types` stores the hierachy of Document classes used to create the
-document. `_cls` stores the specific class instance. This becomes more
-obvious when I subclass Media to create the Movie document below.
+`_types` stores the hierachy of model classes used to create the
+Document. `_cls` stores the specific class instance. This becomes more
+obvious when I subclass Media to create the Movie model below.
 
     import datetime
-    from dictshield.fields import IntField
+    from structures.types import IntType
 
     class Movie(Media):
         """Subclass of Foo. Adds bar and limits publicly shareable
         fields to only 'bar'.
         """
         _public_fields = ['title','year']
-        year = IntField(min_value=1950,
-                        max_value=datetime.datetime.now().year)
-        personal_thoughts = StringField(max_length=255)
+        year = IntType(min_value=1950,
+                       max_value=datetime.datetime.now().year)
+        personal_thoughts = StringType(max_length=255)
 
 Here's an instance of the Movie class:
 
@@ -139,7 +148,7 @@ Here's an instance of the Movie class:
     mv.year = 1990
     mv.personal_thoughts = u'I wish I had three hands...'
 
-This is the document serialized to a Python dictionary:
+This is the model serialized to a Python dictionary:
 
     {
         'personal_thoughts': u'I wish I had three hands...',
@@ -171,83 +180,83 @@ Or maybe we're storing json in a memcached.
 
 ## A Type System
 
-DictShield has its own type system - every field within a `Document` is defined with a specific type, for example a string will be defined as `StringField`. This "strong typing" makes serialising/deserialising semi-structured data to and from Python much more robust.
+structures has its own type system - every field within a `model` is defined with a specific type, for example a string will be defined as `StringField`. This "strong typing" makes serialising/deserialising semi-structured data to and from Python much more robust.
 
 ### All Types
 
-A complete list of the types supported by DictShield:
+A complete list of the types supported by structures:
 
-| **TYPE**                | **DESCRIPTION**                                                           |
-|------------------------:|:--------------------------------------------------------------------------|
-|         **Text fields** |                                                                           |
-|           `StringField` | A unicode string                                                          |
-|              `URLField` | A valid URL                                                               |
-|            `EmailField` | A valid email address                                                     |
-|           **ID fields** |                                                                           |
-|             `UUIDField` | A valid UUID value, optionally auto-populates empty values with new UUIDs |
-|         `ObjectIDField` | Wraps a MongoDB "BSON" ObjectId                                           |
-|      **Numeric fields** |                                                                           |
-|           `NumberField` | Any number (the parent of all the other numeric fields)                   |
-|              `IntField` | An integer                                                                |
-|             `LongField` | A long                                                                    |
-|            `FloatField` | A float                                                                   |
-|          `DecimalField` | A fixed-point decimal number                                              |
-|      **Hashing fields** |                                                                           |
-|              `MD5Field` | An MD5 hash                                                               |
-|             `SHA1Field` | An SHA1 hash                                                              |
-|**'Native type' fields** |                                                                           |
-|          `BooleanField` | A boolean                                                                 |
-|         `DateTimeField` | A datetime                                                                |
-|         `GeoPointField` | A geo-value of the form x, y (latitude, longitude)                        |
-|          **Containers** |                                                                           |
-|             `ListField` | Wraps a standard field, so multiple instances of the field can be used    |
-|       `SortedListField` | A `ListField` which sorts the list before saving, so list is always sorted|
-|             `DictField` | Wraps a standard Python dictionary                                        |
-|   `MultiValueDictField` | Django's implementation of a MultiValueDict.                              |
-| `EmbeddedDocumentField` | Stores a DictShield `EmbeddedDocument`                                    |
+| **TYPE**               | **DESCRIPTION**                                                            |
+|-----------------------:|:---------------------------------------------------------------------------|
+|         **Text types** |                                                                            |
+|           `StringType` | A unicode string                                                           |
+|              `URLType` | A valid URL                                                                |
+|            `EmailType` | A valid email address                                                      |
+|           **ID types** |                                                                            |
+|             `UUIDType` | A valid UUID value, optionally auto-populates empty values with new UUIDs  |
+|         `ObjectIDType` | Wraps a MongoDB "BSON" ObjectId                                            |
+|      **Numeric types** |                                                                            |
+|           `NumberType` | Any number (the parent of all the other numeric types)                     |
+|              `IntType` | An integer                                                                 |
+|             `LongType` | A long                                                                     |
+|            `FloatType` | A float                                                                    |
+|          `DecimalType` | A fixed-point decimal number                                               |
+|      **Hashing types** |                                                                            |
+|              `MD5Type` | An MD5 hash                                                                |
+|             `SHA1Type` | An SHA1 hash                                                               |
+|**'Native type' types** |                                                                            |
+|          `BooleanType` | A boolean                                                                  |
+|         `DateTimeType` | A datetime                                                                 |
+|         `GeoPointType` | A geo-value of the form x, y (latitude, longitude)                         |
+|         **Containers** |                                                                            |
+|             `ListType` | Wraps a standard type, so multiple instances of the field can be used      |
+|       `SortedListType` | A `Listtype` which sorts the list before saving, so list is always sorted  |
+|             `DictType` | Wraps a standard Python dictionary                                         |
+|   `MultiValueDictType` | Django's implementation of a MultiValueDict.                               |
+| `EmbeddedmodelType`    | Stores a structures `EmbeddedDocument`                                     |
 
-Fields can also receive some arguments for customizing their behavior. The
+Types can also receive some arguments for customizing their behavior. The
 currently accepted arguments are:
 
-| **ARGUMENT**              | **DESCRIPTION**                                                           |
-|------------------------:  |:----------------------------------------------------------------
-|       *field_name=None* | The name of the field in serialized form.                                 |
+| **ARGUMENT**                | **DESCRIPTION**                                                           |
+|----------------------------:|:--------------------------------------------------------------------------|
+|           *field_name=None* | The name of the field in serialized form.                                 |
 |            *required=False* | This field must have a value or validation and serialization will fail.   |
 |              *default=None* | Either a default value or callable that produces a default.               |
 |            *id_field=False* | Set to `True` if this field should be used as the id field.               |
 |           *validation=None* | Supply an alternate function for validation for this field.               |
 |              *choices=None* | Limit the possible values for this field by passing a list.               |
 |          *description=None* | Set an alternate field description for serialization to jsonschema.       |
-| *minimized_field_name=None* | Name of the field to use when serializing the document with short names.  |
+| *minimized_field_name=None* | Name of the field to use when serializing the model with short names.     |
 |           *uniq_field=None* | Legacy arg. Will be removed soon.                                         |
 
 
-### A Close Look at the MD5Field
+### A Close Look at the MD5Type
 
-This is what the MD5Field looks like. Notice that it's basically just
-an implementation of a `validate()` function, which raises a `ShieldException`
+This is what the MD5Type looks like. Notice that it's basically just
+an implementation of a `validate()` function, which raises a `TypeException`
 exception if validation fails.
 
-    class MD5Field(BaseField):
-        """A field that validates input as resembling an MD5 hash.
+    class MD5Type(BaseField):
+        """A type that validates input as resembling an MD5 hash.
         """
         hash_length = 32
         def validate(self, value):
-            if len(value) != MD5Field.hash_length:
-                raise ShieldException('MD5 value is wrong length',
-                                      self.field_name, value)
+            if len(value) != MD5Type.hash_length:
+                raise TypeException('MD5 value is wrong length',
+                                    self.field_name, value)
             try:
                 x = int(value, 16)
             except:
-                raise ShieldException('MD5 value is not hex',
-                                      self.field_name, value)
+                raise TypeException('MD5 value is not hex',
+                                    self.field_name, value)
 
 You might notice that the field which failed is also reported. It's available on
 the exception as `field_name` and `field_value`.
 
 The exception prints in this pattern `field_name(field_value): reason`.
 
-    ShieldException caught: secret(whatevz):  MD5 value is wrong length
+    TypeException caught: secret(whatevz):  MD5 value is wrong length
 
 If you think the overhead of validation is unnecessary for some use cases, you
 can skip it by never calling `validate()`.
@@ -255,31 +264,31 @@ can skip it by never calling `validate()`.
 
 ## Validation Of Types
 
-As we saw above, we know we can validate `Document` instances by calling
-`validate()`. Let's generate a `User` instance with seed data and validate it.
+As we saw above, we know we can validate `model` instances by calling
+`Validate()`. Let's generate a `User` instance with seed data and validate it.
 
 First, here is the User model:
 
-    class User(Document):
+    class User(Model):
         _public_fields = ['name']
-        secret = MD5Field()
-        name = StringField(required=True, max_length=50)
-        bio = StringField(max_length=100)
-        url = URLField()
+        secret = MD5Type()
+        name = StringType(required=True, max_length=50)
+        bio = StringType(max_length=100)
+        url = URLType()
 
 Next, we seed the instance with some data and validate it.
 
     user = User(**{'secret': 'whatevs', 'name': 'test hash'})
     try:
         user.validate()
-    except ShieldException, se:
-        print 'ShieldException caught: %s' % (se)
+    except TypeException, se:
+        print 'TypeException caught: %s' % (se)
 
 This calling `validate()` on a model validates an instance by looping through
 it's fields and calling `field.validate()` on each one.
 
-We can still be leaner. DictShield also allows validating input without
-instantiating any objects.
+We can still be leaner. structures also allows validating input without
+Instantiating any objects.
 
 
 ### Validating User Input
@@ -299,7 +308,7 @@ keys that aren't in the User definition.
 
 We then call `validate()` on that `User` instance to validate each field against
 what the dictionary contained. If the data doesn't pass exception, a
-`ShieldException` is thrown and we handle the error.
+`TypeException` is thrown and we handle the error.
 
 If validation passed, we're done. We know the data looks good.
 
@@ -311,7 +320,7 @@ however, know exactly what fields we want to be there. Same goes for output.
 
 A web system typically has tiers involved with data access, depending on the
 user logged in. My most common need is to differentiate between internal system
-data (the raw document), data fields for the owner of the data (internal data
+data (the raw model), data fields for the owner of the data (internal data
 removed) and the data fields that are shareable with the general public.
 
 ### Removing Unknown Fields
@@ -321,7 +330,7 @@ fairly easy because you are generally working with a list of fields, what they
 look like and how to turn them into Python or JSON. Not much else.
 
 So here's how you can reduce the user input into just the fields found on a
-`User` document.
+`User` model.
 
 Consider the following string:
 
@@ -336,10 +345,10 @@ Parse it just like before.
 
     user_doc = User(**total_input).to_python()
 
-The values in total_input are matched against fields found in the DictShield
-Document class and everything else is discarded.
+The values in total_input are matched against fields found in the structures
+model class and everything else is discarded.
 
-`user_doc` now looks like below with `rogue_field` removed.
+`User_doc` now looks like below with `rogue_field` removed.
 
     {
         '_types': ['User'],
@@ -350,14 +359,14 @@ Document class and everything else is discarded.
     }
 
 
-### JSON for Owner of Document
+### JSON for Owner of model
 
-Here is our `Movie` document safe for transmitting to the owner of the document.
+Here is our `Movie` model safe for transmitting to the owner of the document.
 We achieve this by calling `Movie.make_json_ownersafe`. This function is a
-classmethod available on the `Document` class. It knows to remove `_cls` and
-`_types` because they are in `Document._internal_fields`. You can add any
-fields that should be treated as internal to your system by adding a list named
-`_private_fields` to your Document and listing each field.
+classmethod available on the `model` class. It knows to remove `_cls` and
+`_Types` because they are in `model._internal_fields`. You can add any
+Fields that should be treated as internal to your system by adding a list named
+`_private_fields` to your model and listing each field.
 
     {
         "personal_thoughts": "I wish I had three hands...",
@@ -366,7 +375,7 @@ fields that should be treated as internal to your system by adding a list named
     }
 
 
-### JSON for Public View of Document
+### JSON for Public View of model
 
 This is  dictionary safe for transmitting to the public, not just the owner.
 Get this by calling `make_json_publicsafe`.
@@ -379,7 +388,7 @@ Get this by calling `make_json_publicsafe`.
 
 ### JSON Schema
 
-The structure of documents can also be serialized into JSON Schema. Again, with our `Movie` document.
+The structure of models can also be serialized into JSON Schema. Again, with our `Movie` document.
 
     >>> Movie.to_jsonschema()
     '{
@@ -404,10 +413,10 @@ The structure of documents can also be serialized into JSON Schema. Again, with 
 ## Working Without Instances
 
 Consider a user updating some of their settings. Rather than validate the entire
-document, you want to check validation for just the field the client is
+model, you want to check validation for just the field the client is
 updating and tell your database to store just that field.
 
-DictShield offers a few classmethods to facilitate this.
+structures offers a few classmethods to facilitate this.
 
 
 ### Class Level Validation
@@ -422,14 +431,14 @@ classmethod. No need to instantiate anything.
 
     try:
         User.validate_class_fields(user_input)
-    except ShieldException, se:
+    except TypeException, se:
         print('  Validation failure: %s\n' % (dp))
 
 This particular code would throw an exception because the `name` field is
 required, but not present.
 
 `validation_class_partial` lets you validate only the fields present in the
-input. This is useful for updating one or two fields in a document at a time,
+input. This is useful for updating one or two fields in a model at a time,
 like we attempted above.
 
     ...
@@ -439,9 +448,9 @@ like we attempted above.
 
 ### Aggregating Errors
 
-DictShield's validation methods can also give you a list of which individual fields
-failed validation.  Calling a Document's `validate()` method with `validate_all=True`
-will raise a `ShieldDocException` whose `errors_list` attriute is a list of 0 or more
+structures's validation methods can also give you a list of which individual fields
+Failed Validation.  Calling a model's `validate()` method with `validate_all=True`
+Will raise a `ModelException` whose `errors_list` attriute is a list of 0 or more
 exceptions, and calling `validate_class_fields` with `validate_all=True` will return the
 same list.
 
@@ -452,9 +461,9 @@ same list.
 
 # Installing
 
-DictShield is in [pypi](http://pypi.python.org) so you can use `easy_install` or `pip`.
+structures is in [pypi](http://pypi.python.org) so you can use `easy_install` or `pip`.
 
-    pip install dictshield
+    Pip install structures
 
 
 # Contributors

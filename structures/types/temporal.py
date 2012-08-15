@@ -11,17 +11,17 @@ except ImportError:
         'You can obtain dateutil from http://labix.org/python-dateutil'
     )
 
-from .base import DateTimeField
+from .base import DateTimeType
 
 
-class TimeStampField(DateTimeField):
+class TimeStampType(DateTimeType):
     """Variant of a datetime field that saves itself as a unix timestamp (int)
     instead of a ISO-8601 string.
     """
 
     def __set__(self, instance, value):
         """Will try to parse the value as a timestamp.  If that fails it
-        will fallback to DateTimeField's value parsing.
+        will fallback to DateTimeType's value parsing.
 
         A datetime may be used (and is encouraged).
         """
@@ -29,11 +29,11 @@ class TimeStampField(DateTimeField):
             return
 
         try:
-            value = TimeStampField.timestamp_to_date(value)
+            value = TimeStampType.timestamp_to_date(value)
         except TypeError:
             pass
 
-        super(TimeStampField, self).__set__(instance, value)
+        super(TimeStampType, self).__set__(instance, value)
 
     @classmethod
     def timestamp_to_date(cls, value):
@@ -46,5 +46,5 @@ class TimeStampField(DateTimeField):
         return int(round(mktime(value.astimezone(tzutc()).timetuple())))
 
     def for_json(self, value):
-        v = TimeStampField.date_to_timestamp(value)
+        v = TimeStampType.date_to_timestamp(value)
         return v

@@ -34,41 +34,41 @@ BLOG POST ]----------------------------------------
 """
 
 import datetime
-from dictshield.document import Document, EmbeddedDocument
-from dictshield.fields import (StringField,
-                               EmailField,
-                               BooleanField,
-                               DateTimeField)
-from dictshield.fields.compound import (ListField,
-                                        EmbeddedDocumentField)
+from structures.models import Model, EmbeddedModel
+from structures.types import (StringType,
+                              EmailType,
+                              BooleanType,
+                              DateTimeType)
+from structures.types.compound import (ListType,
+                                       EmbeddedModelType)
 
 
-class Author(EmbeddedDocument):
+class Author(EmbeddedModel):
     _private_fields=['is_active']
     _public_fields=['username', 'name']
-    name = StringField()
-    username = StringField()
-    email = EmailField()
-    a_setting = BooleanField()
-    is_active = BooleanField()
+    name = StringType()
+    username = StringType()
+    email = EmailType()
+    a_setting = BooleanType()
+    is_active = BooleanType()
 
 
-class Comment(EmbeddedDocument):
+class Comment(EmbeddedModel):
     _public_fields=['username', 'text']
-    text = StringField()
-    username = StringField()
-    email = EmailField()   
+    text = StringType()
+    username = StringType()
+    email = EmailType()   
 
 
-class BlogPost(Document):
+class BlogPost(Model):
     _private_fields=['personal_thoughts']
     _public_fields=['author', 'content', 'comments']
-    title = StringField()    
-    content = StringField()
-    author = EmbeddedDocumentField(Author)
-    post_date = DateTimeField(default=datetime.datetime.now)
-    comments = ListField(EmbeddedDocumentField(Comment))
-    deleted = BooleanField()   
+    title = StringType()    
+    content = StringType()
+    author = EmbeddedModelType(Author)
+    post_date = DateTimeType(default=datetime.datetime.now)
+    comments = ListType(EmbeddedModelType(Comment))
+    deleted = BooleanType()   
     
 
 author = Author(name='james', username='j2d2', email='jdennis@gmail.com',

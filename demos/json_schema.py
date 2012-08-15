@@ -6,19 +6,19 @@
 
 
 import datetime
-from dictshield.document import Document
-from dictshield.fields import StringField, IntField
+from structures.models import Model
+from structures.types import StringType, IntType
 
 ###
 ### The base class
 ###
 
-class Movie(Document):
-    """Simple document that has one StringField member
+class Movie(Model):
+    """Simple model that has one StringType member
     """
-    title = StringField(max_length=40)
-    year = IntField(min_value=1950, max_value=datetime.datetime.now().year)
-    personal_thoughts = StringField(max_length=255)
+    title = StringType(max_length=40)
+    year = IntType(min_value=1950, max_value=datetime.datetime.now().year)
+    personal_thoughts = StringType(max_length=255)
 
 m = Movie(title='Some Movie',
           year=2011,

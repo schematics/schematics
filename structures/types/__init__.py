@@ -3,11 +3,11 @@ the contents of `base.py` but it's possible the fields will be broken out into
 more specific modules as they grow.
 """
 
-dictshield_fields = {}
+structure_types = {}
 
 
 class DictFieldNotFound(Exception):
     pass
 
 
-from dictshield.fields.base import *
+from structures.types.base import *

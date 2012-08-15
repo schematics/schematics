@@ -21,14 +21,14 @@ Customer as JSON:
 """
 
 
-from dictshield.document import Document, EmbeddedDocument
-from dictshield.fields import (IntField,
-                               StringField,
-                               FloatField,
-                               DateTimeField,
-                               EmailField)
-from dictshield.fields.compound import (ListField,
-                                        EmbeddedDocumentField)
+from structures.models import Model, EmbeddedModel
+from structures.types import (IntType,
+                              StringType,
+                              FloatType,
+                              DateTimeType,
+                              EmailType)
+from structures.types.compound import (ListType,
+                                       EmbeddedModelType)
 import datetime
 import json
 
@@ -37,33 +37,33 @@ import json
 ### Store models
 ###
 
-class Product(EmbeddedDocument):
-    sku = IntField(min_value=1, max_value=9999, required=True)
-    title = StringField(max_length = 30, required=True)
-    description = StringField()
-    price = FloatField(required=True)
-    num_in_stock = IntField()
+class Product(EmbeddedModel):
+    sku = IntType(min_value=1, max_value=9999, required=True)
+    title = StringType(max_length = 30, required=True)
+    description = StringType()
+    price = FloatType(required=True)
+    num_in_stock = IntType()
 
-class Order(EmbeddedDocument):
-    date_made = DateTimeField(required=True)
-    date_changed = DateTimeField()
-    line_items = ListField(EmbeddedDocumentField(Product))
-    total = FloatField()
+class Order(EmbeddedModel):
+    date_made = DateTimeType(required=True)
+    date_changed = DateTimeType()
+    line_items = ListType(EmbeddedModelType(Product))
+    total = FloatType()
 
 
 ###
 ### User models
 ###
 
-class User(Document):
-    username = StringField(min_length=2, max_length=20, required=True)
-    email = EmailField(max_length=30, required=True)
+class User(Model):
+    username = StringType(min_length=2, max_length=20, required=True)
+    email = EmailType(max_length=30, required=True)
 
 class Customer(User):
-    date_made = DateTimeField(required=True)
-    first_name = StringField(max_length=20, required=True)
-    last_name = StringField(max_length=30, required=True)
-    orders = ListField(EmbeddedDocumentField(Order))
+    date_made = DateTimeType(required=True)
+    first_name = StringType(max_length=20, required=True)
+    last_name = StringType(max_length=30, required=True)
+    orders = ListType(EmbeddedModelType(Order))
 
 
 ###

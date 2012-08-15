@@ -21,21 +21,21 @@ Making mv json public safe (only ['title', 'year'] should show):
 
 import uuid
 import datetime
-from dictshield.document import Document
-from dictshield.fields import (StringField,
-                               IntField,
-                               UUIDField)
+from structures.models import Model
+from structures.types import (StringType,
+                               IntType,
+                               UUIDType)
 
 
 ###
 ### The base class
 ###
 
-class Media(Document):
+class Media(Model):
     """Simple document that has one StringField member
     """
-    owner = UUIDField()
-    title = StringField(max_length=40)
+    owner = UUIDType()
+    title = StringType(max_length=40)
 
 make_believe_owner_id = uuid.uuid4()
 
@@ -54,8 +54,8 @@ class Movie(Media):
     fields to only 'bar'.
     """
     _public_fields = ['title','year']
-    year = IntField(min_value=1950, max_value=datetime.datetime.now().year)
-    personal_thoughts = StringField(max_length=255)
+    year = IntType(min_value=1950, max_value=datetime.datetime.now().year)
+    personal_thoughts = StringType(max_length=255)
 
 mv = Movie()
 mv.title = 'Total Recall'

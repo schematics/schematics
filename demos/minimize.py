@@ -25,22 +25,22 @@ import sys
 sys.path.append('..')
 
 import datetime
-from dictshield.document import Document
-from dictshield.fields import StringField, IntField
+from structures.models import Model
+from structures.types import StringType, IntType
 
 ###
 ### The base class
 ###
 
-class Movie(Document):
-    """Simple document that has one StringField member
+class Movie(Model):
+    """Simple model that has one StringType member
     """
     
-    _public_fields = ["title", "year"]
+    _public_types = ["title", "year"]
     
-    title = StringField(max_length=40, minimized_field_name="t")
-    year = IntField(min_value=1950, max_value=datetime.datetime.now().year, minimized_field_name="y")
-    personal_thoughts = StringField(max_length=255, minimized_field_name="p")
+    title = StringType(max_length=40, minimized_field_name="t")
+    year = IntType(min_value=1950, max_value=datetime.datetime.now().year, minimized_field_name="y")
+    personal_thoughts = StringType(max_length=255, minimized_field_name="p")
 
 m = Movie(title='Some Movie',
           year=2011,

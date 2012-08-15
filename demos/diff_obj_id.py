@@ -29,10 +29,10 @@ Validation passed
 """
 
 
-from dictshield.document import diff_id_field
-from dictshield.document import Document
-from dictshield.fields import StringField, IntField
-from dictshield.fields.mongo import ObjectIdField
+from structures.models import diff_id_field
+from structures.models import Model
+from structures.types import StringType, IntType
+from structures.types.mongo import ObjectIdType
 
 from bson.objectid import ObjectId
 
@@ -42,22 +42,22 @@ from bson.objectid import ObjectId
 ### ObjectIdField.
 ###
 
-class SimpleDoc(Document):
-    title = StringField(max_length=40)
-    num = IntField()
+class SimpleModel(Model):
+    title = StringType(max_length=40)
+    num = IntType()
     class Meta:
-        id_field = ObjectIdField
+        id_field = ObjectIdType
     
 
 
-sd = SimpleDoc()
-sd.title = 'simple doc'
-sd.num = 1998
-sd.id = ObjectId()
-print 'SimpleDoc:\n\n    %s\n' % (sd.to_python())
+sm = SimpleModel()
+sm.title = 'simple model'
+sm.num = 1998
+sm.id = ObjectId()
+print 'SimpleModel:\n\n    %s\n' % (sm.to_python())
 
-print 'Validating SimpleDoc instance'
-sd.validate()
+print 'Validating SimpleModel instance'
+sm.validate()
 print 'Validation passed\n'
 
 
@@ -65,19 +65,19 @@ print 'Validation passed\n'
 ### Subclass decorated object to show inheritance works fine
 ###
 
-class ComplexDoc(SimpleDoc):
-    body = StringField()
+class ComplexModel(SimpleModel):
+    body = StringType()
 
 
-cd = ComplexDoc()
-cd.title = 'complex title'
-cd.num = 1996
-cd.id = ObjectId()
-print 'ComplexDoc:\n\n    %s\n' % (cd.to_python())
-print 'ComplexDoc JSON:\n\n    %s\n' % (cd.to_json())
-print 'ComplexDoc ownersafe:\n\n    %s\n' % (ComplexDoc.make_ownersafe(cd))
-print 'ComplexDoc publicsafe:\n\n    %s\n' % (ComplexDoc.make_publicsafe(cd))
+cm = ComplexModel()
+cm.title = 'complex title'
+cm.num = 1996
+cm.id = ObjectId()
+print 'ComplexModel:\n\n    %s\n' % (cm.to_python())
+print 'ComplexModel JSON:\n\n    %s\n' % (cm.to_json())
+print 'ComplexModel ownersafe:\n\n    %s\n' % (ComplexModel.make_ownersafe(cm))
+print 'ComplexModel publicsafe:\n\n    %s\n' % (ComplexModel.make_publicsafe(cm))
 
-print 'Validating ComplexDoc instance'
-cd.validate()
+print 'Validating ComplexModel instance'
+cm.validate()
 print 'Validation passed\n'

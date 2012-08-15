@@ -1,17 +1,17 @@
 import inspect
 import copy
 
-from dictshield.base import ShieldException, ShieldDocException, json
+from structures.base import TypeException, ModelException, json
 
-__all__ = ['DocumentMetaclass', 'TopLevelDocumentMetaclass', 'BaseDocument',
-           'Document', 'EmbeddedDocument', 'ShieldException']
+__all__ = ['ModelMetaclass', 'TopLevelModelMetaclass', 'BaseModel',
+           'Model', 'EmbeddedModel', 'TypeException']
 
-from dictshield.fields import (DictFieldNotFound,
-                               dictshield_fields,
-                               BaseField,
-                               UUIDField)
+from structures.types import (DictFieldNotFound,
+                              structure_types,
+                              BaseType,
+                              UUIDType)
 
-schema_kwargs_to_dictshield = {
+schema_kwargs_to_structures = {
     'maxLength': 'max_length',
     'minLength': 'min_length',
     'pattern': 'regex',
@@ -24,7 +24,7 @@ schema_kwargs_to_dictshield = {
 ### Options Models
 ###
 
-class DocumentOptions(object):
+class ModelOptions(object):
     """This class is a container for all metaclass configuration options. The
     `__init__` method will set the default values for attributes and then
     attempt to map any keyword arguments to attributes of the same name. If an
@@ -45,16 +45,16 @@ class DocumentOptions(object):
                 setattr(self, k, v)
 
 
-class TopLevelDocumentOptions(DocumentOptions):
-    """Extends `DocumentOptions` to add configuration values for
-    TopLevelDocument instances.
+class TopLevelModelOptions(ModelOptions):
+    """Extends `ModelOptions` to add configuration values for TopLevelModel
+    instances.
     """
     def __init__(self, **kwargs):
-        self.id_field = UUIDField
+        self.id_field = UUIDType
         self.id_options = {'uniq_field': 'id'}
         self.bucket = None
         ### The call to super should be last
-        super(TopLevelDocumentOptions, self).__init__(**kwargs)
+        super(TopLevelModelOptions, self).__init__(**kwargs)
 
 
 ###
@@ -79,11 +79,11 @@ def _gen_options(klass, attrs):
     """Processes the attributes and class parameters to generate the correct
     options structure.
 
-    Defaults to `DocumentOptions` but it's ideal to define `__optionsclass_`
-    on the Document's metaclass.
+    Defaults to `ModelOptions` but it's ideal to define `__optionsclass_`
+    on the Model's metaclass.
     """
     ### Parse Meta
-    options_class = DocumentOptions
+    options_class = ModelOptions
     if hasattr(klass, '__optionsclass__'):
         options_class = klass.__optionsclass__
     options = _parse_meta_config(attrs, options_class)
@@ -94,18 +94,18 @@ def _gen_options(klass, attrs):
 ### Metaclass design
 ###
 
-class DocumentMetaclass(type):
-    """Metaclass for all documents. Additional meta-functionality can be
-    constructed via subclassing this document.
+class ModelMetaclass(type):
+    """Metaclass for all models. Additional meta-functionality can be
+    constructed via subclassing this model.
     """
     def __new__(cls, name, bases, attrs):
-        """Processes a configuration of a Document type into a class.
+        """Processes a configuration of a Model type into a class.
         """
         ### Gen a class instance
         klass = type.__new__(cls, name, bases, attrs)
 
         metaclass = attrs.get('__metaclass__')
-        if metaclass and issubclass(metaclass, DocumentMetaclass):
+        if metaclass and issubclass(metaclass, ModelMetaclass):
             return klass
 
         ### Parse metaclass config into options structure
@@ -114,8 +114,8 @@ class DocumentMetaclass(type):
         if hasattr(klass, 'Meta'):
             delattr(klass, 'Meta')
 
-        ### Fields for collecting structure information
-        doc_fields = {}
+        ### fieldss for collecting structure information
+        model_fields = {}
         class_name = [name]
         superclasses = {}
 
@@ -126,7 +126,7 @@ class DocumentMetaclass(type):
         for base in bases:
             ### Configure `_fields` list
             if hasattr(base, '_fields'):
-                doc_fields.update(base._fields)
+                model_fields.update(base._fields)
                 class_name.append(base._class_name)
                 superclasses[base._class_name] = base
                 superclasses.update(base._superclasses)
@@ -145,38 +145,38 @@ class DocumentMetaclass(type):
         ### Collect field info
         for attr_name, attr_value in attrs.items():
             has_class = hasattr(attr_value, "__class__")
-            if has_class and issubclass(attr_value.__class__, BaseField):
+            if has_class and issubclass(attr_value.__class__, BaseType):
                 attr_value.field_name = attr_name
                 if not attr_value.uniq_field:
                     attr_value.uniq_field = attr_name
-                doc_fields[attr_name] = attr_value
+                model_fields[attr_name] = attr_value
 
         ### Attach collected data to klass
-        setattr(klass, '_fields', doc_fields)
+        setattr(klass, '_fields', model_fields)
         setattr(klass, '_class_name', '.'.join(reversed(class_name)))
         setattr(klass, '_superclasses', superclasses)
 
         ### Set owner in field instances to klass
         for field in klass._fields.values():
-            field.owner_document = klass
+            field.owner_model = klass
 
         ### Fin.
         return klass
 
 
-class TopLevelDocumentMetaclass(DocumentMetaclass):
-    """Metaclass for top-level documents. A Top-level document in DictShield
+class TopLevelModelMetaclass(ModelMetaclass):
+    """Metaclass for top-level models. A Top-level model in Structures
     represents the kind of structure that will be stored in a database. The
-    `TopLevelDocumentMetaclass` is therefore responsible for the kind of
-    attributes that make a document saveable, like an id field.
+    `TopLevelModelMetaclass` is therefore responsible for the kind of
+    attributes that make a model saveable, like an id field.
     """
 
     def __new__(cls, name, bases, attrs):
         ### Gen a class instance
-        super_new = super(TopLevelDocumentMetaclass, cls).__new__
+        super_new = super(TopLevelModelMetaclass, cls).__new__
         klass = super_new(cls, name, bases, attrs)
 
-        if attrs.get('__metaclass__') == TopLevelDocumentMetaclass:
+        if attrs.get('__metaclass__') == TopLevelModelMetaclass:
             return klass
 
         for base in bases:
@@ -195,7 +195,7 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
                     raise ValueError('Cannot override id_field')
 
                 klass._options.id_field = field
-                # Make 'Document.id' an alias to the real primary key field
+                # Make 'Model.id' an alias to the real primary key field
                 klass.id = field(uniq_field='id')
 
         id_options = {'uniq_field': '_id'}
@@ -209,7 +209,7 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
             #klass.id = id_field(**id_options)
             klass.id = id_field(**id_options)
         else:
-            id_field = UUIDField
+            id_field = UUIDType
 
         return klass
 
@@ -223,12 +223,12 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
     ###
 
     def _to_fields(self, field_converter):
-        """Returns a Python dictionary representing the Document's
+        """Returns a Python dictionary representing the Model's
         metastructure and values.
         """
         data = {}
 
-        # First map the subclasses of BaseField
+        # First map the subclasses of BaseType
         for field_name, field in self._fields.items():
             value = getattr(self, field_name, None)
             if value is not None:
@@ -246,7 +246,7 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
         return data
 
     def to_python(self):
-        """Returns a Python dictionary representing the Document's
+        """Returns a Python dictionary representing the Model's
         metastructure and values.
         """
         fun = lambda f, v: f.for_python(v)
@@ -256,7 +256,7 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
     def to_json(self, encode=True, sort_keys=False):
         """Return data prepared for JSON. By default, it returns a JSON encoded
         string, but disabling the encoding to prevent double encoding with
-        embedded documents.
+        embedded models.
         """
         fun = lambda f, v: f.for_json(v)
         data = self._to_fields(fun)
@@ -267,10 +267,10 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
 
 
 ###
-### Document structures
+### Model structures
 ###
 
-class BaseDocument(object):
+class BaseModel(object):
 
     def __init__(self, **values):
         self._data = {}
@@ -301,7 +301,7 @@ class BaseDocument(object):
         """Ensure that all fields' values are valid and that required fields
         are present.
 
-        Throws a ShieldDocException if Document is invalid
+        Throws a ModelException if Model is invalid
         """
         # Get a list of tuples of field names and their current values
         fields = [(field, getattr(self, name))
@@ -315,27 +315,26 @@ class BaseDocument(object):
             if value is not None and value != '':
                 try:
                     field._validate(value)
-                except ShieldException, e:
+                except TypeException, e:
                     err = e
                 except (ValueError, AttributeError, AssertionError):
-                    err = ShieldException('Invalid value',
-                                          field.field_name,
-                                          value)
+                    err = TypeException('Invalid value', field.field_name,
+                                        value)
             elif field.required:
-                err = ShieldException('Required field missing',
-                                      field.field_name,
-                                      value)
+                err = TypeException('Required field missing',
+                                    field.field_name,
+                                    value)
             # If validate_all, save errors to a list
             # Otherwise, throw the first error
             if err:
                 errs.append(err)
             if err and not validate_all:
-                # NB: raising a ShieldDocException in this case would be more
-                # consistent, but existing code might expect ShieldException
+                # NB: raising a ModelException in this case would be more
+                # consistent, but existing code might expect TypeException
                 raise err
 
         if errs:
-            raise ShieldDocException(self._class_name, errs)
+            raise ModelException(self._class_name, errs)
         return True
 
     @classmethod
@@ -402,11 +401,11 @@ class BaseDocument(object):
 
     @classmethod
     def for_jsonschema(cls):
-        """Returns a representation of this DictShield class as a JSON schema,
+        """Returns a representation of this Structures class as a JSON schema,
         but not yet serialized to JSON. If certain fields are marked public,
         only those fields will be represented in the schema.
 
-        Certain DictShield fields do not map precisely to JSON schema types or
+        Certain Structures fields do not map precisely to JSON schema types or
         formats.
         """
 
@@ -432,11 +431,11 @@ class BaseDocument(object):
 
     @classmethod
     def to_jsonschema(cls):
-        """Returns a representation of this DictShield class as a JSON schema.
+        """Returns a representation of this Structures class as a JSON schema.
         If certain fields are marked public, only those fields will be
         represented in the schema.
 
-        Certain DictShield fields do not map precisely to JSON schema types or
+        Certain Structures fields do not map precisely to JSON schema types or
         formats.
         """
         return json.dumps(cls.for_jsonschema())
@@ -446,12 +445,12 @@ class BaseDocument(object):
     ###
 
     def _to_fields(self, field_converter):
-        """Returns a Python dictionary representing the Document's
+        """Returns a Python dictionary representing the Model's
         metastructure and values.
         """
         data = {}
 
-        # First map the subclasses of BaseField
+        # First map the subclasses of BaseType
         for field_name, field in self._fields.items():
             value = getattr(self, field_name, None)
             if value is not None:
@@ -469,7 +468,7 @@ class BaseDocument(object):
         return data
 
     def to_python(self):
-        """Returns a Python dictionary representing the Document's
+        """Returns a Python dictionary representing the Model's
         metastructure and values.
         """
         fun = lambda f, v: f.for_python(v)
@@ -479,7 +478,7 @@ class BaseDocument(object):
     def to_json(self, encode=True, sort_keys=False):
         """Return data prepared for JSON. By default, it returns a JSON encoded
         string, but disabling the encoding to prevent double encoding with
-        embedded documents.
+        embedded models.
         """
         fun = lambda f, v: f.for_json(v)
         data = self._to_fields(fun)
@@ -501,7 +500,7 @@ class BaseDocument(object):
 
     @classmethod
     def from_jsonschema(cls, schema):
-        """Generate a dictshield Document class from a JSON schema.  The JSON
+        """Generate a structures Model class from a JSON schema.  The JSON
         schema's title field will be the name of the class.  You must specify a
         title and at least one property or there will be an AttributeError.
         """
@@ -512,33 +511,33 @@ class BaseDocument(object):
         if schema.get('title', False):
             class_name = schema['title']
         else:
-            raise AttributeError('JSON Schema missing Document title')
+            raise AttributeError('JSON Schema missing Model title')
 
         if 'description' in schema:
             # TODO figure out way to put this in to resulting obj
-            doc = schema['description']
+            model = schema['description']
 
         if 'properties' in schema:
             dictfields = {}
             for field_name, schema_field in schema['properties'].iteritems():
                 if field_name == "_id":
                     field_name = "id"
-                field = cls.map_jsonschema_field_to_dictshield(schema_field)
+                field = cls.map_jsonschema_field_to_structures(schema_field)
                 dictfields[field_name] = field
             return type(class_name, (cls,), dictfields)
         else:
             raise AttributeError('JSON schema missing one or more properties')
 
     @classmethod
-    def map_jsonschema_field_to_dictshield(cls, schema_field, field_name=None):
+    def map_jsonschema_field_to_structures(cls, schema_field, field_name=None):
         # get the kind of field this is
         if not 'type' in schema_field:
             return  # not data, so ignore
         tipe = schema_field.pop('type')
         fmt = schema_field.pop('format', None)
 
-        dictshield_field_type = dictshield_fields.get((tipe, fmt,), None)
-        if not dictshield_field_type:
+        structures_field_type = structures_fields.get((tipe, fmt,), None)
+        if not structures_field_type:
             raise DictFieldNotFound
 
         kwargs = {}
@@ -548,23 +547,23 @@ class BaseDocument(object):
                 raise NotImplementedError
             elif isinstance(items, dict):  # list of a single type
                 items = [items]
-            kwargs['fields'] = [cls.map_jsonschema_field_to_dictshield(item)
+            kwargs['fields'] = [cls.map_jsonschema_field_to_structures(item)
                                 for item in items]
 
         if tipe == "object":  # embedded objects
             #schema_field['title'] = field_name
-            document_type = EmbeddedDocument.from_jsonschema(schema_field)
-            kwargs['document_type'] = document_type
+            model_type = EmbeddedModel.from_jsonschema(schema_field)
+            kwargs['model_type'] = model_type
             schema_field.pop('properties')
 
         schema_field.pop('title', None)  # make sure this isn't in here
 
         for kwarg_name, v in schema_field.items():
-            if kwarg_name in schema_kwargs_to_dictshield:
-                kwarg_name = schema_kwargs_to_dictshield[kwarg_name]
+            if kwarg_name in schema_kwargs_to_structures:
+                kwarg_name = schema_kwargs_to_structures[kwarg_name]
             kwargs[kwarg_name] = v
 
-        return dictshield_field_type(**kwargs)
+        return structures_field_type(**kwargs)
 
 
 ###
@@ -578,7 +577,7 @@ def swap_field(klass, new_field, fields):
 
     Effectively doing this:
 
-        class.field_name = id_field()  # like ObjectIdField, perhaps
+        class.field_name = id_field()  # like ObjectIdType, perhaps
 
     Returns the class for compatibility, making it compatible with a decorator.
     """
@@ -602,7 +601,7 @@ def swap_field(klass, new_field, fields):
 
 
 def diff_id_field(id_field, field_list, *arg):
-    """This function is a decorator that takes an id field, like ObjectIdField,
+    """This function is a decorator that takes an id field, like ObjectIdType,
     and replaces the fields in `field_list` to use `id_field` instead.
 
     Wrap a class definition and it will apply the field swap in an simply and
@@ -621,12 +620,12 @@ def diff_id_field(id_field, field_list, *arg):
 
 
 ###
-### Documents Models
+### Models Models
 ###
 
 class SafeableMixin:
     """A `SafeableMixin` is used to add unix style permissions to fields in a
-    `Document`. It creates this by using a black list and a white list in the
+    `Model`. It creates this by using a black list and a white list in the
     form of three lists called `_internal_fields`, `_private_fields` and
     `_public_fields`.
 
@@ -666,17 +665,17 @@ class SafeableMixin:
     ###
 
     @classmethod
-    def make_safe(cls, doc_dict_or_dicts, field_converter, doc_converter,
-                  doc_encoder, field_list=None, white_list=True):
+    def make_safe(cls, model_dict_or_dicts, field_converter, model_converter,
+                  model_encoder, field_list=None, white_list=True):
         """This function is the building block of the safe mechanism. This
-        class method takes a doc, dict or dicts and converts them into the
+        class method takes a model, dict or dicts and converts them into the
         equivalent structure with three basic rules applied.
 
           1. The fields must be converted from the model into a type. This is
              currently scene as calling `for_python()` or `for_json()` on
              fields.
 
-          2. A function that knows how to handle `EmbeddedDocument` instances,
+          2. A function that knows how to handle `EmbeddedModel` instances,
              using the same security parameters as the caller; this function.
 
           3. The field list that acts as either a white list or a black list. A
@@ -692,56 +691,56 @@ class SafeableMixin:
         if not white_list:
             gottago = lambda k, v: k in field_list or v is None
 
-        if isinstance(doc_dict_or_dicts, BaseDocument):
-            doc_dict = dict((f, doc_dict_or_dicts[f])
-                            for f in doc_dict_or_dicts)
+        if isinstance(model_dict_or_dicts, BaseModel):
+            model_dict = dict((f, model_dict_or_dicts[f])
+                            for f in model_dict_or_dicts)
         else:
-            doc_dict = doc_dict_or_dicts
+            model_dict = model_dict_or_dicts
 
-        ### Transform each field (Docs implement dictionary-style field access)
-        for k, v in doc_dict.items():
+        ### Transform each field
+        for k, v in model_dict.items():
             if gottago(k, v):
-                del doc_dict[k]
-            elif isinstance(v, EmbeddedDocument):
-                doc_dict[k] = doc_converter(v)
+                del model_dict[k]
+            elif isinstance(v, EmbeddedModel):
+                model_dict[k] = model_converter(v)
             elif isinstance(v, list) and len(v) > 0:
-                if isinstance(v[0], EmbeddedDocument):
-                    doc_dict[k] = [doc_converter(vi) for vi in v]
+                if isinstance(v[0], EmbeddedModel):
+                    model_dict[k] = [model_converter(vi) for vi in v]
             else:
-                doc_dict[k] = field_converter(k, v)
+                model_dict[k] = field_converter(k, v)
 
-            if k in doc_dict and \
+            if k in model_dict and \
                    k in cls._fields and \
                    cls._fields[k].minimized_field_name:
-                doc_dict[cls._fields[k].minimized_field_name] = doc_dict[k]
-                del doc_dict[k]
+                model_dict[cls._fields[k].minimized_field_name] = model_dict[k]
+                del model_dict[k]
 
-        return doc_dict
+        return model_dict
 
     @classmethod
-    def make_ownersafe(cls, doc_dict_or_dicts):
+    def make_ownersafe(cls, model_dict_or_dicts):
         field_converter = lambda f, v: v
-        doc_encoder = lambda d: d.to_python()
-        doc_converter = lambda d: d.make_ownersafe(d)
+        model_encoder = lambda m: m.to_python()
+        model_converter = lambda m: m.make_ownersafe(m)
         field_list = cls._get_internal_fields()
         white_list = False
 
-        return cls.make_safe(doc_dict_or_dicts, field_converter, doc_converter,
-                             doc_encoder, field_list=field_list,
-                             white_list=white_list)
+        return cls.make_safe(model_dict_or_dicts, field_converter,
+                             model_converter, model_encoder,
+                             field_list=field_list, white_list=white_list)
 
     @classmethod
-    def make_json_ownersafe(cls, doc_dict_or_dicts, encode=True,
+    def make_json_ownersafe(cls, model_dict_or_dicts, encode=True,
                             sort_keys=False):
         field_converter = lambda f, v: cls._fields[f].for_json(v)
-        doc_encoder = lambda d: d.to_json(encode=False)
-        doc_converter = lambda d: d.make_json_ownersafe(d, encode=False,
-                                                        sort_keys=sort_keys)
+        model_encoder = lambda m: m.to_json(encode=False)
+        model_converter = lambda m: m.make_json_ownersafe(m, encode=False,
+                                                          sort_keys=sort_keys)
         field_list = cls._get_internal_fields()
         white_list = False
 
-        safed = cls.make_safe(doc_dict_or_dicts, field_converter,
-                              doc_converter, doc_encoder,
+        safed = cls.make_safe(model_dict_or_dicts, field_converter,
+                              model_converter, model_encoder,
                               field_list=field_list, white_list=white_list)
         if encode:
             return json.dumps(safed, sort_keys=sort_keys)
@@ -749,29 +748,30 @@ class SafeableMixin:
             return safed
 
     @classmethod
-    def make_publicsafe(cls, doc_dict_or_dicts):
+    def make_publicsafe(cls, model_dict_or_dicts):
         field_converter = lambda f, v: v
-        doc_encoder = lambda d: d.to_python()
-        doc_converter = lambda d: d.make_publicsafe(d)
+        model_encoder = lambda m: m.to_python()
+        model_converter = lambda m: m.make_publicsafe(m)
         field_list = cls._public_fields
         white_list = True
 
-        return cls.make_safe(doc_dict_or_dicts, field_converter, doc_converter,
-                             doc_encoder,  field_list=cls._public_fields,
+        return cls.make_safe(model_dict_or_dicts, field_converter,
+                             model_converter, model_encoder,
+                             field_list=cls._public_fields,
                              white_list=white_list)
 
     @classmethod
-    def make_json_publicsafe(cls, doc_dict_or_dicts, encode=True,
+    def make_json_publicsafe(cls, model_dict_or_dicts, encode=True,
                              sort_keys=False):
         field_converter = lambda f, v: cls._fields[f].for_json(v)
-        doc_encoder = lambda d: d.to_json(encode=False)
-        doc_converter = lambda d: d.make_json_publicsafe(d, encode=False,
-                                                         sort_keys=sort_keys)
+        model_encoder = lambda m: m.to_json(encode=False)
+        model_converter = lambda m: m.make_json_publicsafe(m, encode=False,
+                                                           sort_keys=sort_keys)
         field_list = cls._public_fields
         white_list = True
 
-        safed = cls.make_safe(doc_dict_or_dicts, field_converter,
-                              doc_converter, doc_encoder,
+        safed = cls.make_safe(model_dict_or_dicts, field_converter,
+                              model_converter, model_encoder,
                               field_list=field_list, white_list=white_list)
         if encode:
             return json.dumps(safed, sort_keys=sort_keys)
@@ -818,14 +818,14 @@ class SafeableMixin:
                          delete_rogues=True):
         """This is a convenience function that loops over the given values
         and attempts to validate them against the class definition. It only
-        validates the data in values and does not guarantee a complete document
+        validates the data in values and does not guarantee a complete model
         is present.
 
         'not present' is defined as not having a value OR having '' (or u'')
         as a value.
         """
         if not hasattr(cls, '_fields'):
-            raise ValueError('cls is not a Document instance')
+            raise ValueError('cls is not a Model instance')
 
         internal_fields = cls._get_internal_fields()
 
@@ -853,7 +853,7 @@ class SafeableMixin:
                 value_is_default = (values[k] is v.default)
                 if not value_is_default:
                     error_msg = 'Overwrite of internal fields attempted'
-                    e = ShieldException(error_msg, k, v)
+                    e = TypeException(error_msg, k, v)
                     handle_exception(e)
                     continue
 
@@ -868,7 +868,7 @@ class SafeableMixin:
                     continue
                 try:
                     v.validate(datum)
-                except ShieldException, e:
+                except TypeException, e:
                     handle_exception(e)
 
         # Remove rogue fields
@@ -896,39 +896,39 @@ class SafeableMixin:
     def validate_class_partial(cls, values, validate_all=False):
         """This is a convenience function that loops over _fields in
         cls to validate them. This function is a partial validatation
-        only, meaning the values given and does not check if the document
+        only, meaning the values given and does not check if the model
         is complete.
         """
         fun = lambda k, v: k in values
         return cls._validate_helper(fun, values, validate_all=validate_all)
 
 
-class EmbeddedDocument(BaseDocument, SafeableMixin):
-    """A :class:`~dictshield.Document` that isn't stored in its own
-    collection.  :class:`~dictshield.EmbeddedDocument`\ s should be used as
-    fields on :class:`~dictshield.Document`\ s through the
-    :class:`~dictshield.EmbeddedDocumentField` field type.
+class EmbeddedModel(BaseModel, SafeableMixin):
+    """A :class:`~structures.Model` that isn't stored in its own
+    collection.  :class:`~structures.EmbeddedModel`\ s should be used as
+    fields on :class:`~structures.Model`\ s through the
+    :class:`~structures.EmbeddedModelType` field type.
     """
 
-    __metaclass__ = DocumentMetaclass
-    __optionsclass__ = DocumentOptions
+    __metaclass__ = ModelMetaclass
+    __optionsclass__ = ModelOptions
 
 
-class Document(BaseDocument, SafeableMixin):
+class Model(BaseModel, SafeableMixin):
     """The base class used for defining the structure and properties of
-    collections of documents modeled in DictShield. Inherit from this class,
-    and add fields as class attributes to define a document's structure.
-    Individual documents may then be created by making instances of the
-    :class:`~dictshield.Document` subclass.
+    collections of models modeled in Structures. Inherit from this class,
+    and add fields as class attributes to define a model's structure.
+    Individual models may then be created by making instances of the
+    :class:`~structures.Model` subclass.
 
-    A :class:`~dictshield.Document` subclass may be itself subclassed, to
-    create a specialised version of the document that can be stored in the
+    A :class:`~structures.Model` subclass may be itself subclassed, to
+    create a specialised version of the model that can be stored in the
     same collection. To facilitate this behaviour, `_cls` and `_types`
-    fields are added to documents to specify the install class and the types
-    in the Document class hierarchy. To disable this behaviour and remove
+    fields are added to models to specify the install class and the types
+    in the Model class hierarchy. To disable this behaviour and remove
     the dependence on the presence of `_cls` and `_types`, set
     :attr:`allow_inheritance` to ``False`` in the :attr:`meta` dictionary.
     """
 
-    __metaclass__ = TopLevelDocumentMetaclass
-    __optionsclass__ = TopLevelDocumentOptions
+    __metaclass__ = TopLevelModelMetaclass
+    __optionsclass__ = TopLevelModelOptions

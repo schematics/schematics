@@ -2,23 +2,23 @@
 as part of the pymongo distribution.
 """
 
-from dictshield.base import ShieldException
-from dictshield.fields import BaseField
+from structures.base import TypeException
+from structures.types import BaseType
 
 import bson
 
 
-class ObjectIdField(BaseField):
+class ObjectIdType(BaseType):
     """An field wrapper around MongoDB ObjectIds.  It is correct to say they're
     bson fields, but I am unaware of bson being used outside MongoDB.
 
-    `auto_fill` is disabled by default for ObjectIdField's as they are
+    `auto_fill` is disabled by default for ObjectIdType's as they are
     typically obtained after a successful save to Mongo.
     """
 
     def __init__(self, auto_fill=False, **kwargs):
         self.auto_fill = auto_fill
-        super(ObjectIdField, self).__init__(**kwargs)
+        super(ObjectIdType, self).__init__(**kwargs)
 
     def __set__(self, instance, value):
         """Convert any text values provided into Python UUID objects and
@@ -39,7 +39,7 @@ class ObjectIdField(BaseField):
         try:
             return bson.objectid.ObjectId(unicode(value))
         except Exception, e:
-            raise ShieldException('Invalid ObjectId', self.field_name, value)
+            raise TypeException('Invalid ObjectId', self.field_name, value)
 
     def for_json(self, value):
         return str(value)
@@ -49,5 +49,5 @@ class ObjectIdField(BaseField):
             try:
                 value = bson.objectid.ObjectId(unicode(value))
             except Exception, e:
-                raise ShieldException('Invalid ObjectId', self.field_name, value)
+                raise TypeException('Invalid ObjectId', self.field_name, value)
         return value

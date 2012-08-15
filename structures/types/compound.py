@@ -4,57 +4,59 @@ except:
     from itertools import ifilterfalse
 from operator import itemgetter
 
-from dictshield.document import EmbeddedDocument
-from dictshield.base import  ShieldException, InvalidShield
-from dictshield.fields import BaseField, DictField
-from dictshield.datastructures import MultiValueDict
+from structures.models import EmbeddedModel
+from structures.base import  TypeException
+from structures.types import BaseType, DictType
+from structures.datastructures import MultiValueDict
 
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
 
 
-class ListField(BaseField):
-    """A list field that wraps a standard field, allowing multiple instances
-    of the field to be used as a list in the model.
+class ListType(BaseType):
+    """A list type that wraps a standard type, allowing multiple instances
+    of the type to be used as a list in the model.
     """
 
     def __init__(self, fields, **kwargs):
         # Some helpful functions
-        is_basefield = lambda field: isinstance(field, BaseField)
-        is_embeddeddoc = lambda field: isinstance(field, EmbeddedDocumentField)
-        is_dictfield = lambda field: isinstance(field, DictField)
+        is_basetype = lambda tipe: isinstance(tipe, BaseType)
+        is_embeddedmodel = lambda tipe: isinstance(tipe, EmbeddedModelType)
+        is_dicttype = lambda tipe: isinstance(tipe, DictType)
 
         # field instance
-        if is_basefield(fields):
-            if is_embeddeddoc(fields):
+        if is_basetype(fields):
+            if is_embeddedmodel(fields):
                 kwargs.setdefault('primary_embedded', fields)
             fields = [fields]
         # something other than a list
         elif not isinstance(fields, list):
-            raise InvalidShield('Argument to ListField constructor must be '
-                                'a valid field or list of fields')
+            raise TypeException('Argument to ListType constructor must be '
+                                'a valid field or list of fields',
+                                self.field_name, list)
         # some bad stuff in the list
-        elif list(ifilterfalse(is_basefield, fields)):
-            raise InvalidShield('Argument to ListField constructor must be '
-                                'a valid field or list of valid fields')
+        elif list(ifilterfalse(is_basetype, fields)):
+            raise TypeException('Argument to ListType constructor must be '
+                                'a valid field or list of valid fields',
+                                self.field_name, list)
         else:
-            docs = filter(is_embeddeddoc, fields)
-            dicts = filter(is_dictfield, fields)
+            models = filter(is_embeddedmodel, fields)
+            dicts = filter(is_dicttype, fields)
             if dicts:
                 kwargs.setdefault('primary_embedded', None)
-            if docs:
-                kwargs.setdefault('primary_embedded', docs[0])
+            if models:
+                kwargs.setdefault('primary_embedded', models[0])
         self.fields = fields
         kwargs.setdefault('default', list)
 
         self.primary_embedded = kwargs.pop('primary_embedded', None)
-        super(ListField, self).__init__(**kwargs)
+        super(ListType, self).__init__(**kwargs)
 
     def __set__(self, instance, value):
-        """Descriptor for assigning a value to a field in a document.
+        """Descriptor for assigning a value to a type in a model.
         """
-        is_embeddeddoc = lambda field: isinstance(field, EmbeddedDocumentField)
-        embedded_fields = filter(is_embeddeddoc, self.fields)
+        is_embeddedmodel = lambda tipe: isinstance(tipe, EmbeddedModelType)
+        embedded_fields = filter(is_embeddedmodel, self.fields)
         if self.primary_embedded:
             embedded_fields.remove(self.primary_embedded)
             embedded_fields.insert(0, self.primary_embedded)
@@ -63,15 +65,15 @@ class ListField(BaseField):
             value = []  # have to use a list
 
         if embedded_fields:
-            list_of_docs = list()
-            for doc in value:
-                if isinstance(doc, dict):
+            list_of_models = list()
+            for model in value:
+                if isinstance(model, dict):
                     for embedded_field in embedded_fields:
-                        doc_obj = embedded_field.document_type_obj(**doc)
-                        doc_obj.validate()
-                        doc = doc_obj
-                list_of_docs.append(doc)
-            value = list_of_docs
+                        model_obj = embedded_field.model_type_obj(**model)
+                        model_obj.validate()
+                        model = model_obj
+                list_of_models.append(model)
+            value = list_of_models
         instance._data[self.field_name] = value
 
     def _jsonschema_type(self):
@@ -100,7 +102,7 @@ class ListField(BaseField):
         return list(self.for_output_format('for_python', value))
 
     def for_json(self, value):
-        """for_json must be careful to expand embedded documents into Python,
+        """for_json must be careful to expand embedded models into Python,
         not JSON.
         """
         return list(self.for_output_format('for_json', value))
@@ -110,7 +112,7 @@ class ListField(BaseField):
         """
         if not isinstance(value, (list, tuple)):
             error_msg = 'Only lists and tuples may be used in a list field'
-            raise ShieldException(error_msg, self.field_name, value)
+            raise TypeException(error_msg, self.field_name, value)
 
         if not self.fields:  # if we want everything to validate
             return
@@ -120,23 +122,23 @@ class ListField(BaseField):
                 for field in self.fields:
                     field.validate(item)
             except Exception, e:
-                raise ShieldException('Invalid ListField item',
+                raise TypeException('Invalid ListType item',
                                       self.field_name, str(item))
         return value
 
-    def _set_owner_document(self, owner_document):
+    def _set_owner_model(self, owner_model):
         for field in self.fields:
-            field.owner_document = owner_document
-        self._owner_document = owner_document
+            field.owner_model = owner_model
+        self._owner_model = owner_model
 
-    def _get_owner_document(self, owner_document):
-        self._owner_document = owner_document
+    def _get_owner_model(self, owner_model):
+        self._owner_model = owner_model
 
-    owner_document = property(_get_owner_document, _set_owner_document)
+    owner_model = property(_get_owner_model, _set_owner_model)
 
 
-class SortedListField(ListField):
-    """A ListField that sorts the contents of its list before writing to
+class SortedListType(ListType):
+    """A ListType that sorts the contents of its list before writing to
     the database in order to ensure that a sorted list is always
     retrieved.
     """
@@ -146,10 +148,10 @@ class SortedListField(ListField):
     def __init__(self, field, **kwargs):
         if 'ordering' in kwargs.keys():
             self._ordering = kwargs.pop('ordering')
-        super(SortedListField, self).__init__(field, **kwargs)
+        super(SortedListType, self).__init__(field, **kwargs)
 
     def for_thing(self, value, meth):
-        unsorted = getattr(super(SortedListField, self), meth)(value)
+        unsorted = getattr(super(SortedListType, self), meth)(value)
         if self._ordering is not None:
             return sorted(unsorted, key=itemgetter(self._ordering))
         return sorted(unsorted)
@@ -173,35 +175,35 @@ class SortedListField(ListField):
 ### Sub structures
 ###
 
-class EmbeddedDocumentField(BaseField):
-    """An embedded document field. Only valid values are subclasses of
-    :class:`~dictshield.EmbeddedDocument`.
+class EmbeddedModelType(BaseType):
+    """An embedded model field. Only valid values are subclasses of
+    :class:`~structures.EmbeddedModel`.
     """
-    def __init__(self, document_type, **kwargs):
-        is_embeddable = lambda dt: issubclass(dt, EmbeddedDocument)
-        if not isinstance(document_type, basestring):
-            if not document_type or not is_embeddable(document_type):
-                raise ShieldException('Invalid embedded document class '
-                                      'provided to an EmbeddedDocumentField',
-                                      self.field_name, document_type)
-        self.document_type_obj = document_type
-        super(EmbeddedDocumentField, self).__init__(**kwargs)
+    def __init__(self, model_type, **kwargs):
+        is_embeddable = lambda dt: issubclass(dt, EmbeddedModel)
+        if not isinstance(model_type, basestring):
+            if not model_type or not is_embeddable(model_type):
+                raise TypeException('Invalid embedded model class '
+                                      'provided to an EmbeddedModelType',
+                                      self.field_name, model_type)
+        self.model_type_obj = model_type
+        super(EmbeddedModelType, self).__init__(**kwargs)
 
     def __set__(self, instance, value):
         if value is None:
             return
-        if not isinstance(value, self.document_type):
-            value = self.document_type(**value)
+        if not isinstance(value, self.model_type):
+            value = self.model_type(**value)
         instance._data[self.field_name] = value
 
     @property
-    def document_type(self):
-        if isinstance(self.document_type_obj, basestring):
-            if self.document_type_obj == RECURSIVE_REFERENCE_CONSTANT:
-                self.document_type_obj = self.owner_document
+    def model_type(self):
+        if isinstance(self.model_type_obj, basestring):
+            if self.model_type_obj == RECURSIVE_REFERENCE_CONSTANT:
+                self.model_type_obj = self.owner_model
             else:
-                self.document_type_obj = get_document(self.document_type_obj)
-        return self.document_type_obj
+                self.model_type_obj = get_model(self.model_type_obj)
+        return self.model_type_obj
 
     def _jsonschema_type(self):
         return 'object'
@@ -215,7 +217,7 @@ class EmbeddedDocumentField(BaseField):
         return [None]
 
     def for_jsonschema(self):
-        return self.document_type.for_jsonschema()
+        return self.model_type.for_jsonschema()
 
     def for_python(self, value):
         return value.to_python()
@@ -224,45 +226,45 @@ class EmbeddedDocumentField(BaseField):
         return value.to_json(encode=False)
 
     def validate(self, value):
-        """Make sure that the document instance is an instance of the
-        EmbeddedDocument subclass provided when the document was defined.
+        """Make sure that the model instance is an instance of the
+        EmbeddedModel subclass provided when the model was defined.
         """
-        # Using isinstance also works for subclasses of self.document
-        if not isinstance(value, self.document_type):
-            raise ShieldException('Invalid embedded document instance '
-                                  'provided to an EmbeddedDocumentField',
+        # Using isinstance also works for subclasses of self.model
+        if not isinstance(value, self.model_type):
+            raise TypeException('Invalid embedded model instance '
+                                  'provided to an EmbeddedModelType',
                                   self.field_name, value)
-        self.document_type.validate(value)
+        self.model_type.validate(value)
         return value
 
     def lookup_member(self, member_name):
-        return self.document_type._fields.get(member_name)
+        return self.model_type._fields.get(member_name)
 
 
-class MultiValueDictField(DictField):
+class MultiValueDictType(DictType):
     def __init__(self, basecls=None, *args, **kwargs):
-        self.basecls = basecls or BaseField
-        if not issubclass(self.basecls, BaseField):
-            raise InvalidShield('basecls is not subclass of BaseField')
+        self.basecls = basecls or BaseType
+        if not issubclass(self.basecls, BaseType):
+            raise NotAModelException('basecls is not subclass of BaseType')
         kwargs.setdefault('default', lambda: MultiValueDict())
-        super(MultiValueDictField, self).__init__(*args, **kwargs)
+        super(MultiValueDictType, self).__init__(*args, **kwargs)
 
     def __set__(self, instance, value):
         if value is not None and not isinstance(value, MultiValueDict):
             value = MultiValueDict(value)
 
-        super(MultiValueDictField, self).__set__(instance, value)
+        super(MultiValueDictType, self).__set__(instance, value)
 
     def validate(self, value):
         """Make sure that a list of valid fields is being used.
         """
         if not isinstance(value, (dict, MultiValueDict)):
-            raise ShieldException('Only dictionaries or MultiValueDict may be '
-                                  'used in a DictField', self.field_name,
+            raise TypeException('Only dictionaries or MultiValueDict may be '
+                                  'used in a DictType', self.field_name,
                                   value)
 
         if any(('.' in k or '$' in k) for k in value):
-            raise ShieldException('Invalid dictionary key name - keys may not '
+            raise TypeException('Invalid dictionary key name - keys may not '
                                   'contain "." or "$" characters',
                                   self.field_name, value)
         return value

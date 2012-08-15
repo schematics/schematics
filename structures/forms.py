@@ -3,19 +3,19 @@ with emphasis on usability in HTML forms.
 
 Using it looks a bit like this:
 
-    # Basic Document
-    class Something(Document):
-        owner = ObjectIdField()
-        user = StringField()
-        title = StringField(max_length=40)
-        password = StringField(max_length=128)
+    # Basic Model
+    class Something(Model):
+        owner = ObjectIdType()
+        user = StringType()
+        title = StringType(max_length=40)
+        password = StringType(max_length=128)
         _private_fields = ['owner']
 
-    # A second Document to demonstrate how things can fail
-    class SomethingElse(Document):
-        o = ObjectIdField()
-        u = StringField()
-        t = StringField(max_length=40)
+    # A second Model to demonstrate how things can fail
+    class SomethingElse(Model):
+        o = ObjectIdType()
+        u = StringType()
+        t = StringType(max_length=40)
 
     # Instantiate both
     s = Something()
@@ -48,16 +48,15 @@ Using it looks a bit like this:
 """
 
 
-from dictshield.document import TopLevelDocumentMetaclass
-from dictshield.fields.base import BaseField
+from structures.types.base import BaseType
 
 
 # ClassName => input type
 default_field_map = {
-    'BooleanField': 'radio',
+    'BooleanType': 'radio',
 }
 
-# Document field name => input type
+# Model field name => input type
 default_name_map = {
     'password': 'password',
 }
@@ -75,11 +74,11 @@ class Form(object):
     """
     def __init__(self, model, private_fields=None, field_map=default_field_map,
                  name_map=default_name_map):
-        if not isinstance(model, TopLevelDocumentMetaclass):
-            error_msg = '<model> argument must be top level DictShield class'
+        if not isinstance(model, TopLevelModelMetaclass):
+            error_msg = '<model> argument must be top level Structures class'
             raise FormPunch(error_msg)
 
-        # Model should be a dictshield document
+        # Model should be a Structures model
         self._model = model
 
         # The name of the class
@@ -91,7 +90,7 @@ class Form(object):
         # Override field maps by class name of field
         self._name_map = name_map
 
-        # `fields` is treated as a way to override DictShield field privacy
+        # `fields` is treated as a way to override Structures field privacy
         #
         # This behavior is desireable for letting users update fields that
         # might have privacy restraints for serializable forms.
@@ -140,10 +139,10 @@ class Form(object):
         html forms. Takes a format string `format_str` and applies the list of
         values to it.
 
-        Allows passing in a `DictShield` instance or a dictionary. Anything
+        Allows passing in a `Structures` instance or a dictionary. Anything
         else throws an error.
 
-        The `DictShield` instance will be converted to a dictionary using a
+        The `Structures` instance will be converted to a dictionary using a
         call to `.to_python()`.
 
         CAUTION: style_values is subject to side-effects for speed
@@ -192,7 +191,7 @@ class Form(object):
         commonly found in html output.
         """
         # value is a Class
-        if isinstance(value, BaseField):
+        if isinstance(value, BaseType):
             return ''
 
         # value is not a class
