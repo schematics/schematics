@@ -27,34 +27,14 @@ schema_kwargs_to_structures = {
 class ModelOptions(object):
     """This class is a container for all metaclass configuration options. The
     `__init__` method will set the default values for attributes and then
-    attempt to map any keyword arguments to attributes of the same name. If an
-    attribute is passed as a keyword but the attribute is not given a default
-    value prior to called `_parse_kwargs_dict`, it will be ignored.
+    attempt to map any keyword arguments to attributes of the same name.
     """
-    def __init__(self, **kwargs):
-        self.mixin = False
-        ### Relies on attr names above
-        self._parse_kwargs_dict(kwargs)
-
-    def _parse_kwargs_dict(self, kwargs_dict):
-        """This function receives the dictionary with keyword arguments in
-        `__init__` and maps them to existing attributes on the class.
-        """
-        for k, v in kwargs_dict.items():
-            if hasattr(self, k):
-                setattr(self, k, v)
-
-
-class TopLevelModelOptions(ModelOptions):
-    """Extends `ModelOptions` to add configuration values for TopLevelModel
-    instances.
-    """
-    def __init__(self, **kwargs):
-        self.id_field = UUIDType
-        self.id_options = {'uniq_field': 'id'}
-        self.bucket = None
-        ### The call to super should be last
-        super(TopLevelModelOptions, self).__init__(**kwargs)
+    def __init__(self, mixin=False, bucket=None, private_fields=None,
+                 public_fields=None):
+        self.mixin = mixin
+        self.bucket = bucket
+        self.private_fields = private_fields
+        self.public_fields = public_fields
 
 
 ###
@@ -102,6 +82,7 @@ class ModelMetaclass(type):
         """Processes a configuration of a Model type into a class.
         """
         ### Gen a class instance
+        print 'BASES:', bases
         klass = type.__new__(cls, name, bases, attrs)
 
         metaclass = attrs.get('__metaclass__')
@@ -147,8 +128,6 @@ class ModelMetaclass(type):
             has_class = hasattr(attr_value, "__class__")
             if has_class and issubclass(attr_value.__class__, BaseType):
                 attr_value.field_name = attr_name
-                if not attr_value.uniq_field:
-                    attr_value.uniq_field = attr_name
                 model_fields[attr_name] = attr_value
 
         ### Attach collected data to klass
@@ -163,107 +142,10 @@ class ModelMetaclass(type):
         ### Fin.
         return klass
 
-
-class TopLevelModelMetaclass(ModelMetaclass):
-    """Metaclass for top-level models. A Top-level model in Structures
-    represents the kind of structure that will be stored in a database. The
-    `TopLevelModelMetaclass` is therefore responsible for the kind of
-    attributes that make a model saveable, like an id field.
-    """
-
-    def __new__(cls, name, bases, attrs):
-        ### Gen a class instance
-        super_new = super(TopLevelModelMetaclass, cls).__new__
-        klass = super_new(cls, name, bases, attrs)
-
-        if attrs.get('__metaclass__') == TopLevelModelMetaclass:
-            return klass
-
-        for base in bases:
-            ### Configure `_fields` list
-            if hasattr(base, '_options'):
-
-                if hasattr(base._options, 'id_field'):
-                    ### Carry over id field data
-                    klass._options.id_field = base._options.id_field
-
-        for field_name, field in klass._fields.items():
-            # Check for custom id key
-            if hasattr(field, 'id_field') and field.id_field:
-                current_id = klass._options.id_field
-                if current_id and current_id != field_name:
-                    raise ValueError('Cannot override id_field')
-
-                klass._options.id_field = field
-                # Make 'Model.id' an alias to the real primary key field
-                klass.id = field(uniq_field='id')
-
-        id_options = {'uniq_field': '_id'}
-        if hasattr(klass._options, 'id_options'):
-            id_options.update(klass._options.id_options)
-
-        ### Create ID field system
-        if hasattr(klass._options, 'id_field'):
-            id_field = klass._options.id_field
-            klass._fields['id'] = id_field(**id_options)
-            #klass.id = id_field(**id_options)
-            klass.id = id_field(**id_options)
-        else:
-            id_field = UUIDType
-
-        return klass
-
     def __str__(self):
         if hasattr(self, '__unicode__'):
             return unicode(self).encode('utf-8')
         return '%s object' % self.__class__.__name__
-
-    ###
-    ### Instance Serialization
-    ###
-
-    def _to_fields(self, field_converter):
-        """Returns a Python dictionary representing the Model's
-        metastructure and values.
-        """
-        data = {}
-
-        # First map the subclasses of BaseType
-        for field_name, field in self._fields.items():
-            value = getattr(self, field_name, None)
-            if value is not None:
-                data[field.uniq_field] = field_converter(field, value)
-
-        # Only add _cls and _types if allow_inheritance is not False
-        if not (hasattr(self, '_meta') and
-                self._meta.get('allow_inheritance', True) == False):
-            data['_cls'] = self._class_name
-            data['_types'] = self._superclasses.keys() + [self._class_name]
-
-        if 'id' in data and not data['_id']:
-            del data['_id']
-
-        return data
-
-    def to_python(self):
-        """Returns a Python dictionary representing the Model's
-        metastructure and values.
-        """
-        fun = lambda f, v: f.for_python(v)
-        data = self._to_fields(fun)
-        return data
-
-    def to_json(self, encode=True, sort_keys=False):
-        """Return data prepared for JSON. By default, it returns a JSON encoded
-        string, but disabling the encoding to prevent double encoding with
-        embedded models.
-        """
-        fun = lambda f, v: f.for_json(v)
-        data = self._to_fields(fun)
-        if encode:
-            return json.dumps(data, sort_keys=sort_keys)
-        else:
-            return data
 
 
 ###
@@ -454,16 +336,7 @@ class BaseModel(object):
         for field_name, field in self._fields.items():
             value = getattr(self, field_name, None)
             if value is not None:
-                data[field.uniq_field] = field_converter(field, value)
-
-        # Only add _cls and _types if allow_inheritance is not False
-        if not (hasattr(self, '_meta') and
-                self._meta.get('allow_inheritance', True) == False):
-            data['_cls'] = self._class_name
-            data['_types'] = self._superclasses.keys() + [self._class_name]
-
-        if '_id' in data and not data['_id']:
-            del data['_id']
+                data[field_name] = field_converter(field, value)
 
         return data
 
@@ -701,10 +574,10 @@ class SafeableMixin:
         for k, v in model_dict.items():
             if gottago(k, v):
                 del model_dict[k]
-            elif isinstance(v, EmbeddedModel):
+            elif isinstance(v, Model):
                 model_dict[k] = model_converter(v)
             elif isinstance(v, list) and len(v) > 0:
-                if isinstance(v[0], EmbeddedModel):
+                if isinstance(v[0], Model):
                     model_dict[k] = [model_converter(vi) for vi in v]
             else:
                 model_dict[k] = field_converter(k, v)
@@ -903,17 +776,6 @@ class SafeableMixin:
         return cls._validate_helper(fun, values, validate_all=validate_all)
 
 
-class EmbeddedModel(BaseModel, SafeableMixin):
-    """A :class:`~structures.Model` that isn't stored in its own
-    collection.  :class:`~structures.EmbeddedModel`\ s should be used as
-    fields on :class:`~structures.Model`\ s through the
-    :class:`~structures.EmbeddedModelType` field type.
-    """
-
-    __metaclass__ = ModelMetaclass
-    __optionsclass__ = ModelOptions
-
-
 class Model(BaseModel, SafeableMixin):
     """The base class used for defining the structure and properties of
     collections of models modeled in Structures. Inherit from this class,
@@ -930,5 +792,5 @@ class Model(BaseModel, SafeableMixin):
     :attr:`allow_inheritance` to ``False`` in the :attr:`meta` dictionary.
     """
 
-    __metaclass__ = TopLevelModelMetaclass
-    __optionsclass__ = TopLevelModelOptions
+    __metaclass__ = ModelMetaclass
+    __optionsclass__ = ModelOptions

@@ -23,8 +23,8 @@ import uuid
 import datetime
 from structures.models import Model
 from structures.types import (StringType,
-                               IntType,
-                               UUIDType)
+                              IntType,
+                              UUIDType)
 
 
 ###

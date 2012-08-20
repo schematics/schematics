@@ -29,19 +29,19 @@ Tasklist as JSON:
 
 import datetime
 
-from structures.models import EmbeddedModel, Model
+from structures.models import Model
 from structures.types import (StringType,
-                               DateTimeType,
-                               IntType)
-from structures.types.compound import (EmbeddedModelType,
-                                        ListType)
+                              DateTimeType,
+                              IntType)
+from structures.types.compound import (ModelType,
+                                       ListType)
 
 
 ###
 ### Models
 ###
 
-class Action(EmbeddedModel):
+class Action(Model):
     """An `Action` associates an action name with a list of tags.
     """
     value = StringType(required=True, max_length=256)
@@ -51,7 +51,7 @@ class Action(EmbeddedModel):
 class SingleTask(Model):
     """A `SingleTask` associates a creation date with an `Action` instance.
     """
-    action = EmbeddedModelType(Action)
+    action = ModelType(Action)
     created_date = DateTimeType(default=datetime.datetime.now)
 
 
@@ -59,7 +59,7 @@ class TaskList(Model):
     """A `TaskList` associated a creation date and updated_date with a list of
     `Action` instances.
     """
-    actions = ListType(EmbeddedModelType(Action))
+    actions = ListType(ModelType(Action))
     created_date = DateTimeType(default=datetime.datetime.now)
     updated_date = DateTimeType(default=datetime.datetime.now)
     num_completed = IntType(default=0)

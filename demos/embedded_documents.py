@@ -21,14 +21,14 @@ Customer as JSON:
 """
 
 
-from structures.models import Model, EmbeddedModel
+from structures.models import Model
 from structures.types import (IntType,
                               StringType,
                               FloatType,
                               DateTimeType,
                               EmailType)
 from structures.types.compound import (ListType,
-                                       EmbeddedModelType)
+                                       ModelType)
 import datetime
 import json
 
@@ -37,17 +37,18 @@ import json
 ### Store models
 ###
 
-class Product(EmbeddedModel):
+class Product(Model):
     sku = IntType(min_value=1, max_value=9999, required=True)
     title = StringType(max_length = 30, required=True)
     description = StringType()
     price = FloatType(required=True)
     num_in_stock = IntType()
 
-class Order(EmbeddedModel):
+
+class Order(Model):
     date_made = DateTimeType(required=True)
     date_changed = DateTimeType()
-    line_items = ListType(EmbeddedModelType(Product))
+    line_items = ListType(ModelType(Product))
     total = FloatType()
 
 
@@ -59,11 +60,12 @@ class User(Model):
     username = StringType(min_length=2, max_length=20, required=True)
     email = EmailType(max_length=30, required=True)
 
+
 class Customer(User):
     date_made = DateTimeType(required=True)
     first_name = StringType(max_length=20, required=True)
     last_name = StringType(max_length=30, required=True)
-    orders = ListType(EmbeddedModelType(Order))
+    orders = ListType(ModelType(Order))
 
 
 ###

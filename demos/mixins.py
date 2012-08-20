@@ -5,7 +5,7 @@
     {"body": "Scenester twee mlkshk readymade butcher. Letterpress portland +1\nsalvia, vinyl trust fund butcher gentrify farm-to-table brooklyn helvetica DIY.\nSartorial homo 3 wolf moon, banh mi blog retro mlkshk Austin master cleanse.\n", "_types": ["SomeDoc"], "liked": true, "title": "Some Model", "deleted": false, "archived": false, "_cls": "SomeDoc"}
 """
 
-from structures.models import Model, EmbeddedModel
+from structures.models import Model
 from structures.types import (BaseType,
                               StringType,
                               BooleanType,
@@ -15,7 +15,7 @@ from structures.types import (BaseType,
 from structures.types.compound import ListType
 
 
-class InterestMixin(EmbeddedModel):
+class Interested(Model):
     liked = BooleanType(default=False)
     archived = BooleanType(default=False)
     deleted = BooleanType(default=False)
@@ -23,7 +23,7 @@ class InterestMixin(EmbeddedModel):
         mixin = True
 
 
-class SomeModel(Model, InterestMixin):
+class SomeModel(Model, Interested):
     title = StringType()
     body = StringType()
 

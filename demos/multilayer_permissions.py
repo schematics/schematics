@@ -34,16 +34,16 @@ BLOG POST ]----------------------------------------
 """
 
 import datetime
-from structures.models import Model, EmbeddedModel
+from structures.models import Model
 from structures.types import (StringType,
                               EmailType,
                               BooleanType,
                               DateTimeType)
 from structures.types.compound import (ListType,
-                                       EmbeddedModelType)
+                                       ModelType)
 
 
-class Author(EmbeddedModel):
+class Author(Model):
     _private_fields=['is_active']
     _public_fields=['username', 'name']
     name = StringType()
@@ -53,7 +53,7 @@ class Author(EmbeddedModel):
     is_active = BooleanType()
 
 
-class Comment(EmbeddedModel):
+class Comment(Model):
     _public_fields=['username', 'text']
     text = StringType()
     username = StringType()
@@ -65,9 +65,9 @@ class BlogPost(Model):
     _public_fields=['author', 'content', 'comments']
     title = StringType()    
     content = StringType()
-    author = EmbeddedModelType(Author)
+    author = ModelType(Author)
     post_date = DateTimeType(default=datetime.datetime.now)
-    comments = ListType(EmbeddedModelType(Comment))
+    comments = ListType(ModelType(Comment))
     deleted = BooleanType()   
     
 

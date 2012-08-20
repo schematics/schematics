@@ -4,7 +4,7 @@ except:
     from itertools import ifilterfalse
 from operator import itemgetter
 
-from structures.models import EmbeddedModel
+from structures.models import Model
 from structures.base import  TypeException
 from structures.types import BaseType, DictType
 from structures.datastructures import MultiValueDict
@@ -21,7 +21,7 @@ class ListType(BaseType):
     def __init__(self, fields, **kwargs):
         # Some helpful functions
         is_basetype = lambda tipe: isinstance(tipe, BaseType)
-        is_embeddedmodel = lambda tipe: isinstance(tipe, EmbeddedModelType)
+        is_embeddedmodel = lambda tipe: isinstance(tipe, ModelType)
         is_dicttype = lambda tipe: isinstance(tipe, DictType)
 
         # field instance
@@ -55,7 +55,7 @@ class ListType(BaseType):
     def __set__(self, instance, value):
         """Descriptor for assigning a value to a type in a model.
         """
-        is_embeddedmodel = lambda tipe: isinstance(tipe, EmbeddedModelType)
+        is_embeddedmodel = lambda tipe: isinstance(tipe, ModelType)
         embedded_fields = filter(is_embeddedmodel, self.fields)
         if self.primary_embedded:
             embedded_fields.remove(self.primary_embedded)
@@ -175,19 +175,18 @@ class SortedListType(ListType):
 ### Sub structures
 ###
 
-class EmbeddedModelType(BaseType):
-    """An embedded model field. Only valid values are subclasses of
-    :class:`~structures.EmbeddedModel`.
+class ModelType(BaseType):
+    """A model field. Only valid values are subclasses of `structures.Model`.
     """
     def __init__(self, model_type, **kwargs):
-        is_embeddable = lambda dt: issubclass(dt, EmbeddedModel)
+        is_embeddable = lambda dt: issubclass(dt, Model)
         if not isinstance(model_type, basestring):
             if not model_type or not is_embeddable(model_type):
-                raise TypeException('Invalid embedded model class '
-                                      'provided to an EmbeddedModelType',
-                                      self.field_name, model_type)
+                raise TypeException('Invalid model class provided to an '
+                                    'ModelType',
+                                    self.field_name, model_type)
         self.model_type_obj = model_type
-        super(EmbeddedModelType, self).__init__(**kwargs)
+        super(ModelType, self).__init__(**kwargs)
 
     def __set__(self, instance, value):
         if value is None:
@@ -227,12 +226,12 @@ class EmbeddedModelType(BaseType):
 
     def validate(self, value):
         """Make sure that the model instance is an instance of the
-        EmbeddedModel subclass provided when the model was defined.
+        Model subclass provided when the model was defined.
         """
         # Using isinstance also works for subclasses of self.model
         if not isinstance(value, self.model_type):
             raise TypeException('Invalid embedded model instance '
-                                  'provided to an EmbeddedModelType',
+                                  'provided to an ModelType',
                                   self.field_name, value)
         self.model_type.validate(value)
         return value
