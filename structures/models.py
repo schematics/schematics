@@ -1,7 +1,7 @@
 import inspect
 import copy
 
-from structures.base import TypeException, ModelException, json
+from structures.base import TypeException, ModelException, json, dumps
 
 __all__ = ['ModelMetaclass', 'TopLevelModelMetaclass', 'BaseModel',
            'Model', 'EmbeddedModel', 'TypeException']
@@ -261,7 +261,7 @@ class TopLevelModelMetaclass(ModelMetaclass):
         fun = lambda f, v: f.for_json(v)
         data = self._to_fields(fun)
         if encode:
-            return json.dumps(data, sort_keys=sort_keys)
+            return dumps(data, sort_keys=sort_keys)
         else:
             return data
 
@@ -438,7 +438,7 @@ class BaseModel(object):
         Certain Structures fields do not map precisely to JSON schema types or
         formats.
         """
-        return json.dumps(cls.for_jsonschema())
+        return dumps(cls.for_jsonschema())
 
     ###
     ### Instance Serialization
@@ -483,7 +483,7 @@ class BaseModel(object):
         fun = lambda f, v: f.for_json(v)
         data = self._to_fields(fun)
         if encode:
-            return json.dumps(data, sort_keys=sort_keys)
+            return dumps(data, sort_keys=sort_keys)
         else:
             return data
 
@@ -743,7 +743,7 @@ class SafeableMixin:
                               model_converter, model_encoder,
                               field_list=field_list, white_list=white_list)
         if encode:
-            return json.dumps(safed, sort_keys=sort_keys)
+            return dumps(safed, sort_keys=sort_keys)
         else:
             return safed
 
@@ -774,7 +774,7 @@ class SafeableMixin:
                               model_converter, model_encoder,
                               field_list=field_list, white_list=white_list)
         if encode:
-            return json.dumps(safed, sort_keys=sort_keys)
+            return dumps(safed, sort_keys=sort_keys)
         else:
             return safed
 
