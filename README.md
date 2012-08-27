@@ -87,7 +87,7 @@ the class's static methods.
 
 There are a few ways to use structures.  A simple case is to create a class
 Structure that has typed fields.  structures offers multiple types in
-`Fields.Py`, like an EmailField or DecimalField.
+`fields.py`, like an EmailField or DecimalField.
 
 
 ## Creating Flexible models
