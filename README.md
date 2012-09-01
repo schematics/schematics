@@ -517,7 +517,7 @@ if exceptions:
 
 structures is in [pypi](http://pypi.python.org) so you can use `easy_install` or `pip`.
 
-    Pip install structures
+    pip install <name coming soon>
 
 
 # Contributors
