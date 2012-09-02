@@ -16,45 +16,53 @@ structured data.
 
 A blog model might look like this:
 
-    from schematics.models import Document
-    from schematics.types import StringType
+```python
+from schematics.models import Document
+from schematics.types import StringType
 
-    class BlogPost(Model):
-        title = StringType(max_length=40)
-        body = StringType(max_length=4096)
+class BlogPost(Model):
+    title = StringType(max_length=40)
+    body = StringType(max_length=4096)
+```
 
 Schematics objects serialize to JSON by default. Store them in Memcached,
 MongoDB, Riak, whatever you need.
 
-    >>> from schematics.models import Document
-    >>> from schematics.types import StringType
-    >>> class Comment(Model):
-    ...   name = StringType(max_length=10)
-    ...   body = StringType(max_length=4000)
-    ...
-    >>> data = {'name':'a hacker', 'body':'schematics makes validation easy'}
-    >>> Comment(**data).validate()
-    True
+```python
+>>> from schematics.models import Document
+>>> from schematics.types import StringField
+>>> class Comment(Model):
+...   name = StringType(max_length=10)
+...   body = StringType(max_length=4000)
+...
+>>> data = {'name':'a hacker', 'body':'schematics makes validation easy'}
+>>> Comment(**data).validate()
+True
+```
     
 Let's see what happens if we try using invalid data.
     
-    >>> data['name'] = 'a hacker with a name that is too long'
-    >>> Comment(**data).validate()
-    Traceback (most recent call last):
-      File "<stdin>", line 1, in <module>
-      File "/path/to/site-packages/schematics/models.py", line 280, in validate
-        field._validate(value)
-      File "/path/to/site-packages/schematics/fields/base.py", line 99, in _validate
-        self.validate(value)
-      File "/path/to/site-packages/schematics/fields/base.py", line 224, in validate
-        self.field_name, value)
-    schematics.base.TypeException: String value is too long - name:a hacker with a name who is too long
+```python
+>>> data['name'] = 'a hacker with a name that is too long'
+>>> Comment(**data).validate()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/path/to/site-packages/schematics/models.py", line 280, in validate
+    field._validate(value)
+  File "/path/to/site-packages/schematics/fields/base.py", line 99, in _validate
+    self.validate(value)
+  File "/path/to/site-packages/schematics/fields/base.py", line 224, in validate
+    self.field_name, value)
+schematics.base.TypeException: String value is too long - name:a hacker with a name who is too long
+```
 
 Combining schematics with JSON coming from a web request is quite natural as
 well. Say we have some data coming in from an iPhone:
 
-    json_data = request.post.get('data')
-    data = json.loads(json_data)
+```python
+json_data = request.post.get('data')
+data = json.loads(json_data)
+```
 
 Validating the data then looks like this: `Comment(**data).validate()`.
 
@@ -94,28 +102,34 @@ Schematic that has typed fields.  Schematics offers multiple types in
 
 Below is an example of a Media class with a single field, the title.
 
-    from schematics.models import model
-    from schematics.types import StringType
+```python
+from schematics.models import model
+from schematics.types import StringType
 
-    class Media(Model):
-        """Simple model that has one Stringtype member
-        """
-        title = StringType(max_length=40)
+class Media(Model):
+    """Simple model that has one Stringtype member
+    """
+    title = StringType(max_length=40)
+```
 
 You create the class just like you would any Python class. And we'll see how
 that class is represented when serialized to a Python dictionary.
 
-    m = Media()
-    m.title = 'Misc Media'
-    m.to_python()
+```python
+m = Media()
+m.title = 'Misc Media'
+m.to_python()
+```
 
 The output from this looks like:
 
-    {
-        '_types': ['Media'],
-        '_cls': 'Media',
-        'title': u'Misc Media'
-    }
+```python
+{
+    '_types': ['Media'],
+    '_cls': 'Media',
+    'title': u'Misc Media'
+}
+```
 
 All the meta information is removed and we have just a barebones representation
 of our data. Notice that the class information is still there as `_cls` and
@@ -129,34 +143,41 @@ We see two keys that come from Media's meta class: `_types` and `_cls`.
 Document. `_cls` stores the specific class instance. This becomes more
 obvious when I subclass Media to create the Movie model below.
 
-    import datetime
-    from schematics.types import IntType
+```python
+import datetime
+from schematics.types import IntType
 
-    class Movie(Media):
-        """Subclass of Foo. Adds bar and limits publicly shareable
-        fields to only 'bar'.
-        """
-        _public_fields = ['title','year']
-        year = IntType(min_value=1950,
-                       max_value=datetime.datetime.now().year)
-        personal_thoughts = StringType(max_length=255)
+class Movie(Media):
+    """Subclass of Foo. Adds bar and limits publicly shareable
+    fields to only 'bar'.
+    """
+    _public_fields = ['title','year']
+    year = IntType(min_value=1950,
+                   max_value=datetime.datetime.now().year)
+    personal_thoughts = StringType(max_length=255)
+```
+
 
 Here's an instance of the Movie class:
 
-    mv = Movie()
-    mv.title = u'Total Recall'
-    mv.year = 1990
-    mv.personal_thoughts = u'I wish I had three hands...'
+```python
+mv = Movie()
+mv.title = u'Total Recall'
+mv.year = 1990
+mv.personal_thoughts = u'I wish I had three hands...'
+```
 
 This is the model serialized to a Python dictionary:
 
-    {
-        'personal_thoughts': u'I wish I had three hands...',
-        '_types': ['Media', 'Media.Movie'],
-        'title': u'Total Recall',
-        '_cls': 'Media.Movie',
-        'year': 1990
-    }
+```python
+{
+    'personal_thoughts': u'I wish I had three hands...',
+    '_types': ['Media', 'Media.Movie'],
+    'title': u'Total Recall',
+    '_cls': 'Media.Movie',
+    'year': 1990
+}
+```
 
 Notice that `_types` has kept track of the relationship between `Movie` and
 `Media`.
@@ -166,16 +187,22 @@ Notice that `_types` has kept track of the relationship between `Movie` and
 
 We could pass this directly to Mongo to save it.
 
-    >>> db.test_collection.save(m.to_python())
+```python
+>>> db.test_collection.save(m.to_python())
+```
 
 Or if we were using Riak.
 
-    >>> media = bucket.new('test_key', data=m.to_python())
-    >>> media.store()
+```python
+>>> media = bucket.new('test_key', data=m.to_python())
+>>> media.store()
+```
 
 Or maybe we're storing json in a memcached.
 
-    >>> mc["test_key"] = m.to_json()
+```python
+>>> mc["test_key"] = m.to_json()
+```
 
 
 ## A Type System
@@ -237,19 +264,21 @@ This is what the MD5Type looks like. Notice that it's basically just
 an implementation of a `validate()` function, which raises a `TypeException`
 exception if validation fails.
 
-    class MD5Type(BaseType):
-        """A type that validates input as resembling an MD5 hash.
-        """
-        hash_length = 32
-        def validate(self, value):
-            if len(value) != MD5Type.hash_length:
-                raise TypeException('MD5 value is wrong length',
-                                    self.field_name, value)
-            try:
-                x = int(value, 16)
-            except:
-                raise TypeException('MD5 value is not hex',
-                                    self.field_name, value)
+```python
+class MD5Type(BaseType):
+    """A type that validates input as resembling an MD5 hash.
+    """
+    hash_length = 32
+    def validate(self, value):
+        if len(value) != MD5Type.hash_length:
+            raise TypeException('MD5 value is wrong length',
+                                self.field_name, value)
+        try:
+            x = int(value, 16)
+        except:
+            raise TypeException('MD5 value is not hex',
+                                self.field_name, value)
+```
 
 You might notice that the field which failed is also reported. It's available on
 the exception as `field_name` and `field_value`.
@@ -269,20 +298,24 @@ As we saw above, we know we can validate `model` instances by calling
 
 First, here is the User model:
 
-    class User(Model):
-        _public_fields = ['name']
-        secret = MD5Type()
-        name = StringType(required=True, max_length=50)
-        bio = StringType(max_length=100)
-        url = URLType()
+```python
+class User(Model):
+    _public_fields = ['name']
+    secret = MD5Type()
+    name = StringType(required=True, max_length=50)
+    bio = StringType(max_length=100)
+    url = URLType()
+```
 
 Next, we seed the instance with some data and validate it.
 
-    user = User(**{'secret': 'whatevs', 'name': 'test hash'})
-    try:
-        user.validate()
-    except TypeException, se:
-        print 'TypeException caught: %s' % (se)
+```python
+user = User(**{'secret': 'whatevs', 'name': 'test hash'})
+try:
+    user.validate()
+except TypeException, se:
+    print 'TypeException caught: %s' % (se)
+```
 
 This calling `validate()` on a model validates an instance by looping through
 it's fields and calling `field.validate()` on each one.
@@ -295,13 +328,17 @@ Instantiating any objects.
 
 Let's say we get this JSON string from a user.
 
-    {"bio": "Python, Erlang and guitars!", "secret": "e8b5d682452313a6142c10b045a9a135", "name": "J2D2"}
+```python
+{"bio": "Python, Erlang and guitars!", "secret": "e8b5d682452313a6142c10b045a9a135", "name": "J2D2"}
+```
 
 We might write some server code that looks like this:
 
-    json_string = request.get_arg('data')
-    user_input = json.loads(json_string)
-    User(**user_input).validate()
+```python
+json_string = request.get_arg('data')
+user_input = json.loads(json_string)
+User(**user_input).validate()
+```
 
 This method builds a User instance out of the input, which also throws away
 keys that aren't in the User definition.
@@ -334,29 +371,35 @@ So here's how you can reduce the user input into just the fields found on a
 
 Consider the following string:
 
-    {
-        "rogue_field": "MWAHAHA",
-        "bio": "Python, Erlang and guitars!",
-        "secret": "e8b5d682452313a6142c10b045a9a135",
-        "name": "J2D2"
-    }
+```python
+{
+    "rogue_field": "MWAHAHA",
+    "bio": "Python, Erlang and guitars!",
+    "secret": "e8b5d682452313a6142c10b045a9a135",
+    "name": "J2D2"
+}
+```
 
 Parse it just like before.
 
-    user_doc = User(**total_input).to_python()
+```python
+user_doc = User(**total_input).to_python()
+```
 
 The values in total_input are matched against fields found in the schematics
 model class and everything else is discarded.
 
 `User_doc` now looks like below with `rogue_field` removed.
 
-    {
-        '_types': ['User'],
-        'bio': u'Python, Erlang and guitars!,
-        'secret': 'e8b5d682452313a6142c10b045a9a135',
-        'name': u'J2D2',
-        '_cls': 'User'
-    }
+```python
+{
+    '_types': ['User'],
+    'bio': u'Python, Erlang and guitars!,
+    'secret': 'e8b5d682452313a6142c10b045a9a135',
+    'name': u'J2D2',
+    '_cls': 'User'
+}
+```
 
 
 ### JSON for Owner of model
@@ -368,11 +411,13 @@ classmethod available on the `model` class. It knows to remove `_cls` and
 fields that should be treated as internal to your system by adding a list named
 `_private_fields` to your model and listing each field.
 
-    {
-        "personal_thoughts": "I wish I had three hands...",
-        "title": "Total Recall",
-        "year": 1990
-    }
+```json
+{
+    "personal_thoughts": "I wish I had three hands...",
+    "title": "Total Recall",
+    "year": 1990
+}
+```
 
 
 ### JSON for Public View of model
@@ -380,34 +425,38 @@ fields that should be treated as internal to your system by adding a list named
 This is  dictionary safe for transmitting to the public, not just the owner.
 Get this by calling `make_json_publicsafe`.
 
-    {
-        "title": "Total Recall",
-        "year": 1990
-    }
-    
+```json
+{
+    "title": "Total Recall",
+    "year": 1990
+}
+```
+
 
 ### JSON Schema
 
 The schematic of models can also be serialized into JSON Schema. Again, with our `Movie` document.
 
-    >>> Movie.to_jsonschema()
-    '{
-        "title": "Movie"
-        "type": "object",
-        "properties": {
-            "year": {
-                "minimum": 1950,
-                "type": "number",
-                "maximum": 2012,
-                "title": "year"
-            }, 
-            "title": {
-                "title": "title",
-                "type": "string", 
-                "maxLength": 40
-            }
+```python
+>>> Movie.to_jsonschema()
+'{
+    "title": "Movie"
+    "type": "object",
+    "properties": {
+        "year": {
+            "minimum": 1950,
+            "type": "number",
+            "maximum": 2012,
+            "title": "year"
         }, 
-    }'
+        "title": {
+            "title": "title",
+            "type": "string", 
+            "maxLength": 40
+        }
+    }, 
+}'
+```
 
 
 ## Working Without Instances
@@ -425,14 +474,16 @@ schematics offers a few classmethods to facilitate this.
 the pattern it needs, including required fields. Notice, it's also a
 classmethod. No need to instantiate anything.
 
-    user_input = {
-        'url': 'http://j2labs.tumblr.com'
-    }
+```python
+user_input = {
+    'url': 'http://j2labs.tumblr.com'
+}
 
-    try:
-        User.validate_class_fields(user_input)
-    except TypeException, se:
-        print('  Validation failure: %s\n' % (dp))
+try:
+    User.validate_class_fields(user_input)
+except TypeException, se:
+    print('  Validation failure: %s\n' % (dp))
+```
 
 This particular code would throw an exception because the `name` field is
 required, but not present.
@@ -441,9 +492,11 @@ required, but not present.
 input. This is useful for updating one or two fields in a model at a time,
 like we attempted above.
 
-    ...
-        User.validate_class_partial(user_input)
-    ...
+```python
+...
+    User.validate_class_partial(user_input)
+...
+```
 
 
 ### Aggregating Errors
@@ -454,16 +507,17 @@ Will raise a `ModelException` whose `errors_list` attriute is a list of 0 or mor
 exceptions, and calling `validate_class_fields` with `validate_all=True` will return the
 same list.
 
-    exceptions = User.validate_class_fields(total_input, validate_all=True)
-    if exceptions:
-        # Validation was not successful
-
+```python
+exceptions = User.validate_class_fields(total_input, validate_all=True)
+if exceptions:
+    # Validation was not successful
+```
 
 # Installing
 
 schematics is in [pypi](http://pypi.python.org) so you can use `easy_install` or `pip`.
 
-    Pip install schematics
+    pip install schematics
 
 
 # Contributors
