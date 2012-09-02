@@ -21,13 +21,13 @@ Customer as JSON:
 """
 
 
-from structures.models import Model
-from structures.types import (IntType,
+from schematics.models import Model
+from schematics.types import (IntType,
                               StringType,
                               FloatType,
                               DateTimeType,
                               EmailType)
-from structures.types.compound import (ListType,
+from schematics.types.compound import (ListType,
                                        ModelType)
 import datetime
 import json

@@ -4,10 +4,10 @@ except:
     from itertools import ifilterfalse
 from operator import itemgetter
 
-from structures.models import Model
-from structures.base import  TypeException
-from structures.types import BaseType, DictType
-from structures.datastructures import MultiValueDict
+from schematics.models import Model
+from schematics.base import  TypeException
+from schematics.types import BaseType, DictType
+from schematics.datastructures import MultiValueDict
 
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
@@ -21,12 +21,12 @@ class ListType(BaseType):
     def __init__(self, fields, **kwargs):
         # Some helpful functions
         is_basetype = lambda tipe: isinstance(tipe, BaseType)
-        is_embeddedmodel = lambda tipe: isinstance(tipe, ModelType)
+        is_model = lambda tipe: isinstance(tipe, ModelType)
         is_dicttype = lambda tipe: isinstance(tipe, DictType)
 
         # field instance
         if is_basetype(fields):
-            if is_embeddedmodel(fields):
+            if is_model(fields):
                 kwargs.setdefault('primary_embedded', fields)
             fields = [fields]
         # something other than a list
@@ -40,7 +40,7 @@ class ListType(BaseType):
                                 'a valid field or list of valid fields',
                                 self.field_name, list)
         else:
-            models = filter(is_embeddedmodel, fields)
+            models = filter(is_model, fields)
             dicts = filter(is_dicttype, fields)
             if dicts:
                 kwargs.setdefault('primary_embedded', None)
@@ -55,21 +55,21 @@ class ListType(BaseType):
     def __set__(self, instance, value):
         """Descriptor for assigning a value to a type in a model.
         """
-        is_embeddedmodel = lambda tipe: isinstance(tipe, ModelType)
-        embedded_fields = filter(is_embeddedmodel, self.fields)
+        is_model = lambda tipe: isinstance(tipe, ModelType)
+        model_fields = filter(is_model, self.fields)
         if self.primary_embedded:
-            embedded_fields.remove(self.primary_embedded)
-            embedded_fields.insert(0, self.primary_embedded)
+            model_fields.remove(self.primary_embedded)
+            model_fields.insert(0, self.primary_embedded)
 
         if value is None:
             value = []  # have to use a list
 
-        if embedded_fields:
+        if model_fields:
             list_of_models = list()
             for model in value:
                 if isinstance(model, dict):
-                    for embedded_field in embedded_fields:
-                        model_obj = embedded_field.model_type_obj(**model)
+                    for model_field in model_fields:
+                        model_obj = model_field.model_type_obj(**model)
                         model_obj.validate()
                         model = model_obj
                 list_of_models.append(model)
@@ -102,7 +102,7 @@ class ListType(BaseType):
         return list(self.for_output_format('for_python', value))
 
     def for_json(self, value):
-        """for_json must be careful to expand embedded models into Python,
+        """for_json must be careful to expand modeltypes into Python,
         not JSON.
         """
         return list(self.for_output_format('for_json', value))
@@ -172,11 +172,11 @@ class SortedListType(ListType):
 
 
 ###
-### Sub structures
+### Sub schematics
 ###
 
 class ModelType(BaseType):
-    """A model field. Only valid values are subclasses of `structures.Model`.
+    """A model field. Only valid values are subclasses of `schematics.Model`.
     """
     def __init__(self, model_type, **kwargs):
         is_embeddable = lambda dt: issubclass(dt, Model)
@@ -230,7 +230,7 @@ class ModelType(BaseType):
         """
         # Using isinstance also works for subclasses of self.model
         if not isinstance(value, self.model_type):
-            raise TypeException('Invalid embedded model instance '
+            raise TypeException('Invalid modeltype instance '
                                   'provided to an ModelType',
                                   self.field_name, value)
         self.model_type.validate(value)

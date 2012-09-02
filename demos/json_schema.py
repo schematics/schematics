@@ -6,8 +6,8 @@
 
 
 import datetime
-from structures.models import Model
-from structures.types import StringType, IntType
+from schematics.models import Model
+from schematics.types import StringType, IntType
 
 ###
 ### The base class

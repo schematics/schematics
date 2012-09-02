@@ -1,17 +1,17 @@
 import inspect
 import copy
 
-from structures.base import TypeException, ModelException, json
+from schematics.base import TypeException, ModelException, json
 
 __all__ = ['ModelMetaclass', 'TopLevelModelMetaclass', 'BaseModel',
-           'Model', 'EmbeddedModel', 'TypeException']
+           'Model', 'TypeException']
 
-from structures.types import (DictFieldNotFound,
-                              structure_types,
+from schematics.types import (DictFieldNotFound,
+                              schematic_types,
                               BaseType,
                               UUIDType)
 
-schema_kwargs_to_structures = {
+schema_kwargs_to_schematics = {
     'maxLength': 'max_length',
     'minLength': 'min_length',
     'pattern': 'regex',
@@ -21,7 +21,7 @@ schema_kwargs_to_structures = {
 
 
 ###
-### Options Models
+### Metaclass Configuration
 ###
 
 class ModelOptions(object):
@@ -31,15 +31,10 @@ class ModelOptions(object):
     """
     def __init__(self, mixin=False, bucket=None, private_fields=None,
                  public_fields=None):
-        self.mixin = mixin
         self.bucket = bucket
         self.private_fields = private_fields
         self.public_fields = public_fields
 
-
-###
-### Options Parsers
-###
 
 def _parse_meta_config(attrs, options_class):
     """Parses the Meta object on the class and translates it into an Option
@@ -57,7 +52,7 @@ def _parse_meta_config(attrs, options_class):
 
 def _gen_options(klass, attrs):
     """Processes the attributes and class parameters to generate the correct
-    options structure.
+    options schematic.
 
     Defaults to `ModelOptions` but it's ideal to define `__optionsclass_`
     on the Model's metaclass.
@@ -71,31 +66,39 @@ def _gen_options(klass, attrs):
 
 
 ###
-### Metaclass design
+### Metaclass Design
 ###
 
 class ModelMetaclass(type):
-    """Metaclass for all models. Additional meta-functionality can be
-    constructed via subclassing this model.
+    """This metaclass is responsible for the core metadata collections on
+    `Model` instances.
+
+    It looks for a class called `Meta` and, if found, it parses the class into
+    a `ModelOptions` instance. This class stores all the options that have
+    values, meaning it also sets some defaults.
+
+    The implementation of `__new__` aggregates instances of `BaseType` into a
+    dict called `_fields`, which informs the serialization layers. The data is
+    stored in a dict, attached to the model *instance* called `_data`, which
+    maps field names to their values.
     """
     def __new__(cls, name, bases, attrs):
         """Processes a configuration of a Model type into a class.
         """
         ### Gen a class instance
-        print 'BASES:', bases
         klass = type.__new__(cls, name, bases, attrs)
 
         metaclass = attrs.get('__metaclass__')
         if metaclass and issubclass(metaclass, ModelMetaclass):
             return klass
 
-        ### Parse metaclass config into options structure
+        ### Parse metaclass config into options schematic
         options = _gen_options(klass, attrs)
         setattr(klass, '_options', options)
         if hasattr(klass, 'Meta'):
             delattr(klass, 'Meta')
 
-        ### fieldss for collecting structure information
+        ### fieldss for collecting schematic information
         model_fields = {}
         class_name = [name]
         superclasses = {}
@@ -111,13 +114,6 @@ class ModelMetaclass(type):
                 class_name.append(base._class_name)
                 superclasses[base._class_name] = base
                 superclasses.update(base._superclasses)
-
-                ### Handle class options
-                if hasattr(base, '_options'):
-                    ### Mixin
-                    if base._options.mixin == True:
-                        class_name.pop()
-                        del superclasses[base._class_name]
 
         ###
         ### Construct The Class Instance
@@ -148,8 +144,27 @@ class ModelMetaclass(type):
         return '%s object' % self.__class__.__name__
 
 
+class MixinMetaclass(ModelMetaclass):
+    """Mixins behave differently from regular models. They serve to simply add
+    fields to a Model and have no effect on object schematic information.
+    """
+    def __new__(cls, name, bases, attrs):
+        """Adds fields to the existing `_fields` map.
+        """
+        klass = super(MixinMetaclass, cls).__new__(cls, name, bases, attrs)
+
+        #print klass._fields
+        ### Fin.
+        return klass
+
+    def __str__(self):
+        if hasattr(self, '__unicode__'):
+            return unicode(self).encode('utf-8')
+        return '%s object' % self.__class__.__name__
+
+
 ###
-### Model structures
+### Model schematics
 ###
 
 class BaseModel(object):
@@ -328,7 +343,7 @@ class BaseModel(object):
 
     def _to_fields(self, field_converter):
         """Returns a Python dictionary representing the Model's
-        metastructure and values.
+        metaschematic and values.
         """
         data = {}
 
@@ -342,7 +357,7 @@ class BaseModel(object):
 
     def to_python(self):
         """Returns a Python dictionary representing the Model's
-        metastructure and values.
+        metaschematic and values.
         """
         fun = lambda f, v: f.for_python(v)
         data = self._to_fields(fun)
@@ -373,7 +388,7 @@ class BaseModel(object):
 
     @classmethod
     def from_jsonschema(cls, schema):
-        """Generate a structures Model class from a JSON schema.  The JSON
+        """Generate a Schematics Model class from a JSON schema.  The JSON
         schema's title field will be the name of the class.  You must specify a
         title and at least one property or there will be an AttributeError.
         """
@@ -395,22 +410,22 @@ class BaseModel(object):
             for field_name, schema_field in schema['properties'].iteritems():
                 if field_name == "_id":
                     field_name = "id"
-                field = cls.map_jsonschema_field_to_structures(schema_field)
+                field = cls.map_jsonschema_field_to_schematics(schema_field)
                 dictfields[field_name] = field
             return type(class_name, (cls,), dictfields)
         else:
             raise AttributeError('JSON schema missing one or more properties')
 
     @classmethod
-    def map_jsonschema_field_to_structures(cls, schema_field, field_name=None):
+    def map_jsonschema_field_to_schematics(cls, schema_field, field_name=None):
         # get the kind of field this is
         if not 'type' in schema_field:
             return  # not data, so ignore
         tipe = schema_field.pop('type')
         fmt = schema_field.pop('format', None)
 
-        structures_field_type = structures_fields.get((tipe, fmt,), None)
-        if not structures_field_type:
+        schematics_field_type = schematics_fields.get((tipe, fmt,), None)
+        if not schematics_field_type:
             raise DictFieldNotFound
 
         kwargs = {}
@@ -420,23 +435,23 @@ class BaseModel(object):
                 raise NotImplementedError
             elif isinstance(items, dict):  # list of a single type
                 items = [items]
-            kwargs['fields'] = [cls.map_jsonschema_field_to_structures(item)
+            kwargs['fields'] = [cls.map_jsonschema_field_to_schematics(item)
                                 for item in items]
 
         if tipe == "object":  # embedded objects
             #schema_field['title'] = field_name
-            model_type = EmbeddedModel.from_jsonschema(schema_field)
+            model_type = Model.from_jsonschema(schema_field)
             kwargs['model_type'] = model_type
             schema_field.pop('properties')
 
         schema_field.pop('title', None)  # make sure this isn't in here
 
         for kwarg_name, v in schema_field.items():
-            if kwarg_name in schema_kwargs_to_structures:
-                kwarg_name = schema_kwargs_to_structures[kwarg_name]
+            if kwarg_name in schema_kwargs_to_schematics:
+                kwarg_name = schema_kwargs_to_schematics[kwarg_name]
             kwargs[kwarg_name] = v
 
-        return structures_field_type(**kwargs)
+        return schematics_field_type(**kwargs)
 
 
 ###
@@ -445,7 +460,7 @@ class BaseModel(object):
 
 def swap_field(klass, new_field, fields):
     """This function takes an existing class definition `klass` and create a
-    new version of the structure with the fields in `fields` converted to
+    new version of the schematic with the fields in `fields` converted to
     `field` instances.
 
     Effectively doing this:
@@ -512,7 +527,7 @@ class SafeableMixin:
     fields, making it our blacklist.
 
     If `_public_fields` is defined, `make_json_publicsafe` can be used to
-    create a structure made of only the fields in this list, making it our
+    create a schematic made of only the fields in this list, making it our
     white list.
     """
     _internal_fields = [
@@ -542,14 +557,14 @@ class SafeableMixin:
                   model_encoder, field_list=None, white_list=True):
         """This function is the building block of the safe mechanism. This
         class method takes a model, dict or dicts and converts them into the
-        equivalent structure with three basic rules applied.
+        equivalent schematic with three basic rules applied.
 
           1. The fields must be converted from the model into a type. This is
              currently scene as calling `for_python()` or `for_json()` on
              fields.
 
-          2. A function that knows how to handle `EmbeddedModel` instances,
-             using the same security parameters as the caller; this function.
+          2. A function that knows how to handle `Model` instances, using the
+             same security parameters as the caller; this function.
 
           3. The field list that acts as either a white list or a black list. A
              white list preserves only the keys explicitly listed. A black list
@@ -675,7 +690,7 @@ class SafeableMixin:
         makes no attempt to collect them.
 
         The case where nothing accumulates is to prevent growing data
-        structures unnecessarily.
+        schematics unnecessarily.
         """
         if delete_rogues:
             def handle_class_field(cf):
@@ -777,20 +792,12 @@ class SafeableMixin:
 
 
 class Model(BaseModel, SafeableMixin):
-    """The base class used for defining the structure and properties of
-    collections of models modeled in Structures. Inherit from this class,
-    and add fields as class attributes to define a model's structure.
-    Individual models may then be created by making instances of the
-    :class:`~structures.Model` subclass.
-
-    A :class:`~structures.Model` subclass may be itself subclassed, to
-    create a specialised version of the model that can be stored in the
-    same collection. To facilitate this behaviour, `_cls` and `_types`
-    fields are added to models to specify the install class and the types
-    in the Model class hierarchy. To disable this behaviour and remove
-    the dependence on the presence of `_cls` and `_types`, set
-    :attr:`allow_inheritance` to ``False`` in the :attr:`meta` dictionary.
+    """Model YEAH
     """
-
     __metaclass__ = ModelMetaclass
     __optionsclass__ = ModelOptions
+
+class Mixin(object):
+    """Mixin YEAH
+    """
+    __metaclass__ = MixinMetaclass

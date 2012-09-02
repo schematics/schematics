@@ -3,9 +3,9 @@ import re
 import datetime
 import decimal
 
-from structures.base import TypeException, NotAModelException
+from schematics.base import TypeException, NotAModelException
 
-from structures.types import structure_types
+from schematics.types import schematic_types
 
 
 class BaseTypeMetaClass(type):
@@ -13,7 +13,7 @@ class BaseTypeMetaClass(type):
         if hasattr(cls, '_from_jsonschema_formats'):
             for fmt in cls._from_jsonschema_formats():
                 for tipe in cls._from_jsonschema_types():
-                    structure_types[(tipe, fmt)] = cls
+                    schematic_types[(tipe, fmt)] = cls
         super(BaseTypeMetaClass, cls).__init__(name, bases, dct)
 
 
@@ -620,7 +620,7 @@ class DateTimeType(BaseType):
 
 class DictType(BaseType):
     """A dictionary field that wraps a standard Python dictionary. This is
-    similar to an embedded model, but the structure is not defined.
+    similar to an `ModelType`, but the schematic is not defined.
     """
 
     def _jsonschema_type(self):

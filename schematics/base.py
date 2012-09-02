@@ -20,7 +20,7 @@ class NotAModelException(Exception):
 
 
 class NotATypeException(Exception):    
-    """A structures type was not used.
+    """A schematics type was not used.
     """
     pass
 

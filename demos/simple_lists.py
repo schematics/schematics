@@ -29,11 +29,11 @@ Tasklist as JSON:
 
 import datetime
 
-from structures.models import Model
-from structures.types import (StringType,
+from schematics.models import Model
+from schematics.types import (StringType,
                               DateTimeType,
                               IntType)
-from structures.types.compound import (ModelType,
+from schematics.types.compound import (ModelType,
                                        ListType)
 
 

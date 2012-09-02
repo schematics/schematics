@@ -35,9 +35,9 @@ Public safe:
 """
 
 
-from structures.base import TypeException
-from structures.models import Model
-from structures.types import MD5Type, StringType
+from schematics.base import TypeException
+from schematics.models import Model
+from schematics.types import MD5Type, StringType
 import hashlib
 
 

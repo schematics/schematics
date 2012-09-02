@@ -2,8 +2,8 @@
 as part of the pymongo distribution.
 """
 
-from structures.base import TypeException
-from structures.types import BaseType
+from schematics.base import TypeException
+from schematics.types import BaseType
 
 import bson
 

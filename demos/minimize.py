@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+print """ 
+
+THIS DEMO IS CURRENTLY BROKEN
+
+"""
+
 
 """MOVIE ] ----------------------------------------
     schema :: {'type': 'object', 'properties': {'year': {'minimum': 1950, 'type': 'number', 'maximum': 2011, 'title': 'year'}, 'title': {'title': 'title', 'type': 'string', 'maxLength': 40}}, 'title': 'Movie'}
@@ -25,8 +31,8 @@ import sys
 sys.path.append('..')
 
 import datetime
-from structures.models import Model
-from structures.types import StringType, IntType
+from schematics.models import Model
+from schematics.types import StringType, IntType
 
 ###
 ### The base class

@@ -34,12 +34,12 @@ BLOG POST ]----------------------------------------
 """
 
 import datetime
-from structures.models import Model
-from structures.types import (StringType,
+from schematics.models import Model
+from schematics.types import (StringType,
                               EmailType,
                               BooleanType,
                               DateTimeType)
-from structures.types.compound import (ListType,
+from schematics.types.compound import (ListType,
                                        ModelType)
 
 

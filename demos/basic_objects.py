@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 
-"""From Media class to json structure:
+"""From Media class to json string:
 
     {"owner": "2c8c9806-fafc-4cc7-920b-c8fa2e5f1bee", "_types": ["Media"], "_cls": "Media", "title": "Misc Media"}
 
-From Movie class to json structure:
+From Movie class to json string:
 
     {"personal_thoughts": "I wish I had three hands...", "_types": ["Media", "Media.Movie"], "title": "Total Recall", "_cls": "Media.Movie", "year": 1990}
 
@@ -21,8 +21,8 @@ Making mv json public safe (only ['title', 'year'] should show):
 
 import uuid
 import datetime
-from structures.models import Model
-from structures.types import (StringType,
+from schematics.models import Model
+from schematics.types import (StringType,
                               IntType,
                               UUIDType)
 
@@ -42,7 +42,7 @@ make_believe_owner_id = uuid.uuid4()
 m = Media()
 m.owner = make_believe_owner_id
 m.title = 'Misc Media'
-print 'From Media class to json structure:\n\n    %s\n' % (m.to_json())
+print 'From Media class to json string:\n\n    %s\n' % (m.to_json())
 
 
 ###
@@ -61,7 +61,7 @@ mv = Movie()
 mv.title = 'Total Recall'
 mv.year = 1990
 mv.personal_thoughts = 'I wish I had three hands...' # (.Y.Y.)
-print 'From Movie class to json structure:\n\n    %s\n' % (mv.to_json())
+print 'From Movie class to json string:\n\n    %s\n' % (mv.to_json())
 
 
 ###

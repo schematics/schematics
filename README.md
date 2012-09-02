@@ -1,6 +1,6 @@
-# Structures
+# Schematics
 
-Structures is an easy way to model data.  It provides mechanisms for structuring
+Schematics is an easy way to model data.  It provides mechanisms for structuring
 data, initializing data, serializing data, formatting data and validating data
 against type definitions, like an email address.
 
@@ -9,30 +9,30 @@ details of how a it's data should look in various formats.  It also provides a
 `validate()` function which is responsible for determining if the data looks
 correct.
 
-Structures' main goal is to provide similar functionality to a type system
-along with a way to generate the structures we send to the Internet, or store
+Schematics' main goal is to provide similar functionality to a type system
+along with a way to generate the schematics we send to the Internet, or store
 in a database, or send to some Java process, or basically any use case with
 structured data.
 
 A blog model might look like this:
 
-    from structures.models import Document
-    from structures.types import StringField
+    from schematics.models import Document
+    from schematics.types import StringType
 
     class BlogPost(Model):
         title = StringType(max_length=40)
         body = StringType(max_length=4096)
 
-Structures objects serialize to JSON by default. Store them in Memcached,
+Schematics objects serialize to JSON by default. Store them in Memcached,
 MongoDB, Riak, whatever you need.
 
-    >>> from structures.models import Document
-    >>> from structures.types import StringField
+    >>> from schematics.models import Document
+    >>> from schematics.types import StringType
     >>> class Comment(Model):
     ...   name = StringType(max_length=10)
     ...   body = StringType(max_length=4000)
     ...
-    >>> data = {'name':'a hacker', 'body':'structures makes validation easy'}
+    >>> data = {'name':'a hacker', 'body':'schematics makes validation easy'}
     >>> Comment(**data).validate()
     True
     
@@ -42,15 +42,15 @@ Let's see what happens if we try using invalid data.
     >>> Comment(**data).validate()
     Traceback (most recent call last):
       File "<stdin>", line 1, in <module>
-      File "/path/to/site-packages/structures/models.py", line 280, in validate
+      File "/path/to/site-packages/schematics/models.py", line 280, in validate
         field._validate(value)
-      File "/path/to/site-packages/structures/fields/base.py", line 99, in _validate
+      File "/path/to/site-packages/schematics/fields/base.py", line 99, in _validate
         self.validate(value)
-      File "/path/to/site-packages/structures/fields/base.py", line 224, in validate
+      File "/path/to/site-packages/schematics/fields/base.py", line 224, in validate
         self.field_name, value)
-    structures.base.TypeException: String value is too long - name:a hacker with a name who is too long
+    schematics.base.TypeException: String value is too long - name:a hacker with a name who is too long
 
-Combining structures with JSON coming from a web request is quite natural as
+Combining schematics with JSON coming from a web request is quite natural as
 well. Say we have some data coming in from an iPhone:
 
     json_data = request.post.get('data')
@@ -63,7 +63,7 @@ Easy.
 
 # The Design
 
-Structures aims to provides helpers for a few types of common needs for
+Schematics aims to provides helpers for a few types of common needs for
 Modeling. It has been useful on the server-side so far, but I believe it could
 also serve for building an RPC.
 
@@ -77,25 +77,25 @@ also serve for building an RPC.
 
 5. Input / Output Shaping
 
-Structures also allows for object hierarchy's to be mapped into dictionaries
-Too. This is useful primarily to those who use structures to instantiate
+Schematics also allows for object hierarchy's to be mapped into dictionaries
+Too. This is useful primarily to those who use schematics to instantiate
 Classes Representing their data instead of just filtering dictionaries through
 the class's static methods.
 
 
 # Example Uses
 
-There are a few ways to use structures.  A simple case is to create a class
-Structure that has typed fields.  structures offers multiple types in
-`Fields.Py`, like an EmailField or DecimalField.
+There are a few ways to use schematics.  A simple case is to create a class
+Schematic that has typed fields.  Schematics offers multiple types in
+`types.py`, like an EmailType or DecimalType.
 
 
 ## Creating Flexible models
 
 Below is an example of a Media class with a single field, the title.
 
-    from structures.models import model
-    from structures.types import StringType
+    from schematics.models import model
+    from schematics.types import StringType
 
     class Media(Model):
         """Simple model that has one Stringtype member
@@ -130,7 +130,7 @@ Document. `_cls` stores the specific class instance. This becomes more
 obvious when I subclass Media to create the Movie model below.
 
     import datetime
-    from structures.types import IntType
+    from schematics.types import IntType
 
     class Movie(Media):
         """Subclass of Foo. Adds bar and limits publicly shareable
@@ -180,11 +180,11 @@ Or maybe we're storing json in a memcached.
 
 ## A Type System
 
-structures has its own type system - every field within a `model` is defined with a specific type, for example a string will be defined as `StringField`. This "strong typing" makes serialising/deserialising semi-structured data to and from Python much more robust.
+schematics has its own type system - every field within a `model` is defined with a specific type, for example a string will be defined as `StringType`. This "strong typing" makes serialising/deserialising semi-structured data to and from Python much more robust.
 
 ### All Types
 
-A complete list of the types supported by structures:
+A complete list of the types supported by schematics:
 
 | **TYPE**               | **DESCRIPTION**                                                            |
 |-----------------------:|:---------------------------------------------------------------------------|
@@ -213,7 +213,7 @@ A complete list of the types supported by structures:
 |       `SortedListType` | A `Listtype` which sorts the list before saving, so list is always sorted  |
 |             `DictType` | Wraps a standard Python dictionary                                         |
 |   `MultiValueDictType` | Django's implementation of a MultiValueDict.                               |
-| `EmbeddedmodelType`    | Stores a structures `EmbeddedDocument`                                     |
+| `ModelType`            | Stores a schematics `Model` inside another model as a field.               |
 
 Types can also receive some arguments for customizing their behavior. The
 currently accepted arguments are:
@@ -237,7 +237,7 @@ This is what the MD5Type looks like. Notice that it's basically just
 an implementation of a `validate()` function, which raises a `TypeException`
 exception if validation fails.
 
-    class MD5Type(BaseField):
+    class MD5Type(BaseType):
         """A type that validates input as resembling an MD5 hash.
         """
         hash_length = 32
@@ -287,7 +287,7 @@ Next, we seed the instance with some data and validate it.
 This calling `validate()` on a model validates an instance by looping through
 it's fields and calling `field.validate()` on each one.
 
-We can still be leaner. structures also allows validating input without
+We can still be leaner. schematics also allows validating input without
 Instantiating any objects.
 
 
@@ -345,7 +345,7 @@ Parse it just like before.
 
     user_doc = User(**total_input).to_python()
 
-The values in total_input are matched against fields found in the structures
+The values in total_input are matched against fields found in the schematics
 model class and everything else is discarded.
 
 `User_doc` now looks like below with `rogue_field` removed.
@@ -365,7 +365,7 @@ Here is our `Movie` model safe for transmitting to the owner of the document.
 We achieve this by calling `Movie.make_json_ownersafe`. This function is a
 classmethod available on the `model` class. It knows to remove `_cls` and
 `_Types` because they are in `model._internal_fields`. You can add any
-Fields that should be treated as internal to your system by adding a list named
+fields that should be treated as internal to your system by adding a list named
 `_private_fields` to your model and listing each field.
 
     {
@@ -388,7 +388,7 @@ Get this by calling `make_json_publicsafe`.
 
 ### JSON Schema
 
-The structure of models can also be serialized into JSON Schema. Again, with our `Movie` document.
+The schematic of models can also be serialized into JSON Schema. Again, with our `Movie` document.
 
     >>> Movie.to_jsonschema()
     '{
@@ -416,7 +416,7 @@ Consider a user updating some of their settings. Rather than validate the entire
 model, you want to check validation for just the field the client is
 updating and tell your database to store just that field.
 
-structures offers a few classmethods to facilitate this.
+schematics offers a few classmethods to facilitate this.
 
 
 ### Class Level Validation
@@ -448,7 +448,7 @@ like we attempted above.
 
 ### Aggregating Errors
 
-structures's validation methods can also give you a list of which individual fields
+schematics's validation methods can also give you a list of which individual fields
 Failed Validation.  Calling a model's `validate()` method with `validate_all=True`
 Will raise a `ModelException` whose `errors_list` attriute is a list of 0 or more
 exceptions, and calling `validate_class_fields` with `validate_all=True` will return the
@@ -461,9 +461,9 @@ same list.
 
 # Installing
 
-structures is in [pypi](http://pypi.python.org) so you can use `easy_install` or `pip`.
+schematics is in [pypi](http://pypi.python.org) so you can use `easy_install` or `pip`.
 
-    Pip install structures
+    Pip install schematics
 
 
 # Contributors

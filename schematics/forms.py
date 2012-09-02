@@ -48,7 +48,7 @@ Using it looks a bit like this:
 """
 
 
-from structures.types.base import BaseType
+from schematics.types.base import BaseType
 
 
 # ClassName => input type

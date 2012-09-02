@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+print """
+
+THIS DEMO IS CURRENTLY BROKEN AS PART OF THE RENAME
+
+"""
+
 
 """SimpleDoc:
 
@@ -29,10 +35,10 @@ Validation passed
 """
 
 
-from structures.models import diff_id_field
-from structures.models import Model
-from structures.types import StringType, IntType
-from structures.types.mongo import ObjectIdType
+from schematics.models import diff_id_field
+from schematics.models import Model
+from schematics.types import StringType, IntType
+from schematics.types.mongo import ObjectIdType
 
 from bson.objectid import ObjectId
 
