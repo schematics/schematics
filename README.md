@@ -5,7 +5,7 @@ data, initializing data, serializing data, formatting data and validating data
 against type definitions, like an email address.
 
 The library provides data types, in the form of fields. Each field controls the
-details of how a it's data should look in various formats.  It also provides a 
+details of how its data should look in various formats.  It also provides a 
 `validate()` function which is responsible for determining if the data looks
 correct.
 
@@ -72,7 +72,7 @@ Easy.
 # The Design
 
 Schematics aims to provides helpers for a few types of common needs for
-Modeling. It has been useful on the server-side so far, but I believe it could
+modeling. It has been useful on the server-side so far, but I believe it could
 also serve for building an RPC.
 
 1. Creating Flexible models
@@ -85,9 +85,9 @@ also serve for building an RPC.
 
 5. Input / Output Shaping
 
-Schematics also allows for object hierarchy's to be mapped into dictionaries
-Too. This is useful primarily to those who use schematics to instantiate
-Classes Representing their data instead of just filtering dictionaries through
+Schematics also allows for object hierarchies to be mapped into dictionaries
+too. This is useful primarily to those who use schematics to instantiate
+classes representing their data instead of just filtering dictionaries through
 the class's static methods.
 
 
@@ -207,7 +207,9 @@ Or maybe we're storing json in a memcached.
 
 ## A Type System
 
-schematics has its own type system - every field within a `model` is defined with a specific type, for example a string will be defined as `StringType`. This "strong typing" makes serialising/deserialising semi-structured data to and from Python much more robust.
+schematics has its own type system - every field within a `model` is defined with a specific type,
+for example a string will be defined as `StringType`. This "strong typing" makes serialising/deserialising
+semi-structured data to and from Python much more robust.
 
 ### All Types
 
@@ -318,10 +320,10 @@ except TypeException, se:
 ```
 
 This calling `validate()` on a model validates an instance by looping through
-it's fields and calling `field.validate()` on each one.
+its fields and calling `field.validate()` on each one.
 
-We can still be leaner. schematics also allows validating input without
-Instantiating any objects.
+We can still be leaner. Schematics also allows validating input without
+instantiating any objects.
 
 
 ### Validating User Input
@@ -422,7 +424,7 @@ fields that should be treated as internal to your system by adding a list named
 
 ### JSON for Public View of model
 
-This is  dictionary safe for transmitting to the public, not just the owner.
+This dictionary is safe for transmitting to the public, not just the owner.
 Get this by calling `make_json_publicsafe`.
 
 ```json
@@ -501,9 +503,9 @@ like we attempted above.
 
 ### Aggregating Errors
 
-schematics's validation methods can also give you a list of which individual fields
-Failed Validation.  Calling a model's `validate()` method with `validate_all=True`
-Will raise a `ModelException` whose `errors_list` attriute is a list of 0 or more
+schematics' validation methods can also give you a list of which individual fields
+failed validation.  Calling a model's `validate()` method with `validate_all=True`
+will raise a `ModelException` whose `errors_list` attriute is a list of 0 or more
 exceptions, and calling `validate_class_fields` with `validate_all=True` will return the
 same list.
 
