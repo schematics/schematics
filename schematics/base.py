@@ -2,11 +2,26 @@
 
 
 ### ultra json is really fast
+json_is_ujson = True
+
 try:
     import ujson as json
 except:
     import json
+    json_is_ujson = False
 
+json_dumps = json.dumps
+
+def _dumps(data, sort_keys=False):
+    """Handle the fact that ujson.dumps does not
+    accept sort_keys as an argument
+    """
+    if json_is_ujson:
+        return json_dumps(data)
+    else:
+        return json_dumps(data, sort_keys=sort_keys)
+
+json.dumps = _dumps
 
 ###
 ### Exceptions
