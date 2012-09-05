@@ -17,7 +17,7 @@ structured data.
 A blog model might look like this:
 
 ```python
-from schematics.models import Document
+from schematics.models import Model
 from schematics.types import StringType
 
 class BlogPost(Model):
@@ -29,7 +29,7 @@ Schematics objects serialize to JSON by default. Store them in Memcached,
 MongoDB, Riak, whatever you need.
 
 ```python
->>> from schematics.models import Document
+>>> from schematics.models import Model
 >>> from schematics.types import StringField
 >>> class Comment(Model):
 ...   name = StringType(max_length=10)
@@ -103,7 +103,7 @@ Schematic that has typed fields.  Schematics offers multiple types in
 Below is an example of a Media class with a single field, the title.
 
 ```python
-from schematics.models import model
+from schematics.models import Model
 from schematics.types import StringType
 
 class Media(Model):
@@ -207,7 +207,7 @@ Or maybe we're storing json in a memcached.
 
 ## A Type System
 
-schematics has its own type system - every field within a `model` is defined with a specific type,
+schematics has its own type system - every field within a `Model` is defined with a specific type,
 for example a string will be defined as `StringType`. This "strong typing" makes serialising/deserialising
 semi-structured data to and from Python much more robust.
 
@@ -295,7 +295,7 @@ can skip it by never calling `validate()`.
 
 ## Validation Of Types
 
-As we saw above, we know we can validate `model` instances by calling
+As we saw above, we know we can validate `Model` instances by calling
 `Validate()`. Let's generate a `User` instance with seed data and validate it.
 
 First, here is the User model:
@@ -408,8 +408,8 @@ model class and everything else is discarded.
 
 Here is our `Movie` model safe for transmitting to the owner of the document.
 We achieve this by calling `Movie.make_json_ownersafe`. This function is a
-classmethod available on the `model` class. It knows to remove `_cls` and
-`_Types` because they are in `model._internal_fields`. You can add any
+classmethod available on the `Model` class. It knows to remove `_cls` and
+`_Types` because they are in `Model._internal_fields`. You can add any
 fields that should be treated as internal to your system by adding a list named
 `_private_fields` to your model and listing each field.
 
