@@ -11,13 +11,14 @@ except ImportError:
     json_is_ujson = False
 
 
+json_dumps = json.dumps
 @functools.wraps(json.dumps)
 def _dumps(*args, **kwargs):
     """Wrapper for ujson.dumps which removes the 'sort_keys' kwarg. Regular
     json.dumps supports sort_keys but ujson.dumps does not.
     """
     kwargs.pop('sort_keys', None)
-    return json.dumps(*args, **kwargs)
+    return json_dumps(*args, **kwargs)
 
 
 # Only patch if we are using ujson
