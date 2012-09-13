@@ -1,27 +1,29 @@
 #!/usr/bin/env python
 
 
+import functools
 ### ultra json is really fast
 json_is_ujson = True
-
 try:
     import ujson as json
-except:
+except ImportError:
     import json
     json_is_ujson = False
 
-json_dumps = json.dumps
 
-def _dumps(data, sort_keys=False):
-    """Handle the fact that ujson.dumps does not
-    accept sort_keys as an argument
+@functools.wraps(json.dumps)
+def _dumps(*args, **kwargs):
+    """Wrapper for ujson.dumps which removes the 'sort_keys' kwarg. Regular
+    json.dumps supports sort_keys but ujson.dumps does not.
     """
-    if json_is_ujson:
-        return json_dumps(data)
-    else:
-        return json_dumps(data, sort_keys=sort_keys)
+    kwargs.pop('sort_keys', None)
+    return json.dumps(*args, **kwargs)
 
-json.dumps = _dumps
+
+# Only patch if we are using ujson
+if json_is_ujson:
+    json.dumps = _dumps
+
 
 ###
 ### Exceptions
