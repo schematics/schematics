@@ -30,7 +30,7 @@ MongoDB, Riak, whatever you need.
 
 ```python
 >>> from schematics.models import Model
->>> from schematics.types import StringField
+>>> from schematics.types import StringType
 >>> class Comment(Model):
 ...   name = StringType(max_length=10)
 ...   body = StringType(max_length=4000)
