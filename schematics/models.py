@@ -298,11 +298,11 @@ class BaseModel(object):
 
     @classmethod
     def for_jsonschema(cls):
-        """Returns a representation of this Structures class as a JSON schema,
+        """Returns a representation of this Schematics class as a JSON schema,
         but not yet serialized to JSON. If certain fields are marked public,
         only those fields will be represented in the schema.
 
-        Certain Structures fields do not map precisely to JSON schema types or
+        Certain Schematics fields do not map precisely to JSON schema types or
         formats.
         """
 
@@ -328,11 +328,11 @@ class BaseModel(object):
 
     @classmethod
     def to_jsonschema(cls):
-        """Returns a representation of this Structures class as a JSON schema.
+        """Returns a representation of this Schematics class as a JSON schema.
         If certain fields are marked public, only those fields will be
         represented in the schema.
 
-        Certain Structures fields do not map precisely to JSON schema types or
+        Certain Schematics fields do not map precisely to JSON schema types or
         formats.
         """
         return json.dumps(cls.for_jsonschema())
