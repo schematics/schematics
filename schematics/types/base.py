@@ -22,7 +22,7 @@ class BaseTypeMetaClass(type):
 ###
 
 class BaseType(object):
-    """A base class for Types in a Structures model. Instances of this
+    """A base class for Types in a Schematics model. Instances of this
     class may be added to subclasses of `Model` to define a model schema.
     """
 
@@ -43,7 +43,7 @@ class BaseType(object):
 
     def __get__(self, instance, owner):
         """Descriptor for retrieving a value from a field in a model. Do
-        any necessary conversion between Python and `Structures` types.
+        any necessary conversion between Python and `Schematics` types.
         """
         if instance is None:
             # Model class being used rather than a model object
@@ -75,12 +75,12 @@ class BaseType(object):
         del instance._fields[self.name]
 
     def for_python(self, value):
-        """Convert a Structures type into native Python value
+        """Convert a Schematics type into native Python value
         """
         return value
 
     def for_json(self, value):
-        """Convert a Structures type into a value safe for JSON encoding
+        """Convert a Schematics type into a value safe for JSON encoding
         """
         return self.for_python(value)
 

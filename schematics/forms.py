@@ -75,10 +75,10 @@ class Form(object):
     def __init__(self, model, private_fields=None, field_map=default_field_map,
                  name_map=default_name_map):
         if not isinstance(model, TopLevelModelMetaclass):
-            error_msg = '<model> argument must be top level Structures class'
+            error_msg = '<model> argument must be top level Schematics class'
             raise FormPunch(error_msg)
 
-        # Model should be a Structures model
+        # Model should be a Schematics model
         self._model = model
 
         # The name of the class
@@ -90,7 +90,7 @@ class Form(object):
         # Override field maps by class name of field
         self._name_map = name_map
 
-        # `fields` is treated as a way to override Structures field privacy
+        # `fields` is treated as a way to override Schematics field privacy
         #
         # This behavior is desireable for letting users update fields that
         # might have privacy restraints for serializable forms.
@@ -139,10 +139,10 @@ class Form(object):
         html forms. Takes a format string `format_str` and applies the list of
         values to it.
 
-        Allows passing in a `Structures` instance or a dictionary. Anything
+        Allows passing in a `Schematics` instance or a dictionary. Anything
         else throws an error.
 
-        The `Structures` instance will be converted to a dictionary using a
+        The `Schematics` instance will be converted to a dictionary using a
         call to `.to_python()`.
 
         CAUTION: style_values is subject to side-effects for speed
