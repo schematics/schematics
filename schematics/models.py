@@ -1,15 +1,19 @@
 import inspect
 import copy
 
-from schematics.base import TypeException, ModelException, json
+
+from schematics.base import (TypeException, ModelException, json)
+from schematics.types import (DictFieldNotFound, schematic_types, BaseType,
+                              UUIDType)
+
 
 __all__ = ['ModelMetaclass', 'TopLevelModelMetaclass', 'BaseModel',
            'Model', 'TypeException']
 
-from schematics.types import (DictFieldNotFound,
-                              schematic_types,
-                              BaseType,
-                              UUIDType)
+
+###
+### Parameters for serialization to JSONSchema
+###
 
 schema_kwargs_to_schematics = {
     'maxLength': 'max_length',
@@ -21,32 +25,36 @@ schema_kwargs_to_schematics = {
 
 
 ###
-### Metaclass Configuration
+### Model Configuration
 ###
 
 class ModelOptions(object):
-    """This class is a container for all metaclass configuration options. The
-    `__init__` method will set the default values for attributes and then
-    attempt to map any keyword arguments to attributes of the same name.
+    """This class is a container for all metaclass configuration options. It's
+    primary purpose is to create an instance of a model's options for every
+    instance of a model.
+
+    It also creates errors in cases where unknown options parameters are found.
     """
-    def __init__(self, mixin=False, bucket=None, private_fields=None,
-                 public_fields=None):
-        self.bucket = bucket
+    def __init__(self, klass, db_namespace=None, # permissions=None,
+                 private_fields=None, public_fields=None):
+        self.klass = klass
+        self.db_namespace = db_namespace
+        #self.permissions = permissions
         self.private_fields = private_fields
         self.public_fields = public_fields
 
 
-def _parse_meta_config(attrs, options_class):
-    """Parses the Meta object on the class and translates it into an Option
+def _parse_options_config(klass, attrs, options_class):
+    """Parses the Options object on the class and translates it into an Option
     instance.
     """
     valid_attrs = dict()
-    if 'Meta' in attrs:
-        meta = attrs['Meta']
-        for attr_name, attr_value in inspect.getmembers(meta):
+    if 'Options' in attrs:
+        options = attrs['Options']
+        for attr_name, attr_value in inspect.getmembers(options):
             if not attr_name.startswith('_'):
                 valid_attrs[attr_name] = attr_value
-    oc = options_class(**valid_attrs)
+    oc = options_class(klass, **valid_attrs)
     return oc
 
 
@@ -57,12 +65,34 @@ def _gen_options(klass, attrs):
     Defaults to `ModelOptions` but it's ideal to define `__optionsclass_`
     on the Model's metaclass.
     """
-    ### Parse Meta
+    ### Parse Options
     options_class = ModelOptions
     if hasattr(klass, '__optionsclass__'):
         options_class = klass.__optionsclass__
-    options = _parse_meta_config(attrs, options_class)
+    options = _parse_options_config(klass, attrs, options_class)
     return options
+
+
+def _extract_fields(bases, attrs):
+    ### Collect all fields in here
+    model_fields = {}
+
+    ### Aggregate fields found in base classes first
+    for base in bases:
+        ### Configure `_fields` list
+        if hasattr(base, '_fields'):
+            model_fields.update(base._fields)
+
+    ### Collect field info from attrs
+    for attr_name, attr_value in attrs.items():
+        has_class = hasattr(attr_value, "__class__")
+        if has_class and issubclass(attr_value.__class__, BaseType):
+            ### attr_name = field name
+            ### attr_value = field instance
+            attr_value.field_name = attr_name  # fields know their name
+            model_fields[attr_name] = attr_value
+            
+    return model_fields
 
 
 ###
@@ -70,90 +100,27 @@ def _gen_options(klass, attrs):
 ###
 
 class ModelMetaclass(type):
-    """This metaclass is responsible for the core metadata collections on
-    `Model` instances.
-
-    It looks for a class called `Meta` and, if found, it parses the class into
-    a `ModelOptions` instance. This class stores all the options that have
-    values, meaning it also sets some defaults.
-
-    The implementation of `__new__` aggregates instances of `BaseType` into a
-    dict called `_fields`, which informs the serialization layers. The data is
-    stored in a dict, attached to the model *instance* called `_data`, which
-    maps field names to their values.
-    """
     def __new__(cls, name, bases, attrs):
         """Processes a configuration of a Model type into a class.
         """
         ### Gen a class instance
         klass = type.__new__(cls, name, bases, attrs)
 
-        metaclass = attrs.get('__metaclass__')
-        if metaclass and issubclass(metaclass, ModelMetaclass):
-            return klass
-
         ### Parse metaclass config into options schematic
         options = _gen_options(klass, attrs)
-        setattr(klass, '_options', options)
-        if hasattr(klass, 'Meta'):
-            delattr(klass, 'Meta')
+        if hasattr(klass, 'Options'):
+            delattr(klass, 'Options')
 
-        ### fieldss for collecting schematic information
-        model_fields = {}
-        class_name = [name]
-        superclasses = {}
-
-        ###
-        ### Handle Base Classes
-        ###
-
-        for base in bases:
-            ### Configure `_fields` list
-            if hasattr(base, '_fields'):
-                model_fields.update(base._fields)
-                class_name.append(base._class_name)
-                superclasses[base._class_name] = base
-                superclasses.update(base._superclasses)
-
-        ###
-        ### Construct The Class Instance
-        ###
-
-        ### Collect field info
-        for attr_name, attr_value in attrs.items():
-            has_class = hasattr(attr_value, "__class__")
-            if has_class and issubclass(attr_value.__class__, BaseType):
-                attr_value.field_name = attr_name
-                model_fields[attr_name] = attr_value
-
-        ### Attach collected data to klass
-        setattr(klass, '_fields', model_fields)
-        setattr(klass, '_class_name', '.'.join(reversed(class_name)))
-        setattr(klass, '_superclasses', superclasses)
-
-        ### Set owner in field instances to klass
-        for field in klass._fields.values():
+        ### Extract fields and attach klass as owner
+        fields =  _extract_fields(bases, attrs)
+        for field in fields.values():
             field.owner_model = klass
 
-        ### Fin.
-        return klass
+        ### Attach collected data to klass
+        setattr(klass, '_options', options)
+        setattr(klass, '_fields', fields)
+        setattr(klass, '_model_name', name)
 
-    def __str__(self):
-        if hasattr(self, '__unicode__'):
-            return unicode(self).encode('utf-8')
-        return '%s object' % self.__class__.__name__
-
-
-class MixinMetaclass(ModelMetaclass):
-    """Mixins behave differently from regular models. They serve to simply add
-    fields to a Model and have no effect on object schematic information.
-    """
-    def __new__(cls, name, bases, attrs):
-        """Adds fields to the existing `_fields` map.
-        """
-        klass = super(MixinMetaclass, cls).__new__(cls, name, bases, attrs)
-
-        #print klass._fields
         ### Fin.
         return klass
 
@@ -231,7 +198,7 @@ class BaseModel(object):
                 raise err
 
         if errs:
-            raise ModelException(self._class_name, errs)
+            raise ModelException(self._model_name, errs)
         return True
 
     @classmethod
@@ -245,7 +212,7 @@ class BaseModel(object):
 
         all_subclasses = {}
         for subclass in subclasses:
-            all_subclasses[subclass._class_name] = subclass
+            all_subclasses[subclass._model_name] = subclass
             all_subclasses.update(subclass._get_subclasses())
         return all_subclasses
 
@@ -307,10 +274,10 @@ class BaseModel(object):
         """
 
         # Place all fields in the schema unless public ones are specified.
-        if cls._public_fields is None:
+        if cls._options.public_fields is None:
             field_names = cls._fields.keys()
         else:
-            field_names = copy.copy(cls._public_fields)
+            field_names = copy.copy(cls._options.public_fields)
 
         properties = {}
         if 'id' in field_names:
@@ -470,7 +437,7 @@ def swap_field(klass, new_field, fields):
     Returns the class for compatibility, making it compatible with a decorator.
     """
     ### The metaclass attributes will fake not having inheritance
-    cn = klass._class_name
+    cn = klass._model_name
     sc = klass._superclasses
     klass_name = klass.__name__
     new_klass = type(klass_name, (klass,), {})
@@ -534,8 +501,6 @@ class SafeableMixin:
         '_id', 'id', '_cls', '_types',
     ]
 
-    _public_fields = None
-
     @classmethod
     def _get_internal_fields(cls):
         """Helper function that determines the union of
@@ -543,8 +508,8 @@ class SafeableMixin:
         :attr:`_internal_fields`.
         """
         internal_fields = set(cls._internal_fields)
-        if hasattr(cls, '_private_fields'):
-            private_fields = set(cls._private_fields)
+        if hasattr(cls._options, '_private_fields'):
+            private_fields = set(cls._options._private_fields)
             internal_fields = internal_fields.union(private_fields)
         return internal_fields
 
@@ -640,12 +605,12 @@ class SafeableMixin:
         field_converter = lambda f, v: v
         model_encoder = lambda m: m.to_python()
         model_converter = lambda m: m.make_publicsafe(m)
-        field_list = cls._public_fields
+        field_list = cls._options.public_fields
         white_list = True
 
         return cls.make_safe(model_dict_or_dicts, field_converter,
                              model_converter, model_encoder,
-                             field_list=cls._public_fields,
+                             field_list=cls._options.public_fields,
                              white_list=white_list)
 
     @classmethod
@@ -655,7 +620,7 @@ class SafeableMixin:
         model_encoder = lambda m: m.to_json(encode=False)
         model_converter = lambda m: m.make_json_publicsafe(m, encode=False,
                                                            sort_keys=sort_keys)
-        field_list = cls._public_fields
+        field_list = cls._options.public_fields
         white_list = True
 
         safed = cls.make_safe(model_dict_or_dicts, field_converter,
@@ -796,8 +761,3 @@ class Model(BaseModel, SafeableMixin):
     """
     __metaclass__ = ModelMetaclass
     __optionsclass__ = ModelOptions
-
-class Mixin(object):
-    """Mixin YEAH
-    """
-    __metaclass__ = MixinMetaclass
