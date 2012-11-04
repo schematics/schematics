@@ -22,7 +22,7 @@ Making mv json public safe (only ['title', 'year'] should show):
 import uuid
 import datetime
 from schematics.models import Model
-from schematics.models import make_json_ownersafe, make_json_publicsafe
+from schematics.filters import make_json_ownersafe, make_json_publicsafe
 from schematics.types import (StringType,
                               IntType,
                               UUIDType)

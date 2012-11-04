@@ -36,8 +36,8 @@ Public safe:
 
 
 from schematics.base import TypeException
-from schematics.models import Model
-from schematics.models import validate_class_fields, make_json_ownersafe, make_json_publicsafe
+from schematics.models import Model, validate_class_fields
+from schematics.filters import (make_json_ownersafe, make_json_publicsafe)
 from schematics.types import MD5Type, StringType
 import hashlib
 
