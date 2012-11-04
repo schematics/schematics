@@ -7,7 +7,7 @@
 
 import datetime
 from schematics.models import Model
-from schematics.types import StringType, IntType
+from schematics.types import StringType, IntType, UUIDType
 
 ###
 ### The base class
@@ -16,6 +16,7 @@ from schematics.types import StringType, IntType
 class Movie(Model):
     """Simple model that has one StringType member
     """
+    id = UUIDType(auto_fill=True)
     title = StringType(max_length=40)
     year = IntType(min_value=1950, max_value=datetime.datetime.now().year)
     personal_thoughts = StringType(max_length=255)

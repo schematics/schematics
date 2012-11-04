@@ -46,11 +46,11 @@ import hashlib
 ###
 
 class User(Model):
-    _public_fields = ['name', 'bio']
-    
     secret = MD5Type()
     name = StringType(required=True, max_length=50)
     bio = StringType(max_length=100)
+    class Options:
+        public_fields = ['name', 'bio']
 
     def set_password(self, plaintext):
         hash_string = hashlib.md5(plaintext).hexdigest()

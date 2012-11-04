@@ -44,31 +44,34 @@ from schematics.types.compound import (ListType,
 
 
 class Author(Model):
-    _private_fields=['is_active']
-    _public_fields=['username', 'name']
     name = StringType()
     username = StringType()
     email = EmailType()
     a_setting = BooleanType()
     is_active = BooleanType()
+    class Options:
+        private_fields=['is_active']
+        public_fields=['username', 'name']
 
 
 class Comment(Model):
-    _public_fields=['username', 'text']
     text = StringType()
     username = StringType()
     email = EmailType()   
+    class Options:
+        public_fields=['username', 'text']
 
 
 class BlogPost(Model):
-    _private_fields=['personal_thoughts']
-    _public_fields=['author', 'content', 'comments']
     title = StringType()    
     content = StringType()
     author = ModelType(Author)
     post_date = DateTimeType(default=datetime.datetime.now)
     comments = ListType(ModelType(Comment))
     deleted = BooleanType()   
+    class Options:
+        private_fields=['personal_thoughts']
+        public_fields=['author', 'content', 'comments']
     
 
 author = Author(name='james', username='j2d2', email='jdennis@gmail.com',

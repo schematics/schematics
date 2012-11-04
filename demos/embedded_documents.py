@@ -22,7 +22,8 @@ Customer as JSON:
 
 
 from schematics.models import Model
-from schematics.types import (IntType,
+from schematics.types import (UUIDType,
+                              IntType,
                               StringType,
                               FloatType,
                               DateTimeType,
@@ -38,6 +39,7 @@ import json
 ###
 
 class Product(Model):
+    id = UUIDType(auto_fill=True)
     sku = IntType(min_value=1, max_value=9999, required=True)
     title = StringType(max_length = 30, required=True)
     description = StringType()
@@ -46,6 +48,7 @@ class Product(Model):
 
 
 class Order(Model):
+    id = UUIDType(auto_fill=True)
     date_made = DateTimeType(required=True)
     date_changed = DateTimeType()
     line_items = ListType(ModelType(Product))
@@ -57,6 +60,7 @@ class Order(Model):
 ###
 
 class User(Model):
+    id = UUIDType(auto_fill=True)
     username = StringType(min_length=2, max_length=20, required=True)
     email = EmailType(max_length=30, required=True)
 
