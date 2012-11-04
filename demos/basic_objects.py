@@ -34,6 +34,7 @@ from schematics.types import (StringType,
 class Media(Model):
     """Simple document that has one StringField member
     """
+    id = UUIDType(auto_fill=True)
     owner = UUIDType()
     title = StringType(max_length=40)
 
@@ -53,9 +54,10 @@ class Movie(Media):
     """Subclass of Foo. Adds bar and limits publicly shareable
     fields to only 'bar'.
     """
-    _public_fields = ['title','year']
     year = IntType(min_value=1950, max_value=datetime.datetime.now().year)
     personal_thoughts = StringType(max_length=255)
+    class Options:
+        public_fields = ['title','year']
 
 mv = Movie()
 mv.title = 'Total Recall'
@@ -74,4 +76,4 @@ print ownersafe_str % (ownersafe_json)
 
 publicsafe_json = Movie.make_json_publicsafe(mv)
 publicsafe_str = 'Making mv json public safe (only %s should show):\n\n    %s\n'
-print  publicsafe_str % (Movie._public_fields, publicsafe_json)
+print  publicsafe_str % (Movie._options.public_fields, publicsafe_json)

@@ -152,8 +152,6 @@ class BaseModel(object):
         # Assign initial values to instance
         for attr_name, attr_value in values.items():
             try:
-                if attr_name == '_id':
-                    attr_name = 'id'
                 setattr(self, attr_name, attr_value)
                 if attr_name in minimized_field_map:
                     setattr(self, minimized_field_map[attr_name], attr_value)
@@ -280,9 +278,6 @@ class BaseModel(object):
             field_names = copy.copy(cls._options.public_fields)
 
         properties = {}
-        if 'id' in field_names:
-            field_names.remove('id')
-            properties['_id'] = cls._fields['id'].for_jsonschema()
 
         for name in field_names:
             properties[name] = cls._fields[name].for_jsonschema()
@@ -345,8 +340,8 @@ class BaseModel(object):
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             keys = self._fields
-            if not hasattr(other, '_id'):
-                keys.pop("_id", None)
+            if not hasattr(other, 'id'):
+                keys.pop("id", None)
             for key in keys:
                 if self[key] != other[key]:
                     return False
@@ -375,8 +370,6 @@ class BaseModel(object):
         if 'properties' in schema:
             dictfields = {}
             for field_name, schema_field in schema['properties'].iteritems():
-                if field_name == "_id":
-                    field_name = "id"
                 field = cls.map_jsonschema_field_to_schematics(schema_field)
                 dictfields[field_name] = field
             return type(class_name, (cls,), dictfields)
@@ -508,8 +501,8 @@ class SafeableMixin:
         :attr:`_internal_fields`.
         """
         internal_fields = set(cls._internal_fields)
-        if hasattr(cls._options, '_private_fields'):
-            private_fields = set(cls._options._private_fields)
+        if (cls._options.private_fields is not None):
+            private_fields = set(cls._options.private_fields)
             internal_fields = internal_fields.union(private_fields)
         return internal_fields
 
@@ -539,7 +532,7 @@ class SafeableMixin:
         if field_list is None:
             field_list = cls._get_internal_fields()
 
-        ### Setup white or black list detection
+        ### Setup white or black list detector
         gottago = lambda k, v: k not in field_list or v is None
         if not white_list:
             gottago = lambda k, v: k in field_list or v is None
