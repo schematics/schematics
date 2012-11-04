@@ -159,6 +159,11 @@ class BaseModel(object):
             except AttributeError:
                 pass
 
+
+    ###
+    ### Validation functions
+    ###
+
     def validate(self, validate_all=False):
         """Ensure that all fields' values are valid and that required fields
         are present.
@@ -199,20 +204,10 @@ class BaseModel(object):
             raise ModelException(self._model_name, errs)
         return True
 
-    @classmethod
-    def _get_subclasses(cls):
-        """Return a dictionary of all subclasses (found recursively).
-        """
-        try:
-            subclasses = cls.__subclasses__()
-        except:
-            subclasses = cls.__subclasses__(cls)
 
-        all_subclasses = {}
-        for subclass in subclasses:
-            all_subclasses[subclass._model_name] = subclass
-            all_subclasses.update(subclass._get_subclasses())
-        return all_subclasses
+    ###
+    ### Implement the dictionary interface
+    ###
 
     def __iter__(self):
         return iter(self._fields)
@@ -245,6 +240,21 @@ class BaseModel(object):
     def __len__(self):
         return len(self._data)
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            keys = self._fields
+            if not hasattr(other, 'id'):
+                keys.pop("id", None)
+            for key in keys:
+                if self[key] != other[key]:
+                    return False
+            return True
+        return False
+
+    ###
+    ### Representation Descriptors
+    ###
+    
     def __repr__(self):
         try:
             u = unicode(self)
@@ -256,18 +266,18 @@ class BaseModel(object):
         if hasattr(self, '__unicode__'):
             return unicode(self).encode('utf-8')
         return '%s object' % self.__class__.__name__
-
+    
     ###
-    ### Class serialization
+    ### Model Definition Serialization
     ###
 
     @classmethod
     def for_jsonschema(cls):
-        """Returns a representation of this Structures class as a JSON schema,
+        """Returns a representation of this Schematics class as a JSON schema,
         but not yet serialized to JSON. If certain fields are marked public,
         only those fields will be represented in the schema.
 
-        Certain Structures fields do not map precisely to JSON schema types or
+        Certain Schematics fields do not map precisely to JSON schema types or
         formats.
         """
 
@@ -298,55 +308,6 @@ class BaseModel(object):
         formats.
         """
         return json.dumps(cls.for_jsonschema())
-
-    ###
-    ### Instance Serialization
-    ###
-
-    def _to_fields(self, field_converter):
-        """Returns a Python dictionary representing the Model's
-        metaschematic and values.
-        """
-        data = {}
-
-        # First map the subclasses of BaseType
-        for field_name, field in self._fields.items():
-            value = getattr(self, field_name, None)
-            if value is not None:
-                data[field_name] = field_converter(field, value)
-
-        return data
-
-    def to_python(self):
-        """Returns a Python dictionary representing the Model's
-        metaschematic and values.
-        """
-        fun = lambda f, v: f.for_python(v)
-        data = self._to_fields(fun)
-        return data
-
-    def to_json(self, encode=True, sort_keys=False):
-        """Return data prepared for JSON. By default, it returns a JSON encoded
-        string, but disabling the encoding to prevent double encoding with
-        embedded models.
-        """
-        fun = lambda f, v: f.for_json(v)
-        data = self._to_fields(fun)
-        if encode:
-            return json.dumps(data, sort_keys=sort_keys)
-        else:
-            return data
-
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            keys = self._fields
-            if not hasattr(other, 'id'):
-                keys.pop("id", None)
-            for key in keys:
-                if self[key] != other[key]:
-                    return False
-            return True
-        return False
 
     @classmethod
     def from_jsonschema(cls, schema):
@@ -413,6 +374,50 @@ class BaseModel(object):
 
         return schematics_field_type(**kwargs)
 
+    ###
+    ### Instance Data Serialization
+    ###
+
+    def _to_fields(self, field_converter):
+        """Returns a Python dictionary with the model's data keyed by field
+        name.  The `field_converter` argument is a function that receives the
+        field and it's value and returns the field converted to the desired
+        formed.
+
+        In the `to_json` function below, the `field_converter` argument is
+        function that called `field.for_json` to convert the fields value
+        into a form safe passing to `json.dumps`.
+        """
+        data = {}
+
+        # First map the subclasses of BaseType
+        for field_name, field in self._fields.items():
+            value = getattr(self, field_name, None)
+            if value is not None:
+                data[field_name] = field_converter(field, value)
+
+        return data
+
+    def to_python(self):
+        """Returns a Python dictionary representing the Model's
+        metaschematic and values.
+        """
+        fun = lambda f, v: f.for_python(v)
+        data = self._to_fields(fun)
+        return data
+
+    def to_json(self, encode=True, sort_keys=False):
+        """Return data prepared for JSON. By default, it returns a JSON encoded
+        string, but disabling the encoding to prevent double encoding with
+        embedded models.
+        """
+        fun = lambda f, v: f.for_json(v)
+        data = self._to_fields(fun)
+        if encode:
+            return json.dumps(data, sort_keys=sort_keys)
+        else:
+            return data
+
 
 ###
 ### Model Manipulation Functions
@@ -466,290 +471,229 @@ def diff_id_field(id_field, field_list, *arg):
         return klass
     return wrap
 
-
 ###
-### Models Models
+### Make Safe Functions
 ###
 
-class SafeableMixin:
-    """A `SafeableMixin` is used to add unix style permissions to fields in a
-    `Model`. It creates this by using a black list and a white list in the
-    form of three lists called `_internal_fields`, `_private_fields` and
-    `_public_fields`.
+def make_safe(cls, model_dict_or_dicts, field_converter, model_converter,
+              model_encoder, field_list=None, white_list=True):
+    """This function is the building block of the safe mechanism. This
+    class method takes a model, dict or dicts and converts them into the
+    equivalent schematic with three basic rules applied.
 
-    `_internal_fields` is used to list fields which are private and not meant
-    to leave the system. This generally consists of `_id`, `_cls` and `_types`
-    but a user can extend the list of internal fields by defining a class level
-    list field called _private_fields. Any field listed here will be removed
-    with any call to a make*safe method.
+      1. The fields must be converted from the model into a type. This is
+         currently scene as calling `for_python()` or `for_json()` on
+         fields.
 
-    `make_json_ownersafe` is defined to remove the keys listed in both
-    fields, making it our blacklist.
+      2. A function that knows how to handle `Model` instances, using the
+         same security parameters as the caller; this function.
 
-    If `_public_fields` is defined, `make_json_publicsafe` can be used to
-    create a schematic made of only the fields in this list, making it our
-    white list.
+      3. The field list that acts as either a white list or a black list. A
+         white list preserves only the keys explicitly listed. A black list
+         preserves any keys not explicitly listed.
     """
-    _internal_fields = [
-        '_id', 'id', '_cls', '_types',
-    ]
-
-    @classmethod
-    def _get_internal_fields(cls):
-        """Helper function that determines the union of
-        :attr:`_internal_fields` and :attr:`_private_fields`, else returns just
-        :attr:`_internal_fields`.
-        """
-        internal_fields = set(cls._internal_fields)
-        if (cls._options.private_fields is not None):
-            private_fields = set(cls._options.private_fields)
-            internal_fields = internal_fields.union(private_fields)
-        return internal_fields
-
-    ###
-    ### Make Safe Functions
-    ###
-
-    @classmethod
-    def make_safe(cls, model_dict_or_dicts, field_converter, model_converter,
-                  model_encoder, field_list=None, white_list=True):
-        """This function is the building block of the safe mechanism. This
-        class method takes a model, dict or dicts and converts them into the
-        equivalent schematic with three basic rules applied.
-
-          1. The fields must be converted from the model into a type. This is
-             currently scene as calling `for_python()` or `for_json()` on
-             fields.
-
-          2. A function that knows how to handle `Model` instances, using the
-             same security parameters as the caller; this function.
-
-          3. The field list that acts as either a white list or a black list. A
-             white list preserves only the keys explicitly listed. A black list
-             preserves any keys not explicitly listed.
-        """
-        ### Field list defaults to `_internal_fields` + `_public_fields`
-        if field_list is None:
-            field_list = cls._get_internal_fields()
-
-        ### Setup white or black list detector
+    ### Setup white or black list detector
+    if field_list is None:
+        gottago = lambda k,v: white_list
+    else:
         gottago = lambda k, v: k not in field_list or v is None
         if not white_list:
             gottago = lambda k, v: k in field_list or v is None
 
-        if isinstance(model_dict_or_dicts, BaseModel):
-            model_dict = dict((f, model_dict_or_dicts[f])
-                            for f in model_dict_or_dicts)
+    if isinstance(model_dict_or_dicts, BaseModel):
+        model_dict = dict((f, model_dict_or_dicts[f])
+                          for f in model_dict_or_dicts)
+    else:
+        model_dict = model_dict_or_dicts
+
+    ### Transform each field
+    for k, v in model_dict.items():
+        if gottago(k, v):
+            del model_dict[k]
+        elif isinstance(v, Model):
+            model_dict[k] = model_converter(v)
+        elif isinstance(v, list) and len(v) > 0:
+            if isinstance(v[0], Model):
+                model_dict[k] = [model_converter(vi) for vi in v]
         else:
-            model_dict = model_dict_or_dicts
+            model_dict[k] = field_converter(k, v)
 
-        ### Transform each field
-        for k, v in model_dict.items():
-            if gottago(k, v):
-                del model_dict[k]
-            elif isinstance(v, Model):
-                model_dict[k] = model_converter(v)
-            elif isinstance(v, list) and len(v) > 0:
-                if isinstance(v[0], Model):
-                    model_dict[k] = [model_converter(vi) for vi in v]
-            else:
-                model_dict[k] = field_converter(k, v)
+        if k in model_dict and \
+               k in cls._fields and \
+               cls._fields[k].minimized_field_name:
+            model_dict[cls._fields[k].minimized_field_name] = model_dict[k]
+            del model_dict[k]
 
-            if k in model_dict and \
-                   k in cls._fields and \
-                   cls._fields[k].minimized_field_name:
-                model_dict[cls._fields[k].minimized_field_name] = model_dict[k]
-                del model_dict[k]
+    return model_dict
 
-        return model_dict
+def make_ownersafe(cls, model_dict_or_dicts):
+    field_converter = lambda f, v: v
+    model_encoder = lambda m: m.to_python()
+    model_converter = lambda m: make_ownersafe(m.__class__, m)
+    field_list = cls._options.private_fields
+    white_list = False
 
-    @classmethod
-    def make_ownersafe(cls, model_dict_or_dicts):
-        field_converter = lambda f, v: v
-        model_encoder = lambda m: m.to_python()
-        model_converter = lambda m: m.make_ownersafe(m)
-        field_list = cls._get_internal_fields()
-        white_list = False
+    return make_safe(cls, model_dict_or_dicts, field_converter,
+                     model_converter, model_encoder,
+                     field_list=field_list, white_list=white_list)
 
-        return cls.make_safe(model_dict_or_dicts, field_converter,
-                             model_converter, model_encoder,
-                             field_list=field_list, white_list=white_list)
+def make_json_ownersafe(cls, model_dict_or_dicts, encode=True,
+                        sort_keys=False):
+    field_converter = lambda f, v: cls._fields[f].for_json(v)
+    model_encoder = lambda m: m.to_json(encode=False)
+    model_converter = lambda m: make_json_ownersafe(m.__class__, m, encode=False,
+                                                    sort_keys=sort_keys)
+    field_list = cls._options.private_fields
+    white_list = False
 
-    @classmethod
-    def make_json_ownersafe(cls, model_dict_or_dicts, encode=True,
-                            sort_keys=False):
-        field_converter = lambda f, v: cls._fields[f].for_json(v)
-        model_encoder = lambda m: m.to_json(encode=False)
-        model_converter = lambda m: m.make_json_ownersafe(m, encode=False,
-                                                          sort_keys=sort_keys)
-        field_list = cls._get_internal_fields()
-        white_list = False
+    safed = make_safe(cls, model_dict_or_dicts, field_converter,
+                      model_converter, model_encoder,
+                      field_list=field_list, white_list=white_list)
+    if encode:
+        return json.dumps(safed, sort_keys=sort_keys)
+    else:
+        return safed
 
-        safed = cls.make_safe(model_dict_or_dicts, field_converter,
-                              model_converter, model_encoder,
-                              field_list=field_list, white_list=white_list)
-        if encode:
-            return json.dumps(safed, sort_keys=sort_keys)
-        else:
-            return safed
+def make_publicsafe(cls, model_dict_or_dicts):
+    field_converter = lambda f, v: v
+    model_encoder = lambda m: m.to_python()
+    model_converter = lambda m: make_publicsafe(m.__class__, m)
+    field_list = cls._options.public_fields
+    white_list = True
 
-    @classmethod
-    def make_publicsafe(cls, model_dict_or_dicts):
-        field_converter = lambda f, v: v
-        model_encoder = lambda m: m.to_python()
-        model_converter = lambda m: m.make_publicsafe(m)
-        field_list = cls._options.public_fields
-        white_list = True
+    return make_safe(cls, model_dict_or_dicts, field_converter,
+                     model_converter, model_encoder,
+                     field_list=cls._options.public_fields,
+                         white_list=white_list)
 
-        return cls.make_safe(model_dict_or_dicts, field_converter,
-                             model_converter, model_encoder,
-                             field_list=cls._options.public_fields,
-                             white_list=white_list)
+def make_json_publicsafe(cls, model_dict_or_dicts, encode=True,
+                         sort_keys=False):
+    field_converter = lambda f, v: cls._fields[f].for_json(v)
+    model_encoder = lambda m: m.to_json(encode=False)
+    model_converter = lambda m: make_json_publicsafe(m.__class__, m, encode=False,
+                                                     sort_keys=sort_keys)
+    field_list = cls._options.public_fields
+    white_list = True
 
-    @classmethod
-    def make_json_publicsafe(cls, model_dict_or_dicts, encode=True,
-                             sort_keys=False):
-        field_converter = lambda f, v: cls._fields[f].for_json(v)
-        model_encoder = lambda m: m.to_json(encode=False)
-        model_converter = lambda m: m.make_json_publicsafe(m, encode=False,
-                                                           sort_keys=sort_keys)
-        field_list = cls._options.public_fields
-        white_list = True
-
-        safed = cls.make_safe(model_dict_or_dicts, field_converter,
-                              model_converter, model_encoder,
-                              field_list=field_list, white_list=white_list)
-        if encode:
-            return json.dumps(safed, sort_keys=sort_keys)
-        else:
-            return safed
-
-    ###
-    ### Validation
-    ###
-
-    @classmethod
-    def _gen_handle_exception(cls, validate_all, exception_list):
-        """Generates a function for either raising exceptions or collecting
-        them in a list.
-        """
-        if validate_all:
-            def handle_exception(e):
-                exception_list.append(e)
-        else:
-            def handle_exception(e):
-                raise e
-
-        return handle_exception
-
-    @classmethod
-    def _gen_handle_class_field(cls, delete_rogues, field_list):
-        """Generates a function that either accumulates observed fields or
-        makes no attempt to collect them.
-
-        The case where nothing accumulates is to prevent growing data
-        schematics unnecessarily.
-        """
-        if delete_rogues:
-            def handle_class_field(cf):
-                field_list.append(cf)
-        else:
-            def handle_class_field(cf):
-                pass
-
-        return handle_class_field
-
-    @classmethod
-    def _validate_helper(cls, field_inspector, values, validate_all=False,
-                         delete_rogues=True):
-        """This is a convenience function that loops over the given values
-        and attempts to validate them against the class definition. It only
-        validates the data in values and does not guarantee a complete model
-        is present.
-
-        'not present' is defined as not having a value OR having '' (or u'')
-        as a value.
-        """
-        if not hasattr(cls, '_fields'):
-            raise ValueError('cls is not a Model instance')
-
-        internal_fields = cls._get_internal_fields()
-
-        # Create function for handling exceptions
-        exceptions = list()
-        handle_exception = cls._gen_handle_exception(validate_all, exceptions)
-
-        # Create function for handling a flock of frakkin palins (rogue fields)
-        data_fields = set(values.keys())
-        class_fields = list()
-        handle_class_field = cls._gen_handle_class_field(delete_rogues,
-                                                         class_fields)
-
-        # Loop across fields present in model
-        for k, v in cls._fields.items():
-
-            # handle common id name
-            if k is 'id':
-                k = '_id'
-
-            handle_class_field(k)
-
-            # we don't accept internal fields from users
-            if k in internal_fields and k in values:
-                value_is_default = (values[k] is v.default)
-                if not value_is_default:
-                    error_msg = 'Overwrite of internal fields attempted'
-                    e = TypeException(error_msg, k, v)
-                    handle_exception(e)
-                    continue
-
-            if field_inspector(k, v):
-                datum = values[k]
-                # if datum is None, skip
-                if datum is None:
-                    continue
-                # treat empty strings as empty values and skip
-                if isinstance(datum, (str, unicode)) and \
-                       len(datum.strip()) == 0:
-                    continue
-                try:
-                    v.validate(datum)
-                except TypeException, e:
-                    handle_exception(e)
-
-        # Remove rogue fields
-        if len(class_fields) > 0:  # if accumulation is not disabled
-            palins = data_fields - set(class_fields)
-            for rogue_field in palins:
-                del values[rogue_field]
-
-        # Reaches here only if exceptions are aggregated or validation passed
-        if validate_all:
-            return exceptions
-        else:
-            return True
-
-    @classmethod
-    def validate_class_fields(cls, values, validate_all=False):
-        """This is a convenience function that loops over _fields in
-        cls to validate them. If the field is not required AND not present,
-        it is skipped.
-        """
-        fun = lambda k, v: v.required or k in values
-        return cls._validate_helper(fun, values, validate_all=validate_all)
-
-    @classmethod
-    def validate_class_partial(cls, values, validate_all=False):
-        """This is a convenience function that loops over _fields in
-        cls to validate them. This function is a partial validatation
-        only, meaning the values given and does not check if the model
-        is complete.
-        """
-        fun = lambda k, v: k in values
-        return cls._validate_helper(fun, values, validate_all=validate_all)
+    safed = make_safe(cls, model_dict_or_dicts, field_converter,
+                      model_converter, model_encoder,
+                      field_list=field_list, white_list=white_list)
+    if encode:
+        return json.dumps(safed, sort_keys=sort_keys)
+    else:
+        return safed
 
 
-class Model(BaseModel, SafeableMixin):
+###
+### Validation functions
+###
+
+def _gen_handle_exception(validate_all, exception_list):
+    """Generates a function for either raising exceptions or collecting
+    them in a list.
+    """
+    if validate_all:
+        def handle_exception(e):
+            exception_list.append(e)
+    else:
+        def handle_exception(e):
+            raise e
+
+    return handle_exception
+
+def _gen_handle_class_field(delete_rogues, field_list):
+    """Generates a function that either accumulates observed fields or
+    makes no attempt to collect them.
+
+    The case where nothing accumulates is to prevent growing data
+    schematics unnecessarily.
+    """
+    if delete_rogues:
+        def handle_class_field(cf):
+            field_list.append(cf)
+    else:
+        def handle_class_field(cf):
+            pass
+
+    return handle_class_field
+
+def _validate_helper(cls, field_inspector, values, validate_all=False,
+                     delete_rogues=True):
+    """This is a convenience function that loops over the given values
+    and attempts to validate them against the class definition. It only
+    validates the data in values and does not guarantee a complete model
+    is present.
+
+    'not present' is defined as not having a value OR having '' (or u'')
+    as a value.
+    """
+    if not hasattr(cls, '_fields'):
+        raise ValueError('cls is not a Model instance')
+
+    # Create function for handling exceptions
+    exceptions = list()
+    handle_exception = _gen_handle_exception(validate_all, exceptions)
+
+    # Create function for handling a flock of frakkin palins (rogue fields)
+    data_fields = set(values.keys())
+    class_fields = list()
+    handle_class_field = _gen_handle_class_field(delete_rogues,
+                                                 class_fields)
+
+    # Loop across fields present in model
+    for k, v in cls._fields.items():
+
+        # handle common id name
+        if k is 'id':
+            k = '_id'
+
+        handle_class_field(k)
+
+        if field_inspector(k, v):
+            datum = values[k]
+            # if datum is None, skip
+            if datum is None:
+                continue
+            # treat empty strings as empty values and skip
+            if isinstance(datum, (str, unicode)) and \
+                   len(datum.strip()) == 0:
+                continue
+            try:
+                v.validate(datum)
+            except TypeException, e:
+                handle_exception(e)
+
+    # Remove rogue fields
+    if len(class_fields) > 0:  # if accumulation is not disabled
+        palins = data_fields - set(class_fields)
+        for rogue_field in palins:
+            del values[rogue_field]
+
+    # Reaches here only if exceptions are aggregated or validation passed
+    if validate_all:
+        return exceptions
+    else:
+        return True
+
+def validate_class_fields(cls, values, validate_all=False):
+    """This is a convenience function that loops over _fields in
+    cls to validate them. If the field is not required AND not present,
+    it is skipped.
+    """
+    fun = lambda k, v: v.required or k in values
+    return _validate_helper(cls, fun, values, validate_all=validate_all)
+
+def validate_class_partial(cls, values, validate_all=False):
+    """This is a convenience function that loops over _fields in
+    cls to validate them. This function is a partial validatation
+    only, meaning the values given and does not check if the model
+    is complete.
+    """
+    fun = lambda k, v: k in values
+    return _validate_helper(cls, fun, values, validate_all=validate_all)
+
+
+class Model(BaseModel):
     """Model YEAH
     """
     __metaclass__ = ModelMetaclass

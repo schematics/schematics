@@ -35,6 +35,8 @@ BLOG POST ]----------------------------------------
 
 import datetime
 from schematics.models import Model
+from schematics.models import (make_ownersafe, make_publicsafe,
+                               make_json_ownersafe, make_json_publicsafe)
 from schematics.types import (StringType,
                               EmailType,
                               BooleanType,
@@ -79,23 +81,23 @@ author = Author(name='james', username='j2d2', email='jdennis@gmail.com',
 
 print 'AUTHOR ]%s' % ('-' * 40)
 print '- as python:  ', author.to_python(), '\n'
-print '- json owner: ', Author.make_json_ownersafe(author), '\n'
-print '- json public:', Author.make_json_publicsafe(author), '\n'
+print '- json owner: ', make_json_ownersafe(Author, author), '\n'
+print '- json public:', make_json_publicsafe(Author, author), '\n'
 
 comment1 = Comment(text='This post was awesome!', username='bro',
                    email='bru@dudegang.com')
 
 print 'COMMENT 1 ]%s' % ('-' * 40)
 print '- as python:  ', comment1.to_python(), '\n'
-print '- json owner: ', Comment.make_json_ownersafe(comment1), '\n'
-print '- json public:', Comment.make_json_publicsafe(comment1), '\n'
+print '- json owner: ', make_json_ownersafe(Comment, comment1), '\n'
+print '- json public:', make_json_publicsafe(Comment, comment1), '\n'
 
 comment2 = Comment(text='This post is ridiculous', username='barbie',
                    email='barbie@dudegang.com')
 print 'COMMENT 2 ]%s' % ('-' * 40)
 print '- as python:  ', comment2.to_python(), '\n'
-print '- json owner: ', Comment.make_json_ownersafe(comment2), '\n'
-print '- json public:', Comment.make_json_publicsafe(comment2), '\n'
+print '- json owner: ', make_json_ownersafe(Comment, comment2), '\n'
+print '- json public:', make_json_publicsafe(Comment, comment2), '\n'
 
 content = """Retro single-origin coffee chambray stumptown, scenester VHS
 bicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free
@@ -106,8 +108,8 @@ blogpost = BlogPost(title='Hipster Hodgepodge', author=author, content=content,
                     comments=[comment1, comment2], deleted=False)
 print 'BLOG POST ]%s' % ('-' * 40)
 print '- as python:  ', blogpost.to_python(), '\n'
-print '- owner: ', BlogPost.make_ownersafe(blogpost), '\n'
-print '- public:', BlogPost.make_publicsafe(blogpost), '\n'
+print '- owner: ', make_ownersafe(BlogPost, blogpost), '\n'
+print '- public:', make_publicsafe(BlogPost, blogpost), '\n'
 
-print '- owner: ', BlogPost.make_json_ownersafe(blogpost), '\n'
-print '- public:', BlogPost.make_json_publicsafe(blogpost), '\n'
+print '- owner: ', make_json_ownersafe(BlogPost, blogpost), '\n'
+print '- public:', make_json_publicsafe(BlogPost, blogpost), '\n'

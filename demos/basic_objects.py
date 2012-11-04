@@ -22,6 +22,7 @@ Making mv json public safe (only ['title', 'year'] should show):
 import uuid
 import datetime
 from schematics.models import Model
+from schematics.models import make_json_ownersafe, make_json_publicsafe
 from schematics.types import (StringType,
                               IntType,
                               UUIDType)
@@ -70,10 +71,10 @@ print 'From Movie class to json string:\n\n    %s\n' % (mv.to_json())
 ### Scrubbing functions
 ###
 
-ownersafe_json = Movie.make_json_ownersafe(mv)
+ownersafe_json = make_json_ownersafe(Movie, mv)
 ownersafe_str = 'Making mv json safe:\n\n    %s\n'
 print ownersafe_str % (ownersafe_json)
 
-publicsafe_json = Movie.make_json_publicsafe(mv)
+publicsafe_json = make_json_publicsafe(Movie, mv)
 publicsafe_str = 'Making mv json public safe (only %s should show):\n\n    %s\n'
 print  publicsafe_str % (Movie._options.public_fields, publicsafe_json)
