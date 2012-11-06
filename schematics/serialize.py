@@ -53,8 +53,8 @@ def to_json(model, encode=True, sort_keys=False):
 ### Serialization Shaping Functions
 ###
 
-def shape(cls, model_dict_or_dicts, field_converter, model_converter,
-          model_encoder, field_list=None, white_list=True):
+def apply_shape(cls, model_dict_or_dicts, field_converter, model_converter,
+                model_encoder, field_list=None, white_list=True):
     """This function is the building block of the safe mechanism. This
     class method takes a model, dict or dicts and converts them into the
     equivalent schematic with three basic rules applied.
@@ -113,7 +113,7 @@ def make_ownersafe(cls, model_dict_or_dicts):
     field_list = cls._options.private_fields
     white_list = False
 
-    return shape(cls, model_dict_or_dicts, field_converter,
+    return apply_shape(cls, model_dict_or_dicts, field_converter,
                      model_converter, model_encoder,
                      field_list=field_list, white_list=white_list)
 
@@ -127,7 +127,7 @@ def make_json_ownersafe(cls, model_dict_or_dicts, encode=True,
     field_list = cls._options.private_fields
     white_list = False
 
-    safed = shape(cls, model_dict_or_dicts, field_converter,
+    safed = apply_shape(cls, model_dict_or_dicts, field_converter,
                       model_converter, model_encoder,
                       field_list=field_list, white_list=white_list)
     if encode:
@@ -143,7 +143,7 @@ def make_publicsafe(cls, model_dict_or_dicts):
     field_list = cls._options.public_fields
     white_list = True
 
-    return shape(cls, model_dict_or_dicts, field_converter,
+    return apply_shape(cls, model_dict_or_dicts, field_converter,
                      model_converter, model_encoder,
                      field_list=cls._options.public_fields,
                          white_list=white_list)
@@ -158,7 +158,7 @@ def make_json_publicsafe(cls, model_dict_or_dicts, encode=True,
     field_list = cls._options.public_fields
     white_list = True
 
-    safed = shape(cls, model_dict_or_dicts, field_converter,
+    safed = apply_shape(cls, model_dict_or_dicts, field_converter,
                       model_converter, model_encoder,
                       field_list=field_list, white_list=white_list)
     if encode:
