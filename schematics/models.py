@@ -12,19 +12,6 @@ __all__ = ['ModelMetaclass', 'TopLevelModelMetaclass', 'BaseModel',
 
 
 ###
-### Parameters for serialization to JSONSchema
-###
-
-schema_kwargs_to_schematics = {
-    'maxLength': 'max_length',
-    'minLength': 'min_length',
-    'pattern': 'regex',
-    'minimum': 'min_value',
-    'maximum': 'max_value',
-}
-
-
-###
 ### Model Configuration
 ###
 
@@ -267,113 +254,6 @@ class BaseModel(object):
             return unicode(self).encode('utf-8')
         return '%s object' % self.__class__.__name__
     
-    ###
-    ### Model Definition Serialization
-    ###
-
-    @classmethod
-    def for_jsonschema(cls):
-        """Returns a representation of this Schematics class as a JSON schema,
-        but not yet serialized to JSON. If certain fields are marked public,
-        only those fields will be represented in the schema.
-
-        Certain Schematics fields do not map precisely to JSON schema types or
-        formats.
-        """
-
-        # Place all fields in the schema unless public ones are specified.
-        if cls._options.public_fields is None:
-            field_names = cls._fields.keys()
-        else:
-            field_names = copy.copy(cls._options.public_fields)
-
-        properties = {}
-
-        for name in field_names:
-            properties[name] = cls._fields[name].for_jsonschema()
-
-        return {
-            'type': 'object',
-            'title': cls.__name__,
-            'properties': properties
-        }
-
-    @classmethod
-    def to_jsonschema(cls):
-        """Returns a representation of this Structures class as a JSON schema.
-        If certain fields are marked public, only those fields will be
-        represented in the schema.
-
-        Certain Structures fields do not map precisely to JSON schema types or
-        formats.
-        """
-        return json.dumps(cls.for_jsonschema())
-
-    @classmethod
-    def from_jsonschema(cls, schema):
-        """Generate a Schematics Model class from a JSON schema.  The JSON
-        schema's title field will be the name of the class.  You must specify a
-        title and at least one property or there will be an AttributeError.
-        """
-        os = schema
-        # this is a desctructive op. This should be only strings/dicts, so this
-        # should be cheap
-        schema = copy.deepcopy(schema)
-        if schema.get('title', False):
-            class_name = schema['title']
-        else:
-            raise AttributeError('JSON Schema missing Model title')
-
-        if 'description' in schema:
-            # TODO figure out way to put this in to resulting obj
-            model = schema['description']
-
-        if 'properties' in schema:
-            dictfields = {}
-            for field_name, schema_field in schema['properties'].iteritems():
-                field = cls.map_jsonschema_field_to_schematics(schema_field)
-                dictfields[field_name] = field
-            return type(class_name, (cls,), dictfields)
-        else:
-            raise AttributeError('JSON schema missing one or more properties')
-
-    @classmethod
-    def map_jsonschema_field_to_schematics(cls, schema_field, field_name=None):
-        # get the kind of field this is
-        if not 'type' in schema_field:
-            return  # not data, so ignore
-        tipe = schema_field.pop('type')
-        fmt = schema_field.pop('format', None)
-
-        schematics_field_type = schematics_fields.get((tipe, fmt,), None)
-        if not schematics_field_type:
-            raise DictFieldNotFound
-
-        kwargs = {}
-        if tipe == 'array':  # list types
-            items = schema_field.pop('items', None)
-            if items == None:  # any possible item isn't allowed by listfield
-                raise NotImplementedError
-            elif isinstance(items, dict):  # list of a single type
-                items = [items]
-            kwargs['fields'] = [cls.map_jsonschema_field_to_schematics(item)
-                                for item in items]
-
-        if tipe == "object":  # embedded objects
-            #schema_field['title'] = field_name
-            model_type = Model.from_jsonschema(schema_field)
-            kwargs['model_type'] = model_type
-            schema_field.pop('properties')
-
-        schema_field.pop('title', None)  # make sure this isn't in here
-
-        for kwarg_name, v in schema_field.items():
-            if kwarg_name in schema_kwargs_to_schematics:
-                kwarg_name = schema_kwargs_to_schematics[kwarg_name]
-            kwargs[kwarg_name] = v
-
-        return schematics_field_type(**kwargs)
-
 ###
 ### Model Manipulation Functions
 ###

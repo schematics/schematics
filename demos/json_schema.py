@@ -8,6 +8,7 @@
 import datetime
 from schematics.models import Model
 from schematics.types import StringType, IntType, UUIDType
+from schematics.serialize import for_jsonschema
 
 ###
 ### The base class
@@ -25,4 +26,4 @@ m = Movie(title='Some Movie',
           year=2011,
           personal_thoughts='It was pretty good')
 
-print m.for_jsonschema()
+print for_jsonschema(m)

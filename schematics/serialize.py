@@ -48,7 +48,6 @@ def to_json(model, encode=True, sort_keys=False):
     else:
         return data
 
-
 ###
 ### Serialization Shaping Functions
 ###
@@ -165,3 +164,120 @@ def make_json_publicsafe(cls, model_dict_or_dicts, encode=True,
         return json.dumps(safed, sort_keys=sort_keys)
     else:
         return safed
+
+###
+### Model Definition Serialization
+###
+
+### Parameters for serialization to JSONSchema
+schema_kwargs_to_schematics = {
+    'maxLength': 'max_length',
+    'minLength': 'min_length',
+    'pattern': 'regex',
+    'minimum': 'min_value',
+    'maximum': 'max_value',
+}
+
+
+def for_jsonschema(model):
+    """Returns a representation of this Schematics class as a JSON schema,
+    but not yet serialized to JSON. If certain fields are marked public,
+    only those fields will be represented in the schema.
+
+    Certain Schematics fields do not map precisely to JSON schema types or
+    formats.
+    """
+
+    # Place all fields in the schema unless public ones are specified.
+    if model._options.public_fields is None:
+        field_names = model._fields.keys()
+    else:
+        field_names = copy.copy(model._options.public_fields)
+
+    properties = {}
+
+    for name in field_names:
+        properties[name] = model._fields[name].for_jsonschema()
+
+    return {
+        'type': 'object',
+        'title': model.__class__.__name__,
+        'properties': properties
+    }
+
+
+def to_jsonschema(model):
+    """Returns a representation of this Structures class as a JSON schema.
+    If certain fields are marked public, only those fields will be
+    represented in the schema.
+
+    Certain Structures fields do not map precisely to JSON schema types or
+    formats.
+    """
+    return json.dumps(for_jsonschema(model))
+
+
+def from_jsonschema(model, schema):
+    """Generate a Schematics Model class from a JSON schema.  The JSON
+    schema's title field will be the name of the class.  You must specify a
+    title and at least one property or there will be an AttributeError.
+    """
+    os = schema
+    # this is a desctructive op. This should be only strings/dicts, so this
+    # should be cheap
+    schema = copy.deepcopy(schema)
+    if schema.get('title', False):
+        class_name = schema['title']
+    else:
+        raise AttributeError('JSON Schema missing Model title')
+
+    if 'description' in schema:
+        # TODO figure out way to put this in to resulting obj
+        description = schema['description']
+
+    if 'properties' in schema:
+        dictfields = {}
+        for field_name, schema_field in schema['properties'].iteritems():
+            field = map_jsonschema_field_to_schematics(model, schema_field)
+            dictfields[field_name] = field
+        return type(class_name, (model,), dictfields)
+    else:
+        raise AttributeError('JSON schema missing one or more properties')
+
+
+def map_jsonschema_field_to_schematics(model, schema_field, field_name=None):
+    # get the kind of field this is
+    if not 'type' in schema_field:
+        return  # not data, so ignore
+    tipe = schema_field.pop('type')
+    fmt = schema_field.pop('format', None)
+
+    schematics_field_type = schematics_fields.get((tipe, fmt,), None)
+    if not schematics_field_type:
+        raise DictFieldNotFound
+
+    kwargs = {}
+    if tipe == 'array':  # list types
+        items = schema_field.pop('items', None)
+        if items == None:  # any possible item isn't allowed by listfield
+            raise NotImplementedError
+        elif isinstance(items, dict):  # list of a single type
+            items = [items]
+        kwargs['fields'] = [map_jsonschema_field_to_schematics(model, item)
+                            for item in items]
+
+    if tipe == "object":  # embedded objects
+        #schema_field['title'] = field_name
+        model_type = from_jsonschema(Model, schema_field)
+        kwargs['model_type'] = model_type
+        schema_field.pop('properties')
+
+    schema_field.pop('title', None)  # make sure this isn't in here
+
+    for kwarg_name, v in schema_field.items():
+        if kwarg_name in schema_kwargs_to_schematics:
+            kwarg_name = schema_kwargs_to_schematics[kwarg_name]
+        kwargs[kwarg_name] = v
+
+    return schematics_field_type(**kwargs)
+
