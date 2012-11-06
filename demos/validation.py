@@ -37,7 +37,8 @@ Public safe:
 
 from schematics.base import TypeException
 from schematics.models import Model, validate_class_fields
-from schematics.filters import (make_json_ownersafe, make_json_publicsafe)
+from schematics.serialize import (to_python, to_json,
+                                  make_json_ownersafe, make_json_publicsafe)
 from schematics.types import MD5Type, StringType
 import hashlib
 
@@ -68,7 +69,7 @@ u.secret = 'whatevz'
 u.name = 'test hash'
 
 ### Validation will fail because u.secret does not contain an MD5 hash
-print 'Attempting validation on:\n\n    %s\n' % (u.to_json())
+print 'Attempting validation on:\n\n    %s\n' % (to_json(u))
 try:
     u.validate()
     print 'Validation passed\n'
@@ -78,7 +79,7 @@ except TypeException, se:
 
 ### Set the password *correctly* using our `set_password` function
 u.set_password('whatevz')
-print 'Adjusted invalid data and trying again on:\n\n    %s\n' % (u.to_json())
+print 'Adjusted invalid data and trying again on:\n\n    %s\n' % (to_json(u))
 try:
     u.validate()
     print 'Validation passed\n'
@@ -125,7 +126,7 @@ else:
 total_input['rogue_type'] = 'MWAHAHA'
 
 user_doc = User(**total_input)
-print 'Model as Python:\n    %s\n' % (user_doc.to_python())
+print 'Model as Python:\n    %s\n' % (to_python(user_doc))
 safe_doc = make_json_ownersafe(User, user_doc)
 print 'Owner safe doc:\n    %s\n' % (safe_doc)
 public_safe_doc = make_json_publicsafe(User, user_doc)

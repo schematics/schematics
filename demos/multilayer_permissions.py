@@ -35,8 +35,9 @@ BLOG POST ]----------------------------------------
 
 import datetime
 from schematics.models import Model
-from schematics.filters import (make_ownersafe, make_publicsafe,
-                                make_json_ownersafe, make_json_publicsafe)
+from schematics.serialize import (to_python, to_json,
+                                  make_ownersafe, make_publicsafe,
+                                  make_json_ownersafe, make_json_publicsafe)
 from schematics.types import (StringType,
                               EmailType,
                               BooleanType,
@@ -80,7 +81,7 @@ author = Author(name='james', username='j2d2', email='jdennis@gmail.com',
                 a_setting=True, is_active=True)
 
 print 'AUTHOR ]%s' % ('-' * 40)
-print '- as python:  ', author.to_python(), '\n'
+print '- as python:  ', to_python(author), '\n'
 print '- json owner: ', make_json_ownersafe(Author, author), '\n'
 print '- json public:', make_json_publicsafe(Author, author), '\n'
 
@@ -88,14 +89,14 @@ comment1 = Comment(text='This post was awesome!', username='bro',
                    email='bru@dudegang.com')
 
 print 'COMMENT 1 ]%s' % ('-' * 40)
-print '- as python:  ', comment1.to_python(), '\n'
+print '- as python:  ', to_python(comment1), '\n'
 print '- json owner: ', make_json_ownersafe(Comment, comment1), '\n'
 print '- json public:', make_json_publicsafe(Comment, comment1), '\n'
 
 comment2 = Comment(text='This post is ridiculous', username='barbie',
                    email='barbie@dudegang.com')
 print 'COMMENT 2 ]%s' % ('-' * 40)
-print '- as python:  ', comment2.to_python(), '\n'
+print '- as python:  ', to_python(comment2), '\n'
 print '- json owner: ', make_json_ownersafe(Comment, comment2), '\n'
 print '- json public:', make_json_publicsafe(Comment, comment2), '\n'
 
@@ -107,7 +108,7 @@ trust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed
 blogpost = BlogPost(title='Hipster Hodgepodge', author=author, content=content,
                     comments=[comment1, comment2], deleted=False)
 print 'BLOG POST ]%s' % ('-' * 40)
-print '- as python:  ', blogpost.to_python(), '\n'
+print '- as python:  ', to_python(blogpost), '\n'
 print '- owner: ', make_ownersafe(BlogPost, blogpost), '\n'
 print '- public:', make_publicsafe(BlogPost, blogpost), '\n'
 

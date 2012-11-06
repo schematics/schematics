@@ -22,6 +22,7 @@ Customer as JSON:
 
 
 from schematics.models import Model
+from schematics.serialize import to_python, to_json
 from schematics.types import (UUIDType,
                               IntType,
                               StringType,
@@ -114,21 +115,21 @@ customer = Customer(username="ben",
 ###
 
 ### Serialize to Python
-print 'Customer as Python:\n\n    %s\n' % (customer.to_python())
+print 'Customer as Python:\n\n    %s\n' % (to_python(customer))
 
 ### Serialize to JSON
-print 'Customer as JSON:\n\n    %s\n' % (customer.to_json())
+print 'Customer as JSON:\n\n    %s\n' % (to_json(customer))
 
 ### Serialize data to JSON and load back into Python dictionary.
 print 'Serializing model to JSON and loading into new instance...\n'
-json_data = customer.to_json()
+json_data = to_json(customer)
 customer_dict = json.loads(json_data)
 
 ### Instantiate customer instance from pythonified JSON data
 loaded_customer = Customer(**customer_dict)
 
 ### Reserialize to Python
-print 'Customer as Python:\n\n    %s\n' % (loaded_customer.to_python())
+print 'Customer as Python:\n\n    %s\n' % (to_python(loaded_customer))
 
 ### Reserialize to JSON
-print 'Customer as JSON:\n\n    %s\n' % (loaded_customer.to_json())
+print 'Customer as JSON:\n\n    %s\n' % (to_json(loaded_customer))

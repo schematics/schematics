@@ -22,7 +22,7 @@ Making mv json public safe (only ['title', 'year'] should show):
 import uuid
 import datetime
 from schematics.models import Model
-from schematics.filters import make_json_ownersafe, make_json_publicsafe
+from schematics.serialize import to_python, to_json, make_json_ownersafe, make_json_publicsafe
 from schematics.types import (StringType,
                               IntType,
                               UUIDType)
@@ -44,7 +44,7 @@ make_believe_owner_id = uuid.uuid4()
 m = Media()
 m.owner = make_believe_owner_id
 m.title = 'Misc Media'
-print 'From Media class to json string:\n\n    %s\n' % (m.to_json())
+print 'From Media class to json string:\n\n    %s\n' % (to_json(m))
 
 
 ###
@@ -64,7 +64,7 @@ mv = Movie()
 mv.title = 'Total Recall'
 mv.year = 1990
 mv.personal_thoughts = 'I wish I had three hands...' # (.Y.Y.)
-print 'From Movie class to json string:\n\n    %s\n' % (mv.to_json())
+print 'From Movie class to json string:\n\n    %s\n' % (to_json(mv))
 
 
 ###

@@ -374,51 +374,6 @@ class BaseModel(object):
 
         return schematics_field_type(**kwargs)
 
-    ###
-    ### Instance Data Serialization
-    ###
-
-    def _to_fields(self, field_converter):
-        """Returns a Python dictionary with the model's data keyed by field
-        name.  The `field_converter` argument is a function that receives the
-        field and it's value and returns the field converted to the desired
-        formed.
-
-        In the `to_json` function below, the `field_converter` argument is
-        function that called `field.for_json` to convert the fields value
-        into a form safe passing to `json.dumps`.
-        """
-        data = {}
-
-        # First map the subclasses of BaseType
-        for field_name, field in self._fields.items():
-            value = getattr(self, field_name, None)
-            if value is not None:
-                data[field_name] = field_converter(field, value)
-
-        return data
-
-    def to_python(self):
-        """Returns a Python dictionary representing the Model's
-        metaschematic and values.
-        """
-        fun = lambda f, v: f.for_python(v)
-        data = self._to_fields(fun)
-        return data
-
-    def to_json(self, encode=True, sort_keys=False):
-        """Return data prepared for JSON. By default, it returns a JSON encoded
-        string, but disabling the encoding to prevent double encoding with
-        embedded models.
-        """
-        fun = lambda f, v: f.for_json(v)
-        data = self._to_fields(fun)
-        if encode:
-            return json.dumps(data, sort_keys=sort_keys)
-        else:
-            return data
-
-
 ###
 ### Model Manipulation Functions
 ###

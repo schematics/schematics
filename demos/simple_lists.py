@@ -30,6 +30,7 @@ Tasklist as JSON:
 import datetime
 
 from schematics.models import Model
+from schematics.serialize import to_json, to_python
 from schematics.types import (StringType,
                               DateTimeType,
                               IntType)
@@ -72,8 +73,8 @@ class TaskList(Model):
 a1 = Action(value='Hello Mike', tags=['Erlang', 'Mike Williams'])
 a2 = Action(value='Hello Joe', tags=['Erlang', 'Joe Armstrong'])
 
-print 'Action 1 as Python:\n\n    %s\n' % (a1.to_python())
-print 'Action 2 as JSON:\n\n    %s\n' % (a2.to_json())
+print 'Action 1 as Python:\n\n    %s\n' % (to_python(a1))
+print 'Action 2 as JSON:\n\n    %s\n' % (to_json(a2))
 
 
 ###
@@ -83,8 +84,8 @@ print 'Action 2 as JSON:\n\n    %s\n' % (a2.to_json())
 st = SingleTask()
 st.action = a1
 
-print 'Single task as Python:\n\n    %s\n' % (st.to_python())
-print 'Single task as JSON:\n\n    %s\n' % (st.to_json())
+print 'Single task as Python:\n\n    %s\n' % (to_python(st))
+print 'Single task as JSON:\n\n    %s\n' % (to_json(st))
 
 
 ###
@@ -94,6 +95,6 @@ print 'Single task as JSON:\n\n    %s\n' % (st.to_json())
 tl = TaskList()
 tl.actions = [a1, a2]
 
-print 'Tasklist as Python:\n\n    %s\n' % (tl.to_python())
-print 'Tasklist as JSON:\n\n    %s\n' % (tl.to_json())
+print 'Tasklist as Python:\n\n    %s\n' % (to_python(tl))
+print 'Tasklist as JSON:\n\n    %s\n' % (to_json(tl))
 

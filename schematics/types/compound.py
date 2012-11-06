@@ -8,6 +8,7 @@ from schematics.models import Model
 from schematics.base import  TypeException
 from schematics.types import BaseType, DictType
 from schematics.datastructures import MultiValueDict
+from schematics.serialize import to_python, to_json
 
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
@@ -219,10 +220,10 @@ class ModelType(BaseType):
         return self.model_type.for_jsonschema()
 
     def for_python(self, value):
-        return value.to_python()
+        return to_python(value)
 
     def for_json(self, value):
-        return value.to_json(encode=False)
+        return to_json(value, encode=False)
 
     def validate(self, value):
         """Make sure that the model instance is an instance of the
