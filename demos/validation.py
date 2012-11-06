@@ -36,7 +36,8 @@ Public safe:
 
 
 from schematics.base import TypeException
-from schematics.models import Model, validate_class_fields
+from schematics.models import Model
+from schematics.validation import validate_instance, validate_class_fields
 from schematics.serialize import (to_python, to_json,
                                   make_json_ownersafe, make_json_publicsafe)
 from schematics.types import MD5Type, StringType
@@ -71,7 +72,7 @@ u.name = 'test hash'
 ### Validation will fail because u.secret does not contain an MD5 hash
 print 'Attempting validation on:\n\n    %s\n' % (to_json(u))
 try:
-    u.validate()
+    validate_instance(u)
     print 'Validation passed\n'
 except TypeException, se:
     print 'TypeException caught: %s\n' % (se)
@@ -81,7 +82,7 @@ except TypeException, se:
 u.set_password('whatevz')
 print 'Adjusted invalid data and trying again on:\n\n    %s\n' % (to_json(u))
 try:
-    u.validate()
+    validate_instance(u)
     print 'Validation passed\n'
 except TypeException, se:
     print 'TypeException caught: %s (This section wont actually run)\n' % (se)
