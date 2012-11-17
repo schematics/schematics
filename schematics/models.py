@@ -134,7 +134,7 @@ class BaseModel(object):
             setattr(self, attr_name, value)
             if attr_value.minimized_field_name:
                 field_name = attr_value.minimized_field_name
-                minimized_field_map[field_name] = attr_value.uniq_field
+                minimized_field_map[field_name] = attr_name
 
         # Assign initial values to instance
         for attr_name, attr_value in values.items():

@@ -8,7 +8,7 @@
 import datetime
 from schematics.models import Model
 from schematics.types import StringType, IntType, UUIDType
-from schematics.serialize import for_jsonschema
+from schematics.serialize import to_python, for_jsonschema, from_jsonschema
 
 ###
 ### The base class
@@ -26,4 +26,16 @@ m = Movie(title='Some Movie',
           year=2011,
           personal_thoughts='It was pretty good')
 
-print for_jsonschema(m)
+
+### Serialize the schema and the data
+m_schema = for_jsonschema(m)
+m_data = to_python(m)
+print 'M as jsonschema:', m_schema
+
+### Rebuild class from schema
+m2_cls = from_jsonschema(m_schema)
+
+### Create instance with data
+m2 = m2_cls(**m_data)
+
+print for_jsonschema(m2)

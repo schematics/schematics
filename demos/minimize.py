@@ -20,11 +20,11 @@ RESTORED MOVIE ] -------------------------------
 """
 
 import json
-
 import datetime
+
 from schematics.models import Model
 from schematics.types import StringType, IntType
-from schematics.serialize import (to_python, to_json, for_jsonschema,
+from schematics.serialize import (to_python, to_json, to_jsonschema,
                                   make_ownersafe, make_json_ownersafe,
                                   make_json_publicsafe)
 
@@ -41,6 +41,7 @@ class Movie(Model):
     personal_thoughts = StringType(max_length=255, minimized_field_name="p")
     class Options:
         public_fields = ["title", "year"]
+        
 
 
 m = Movie(title='Some Movie',
@@ -49,7 +50,7 @@ m = Movie(title='Some Movie',
 
 
 print 'MOVIE ]', ('-' * 40)
-print '    schema ::', for_jsonschema(m)
+print '    schema ::', to_jsonschema(m)
 print '    python ::', to_python(m)
 print '      json ::', to_json(m)
 print '     owner ::', make_ownersafe(Movie, m)
@@ -69,7 +70,7 @@ movie_data = json.loads(movie_json)
 m2 = Movie(**movie_data)
 
 print 'RESTORED MOVIE ]', ('-' * 31)
-print '    schema ::', for_jsonschema(m2)
+print '    schema ::', to_jsonschema(m2)
 print '    python ::', to_python(m2)
 print '      json ::', to_json(m2)
 print '     owner ::', make_ownersafe(Movie, m2)

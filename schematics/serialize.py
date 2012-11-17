@@ -1,3 +1,6 @@
+import copy
+
+from schematics.types import schematic_types
 from schematics.base import json
 from schematics.models import BaseModel, Model
 
@@ -7,10 +10,8 @@ from schematics.models import BaseModel, Model
 ###
 
 def _reduce_loop(cls, model_or_dict, field_converter):
-    """If a model is passed in, it is reduced to a dictionary with the field
-    names as keys and the raw data it contains as the values.
-
-    If a dict is passed in, it is simply returned.
+    """Each field's name, the field instance and the field's value are
+    collected in a truple and yielded, making this a generator.
     """
     for field_name in model_or_dict:
         field_instance = cls._fields[field_name]
@@ -20,7 +21,9 @@ def _reduce_loop(cls, model_or_dict, field_converter):
 
 def _gen_gottago(field_list, is_white_list):
     """This function generates a function that handles evicting fields from the
-    serialization output.  The generated function is referred to as `gottago`.
+    serialization output based on white list / black list parameters.
+
+    The generated function is referred to as `gottago`.
     """
     ### Setup white or black list behavior as `gottago` function
     gottago = lambda k,v: is_white_list
@@ -29,6 +32,7 @@ def _gen_gottago(field_list, is_white_list):
         gottago = lambda k, v: k not in field_list or v is None
         if not is_white_list:
             gottago = lambda k, v: k in field_list or v is None
+            
     return gottago
 
 
@@ -121,8 +125,8 @@ def make_ownersafe(cls, model_dict_or_dicts):
     white_list = False
 
     return apply_shape(cls, model_dict_or_dicts, field_converter,
-                     model_converter, model_encoder,
-                     field_list=field_list, white_list=white_list)
+                       model_converter, model_encoder,
+                       field_list=field_list, white_list=white_list)
 
 
 def make_json_ownersafe(cls, model_dict_or_dicts, encode=True,
@@ -135,8 +139,8 @@ def make_json_ownersafe(cls, model_dict_or_dicts, encode=True,
     white_list = False
 
     safed = apply_shape(cls, model_dict_or_dicts, field_converter,
-                      model_converter, model_encoder,
-                      field_list=field_list, white_list=white_list)
+                        model_converter, model_encoder,
+                        field_list=field_list, white_list=white_list)
     if encode:
         return json.dumps(safed, sort_keys=sort_keys)
     else:
@@ -151,9 +155,9 @@ def make_publicsafe(cls, model_dict_or_dicts):
     white_list = True
 
     return apply_shape(cls, model_dict_or_dicts, field_converter,
-                     model_converter, model_encoder,
-                     field_list=cls._options.public_fields,
-                         white_list=white_list)
+                       model_converter, model_encoder,
+                       field_list=cls._options.public_fields,
+                       white_list=white_list)
 
 
 def make_json_publicsafe(cls, model_dict_or_dicts, encode=True,
@@ -166,8 +170,8 @@ def make_json_publicsafe(cls, model_dict_or_dicts, encode=True,
     white_list = True
 
     safed = apply_shape(cls, model_dict_or_dicts, field_converter,
-                      model_converter, model_encoder,
-                      field_list=field_list, white_list=white_list)
+                        model_converter, model_encoder,
+                        field_list=field_list, white_list=white_list)
     if encode:
         return json.dumps(safed, sort_keys=sort_keys)
     else:
@@ -195,17 +199,15 @@ def for_jsonschema(model):
     Certain Schematics fields do not map precisely to JSON schema types or
     formats.
     """
+    field_converter = lambda f, v: f.for_jsonschema()
+    model_encoder = lambda m: for_jsonschema(m)
+    model_converter = lambda m: for_jsonschema(m)
+    field_list = []
+    white_list = False
 
-    # Place all fields in the schema unless public ones are specified.
-    if model._options.public_fields is None:
-        field_names = model._fields.keys()
-    else:
-        field_names = copy.copy(model._options.public_fields)
-
-    properties = {}
-
-    for name in field_names:
-        properties[name] = model._fields[name].for_jsonschema()
+    properties = apply_shape(model.__class__, model, field_converter,
+                             model_converter, model_encoder,
+                             field_list=field_list, white_list=white_list)
 
     return {
         'type': 'object',
@@ -225,7 +227,7 @@ def to_jsonschema(model):
     return json.dumps(for_jsonschema(model))
 
 
-def from_jsonschema(model, schema):
+def from_jsonschema(schema, model=Model):
     """Generate a Schematics Model class from a JSON schema.  The JSON
     schema's title field will be the name of the class.  You must specify a
     title and at least one property or there will be an AttributeError.
@@ -244,48 +246,60 @@ def from_jsonschema(model, schema):
         description = schema['description']
 
     if 'properties' in schema:
-        dictfields = {}
+        model_fields = {}
         for field_name, schema_field in schema['properties'].iteritems():
-            field = map_jsonschema_field_to_schematics(model, schema_field)
-            dictfields[field_name] = field
-        return type(class_name, (model,), dictfields)
+            field = map_jsonschema_field_to_schematics(schema_field, model)
+            model_fields[field_name] = field
+        return type(class_name, (model,), model_fields)
     else:
         raise AttributeError('JSON schema missing one or more properties')
 
 
-def map_jsonschema_field_to_schematics(model, schema_field, field_name=None):
+def map_jsonschema_field_to_schematics(schema_field, base_class,
+                                       field_name=None):
+    
     # get the kind of field this is
     if not 'type' in schema_field:
         return  # not data, so ignore
+    
     tipe = schema_field.pop('type')
     fmt = schema_field.pop('format', None)
 
-    schematics_field_type = schematics_fields.get((tipe, fmt,), None)
-    if not schematics_field_type:
+    schematic_field_type = schematic_types.get((tipe, fmt,), None)
+    if not schematic_field_type:
         raise DictFieldNotFound
 
     kwargs = {}
-    if tipe == 'array':  # list types
+    
+    # List types
+    if tipe == 'array':
         items = schema_field.pop('items', None)
-        if items == None:  # any possible item isn't allowed by listfield
+        
+        # any possible item isn't allowed by listfield        
+        if items == None:  
             raise NotImplementedError
-        elif isinstance(items, dict):  # list of a single type
+        # list of a single type
+        elif isinstance(items, dict):
             items = [items]
-        kwargs['fields'] = [map_jsonschema_field_to_schematics(model, item)
+            
+        kwargs['fields'] = [map_jsonschema_field_to_schematics(item, base_class)
                             for item in items]
 
-    if tipe == "object":  # embedded objects
+    # Embedded objects        
+    if tipe == 'object': 
         #schema_field['title'] = field_name
-        model_type = from_jsonschema(Model, schema_field)
+        model_type = from_jsonschema(base_class, schema_field)
         kwargs['model_type'] = model_type
-        schema_field.pop('properties')
+        x = schema_field.pop('properties')
 
-    schema_field.pop('title', None)  # make sure this isn't in here
+    # Remove, in case it's present
+    schema_field.pop('title', None)  
 
+    # Map jsonschema names to schematics names
     for kwarg_name, v in schema_field.items():
         if kwarg_name in schema_kwargs_to_schematics:
             kwarg_name = schema_kwargs_to_schematics[kwarg_name]
         kwargs[kwarg_name] = v
 
-    return schematics_field_type(**kwargs)
+    return schematic_field_type(**kwargs)
 
