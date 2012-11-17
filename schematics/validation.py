@@ -1,5 +1,6 @@
 from schematics.base import TypeException
 
+
 def _gen_handle_exception(validate_all, exception_list):
     """Generates a function for either raising exceptions or collecting
     them in a list.
@@ -134,6 +135,7 @@ def validate_class_fields(cls, values, validate_all=False):
     """
     fun = lambda k, v: v.required or k in values
     return _validate_helper(cls, fun, values, validate_all=validate_all)
+
 
 def validate_class_partial(cls, values, validate_all=False):
     """This is a convenience function that loops over _fields in
