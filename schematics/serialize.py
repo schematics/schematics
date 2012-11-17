@@ -19,7 +19,7 @@ def _reduce_loop(cls, model_or_dict, field_converter):
         yield (field_name, field_instance, field_value)
 
 
-def _gen_gottago(field_list, is_white_list):
+def _gen_gottago(field_list, is_white_list, allow_none=False):
     """This function generates a function that handles evicting fields from the
     serialization output based on white list / black list parameters.
 
@@ -29,15 +29,16 @@ def _gen_gottago(field_list, is_white_list):
     gottago = lambda k,v: is_white_list
     
     if field_list is not None:
-        gottago = lambda k, v: k not in field_list or v is None
+        gottago = lambda k, v: k not in field_list or (v is None and allow_none)
         if not is_white_list:
-            gottago = lambda k, v: k in field_list or v is None
+            gottago = lambda k, v: k in field_list or (v is None and allow_none)
             
     return gottago
 
 
 def apply_shape(cls, model_or_dict, field_converter, model_converter,
-                model_encoder, field_list=None, white_list=True):
+                model_encoder, field_list=None, white_list=True,
+                allow_none=False):
     ### Setup white or black list behavior as `gottago` function
     gottago = _gen_gottago(field_list, white_list)
 
@@ -207,7 +208,8 @@ def for_jsonschema(model):
 
     properties = apply_shape(model.__class__, model, field_converter,
                              model_converter, model_encoder,
-                             field_list=field_list, white_list=white_list)
+                             field_list=field_list, white_list=white_list,
+                             allow_none=True)
 
     return {
         'type': 'object',

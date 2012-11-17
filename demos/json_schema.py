@@ -36,6 +36,6 @@ print 'M as jsonschema:', m_schema
 m2_cls = from_jsonschema(m_schema)
 
 ### Create instance with data
-m2 = m2_cls(**m_data)
-
+m2 = m2_cls()
 print for_jsonschema(m2)
+
