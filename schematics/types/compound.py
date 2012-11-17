@@ -9,6 +9,7 @@ from schematics.base import  TypeException
 from schematics.types import BaseType, DictType
 from schematics.datastructures import MultiValueDict
 from schematics.serialize import to_python, to_json
+from schematics.validation import validate_instance
 
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
@@ -71,8 +72,8 @@ class ListType(BaseType):
                 if isinstance(model, dict):
                     for model_field in model_fields:
                         model_obj = model_field.model_type_obj(**model)
-                        model_obj.validate()
                         model = model_obj
+                validate_instance(model)
                 list_of_models.append(model)
             value = list_of_models
         instance._data[self.field_name] = value
@@ -234,7 +235,7 @@ class ModelType(BaseType):
             raise TypeException('Invalid modeltype instance '
                                   'provided to an ModelType',
                                   self.field_name, value)
-        self.model_type.validate(value)
+        validate_instance(value)
         return value
 
     def lookup_member(self, member_name):
