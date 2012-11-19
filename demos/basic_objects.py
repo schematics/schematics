@@ -67,8 +67,8 @@ class Movie(Media):
     personal_thoughts = StringType(max_length=255)
     class Options:
         roles = {
-            'owner': blacklist([]),
-            'public': whitelist(['title','year']),
+            'owner': blacklist(),
+            'public': whitelist('title', 'year'),
         }
 
 mv = Movie()
@@ -94,4 +94,4 @@ publicsafe_str = 'Making mv safe in json:\n\n    %s\n'
 print  publicsafe_str % (publicsafe_json)
 
 print 'You can also scrub the models according to whatever system you want:\n'
-print '    %s\n' % (to_json(mv, gottago=whitelist(['title'])))
+print '    %s\n' % (to_json(mv, gottago=whitelist('title')))

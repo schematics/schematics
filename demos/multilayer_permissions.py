@@ -7,7 +7,7 @@ import datetime
 from schematics.models import Model
 from schematics.serialize import (to_python, to_json,
                                   make_safe_python, make_safe_json,
-                                  blacklist, whitelist)
+                                  wholelist, blacklist, whitelist)
 from schematics.types import (StringType,
                               EmailType,
                               BooleanType,
@@ -24,8 +24,8 @@ class Author(Model):
     is_active = BooleanType()
     class Options:
         roles = {
-            'owner': blacklist(['is_active']),
-            'public': whitelist(['username', 'name']),
+            'owner': blacklist('is_active'),
+            'public': whitelist('username', 'name'),
         }
 
 
@@ -35,7 +35,8 @@ class Comment(Model):
     email = EmailType()   
     class Options:
         roles = {
-            'public': whitelist(['username', 'text']),
+            'owner': wholelist(),
+            'public': whitelist('username', 'text'),
         }
 
 
@@ -48,8 +49,8 @@ class BlogPost(Model):
     deleted = BooleanType()   
     class Options:
         roles = {
-            'owner': blacklist(['personal_thoughts']),
-            'public': whitelist(['author', 'content', 'comments']),
+            'owner': blacklist('personal_thoughts'),
+            'public': whitelist('author', 'content', 'comments'),
         }
     
 

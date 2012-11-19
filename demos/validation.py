@@ -8,7 +8,7 @@
 from schematics.base import TypeException
 from schematics.models import Model
 from schematics.validation import validate_instance, validate_class_fields
-from schematics.serialize import (to_python, to_json, whitelist, blacklist,
+from schematics.serialize import (to_python, to_json, whitelist, wholelist,
                                   make_safe_python, make_safe_json)
 from schematics.types import MD5Type, StringType
 import hashlib
@@ -25,8 +25,8 @@ class User(Model):
 
     class Options:
         roles = {
-            'owner': blacklist([]),
-            'public': whitelist(['name', 'bio']),
+            'owner': wholelist(),
+            'public': whitelist('name', 'bio'),
         }
 
     def set_password(self, plaintext):

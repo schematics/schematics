@@ -37,8 +37,8 @@ class Movie(Model):
     personal_thoughts = StringType(max_length=255, minimized_field_name="p")
     class Options:
         roles = {
-            'owner': blacklist([]),
-            'public': whitelist(["title", "year"]),
+            'owner': blacklist(),
+            'public': whitelist('title', 'year'),
         }
         
 

@@ -64,33 +64,51 @@ def apply_shape(cls, model_or_dict, field_converter, model_converter,
 ### Field Access Functions 
 ###
 
-def whitelist(field_list, allow_none=False):
+def wholelist(*field_list, **kw):
+    """Returns a function that evicts nothing. Exists mainly to be an explicit
+    allowance of all fields instead of a using an empty blacklist.
+    """
+    gottago = lambda k,v: False
+    return gottago
+
+    
+def whitelist(*field_list, **kw):
     """Returns a function that operates as a whitelist for the provided list of
     fields.
 
     A whitelist is a list of fields explicitly named that are allowed.
     """
+    ### This hack let's have *field_list and keyword arguments together
+    allow_none = False
+    if 'allow_none' in kw:
+        allow_none = kw['allow_none']
+
     ### Default to ejecting the value
     gottago = lambda k,v: True
 
     ### Create new `gottago` to handle field list if one is provided
-    if field_list is not None:
+    if field_list is not None and len(field_list) > 0:
         def gottago(k, v):
             return k not in field_list or (not allow_none and v is None)
 
     return gottago
 
 
-def blacklist(field_list, allow_none=False):
+def blacklist(*field_list, **kw):
     """Returns a function that operates as a blacklist for the provided list of
     fields.
 
     A blacklist is a list of fields explicitly named that are not allowed.
     """
+    ### This hack let's have *field_list and keyword arguments together
+    allow_none = False
+    if 'allow_none' in kw:
+        allow_none = kw['allow_none']
+
     ### Default to accepting the value
     gottago = lambda k,v: False
     
-    if field_list is not None:
+    if field_list is not None and len(field_list) > 0:
         def gottago(k, v):
             return k in field_list or (not allow_none and v is None)
             
@@ -101,7 +119,7 @@ def blacklist(field_list, allow_none=False):
 ### Data Serialization
 ###
 
-def to_python(model, gottago=blacklist([]), **kw):
+def to_python(model, gottago=wholelist(), **kw):
     field_converter = lambda f, v: f.for_python(v)
     model_converter = lambda m: to_python(m)
 
@@ -109,7 +127,7 @@ def to_python(model, gottago=blacklist([]), **kw):
                        model_converter, gottago, **kw)
 
 
-def to_json(model, gottago=blacklist([]), encode=True, sort_keys=False, **kw):
+def to_json(model, gottago=wholelist(), encode=True, sort_keys=False, **kw):
     field_converter = lambda f, v: f.for_json(v)
     model_converter = lambda m: to_json(m, encode=False, sort_keys=sort_keys)
 
