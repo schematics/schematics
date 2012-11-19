@@ -22,13 +22,12 @@ class ModelOptions(object):
 
     It also creates errors in cases where unknown options parameters are found.
     """
-    def __init__(self, klass, db_namespace=None, # permissions=None,
-                 private_fields=None, public_fields=None):
+    def __init__(self, klass, db_namespace=None, roles=None):
         self.klass = klass
         self.db_namespace = db_namespace
-        #self.permissions = permissions
-        self.private_fields = private_fields
-        self.public_fields = public_fields
+        self.roles = None
+        if roles is not None:
+            self.roles = roles
 
 
 def _parse_options_config(klass, attrs, options_class):

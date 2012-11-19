@@ -21,8 +21,8 @@ import datetime
 from schematics.models import Model
 from schematics.types import StringType, IntType
 from schematics.serialize import (to_python, to_json, to_jsonschema,
-                                  make_ownersafe, make_json_ownersafe,
-                                  make_json_publicsafe)
+                                  whitelist, blacklist,
+                                  make_safe_python, make_safe_json)
 
 ###
 ### The base class
@@ -36,7 +36,10 @@ class Movie(Model):
                    minimized_field_name="y")
     personal_thoughts = StringType(max_length=255, minimized_field_name="p")
     class Options:
-        public_fields = ["title", "year"]
+        roles = {
+            'owner': blacklist([]),
+            'public': whitelist(["title", "year"]),
+        }
         
 
 
@@ -49,13 +52,13 @@ print 'MOVIE ]', ('-' * 40)
 print '    schema ::', to_jsonschema(m)
 print '    python ::', to_python(m)
 print '      json ::', to_json(m)
-print '     owner ::', make_ownersafe(Movie, m)
-print '    public ::', make_json_publicsafe(Movie, m)
+print '     owner ::', make_safe_python(Movie, m, 'owner')
+print '    public ::', make_safe_json(Movie, m, 'public')
 print
 
 
 #movie_json = m.to_json()
-movie_json = make_json_ownersafe(Movie, m)
+movie_json = make_safe_json(Movie, m, 'owner')
 print 'Movie as JSON ]', ('-' * 32)
 print '      json ::', movie_json
 print
@@ -69,6 +72,6 @@ print 'RESTORED MOVIE ]', ('-' * 31)
 print '    schema ::', to_jsonschema(m2)
 print '    python ::', to_python(m2)
 print '      json ::', to_json(m2)
-print '     owner ::', make_ownersafe(Movie, m2)
-print '    public ::', make_json_publicsafe(Movie, m2)
+print '     owner ::', make_safe_python(Movie, m2, 'owner')
+print '    public ::', make_safe_json(Movie, m2, 'public')
 

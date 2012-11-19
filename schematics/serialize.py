@@ -98,7 +98,7 @@ def blacklist(field_list, allow_none=False):
 
 
 ###
-### Instance Data Serialization
+### Data Serialization
 ###
 
 def to_python(model, gottago=blacklist([]), **kw):
@@ -122,56 +122,40 @@ def to_json(model, gottago=blacklist([]), encode=True, sort_keys=False, **kw):
         return data
 
 
-def make_ownersafe(cls, model_dict_or_dicts, **kw):
+def make_safe_python(cls, model_or_dict, role, **kw):
     field_converter = lambda f, v: f.for_python(v)
-    model_converter = lambda m: make_ownersafe(m.__class__, m)
-    gottago = blacklist(cls._options.private_fields)
+    model_converter = lambda m: make_safe_python(m.__class__, m, role, **kw)
 
-    return apply_shape(cls, model_dict_or_dicts, field_converter,
-                       model_converter, gottago, **kw)
+    gottago = lambda k,v: True
+    if role in cls._options.roles:
+        gottago = cls._options.roles[role]
 
-
-def make_json_ownersafe(cls, model_dict_or_dicts, encode=True,
-                        sort_keys=False, **kw):
-    field_converter = lambda f, v: f.for_json(v)
-    model_converter = lambda m: make_json_ownersafe(m.__class__, m, encode=False,
-                                                    sort_keys=sort_keys)
-    gottago = blacklist(cls._options.private_fields)
-
-    safed = apply_shape(cls, model_dict_or_dicts, field_converter,
-                        model_converter, gottago, **kw)
+    return apply_shape(cls, model_or_dict, field_converter, model_converter,
+                       gottago, **kw)
     
-    if encode:
-        return json.dumps(safed, sort_keys=sort_keys)
-    else:
-        return safed
 
-
-def make_publicsafe(cls, model_dict_or_dicts, **kw):
-    field_converter = lambda f, v: f.for_python(v)
-    model_converter = lambda m: make_publicsafe(m.__class__, m)
-    gottago = whitelist(cls._options.public_fields)
-
-    return apply_shape(cls, model_dict_or_dicts, field_converter,
-                       model_converter, gottago, **kw)
-
-
-def make_json_publicsafe(cls, model_dict_or_dicts, encode=True,
-                         sort_keys=False, **kw):
+def make_safe_json(cls, model_or_dict, role, encode=True, sort_keys=False,
+                   **kw):
     field_converter = lambda f, v: f.for_json(v)
-    model_converter = lambda m: make_json_publicsafe(m.__class__, m, encode=False,
-                                                     sort_keys=sort_keys)
-    gottago = whitelist(cls._options.public_fields)
+    model_converter = lambda m: make_safe_json(m.__class__, m, role,
+                                               encode=False,
+                                               sort_keys=sort_keys)
 
-    safed = apply_shape(cls, model_dict_or_dicts, field_converter,
-                        model_converter, gottago, **kw)
+    gottago = lambda k,v: True
+    if role in cls._options.roles:
+        gottago = cls._options.roles[role]
+
+    data = apply_shape(cls, model_or_dict, field_converter, model_converter,
+                       gottago, **kw)
+
     if encode:
-        return json.dumps(safed, sort_keys=sort_keys)
+        return json.dumps(data, sort_keys=sort_keys)
     else:
-        return safed
+        return data
+
 
 ###
-### Model Definition Serialization
+### Schema Serialization
 ###
 
 ### Parameters for serialization to JSONSchema

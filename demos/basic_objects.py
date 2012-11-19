@@ -30,11 +30,9 @@ You can also scrub the models according to whatever system you want:
 import uuid
 import datetime
 from schematics.models import Model
-from schematics.serialize import (to_python, to_json, make_json_ownersafe,
-                                  make_json_publicsafe, blacklist, whitelist)
-from schematics.types import (StringType,
-                              IntType,
-                              UUIDType)
+from schematics.serialize import (to_python, to_json, make_safe_python,
+                                  make_safe_json, blacklist, whitelist)
+from schematics.types import (StringType, IntType, UUIDType)
 
 
 ###
@@ -53,6 +51,7 @@ make_believe_owner_id = uuid.uuid4()
 m = Media()
 m.owner = make_believe_owner_id
 m.title = 'Misc Media'
+
 print 'From Media class to json string:\n\n    %s\n' % (to_json(m))
 
 
@@ -67,27 +66,32 @@ class Movie(Media):
     year = IntType(min_value=1950, max_value=datetime.datetime.now().year)
     personal_thoughts = StringType(max_length=255)
     class Options:
-        public_fields = ['title','year']
+        roles = {
+            'owner': blacklist([]),
+            'public': whitelist(['title','year']),
+        }
 
 mv = Movie()
 mv.title = 'Total Recall'
 mv.year = 1990
-mv.personal_thoughts = 'I wish I had three hands...' 
+mv.personal_thoughts = 'I wish I had three hands...'
+
 print 'From Movie class to json string:\n\n    %s\n' % (to_json(mv))
 print '    %s\n' % (to_python(mv, allow_none=True))
 print '    %s\n' % (to_json(mv, allow_none=True))
+
 
 ###
 ### Scrubbing functions
 ###
 
-ownersafe_json = make_json_ownersafe(Movie, mv)
-ownersafe_str = 'Making mv json safe:\n\n    %s\n'
+ownersafe_json = make_safe_json(Movie, mv, 'owner')
+ownersafe_str = 'Making mv safe:\n\n    %s\n'
 print ownersafe_str % (ownersafe_json)
 
-publicsafe_json = make_json_publicsafe(Movie, mv)
-publicsafe_str = 'Making mv json public safe (only %s should show):\n\n    %s\n'
-print  publicsafe_str % (Movie._options.public_fields, publicsafe_json)
+publicsafe_json = make_safe_json(Movie, mv, 'public')
+publicsafe_str = 'Making mv safe in json:\n\n    %s\n'
+print  publicsafe_str % (publicsafe_json)
 
 print 'You can also scrub the models according to whatever system you want:\n'
 print '    %s\n' % (to_json(mv, gottago=whitelist(['title'])))

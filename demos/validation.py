@@ -1,45 +1,15 @@
 #!/usr/bin/env python
 
 
-"""Attempting validation on:
-
-    {"_types": ["User"], "secret": "whatevz", "name": "test hash", "_cls": "User"}
-
-TypeException caught: MD5 value is wrong length - secret:whatevz
-
-Adjusted invalid data and trying again on:
-
-    {"_types": ["User"], "secret": "34165b7d7c2d95bbecd41c05c19379c4", "name": "test hash", "_cls": "User"}
-
-Validation passed
-
-Attempting validation on:
-
-    {'rogue_type': 'MWAHAHA', 'bio': 'J2D2 loves music', 'secret': 'e8b5d682452313a6142c10b045a9a135', 'name': 'J2D2'}
-
-Validation passed
-After validation:
-
-    {'bio': 'J2D2 loves music', 'secret': 'e8b5d682452313a6142c10b045a9a135', 'name': 'J2D2'}
-
-Validation passed
-
-Model as Python:
-    {'_types': ['User'], 'bio': u'J2D2 loves music', 'secret': 'e8b5d682452313a6142c10b045a9a135', 'name': u'J2D2', '_cls': 'User'}
-
-Owner safe:
-    {"bio": "J2D2 loves music", "secret": "e8b5d682452313a6142c10b045a9a135", "name": "J2D2"}
-
-Public safe:
-    {"bio": "J2D2 loves music", "name": "J2D2"}
+"""
 """
 
 
 from schematics.base import TypeException
 from schematics.models import Model
 from schematics.validation import validate_instance, validate_class_fields
-from schematics.serialize import (to_python, to_json,
-                                  make_json_ownersafe, make_json_publicsafe)
+from schematics.serialize import (to_python, to_json, whitelist, blacklist,
+                                  make_safe_python, make_safe_json)
 from schematics.types import MD5Type, StringType
 import hashlib
 
@@ -52,8 +22,12 @@ class User(Model):
     secret = MD5Type()
     name = StringType(required=True, max_length=50)
     bio = StringType(max_length=100)
+
     class Options:
-        public_fields = ['name', 'bio']
+        roles = {
+            'owner': blacklist([]),
+            'public': whitelist(['name', 'bio']),
+        }
 
     def set_password(self, plaintext):
         hash_string = hashlib.md5(plaintext).hexdigest()
@@ -128,8 +102,8 @@ total_input['rogue_type'] = 'MWAHAHA'
 
 user_doc = User(**total_input)
 print 'Model as Python:\n    %s\n' % (to_python(user_doc))
-safe_doc = make_json_ownersafe(User, user_doc)
+safe_doc = make_safe_json(User, user_doc, 'owner')
 print 'Owner safe doc:\n    %s\n' % (safe_doc)
-public_safe_doc = make_json_publicsafe(User, user_doc)
+public_safe_doc = make_safe_json(User, user_doc, 'public')
 print 'Public safe doc:\n    %s\n' % (public_safe_doc)
 
