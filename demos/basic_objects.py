@@ -3,26 +3,35 @@
 
 """From Media class to json string:
 
-    {"owner": "2c8c9806-fafc-4cc7-920b-c8fa2e5f1bee", "_types": ["Media"], "_cls": "Media", "title": "Misc Media"}
+    {"owner": "ba2fa3fb-0d51-4545-8131-24b8a5c86282", "id": "ddb01ce9-d337-493b-8860-2220689b6cfe", "title": "Misc Media"}
 
 From Movie class to json string:
 
-    {"personal_thoughts": "I wish I had three hands...", "_types": ["Media", "Media.Movie"], "title": "Total Recall", "_cls": "Media.Movie", "year": 1990}
+    {"personal_thoughts": "I wish I had three hands...", "title": "Total Recall", "id": "5b5f6ed8-587d-4b3b-a109-6415eee5d8a6", "year": 1990}
+
+    {'personal_thoughts': u'I wish I had three hands...', 'title': u'Total Recall', 'id': UUID('5b5f6ed8-587d-4b3b-a109-6415eee5d8a6'), 'year': 1990}
+
+    {"personal_thoughts": "I wish I had three hands...", "title": "Total Recall", "id": "5b5f6ed8-587d-4b3b-a109-6415eee5d8a6", "year": 1990}
 
 Making mv json safe:
 
-    {"personal_thoughts": "I wish I had three hands...", "title": "Total Recall", "year": 1990}
+    {"owner": null, "personal_thoughts": "I wish I had three hands...", "title": "Total Recall", "id": "5b5f6ed8-587d-4b3b-a109-6415eee5d8a6", "year": 1990}
 
 Making mv json public safe (only ['title', 'year'] should show):
 
     {"title": "Total Recall", "year": 1990}
+
+You can also scrub the models according to whatever system you want:
+
+    {"title": "Total Recall"}
 """
 
 
 import uuid
 import datetime
 from schematics.models import Model
-from schematics.serialize import to_python, to_json, make_json_ownersafe, make_json_publicsafe
+from schematics.serialize import (to_python, to_json, make_json_ownersafe,
+                                  make_json_publicsafe, blacklist, whitelist)
 from schematics.types import (StringType,
                               IntType,
                               UUIDType)
@@ -79,3 +88,6 @@ print ownersafe_str % (ownersafe_json)
 publicsafe_json = make_json_publicsafe(Movie, mv)
 publicsafe_str = 'Making mv json public safe (only %s should show):\n\n    %s\n'
 print  publicsafe_str % (Movie._options.public_fields, publicsafe_json)
+
+print 'You can also scrub the models according to whatever system you want:\n'
+print '    %s\n' % (to_json(mv, gottago=whitelist(['title'])))

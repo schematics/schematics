@@ -19,31 +19,43 @@ def _reduce_loop(cls, model_or_dict, field_converter):
         yield (field_name, field_instance, field_value)
 
 
-def _gen_gottago(field_list, is_white_list, allow_none=False):
-    """This function generates a function that handles evicting fields from the
-    serialization output based on white list / black list parameters.
+def whitelist(field_list, allow_none=False):
+    """Returns a function that operates as a whitelist for the provided list of
+    fields.
 
-    The generated function is referred to as `gottago`.
+    A whitelist is a list of fields explicitly named that are allowed.
     """
-    ### Setup white or black list behavior as `gottago` function
-    gottago = lambda k,v: is_white_list
-    
+    ### Default to ejecting the value
+    gottago = lambda k,v: True
+
+    ### Create new `gottago` to handle field list if one is provided
     if field_list is not None:
         def gottago(k, v):
             return k not in field_list or (not allow_none and v is None)
-        if not is_white_list:
-            def gottago(k, v):
-                return k in field_list or (not allow_none and v is None)
+
+    return gottago
+
+
+def blacklist(field_list, allow_none=False):
+    """Returns a function that operates as a blacklist for the provided list of
+    fields.
+
+    A blacklist is a list of fields explicitly named that are not allowed.
+    """
+    ### Default to accepting the value
+    gottago = lambda k,v: False
+    
+    if field_list is not None:
+        def gottago(k, v):
+            return k in field_list or (not allow_none and v is None)
             
     return gottago
 
 
 def apply_shape(cls, model_or_dict, field_converter, model_converter,
-                model_encoder, field_list, white_list,
-                allow_none=False):
-    ### Setup white or black list behavior as `gottago` function
-    gottago = _gen_gottago(field_list, white_list, allow_none)
-
+                model_encoder, gottago, allow_none=False):
+    """
+    """
     model_dict = {}
 
     ### Loop over each field and either evict it or convert it
@@ -85,35 +97,22 @@ def apply_shape(cls, model_or_dict, field_converter, model_converter,
 ### Instance Data Serialization
 ###
 
-def to_python(model, **kw):
-    """Returns a Python dictionary representing the Model's
-    metaschematic and values.
-    """
+def to_python(model, gottago=blacklist([]), **kw):
     field_converter = lambda f, v: f.for_python(v)
     model_encoder = lambda m: to_python(m)
     model_converter = lambda m: to_python(m)
-    field_list = []
-    white_list = False
 
     return apply_shape(model.__class__, model, field_converter,
-                       model_converter, model_encoder,
-                       field_list, white_list, **kw)
+                       model_converter, model_encoder, gottago, **kw)
 
 
-def to_json(model, encode=True, sort_keys=False, **kw):
-    """Return data prepared for JSON. By default, it returns a JSON encoded
-    string, but disabling the encoding to prevent double encoding with
-    embedded models.
-    """
+def to_json(model, gottago=blacklist([]), encode=True, sort_keys=False, **kw):
     field_converter = lambda f, v: f.for_json(v)
     model_encoder = lambda m: to_json(m, encode=False, sort_keys=sort_keys)
     model_converter = lambda m: to_json(m, encode=False, sort_keys=sort_keys)
-    field_list = []
-    white_list = False
 
     data = apply_shape(model.__class__, model, field_converter,
-                       model_converter, model_encoder,
-                       field_list, white_list, **kw)
+                       model_converter, model_encoder, gottago, **kw)
 
     if encode:
         return json.dumps(data, sort_keys=sort_keys)
@@ -125,12 +124,10 @@ def make_ownersafe(cls, model_dict_or_dicts, **kw):
     field_converter = lambda f, v: f.for_python(v)
     model_encoder = lambda m: to_python(m)
     model_converter = lambda m: make_ownersafe(m.__class__, m)
-    field_list = cls._options.private_fields
-    white_list = False
+    gottago = blacklist(cls._options.private_fields)
 
     return apply_shape(cls, model_dict_or_dicts, field_converter,
-                       model_converter, model_encoder,
-                       field_list, white_list, **kw)
+                       model_converter, model_encoder, gottago, **kw)
 
 
 def make_json_ownersafe(cls, model_dict_or_dicts, encode=True,
@@ -139,12 +136,10 @@ def make_json_ownersafe(cls, model_dict_or_dicts, encode=True,
     model_encoder = lambda m: to_json(m, encode=False)
     model_converter = lambda m: make_json_ownersafe(m.__class__, m, encode=False,
                                                     sort_keys=sort_keys)
-    field_list = cls._options.private_fields
-    white_list = False
+    gottago = blacklist(cls._options.private_fields)
 
     safed = apply_shape(cls, model_dict_or_dicts, field_converter,
-                        model_converter, model_encoder,
-                        field_list, white_list, **kw)
+                        model_converter, model_encoder, gottago, **kw)
     
     if encode:
         return json.dumps(safed, sort_keys=sort_keys)
@@ -156,12 +151,10 @@ def make_publicsafe(cls, model_dict_or_dicts, **kw):
     field_converter = lambda f, v: f.for_python(v)
     model_encoder = lambda m: to_python(m)
     model_converter = lambda m: make_publicsafe(m.__class__, m)
-    field_list = cls._options.public_fields
-    white_list = True
+    gottago = whitelist(cls._options.public_fields)
 
     return apply_shape(cls, model_dict_or_dicts, field_converter,
-                       model_converter, model_encoder,
-                       cls._options.public_fields, white_list, **kw)
+                       model_converter, model_encoder, gottago, **kw)
 
 
 def make_json_publicsafe(cls, model_dict_or_dicts, encode=True,
@@ -170,12 +163,10 @@ def make_json_publicsafe(cls, model_dict_or_dicts, encode=True,
     model_encoder = lambda m: to_json(m, encode=False)
     model_converter = lambda m: make_json_publicsafe(m.__class__, m, encode=False,
                                                      sort_keys=sort_keys)
-    field_list = cls._options.public_fields
-    white_list = True
+    gottago = whitelist(cls._options.public_fields)
 
     safed = apply_shape(cls, model_dict_or_dicts, field_converter,
-                        model_converter, model_encoder, field_list, white_list,
-                        **kw)
+                        model_converter, model_encoder, gottago, **kw)
     if encode:
         return json.dumps(safed, sort_keys=sort_keys)
     else:
