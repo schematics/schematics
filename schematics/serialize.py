@@ -19,6 +19,51 @@ def _reduce_loop(cls, model_or_dict, field_converter):
         yield (field_name, field_instance, field_value)
 
 
+def apply_shape(cls, model_or_dict, field_converter, model_converter,
+                gottago, allow_none=False):
+    """
+    """
+    model_dict = {}
+
+    ### Loop over each field and either evict it or convert it
+    for truple in _reduce_loop(cls, model_or_dict, field_converter):
+        ### Break 3-tuple out
+        (k, field_instance, v) = truple
+        
+        ### Evict field if it's gotta go
+        if gottago(k, v):
+            continue
+        
+        ### Convert field as single model
+        elif isinstance(v, Model):
+            model_dict[k] = model_converter(v)
+            
+        ### Convert field as list of models
+        elif isinstance(v, list) and len(v) > 0:
+            if isinstance(v[0], Model):
+                model_dict[k] = [model_converter(vi) for vi in v]
+                
+        ### Convert field as single field
+        else:
+            if v is None and allow_none:
+                model_dict[k] = None
+            else:
+                model_dict[k] = field_converter(field_instance, v)
+
+        ### TODO - embed this cleaner
+        if k in model_dict and \
+               k in cls._fields and \
+               cls._fields[k].minimized_field_name:
+            model_dict[cls._fields[k].minimized_field_name] = model_dict[k]
+            del model_dict[k]
+
+    return model_dict
+
+
+###
+### Field Access Functions 
+###
+
 def whitelist(field_list, allow_none=False):
     """Returns a function that operates as a whitelist for the provided list of
     fields.
@@ -52,67 +97,24 @@ def blacklist(field_list, allow_none=False):
     return gottago
 
 
-def apply_shape(cls, model_or_dict, field_converter, model_converter,
-                model_encoder, gottago, allow_none=False):
-    """
-    """
-    model_dict = {}
-
-    ### Loop over each field and either evict it or convert it
-    for truple in _reduce_loop(cls, model_or_dict, field_converter):
-        ### Break 3-tuple out
-        (k, field_instance, v) = truple
-        
-        ### Evict field if it's gotta go
-        if gottago(k, v):
-            continue
-        
-        ### Convert field as single model
-        elif isinstance(v, Model):
-            model_dict[k] = model_converter(v)
-            
-        ### Convert field as list of models
-        elif isinstance(v, list) and len(v) > 0:
-            if isinstance(v[0], Model):
-                model_dict[k] = [model_converter(vi) for vi in v]
-                
-        ### Convert field as single field
-        else:
-            if v is None:
-                model_dict[k] = None
-            else:
-                model_dict[k] = field_converter(field_instance, v)
-
-        ### TODO - embed this cleaner
-        if k in model_dict and \
-               k in cls._fields and \
-               cls._fields[k].minimized_field_name:
-            model_dict[cls._fields[k].minimized_field_name] = model_dict[k]
-            del model_dict[k]
-
-    return model_dict
-
-
 ###
 ### Instance Data Serialization
 ###
 
 def to_python(model, gottago=blacklist([]), **kw):
     field_converter = lambda f, v: f.for_python(v)
-    model_encoder = lambda m: to_python(m)
     model_converter = lambda m: to_python(m)
 
     return apply_shape(model.__class__, model, field_converter,
-                       model_converter, model_encoder, gottago, **kw)
+                       model_converter, gottago, **kw)
 
 
 def to_json(model, gottago=blacklist([]), encode=True, sort_keys=False, **kw):
     field_converter = lambda f, v: f.for_json(v)
-    model_encoder = lambda m: to_json(m, encode=False, sort_keys=sort_keys)
     model_converter = lambda m: to_json(m, encode=False, sort_keys=sort_keys)
 
     data = apply_shape(model.__class__, model, field_converter,
-                       model_converter, model_encoder, gottago, **kw)
+                       model_converter, gottago, **kw)
 
     if encode:
         return json.dumps(data, sort_keys=sort_keys)
@@ -122,24 +124,22 @@ def to_json(model, gottago=blacklist([]), encode=True, sort_keys=False, **kw):
 
 def make_ownersafe(cls, model_dict_or_dicts, **kw):
     field_converter = lambda f, v: f.for_python(v)
-    model_encoder = lambda m: to_python(m)
     model_converter = lambda m: make_ownersafe(m.__class__, m)
     gottago = blacklist(cls._options.private_fields)
 
     return apply_shape(cls, model_dict_or_dicts, field_converter,
-                       model_converter, model_encoder, gottago, **kw)
+                       model_converter, gottago, **kw)
 
 
 def make_json_ownersafe(cls, model_dict_or_dicts, encode=True,
                         sort_keys=False, **kw):
     field_converter = lambda f, v: f.for_json(v)
-    model_encoder = lambda m: to_json(m, encode=False)
     model_converter = lambda m: make_json_ownersafe(m.__class__, m, encode=False,
                                                     sort_keys=sort_keys)
     gottago = blacklist(cls._options.private_fields)
 
     safed = apply_shape(cls, model_dict_or_dicts, field_converter,
-                        model_converter, model_encoder, gottago, **kw)
+                        model_converter, gottago, **kw)
     
     if encode:
         return json.dumps(safed, sort_keys=sort_keys)
@@ -149,24 +149,22 @@ def make_json_ownersafe(cls, model_dict_or_dicts, encode=True,
 
 def make_publicsafe(cls, model_dict_or_dicts, **kw):
     field_converter = lambda f, v: f.for_python(v)
-    model_encoder = lambda m: to_python(m)
     model_converter = lambda m: make_publicsafe(m.__class__, m)
     gottago = whitelist(cls._options.public_fields)
 
     return apply_shape(cls, model_dict_or_dicts, field_converter,
-                       model_converter, model_encoder, gottago, **kw)
+                       model_converter, gottago, **kw)
 
 
 def make_json_publicsafe(cls, model_dict_or_dicts, encode=True,
                          sort_keys=False, **kw):
     field_converter = lambda f, v: f.for_json(v)
-    model_encoder = lambda m: to_json(m, encode=False)
     model_converter = lambda m: make_json_publicsafe(m.__class__, m, encode=False,
                                                      sort_keys=sort_keys)
     gottago = whitelist(cls._options.public_fields)
 
     safed = apply_shape(cls, model_dict_or_dicts, field_converter,
-                        model_converter, model_encoder, gottago, **kw)
+                        model_converter, gottago, **kw)
     if encode:
         return json.dumps(safed, sort_keys=sort_keys)
     else:
@@ -195,15 +193,11 @@ def for_jsonschema(model):
     formats.
     """
     field_converter = lambda f, v: f.for_jsonschema()
-    model_encoder = lambda m: for_jsonschema(m)
     model_converter = lambda m: for_jsonschema(m)
-    field_list = []
-    white_list = False
+    gottago = blacklist([], allow_none=True)
 
     properties = apply_shape(model.__class__, model, field_converter,
-                             model_converter, model_encoder,
-                             field_list=field_list, white_list=white_list,
-                             allow_none=True)
+                             model_converter, gottago)
 
     return {
         'type': 'object',

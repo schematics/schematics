@@ -30,12 +30,12 @@ m = Movie(title='Some Movie',
 ### Serialize the schema and the data
 m_schema = for_jsonschema(m)
 m_data = to_python(m)
-print 'M as jsonschema:', m_schema
+print 'M :: ', m_schema
+print '\n'
 
 ### Rebuild class from schema
 m2_cls = from_jsonschema(m_schema)
 
-### Create instance with data
 m2 = m2_cls()
-print for_jsonschema(m2)
-
+print 'M2:: ', for_jsonschema(m2)
+print '\n'
