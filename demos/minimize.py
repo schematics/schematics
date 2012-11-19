@@ -2,21 +2,17 @@
 
 
 """MOVIE ] ----------------------------------------
-    schema :: {'type': 'object', 'properties': {'year': {'minimum': 1950, 'type': 'number', 'maximum': 2011, 'title': 'year'}, 'title': {'title': 'title', 'type': 'string', 'maxLength': 40}}, 'title': 'Movie'}
-    python :: {'p': u'It was pretty good', 't': u'Some Movie', 'y': 2011}
-      json :: {"p": "It was pretty good", "t": "Some Movie", "y": 2011}
-     owner :: {'p': 'It was pretty good', 't': 'Some Movie', 'y': 2011}
+    schema :: {"type": "object", "properties": {"y": {"minimum": 1950, "type": "number", "maximum": 2012, "title": "year"}, "p": {"title": "personal_thoughts", "type": "string", "maxLength": 255}, "t": {"title": "title", "type": "string", "maxLength": 40}}, "title": "Movie"}
+    python :: {'y': 2011, 'p': u'It was pretty good', 't': u'Some Movie'}
+      json :: {"y": 2011, "p": "It was pretty good", "t": "Some Movie"}
+     owner :: {'y': 2011, 'p': u'It was pretty good', 't': u'Some Movie'}
     public :: {"y": 2011, "t": "Some Movie"}
 
 Movie as JSON ] --------------------------------
-      json :: {"p": "It was pretty good", "t": "Some Movie", "y": 2011}
+      json :: {"y": 2011, "p": "It was pretty good", "t": "Some Movie"}
 
 RESTORED MOVIE ] -------------------------------
-    schema :: {'type': 'object', 'properties': {'year': {'minimum': 1950, 'type': 'number', 'maximum': 2011, 'title': 'year'}, 'title': {'title': 'title', 'type': 'string', 'maxLength': 40}}, 'title': 'Movie'}
-    python :: {'p': u'It was pretty good', 't': u'Some Movie', 'y': 2011}
-      json :: {"p": "It was pretty good", "title": "Some Movie", "y": 2011}
-     owner :: {'p': u'It was pretty good', 't': u'Some Movie', 'y': 2011}
-    public :: {"y": 2011, "t": "Some Movie"}
+    schema :: {"type": "object", "properties": {"y": {"minimum": 1950, "type": "number", "maximum": 2012, "title": "year"}, "p": {"title": "personal_thoughts", "type": "string", "maxLength": 255}, "t": {"title": "title", "type": "string", "maxLength": 40}}, "title": "Movie"}
 """
 
 import json
