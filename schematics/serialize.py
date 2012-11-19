@@ -29,18 +29,20 @@ def _gen_gottago(field_list, is_white_list, allow_none=False):
     gottago = lambda k,v: is_white_list
     
     if field_list is not None:
-        gottago = lambda k, v: k not in field_list or (v is None and allow_none)
+        def gottago(k, v):
+            return k not in field_list or (not allow_none and v is None)
         if not is_white_list:
-            gottago = lambda k, v: k in field_list or (v is None and allow_none)
+            def gottago(k, v):
+                return k in field_list or (not allow_none and v is None)
             
     return gottago
 
 
 def apply_shape(cls, model_or_dict, field_converter, model_converter,
-                model_encoder, field_list=None, white_list=True,
+                model_encoder, field_list, white_list,
                 allow_none=False):
     ### Setup white or black list behavior as `gottago` function
-    gottago = _gen_gottago(field_list, white_list)
+    gottago = _gen_gottago(field_list, white_list, allow_none)
 
     model_dict = {}
 
@@ -49,23 +51,25 @@ def apply_shape(cls, model_or_dict, field_converter, model_converter,
         ### Break 3-tuple out
         (k, field_instance, v) = truple
         
-        ### Evict field if gottago says so
+        ### Evict field if it's gotta go
         if gottago(k, v):
             continue
         
-        ### Convert field with model_converter if model holding field found
+        ### Convert field as single model
         elif isinstance(v, Model):
             model_dict[k] = model_converter(v)
             
-        ### List of models have special handling
+        ### Convert field as list of models
         elif isinstance(v, list) and len(v) > 0:
-            ### 1) a list of models
             if isinstance(v[0], Model):
                 model_dict[k] = [model_converter(vi) for vi in v]
                 
-        ### Default to using the field conversion function
+        ### Convert field as single field
         else:
-            model_dict[k] = field_converter(field_instance, v)
+            if v is None:
+                model_dict[k] = None
+            else:
+                model_dict[k] = field_converter(field_instance, v)
 
         ### TODO - embed this cleaner
         if k in model_dict and \
@@ -81,7 +85,7 @@ def apply_shape(cls, model_or_dict, field_converter, model_converter,
 ### Instance Data Serialization
 ###
 
-def to_python(model):
+def to_python(model, **kw):
     """Returns a Python dictionary representing the Model's
     metaschematic and values.
     """
@@ -93,11 +97,10 @@ def to_python(model):
 
     return apply_shape(model.__class__, model, field_converter,
                        model_converter, model_encoder,
-                       field_list=field_list, white_list=white_list)
+                       field_list, white_list, **kw)
 
 
-
-def to_json(model, encode=True, sort_keys=False):
+def to_json(model, encode=True, sort_keys=False, **kw):
     """Return data prepared for JSON. By default, it returns a JSON encoded
     string, but disabling the encoding to prevent double encoding with
     embedded models.
@@ -110,7 +113,7 @@ def to_json(model, encode=True, sort_keys=False):
 
     data = apply_shape(model.__class__, model, field_converter,
                        model_converter, model_encoder,
-                       field_list=field_list, white_list=white_list)
+                       field_list, white_list, **kw)
 
     if encode:
         return json.dumps(data, sort_keys=sort_keys)
@@ -118,7 +121,7 @@ def to_json(model, encode=True, sort_keys=False):
         return data
 
 
-def make_ownersafe(cls, model_dict_or_dicts):
+def make_ownersafe(cls, model_dict_or_dicts, **kw):
     field_converter = lambda f, v: f.for_python(v)
     model_encoder = lambda m: to_python(m)
     model_converter = lambda m: make_ownersafe(m.__class__, m)
@@ -127,11 +130,11 @@ def make_ownersafe(cls, model_dict_or_dicts):
 
     return apply_shape(cls, model_dict_or_dicts, field_converter,
                        model_converter, model_encoder,
-                       field_list=field_list, white_list=white_list)
+                       field_list, white_list, **kw)
 
 
 def make_json_ownersafe(cls, model_dict_or_dicts, encode=True,
-                        sort_keys=False):
+                        sort_keys=False, **kw):
     field_converter = lambda f, v: f.for_json(v)
     model_encoder = lambda m: to_json(m, encode=False)
     model_converter = lambda m: make_json_ownersafe(m.__class__, m, encode=False,
@@ -141,14 +144,15 @@ def make_json_ownersafe(cls, model_dict_or_dicts, encode=True,
 
     safed = apply_shape(cls, model_dict_or_dicts, field_converter,
                         model_converter, model_encoder,
-                        field_list=field_list, white_list=white_list)
+                        field_list, white_list, **kw)
+    
     if encode:
         return json.dumps(safed, sort_keys=sort_keys)
     else:
         return safed
 
 
-def make_publicsafe(cls, model_dict_or_dicts):
+def make_publicsafe(cls, model_dict_or_dicts, **kw):
     field_converter = lambda f, v: f.for_python(v)
     model_encoder = lambda m: to_python(m)
     model_converter = lambda m: make_publicsafe(m.__class__, m)
@@ -157,12 +161,11 @@ def make_publicsafe(cls, model_dict_or_dicts):
 
     return apply_shape(cls, model_dict_or_dicts, field_converter,
                        model_converter, model_encoder,
-                       field_list=cls._options.public_fields,
-                       white_list=white_list)
+                       cls._options.public_fields, white_list, **kw)
 
 
 def make_json_publicsafe(cls, model_dict_or_dicts, encode=True,
-                         sort_keys=False):
+                         sort_keys=False, **kw):
     field_converter = lambda f, v: f.for_json(v)
     model_encoder = lambda m: to_json(m, encode=False)
     model_converter = lambda m: make_json_publicsafe(m.__class__, m, encode=False,
@@ -171,8 +174,8 @@ def make_json_publicsafe(cls, model_dict_or_dicts, encode=True,
     white_list = True
 
     safed = apply_shape(cls, model_dict_or_dicts, field_converter,
-                        model_converter, model_encoder,
-                        field_list=field_list, white_list=white_list)
+                        model_converter, model_encoder, field_list, white_list,
+                        **kw)
     if encode:
         return json.dumps(safed, sort_keys=sort_keys)
     else:

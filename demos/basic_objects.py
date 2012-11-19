@@ -63,9 +63,10 @@ class Movie(Media):
 mv = Movie()
 mv.title = 'Total Recall'
 mv.year = 1990
-mv.personal_thoughts = 'I wish I had three hands...' # (.Y.Y.)
+mv.personal_thoughts = 'I wish I had three hands...' 
 print 'From Movie class to json string:\n\n    %s\n' % (to_json(mv))
-
+print '    %s\n' % (to_python(mv, allow_none=True))
+print '    %s\n' % (to_json(mv, allow_none=True))
 
 ###
 ### Scrubbing functions
