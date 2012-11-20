@@ -4,7 +4,7 @@ Schematics is an easy way to model data.  It provides mechanisms for structuring
 data, initializing data, serializing data, formatting data and validating data
 against type definitions, like an email address.
 
-It is going through substantial changes at the moment.  Please bare with me as
+It is going through substantial changes at the moment.  Please bear with me as
 I simplify, extend, and create a new foundation from which to build. 
 
 I have been listening to everyone's suggestions and finally decided the right
