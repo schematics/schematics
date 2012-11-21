@@ -222,8 +222,7 @@ def swap_field(klass, new_field, fields):
     klass_name = klass.__name__
     new_klass = type(klass_name, (klass,), {})
 
-    ### Generate the id_fields for each field we're updating. Mark the actual
-    ### id_field as the uniq_field named '_id'
+    ### Generate the id_fields for each field we're updating. 
     fields_dict = dict()
     for f in fields:
         new_klass._fields[f] = new_field()
