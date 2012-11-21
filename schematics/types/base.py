@@ -18,7 +18,7 @@ class BaseTypeMetaClass(type):
 
 
 ###
-### Types
+### Base Type
 ###
 
 class BaseType(object):
@@ -28,17 +28,16 @@ class BaseType(object):
 
     __metaclass__ = BaseTypeMetaClass
 
-    def __init__(self, uniq_field=None, field_name=None, required=False,
-                 default=None, id_field=False, validation=None, choices=None,
-                 description=None, minimized_field_name=None):
+    def __init__(self, required=False, default=None, field_name=None,
+                 print_name=None, choices=None, validation=None, description=None,
+                 minimized_field_name=None):
 
-        self.uniq_field = '_id' if id_field else uniq_field or field_name
-        self.field_name = field_name
         self.required = required
         self.default = default
-        self.validation = validation
+        self.field_name = field_name
+        self.print_name = print_name
         self.choices = choices
-        self.id_field = id_field
+        self.validation = validation
         self.description = description
         self.minimized_field_name = minimized_field_name
 
@@ -54,7 +53,7 @@ class BaseType(object):
 
         if value is None:
             value = self.default
-            # Allow callable default values
+            # Callable values are best for mutable defaults
             if callable(value):
                 value = value()
         return value
@@ -75,18 +74,21 @@ class BaseType(object):
         return self.for_python(value)
 
     def validate(self, value):
-        """Perform validation on a value.
+        """Function that is overridden by subclasses for their validation logic
         """
         pass
 
     def _validate(self, value):
-        # check choices
+        """This function runs before `validate()` and handles applying the
+        global environment parameters.
+        """
+        # `choices`
         if self.choices is not None:
             if value not in self.choices:
                 raise TypeException("Value must be one of %s."
                     % unicode(self.choices), self.field_name, value)
 
-        # check validation argument
+        # `validation` function
         if self.validation is not None:
             if callable(self.validation):
                 if not self.validation(value):
@@ -140,6 +142,10 @@ class BaseType(object):
                 schema[attr_name] = attr_value
         return schema
 
+
+###
+### Standard Types
+###
 
 class UUIDType(BaseType):
     """A field that stores a valid UUID value and optionally auto-populates
@@ -226,11 +232,11 @@ class StringType(BaseType):
 
         if self.min_length is not None and len(value) < self.min_length:
             raise TypeException('String value is too short',
-                                  self.uniq_field, value)
+                                  self.field_name, value)
 
         if self.regex is not None and self.regex.match(value) is None:
             message = 'String value did not match validation regex',
-            raise TypeException(message, self.uniq_field, value)
+            raise TypeException(message, self.field_name, value)
 
         return value
 
@@ -647,7 +653,7 @@ class DictType(BaseType):
         return value
 
     def lookup_member(self, member_name):
-        return self.basecls(uniq_field=member_name)
+        return self.basecls(field_name=member_name)
 
 
 class GeoPointType(BaseType):

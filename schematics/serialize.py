@@ -28,34 +28,37 @@ def apply_shape(cls, model_or_dict, field_converter, model_converter,
     ### Loop over each field and either evict it or convert it
     for truple in _reduce_loop(cls, model_or_dict, field_converter):
         ### Break 3-tuple out
-        (k, field_instance, v) = truple
-        
+        (field_name, field_instance, field_value) = truple
+
+        ### Use minimized field name if one exists
+        serialized_name = field_name
+        if field_instance.minimized_field_name:
+            serialized_name = field_instance.minimized_field_name
+        ### Use print name if one exists
+        elif field_instance.print_name:
+            serialized_name = field_instance.print_name
+
         ### Evict field if it's gotta go
-        if gottago(k, v):
+        if gottago(field_name, field_value):
             continue
-        
+
         ### Convert field as single model
-        elif isinstance(v, Model):
-            model_dict[k] = model_converter(v)
+        elif isinstance(field_value, Model):
+            model_dict[serialized_name] = model_converter(field_value)
             
         ### Convert field as list of models
-        elif isinstance(v, list) and len(v) > 0:
-            if isinstance(v[0], Model):
-                model_dict[k] = [model_converter(vi) for vi in v]
+        elif isinstance(field_name, list) and len(field_value) > 0:
+            if isinstance(field_value[0], Model):
+                model_dict[serialized_name] = [model_converter(vi)
+                                               for vi in field_vaue]
                 
         ### Convert field as single field
         else:
-            if v is None and allow_none:
-                model_dict[k] = None
+            if field_value is None and allow_none:
+                model_dict[serialized_name] = None
             else:
-                model_dict[k] = field_converter(field_instance, v)
-
-        ### TODO - embed this cleaner
-        if k in model_dict and \
-               k in cls._fields and \
-               cls._fields[k].minimized_field_name:
-            model_dict[cls._fields[k].minimized_field_name] = model_dict[k]
-            del model_dict[k]
+                model_dict[serialized_name] = field_converter(field_instance,
+                                                              field_value)
 
     return model_dict
 
