@@ -544,8 +544,16 @@ class DateTimeType(BaseType):
     def _jsonschema_type(self):
         return 'string'
 
-    def __init__(self, format=lambda dt: dt.isoformat(), **kwargs):
-        self.format = format
+    def __init__(self, format=None, **kwargs):
+        if format is None:
+            def formatter(dt):
+                if dt is None:
+                    return None
+                else:
+                    return dt.isoformat()
+            self.format = formatter
+        else:
+            self.format = format
         super(DateTimeType, self).__init__(**kwargs)
 
     def _jsonschema_format(self):
