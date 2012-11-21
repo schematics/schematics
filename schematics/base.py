@@ -41,7 +41,6 @@ if json_is_ujson:
 ### Exceptions
 ###
 
-#class InvalidShield(Exception):
 class NotAModelException(Exception):    
     """A model has been put together incorrectly
     """
@@ -54,7 +53,6 @@ class NotATypeException(Exception):
     pass
 
 
-#class ShieldException(Exception):
 class TypeException(Exception):    
     """The field did not pass validation.
     """
