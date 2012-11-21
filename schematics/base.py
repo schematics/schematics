@@ -30,7 +30,6 @@ def _dumps(*args, **kwargs):
     return json_dumps(*args, **kwargs)
 
 
-# Only patch if we are using ujson
 if json_is_ujson:
     json.dumps = _dumps
 
@@ -66,7 +65,6 @@ class TypeException(Exception):
         return '%s - %s:%s' % (self.reason, self.field_name, self.field_value)
 
 
-#class ShieldDocException(Exception):
 class ModelException(Exception):
     """The Model did not pass validation and the errors have been
     accumulated into two variables: `doc` and `error_list`.
