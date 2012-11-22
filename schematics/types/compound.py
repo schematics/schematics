@@ -246,7 +246,7 @@ class MultiValueDictType(DictType):
     def __init__(self, basecls=None, *args, **kwargs):
         self.basecls = basecls or BaseType
         if not issubclass(self.basecls, BaseType):
-            raise NotAModelException('basecls is not subclass of BaseType')
+            raise NotATypeException('basecls is not subclass of BaseType')
         kwargs.setdefault('default', lambda: MultiValueDict())
         super(MultiValueDictType, self).__init__(*args, **kwargs)
 
