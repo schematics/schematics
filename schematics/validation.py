@@ -1,5 +1,56 @@
-from schematics.base import TypeException
+"""Validation
 
+Validation is performed in a way that does not rely on Exceptions.  This means
+the return values have significance, but they are easy enough to check.  The
+goal of the validation system working this way is to increase awareness for how
+success and errors are handled.
+
+A structure inspired by Erlang's tagged tuples is used.  Schematics has a few
+structures that represent inspection results that are implemented as
+namedtuples.  Every tuple contains a `tag` and a `message`.  If more values are
+stored, that is a detail of the implementation.
+
+The tag itself is a mechanism for explicitly saying something happened.  Match
+the 'OK' tag in an if statement and continue your flow.  If you don't have OK,
+you must then handle the error.  I like this model significantly better than an
+exception oriented mechanism.
+
+Validation now looks like this:
+
+    result = validate_instance(some_instance)
+    if result.tag == OK:
+        print 'OK:', result.value
+    else:
+        print 'ERROR:', result.message
+        handle_error(result)
+
+Error cases will return a text representation of what happened for the message
+value. This value will always be log-friendly.
+"""
+
+from collections import namedtuple
+
+
+OK = 'OK'
+
+###
+### If an unusual case is found, the result passes back the data that attempted
+### validation in addition to a list of the found errors.
+###
+ERROR_INVALID_TYPE = 'ERROR_INVALID_TYPE'  # NotATypeException
+ERROR_FIELD_TYPE_CHECK = 'ERROR_FIELD_TYPE_CHECK'  # TypeException
+ERROR_MODEL_TYPE_CHECK = 'ERROR_MODEL_TYPE_CHECK'  # ModelException
+
+
+### Containers
+ConversionResult = namedtuple('ConversionResult', 'tag message')
+ModelResult = namedtuple('ModelResult', 'tag message model value')
+TypeResult = namedtuple('TypeResult', 'tag message name value')
+
+
+###
+### Validation Functions
+###
 
 def _gen_handle_exception(validate_all, exception_list):
     """Generates a function for either raising exceptions or collecting
@@ -43,11 +94,12 @@ def _validate_helper(cls, field_inspector, values, validate_all=False,
     as a value.
     """
     if not hasattr(cls, '_fields'):
-        raise ValueError('cls is not a Model instance')
+        error_msg = 'cls is not a Model instance'
+        return ModelResult(ERROR_MODEL_TYPE_CHECK, error_msg, cls, values)
 
     # Create function for handling exceptions
-    exceptions = list()
-    handle_exception = _gen_handle_exception(validate_all, exceptions)
+    errors = list()
+    handle_exception = _gen_handle_exception(validate_all, errors)
 
     # Create function for handling a flock of frakkin palins (rogue fields)
     data_fields = set(values.keys())
@@ -69,10 +121,9 @@ def _validate_helper(cls, field_inspector, values, validate_all=False,
             if isinstance(datum, (str, unicode)) and \
                    len(datum.strip()) == 0:
                 continue
-            try:
-                v.validate(datum)
-            except TypeException, e:
-                handle_exception(e)
+            result = v.validate(datum)
+            if result.tag != OK:
+                handle_exception(result)
 
     # Remove rogue fields
     if len(class_fields) > 0:  # if accumulation is not disabled
@@ -81,10 +132,11 @@ def _validate_helper(cls, field_inspector, values, validate_all=False,
             del values[rogue_field]
 
     # Reaches here only if exceptions are aggregated or validation passed
-    if validate_all:
-        return exceptions
+    if len(errors) > 0:
+        error_msg = 'Multiple validation errors'
+        return ModelResult(ERROR_MODEL_TYPE_CHECK, error_msg, cls, errors)
     else:
-        return True
+        return ModelResult(OK, 'success', cls, values)
 
 
 def validate_instance(model, validate_all=False):
@@ -103,29 +155,27 @@ def validate_instance(model, validate_all=False):
         err = None
         # treat empty strings as nonexistent
         if value is not None and value != '':
-            try:
-                field._validate(value)
-            except TypeException, e:
-                err = e
-            except (ValueError, AttributeError, AssertionError):
-                err = TypeException('Invalid value', field.field_name,
-                                    value)
+            result = field._validate(value)
+            if result.tag != OK:
+                err = result
         elif field.required:
-            err = TypeException('Required field missing',
-                                field.field_name,
-                                value)
+            error_msg = 'Required field missing'
+            err = TypeResult(ERROR_MODEL_TYPE_CHECK, error_msg,
+                             field.field_name, value)
+
         # If validate_all, save errors to a list
-        # Otherwise, throw the first error
-        if err:
+        if err and validate_all:
             errs.append(err)
-        if err and not validate_all:
-            # NB: raising a ModelException in this case would be more
-            # consistent, but existing code might expect TypeException
-            raise err
+            
+        # Otherwise, throw the first error
+        elif err:
+            return err
 
     if errs:
-        raise ModelException(model._model_name, errs)
-    return True
+        error_msg = 'Errors in fields found',
+        return ModelResult(ERROR_MODEL_TYPE_CHECK, error_msg, model, errs)
+    
+    return ModelResult(OK, 'success', model, None)
 
 
 def validate_class_fields(cls, values, validate_all=False):
