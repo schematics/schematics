@@ -1,4 +1,4 @@
-from schematics.base import TypeException
+from schematics.base import TypeException, ModelException
 
 
 def _gen_handle_exception(validate_all, exception_list):
@@ -145,4 +145,3 @@ def validate_class_partial(cls, values, validate_all=False):
     """
     fun = lambda k, v: k in values
     return _validate_helper(cls, fun, values, validate_all=validate_all)
-
