@@ -4,14 +4,13 @@
 """
 """
 
+import hashlib
 
 from schematics.models import Model
-from schematics.validation import (validate_instance, validate_class_fields,
-                                   TypeResult, OK)
-from schematics.serialize import (to_python, to_json, whitelist, wholelist,
-                                  make_safe_python, make_safe_json)
+from schematics.validation import (validate_instance, validate_values, OK,
+                                   TypeResult)
+from schematics.serialize import to_python, whitelist, wholelist
 from schematics.types import MD5Type, StringType
-import hashlib
 
 
 ###
@@ -34,79 +33,68 @@ class User(Model):
         self.secret = hash_string
 
 
+
+
 ###
 ### Manually create an instance
 ###
 
+
+### Helper
+def print_result(result):
+    if result.tag == OK:
+        print '        OK: %s\n' % (result.value)
+    else:
+        print '    ERRORS: %s' % (result.message)
+        for err in result.value:
+            print '    -', err
+        print ''
+
+
 ### Create instance with bogus password
 u = User()
 u.secret = 'whatevz'
-u.name = 'test hash'
+u.name = 'this name is going to be much, much, much too long for this field'
 
 ### Validation will fail
-print 'VALIDATING: %s' % (to_json(u))
+print 'VALIDATING: %s' % (to_python(u))
 result = validate_instance(u)
-if result.tag == OK:
-    print 'OK: %s\n' %(result.model)
-else:
-    print 'ERROR: %s\n' % (result.message)
-    
+ 
 
 ### Set the password *correctly* and validation will pass
+u.name = 'J2D2'
 u.set_password('whatevz')
-print 'VALIDATING: %s' % (to_json(u))
+print 'VALIDATING: %s' % (to_python(u))
+
+### Validation will pass
 result = validate_instance(u)
-if result.tag == OK:
-    print 'OK: %s\n' % (result.model)
-else:
-    print 'ERROR: %s\n' % (result.message)
+print_result(result)
 
 
 ###
-### Instantiate an instance with this data
+### Instantiate an instance from a dict
 ###
  
 total_input = {
-    'secret': 'e8b5d682452313a6142c10b045a9a135',
+    'secret': '34165b7d7c2d95bbecd41c05c19379c4',
     'name': 'J2D2',
     'bio': 'J2D2 loves music',
     'rogue_type': 'MWAHAHA',
 }
 
-print 'Validating: %s' % (total_input)
+print 'VALIDATING: %s' % (total_input)
 
-result = validate_class_fields(User, total_input)
-if result.tag == OK:
-    print 'OK: %s\n' % (result.value)
-else:
-    print 'ERROR: %s' % (result.message)
-    print '%s exceptions: %s\n' % (len(result.value), result.model)
+### Validate dict against our model definition
+result = validate_values(User, total_input)
+print_result(result)
 
 
-### Check all types and collect all failures
-result = validate_class_fields(User, total_input, validate_all=True)
-
-if result.tag == OK:
-    print 'OK: %s\n' % (result.value)
-else:
-    print 'ERROR: %s' % (result.message)
-    print '%s exceptions: %s\n' % (len(result.value), result.model)
-
-
-###
-### Type Security
-###
-
-# Add the rogue type back to `total_input`
+### Add the rogue type back to `total_input`
 total_input['rogue_type'] = 'MWAHAHA'
 
 print 'INSTANTIATING: %s' % (total_input)
 user_doc = User(**total_input)
 
-print 'SERIALIZING: %s' % (user_doc)
-print 'Python: %s' % (to_python(user_doc))
-safe_doc = make_safe_json(User, user_doc, 'owner')
-print 'Owner: %s' % (safe_doc)
-public_safe_doc = make_safe_json(User, user_doc, 'public')
-print 'Public: %s' % (public_safe_doc)
+### Observe that rogue field was tossed away via instantiation
+print '       PYTHON: %s' % (to_python(user_doc))
 

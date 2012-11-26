@@ -5,11 +5,12 @@ except:
 from operator import itemgetter
 
 from schematics.models import Model
-from schematics.base import  TypeException
 from schematics.types import BaseType, DictType
 from schematics.datastructures import MultiValueDict
-from schematics.serialize import to_python, to_json
-from schematics.validation import validate_instance
+from schematics.serialize import to_python, to_json, for_jsonschema
+from schematics.validation import (validate_instance, validate_values, OK,
+                                   ERROR_FIELD_TYPE_CHECK, ERROR_FIELD_CONFIG,
+                                   ModelResult, FieldResult)
 
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
@@ -21,26 +22,29 @@ class ListType(BaseType):
     """
 
     def __init__(self, fields, **kwargs):
-        # Some helpful functions
-        is_basetype = lambda tipe: isinstance(tipe, BaseType)
-        is_model = lambda tipe: isinstance(tipe, ModelType)
-        is_dicttype = lambda tipe: isinstance(tipe, DictType)
+        ### Short hand
+        is_basetype = lambda field: isinstance(field, BaseType)
+        is_model = lambda field: isinstance(field, ModelType)
+        is_dicttype = lambda field: isinstance(field, DictType)
 
-        # field instance
+        ### fields is a schematic Type
         if is_basetype(fields):
             if is_model(fields):
                 kwargs.setdefault('primary_embedded', fields)
             fields = [fields]
         # something other than a list
         elif not isinstance(fields, list):
-            raise TypeException('Argument to ListType constructor must be '
-                                'a valid field or list of fields',
-                                self.field_name, list)
+            error_msg = 'Argument to ListType constructor must be '
+            error_msg = error_msg + 'a valid field or list of fields'
+            
+            return FieldResult(ERROR_FIELD_CONFIG, error_msg,
+                               self.field_name, fields)
         # some bad stuff in the list
         elif list(ifilterfalse(is_basetype, fields)):
-            raise TypeException('Argument to ListType constructor must be '
-                                'a valid field or list of valid fields',
-                                self.field_name, list)
+            error_msg = 'Argument to ListType constructor must be '
+            error_msg = error_msg + 'a valid field or list of valid fields'
+            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
+                               self.field_name, fields)
         else:
             models = filter(is_model, fields)
             dicts = filter(is_dicttype, fields)
@@ -48,35 +52,60 @@ class ListType(BaseType):
                 kwargs.setdefault('primary_embedded', None)
             if models:
                 kwargs.setdefault('primary_embedded', models[0])
+
         self.fields = fields
         kwargs.setdefault('default', list)
 
         self.primary_embedded = kwargs.pop('primary_embedded', None)
         super(ListType, self).__init__(**kwargs)
 
-    def __set__(self, instance, value):
+    def __set__(self, instance, value_list):
         """Descriptor for assigning a value to a type in a model.
         """
+        new_value = value_list
+
         is_model = lambda tipe: isinstance(tipe, ModelType)
         model_fields = filter(is_model, self.fields)
+        
         if self.primary_embedded:
             model_fields.remove(self.primary_embedded)
             model_fields.insert(0, self.primary_embedded)
 
-        if value is None:
-            value = []  # have to use a list
+        if value_list is None:
+            value_list = []  # have to use a list
 
+        errors_found = False
         if model_fields:
-            list_of_models = list()
-            for model in value:
-                if isinstance(model, dict):
+            new_data = list()
+            for datum in value_list:
+                datum_instance = datum
+                is_dict = False
+
+                ### if `datum` is dict, attempt conversion
+                if isinstance(datum, dict):
+                    is_dict = True
+                    ### Find a model that matches
                     for model_field in model_fields:
-                        model_obj = model_field.model_type_obj(**model)
-                        model = model_obj
-                validate_instance(model)
-                list_of_models.append(model)
-            value = list_of_models
-        instance._data[self.field_name] = value
+                        ### TODO Validate SMARTER
+                        datum_instance = model_field.model_type_obj(**datum)
+
+                #import pdb; pdb.set_trace()
+                result = validate_instance(datum_instance)
+            
+                if result.tag == OK:
+                    ### Remove double instantiation
+                    for model_field in model_fields:
+                        ### TODO Validate SMARTER
+                        datum_instance = model_field.model_type_obj(**result.value)
+                    #new_data.append(datum_instance)
+                    new_data.append(datum_instance)
+                else:
+                    errors_found = True
+                    
+            new_value = new_data
+
+        if not errors_found:
+            instance._data[self.field_name] = new_value
 
     def _jsonschema_type(self):
         return 'array'
@@ -85,18 +114,20 @@ class ListType(BaseType):
     def _from_jsonschema_types(self):
         return ['array']
 
+
     @classmethod
     def _from_jsonschema_formats(self):
         return [None]
 
     def _jsonschema_items(self):
-        return [field.for_jsonschema() for field in self.fields]
+        return [for_jsonschema(field) for field in self.fields]
 
     def for_output_format(self, output_format_method_name, value):
         for item in value:
             for field in self.fields:
                 try:
-                    yield getattr(field, output_format_method_name)(item)
+                    value = getattr(field, output_format_method_name)(item)
+                    yield value
                 except ValueError:
                     continue
 
@@ -114,19 +145,24 @@ class ListType(BaseType):
         """
         if not isinstance(value, (list, tuple)):
             error_msg = 'Only lists and tuples may be used in a list field'
-            raise TypeException(error_msg, self.field_name, value)
+            raise FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
+                              self.field_name, value)
 
-        if not self.fields:  # if we want everything to validate
-            return
+        if not self.fields:  # empty list
+            return FieldResult(OK, 'success', self.field_name, value)
 
+        errors = []
         for item in value:
-            try:
-                for field in self.fields:
-                    field.validate(item)
-            except Exception, e:
-                raise TypeException('Invalid ListType item',
-                                      self.field_name, str(item))
-        return value
+            for field in self.fields:
+                result = field.validate(item)
+                if result.tag is not OK:
+                    errors.append(result)
+
+        if len(errors) > 0:
+            return FieldResult('Invalid ListType item', self.field_name,
+                               errors)
+        
+        return FieldResult(OK, 'success', self.field_name, value)
 
     def _set_owner_model(self, owner_model):
         for field in self.fields:
@@ -184,9 +220,9 @@ class ModelType(BaseType):
         is_embeddable = lambda dt: issubclass(dt, Model)
         if not isinstance(model_type, basestring):
             if not model_type or not is_embeddable(model_type):
-                raise TypeException('Invalid model class provided to an '
-                                    'ModelType',
-                                    self.field_name, model_type)
+                error_msg = 'Invalid model class provided to an ModelType'
+                return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
+                                   self.field_name, model_type)
         self.model_type_obj = model_type
         super(ModelType, self).__init__(**kwargs)
 
@@ -218,7 +254,7 @@ class ModelType(BaseType):
         return [None]
 
     def for_jsonschema(self):
-        return self.model_type.for_jsonschema()
+        return for_jsonschema(self.model_type)
 
     def for_python(self, value):
         return to_python(value)
@@ -232,11 +268,11 @@ class ModelType(BaseType):
         """
         # Using isinstance also works for subclasses of self.model
         if not isinstance(value, self.model_type):
-            raise TypeException('Invalid modeltype instance '
-                                  'provided to an ModelType',
-                                  self.field_name, value)
-        validate_instance(value)
-        return value
+            error_msg = 'Invalid modeltype instance provided to an ModelType'
+            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
+                               self.field_name, value)
+
+        return validate_instance(value)
 
     def lookup_member(self, member_name):
         return self.model_type._fields.get(member_name)
@@ -245,8 +281,12 @@ class ModelType(BaseType):
 class MultiValueDictType(DictType):
     def __init__(self, basecls=None, *args, **kwargs):
         self.basecls = basecls or BaseType
+        
         if not issubclass(self.basecls, BaseType):
-            raise NotATypeException('basecls is not subclass of BaseType')
+            error_msg = 'basecls is not subclass of BaseType'
+            return FieldResult(ERROR_FIELD_CONFIG, error_msg,
+                               self.field_name, fields)
+        
         kwargs.setdefault('default', lambda: MultiValueDict())
         super(MultiValueDictType, self).__init__(*args, **kwargs)
 
@@ -260,15 +300,19 @@ class MultiValueDictType(DictType):
         """Make sure that a list of valid fields is being used.
         """
         if not isinstance(value, (dict, MultiValueDict)):
-            raise TypeException('Only dictionaries or MultiValueDict may be '
-                                  'used in a DictType', self.field_name,
-                                  value)
+            error_msg = 'Only dictionaries or MultiValueDict may be used in a '
+            error_msg = error_msg + 'DictType'
+            return  FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
+                                self.field_name, value)
 
+        ### TODO get rid of this
         if any(('.' in k or '$' in k) for k in value):
-            raise TypeException('Invalid dictionary key name - keys may not '
-                                  'contain "." or "$" characters',
-                                  self.field_name, value)
-        return value
+            error_msg = 'Invalid dictionary key name - keys may not contain '
+            error_msg = error_msg + '"." or "$" characters'
+            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
+                               self.field_name, value)
+        
+        return FieldResult(OK, 'success', self.field_name, value)
 
     def for_json(self, value):
         output = {}
