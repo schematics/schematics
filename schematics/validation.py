@@ -1,147 +1,163 @@
-from schematics.base import TypeException, ModelException
+"""Validation
 
+Validation is performed in a way that does not rely on Exceptions.  This means
+the return values have significance, but they are easy enough to check.  The
+goal of the validation system working this way is to increase awareness for how
+success and errors are handled.
 
-def _gen_handle_exception(validate_all, exception_list):
-    """Generates a function for either raising exceptions or collecting
-    them in a list.
-    """
-    if validate_all:
-        def handle_exception(e):
-            exception_list.append(e)
+A structure inspired by Erlang's tagged tuples is used.  Schematics has a few
+structures that represent inspection results that are implemented as
+namedtuples.  Every tuple contains a `tag` and a `message`.  If more values are
+stored, that is a detail of the implementation.
+
+The tag itself is a mechanism for explicitly saying something happened.  Match
+the 'OK' tag in an if statement and continue your flow.  If you don't have OK,
+you must then handle the error.
+
+I like this model significantly better than an exception oriented mechanism
+exactly because the error handling is more explicit.
+
+Validation now looks like this:
+
+    result = validate_instance(some_instance)
+    if result.tag == OK:
+        print 'OK:', result.value
     else:
-        def handle_exception(e):
-            raise e
+        print 'ERROR:', result.message
+        handle_error(result)
 
-    return handle_exception
+Error cases will return a text representation of what happened for the message
+value. This value will always be log-friendly.
+"""
 
-
-def _gen_handle_class_field(delete_rogues, field_list):
-    """Generates a function that either accumulates observed fields or
-    makes no attempt to collect them.
-
-    The case where nothing accumulates is to prevent growing data
-    schematics unnecessarily.
-    """
-    if delete_rogues:
-        def handle_class_field(cf):
-            field_list.append(cf)
-    else:
-        def handle_class_field(cf):
-            pass
-
-    return handle_class_field
+from collections import namedtuple
 
 
-def _validate_helper(cls, field_inspector, values, validate_all=False,
-                     delete_rogues=True):
-    """This is a convenience function that loops over the given values
-    and attempts to validate them against the class definition. It only
-    validates the data in values and does not guarantee a complete model
-    is present.
+###
+### Result Handlilng
+###
 
-    'not present' is defined as not having a value OR having '' (or u'')
-    as a value.
-    """
-    if not hasattr(cls, '_fields'):
-        raise ValueError('cls is not a Model instance')
+OK = 'OK'
 
-    # Create function for handling exceptions
-    exceptions = list()
-    handle_exception = _gen_handle_exception(validate_all, exceptions)
+### Type Handling
+TypeResult = namedtuple('TypeResult', 'tag message value')
+#ERROR_INVALID_TYPE
+ERROR_TYPE_COERCION = 'ERROR_TYPE_COERCION'  # type coercion failed
 
-    # Create function for handling a flock of frakkin palins (rogue fields)
-    data_fields = set(values.keys())
-    class_fields = list()
-    handle_class_field = _gen_handle_class_field(delete_rogues,
-                                                 class_fields)
+### Field Handling
+FieldResult = namedtuple('FieldResult', 'tag message name value')
+ERROR_FIELD_TYPE_CHECK = 'ERROR_FIELD_TYPE_CHECK'  # field failed type check
+ERROR_FIELD_CONFIG = 'ERROR_FIELD_CONFIG'  # bad type instance config
+ERROR_FIELD_REQUIRED = 'ERROR_FIELD_REQUIRED'  # required field not found 
+ERROR_FIELD_BAD_CHOICE = 'ERROR_FIELD_BAD_CHOICE'  # bad type instance config
 
-    # Loop across fields present in model
-    for k, v in cls._fields.items():
+### Model Handling
+ModelResult = namedtuple('ModelResult', 'tag message model value')
+ERROR_MODEL_INVALID = 'ERROR_MODEL_INVALID'  # data is not a schematics model
+ERROR_MODEL_TYPE_CHECK = 'ERROR_MODEL_TYPE_CHECK'  # model failed type check
+ERROR_MODEL_ROGUE_FIELD = 'ERROR_MODEL_ROGUE_FIELD'  # field not found in model
 
-        handle_class_field(k)
 
-        if field_inspector(k, v):
-            datum = values[k]
-            # if datum is None, skip  ### TODO makea parameter
-            if datum is None:
-                continue
-            # treat empty strings as empty values and skip
-            if isinstance(datum, (str, unicode)) and \
-                   len(datum.strip()) == 0:
-                continue
-            try:
-                v.validate(datum)
-            except TypeException, e:
-                handle_exception(e)
+###
+### Validation Functions
+###
 
-    # Remove rogue fields
-    if len(class_fields) > 0:  # if accumulation is not disabled
-        palins = data_fields - set(class_fields)
-        for rogue_field in palins:
-            del values[rogue_field]
-
-    # Reaches here only if exceptions are aggregated or validation passed
-    if validate_all:
-        return exceptions
-    else:
+def _is_empty(field_value):
+    ### TODO if field_value is None, skip  ### TODO makea parameter
+    if field_value is None:
         return True
+    # treat empty strings as empty values and skip
+    if isinstance(field_value, (str, unicode)) and \
+           len(field_value.strip()) == 0:
+        return True
+    return False
 
 
-def validate_instance(model, validate_all=False):
-    """Ensure that all fields' values are valid and that required fields
-    are present.
+def _validate(cls, needs_check, values, report_rogues=True):
+    """Loops across the fields in a Model definition, `cls`, and attempts
+    validation on any fields that require a check, as signalled by the
+    `needs_check` function.
 
-    Throws a ModelException if Model is invalid
+    The basis for validation is `cls`, so fields are located in `cls` and
+    mapped to an entry in `values`.  This entry is then validated against the
+    field's validation function.
+
+    If errors are found they are accumulated in `errors` and return with a tag
+    signalling an error.
+
+    If validation passes, the values are returned with all the values coerced
+    to their appropriate type, as specificed in the field's `validate`
+    function.
     """
-    # Get a list of tuples of field names and their current values
-    fields = [(field, getattr(model, name))
-              for name, field in model._fields.items()]
+    ### Reject model if _fields isn't present
+    if not hasattr(cls, '_fields'):
+        error_msg = 'cls is not a Model instance'
+        return ModelResult(ERROR_MODEL_INVALID, error_msg, cls, values)
 
-    # Ensure that each field is matched to a valid value
-    errs = []
-    for field, value in fields:
-        err = None
-        # treat empty strings as nonexistent
-        if value is not None and value != '':
-            try:
-                field._validate(value)
-            except TypeException, e:
-                err = e
-            except (ValueError, AttributeError, AssertionError):
-                err = TypeException('Invalid value', field.field_name,
-                                    value)
-        elif field.required:
-            err = TypeException('Required field missing',
-                                field.field_name,
-                                value)
-        # If validate_all, save errors to a list
-        # Otherwise, throw the first error
-        if err:
-            errs.append(err)
-        if err and not validate_all:
-            # NB: raising a ModelException in this case would be more
-            # consistent, but existing code might expect TypeException
-            raise err
+    ### Containers for results
+    new_data = {}
+    errors = []
 
-    if errs:
-        raise ModelException(model._model_name, errs)
-    return True
+    ### Validate data based on cls's structure
+    for field_name, field in cls._fields.items():
+        ### Rely on parameter for whether or not we should check value 
+        if needs_check(field_name, field):
+            field_value = values[field_name]
+
+            ### Don't validate nones or empty values  # TODO makea parameter
+            if _is_empty(field_value):
+                continue
+
+            ### Validate field value
+            result = field.validate(field_value)
+            if result.tag != OK:
+                errors.append(result)
+            else:
+                new_data[field_name] = result.value
+
+    ### Report rogue fields as errors if `report_rogues`
+    if report_rogues:
+        class_fields = cls._fields.keys()
+        rogues_found = set(values.keys()) - set(class_fields)
+        if len(rogues_found) > 0:
+            for field_name in rogues_found:
+                error_msg = 'Unknown field found'
+                field_value = values[field_name]
+                result = FieldResult(ERROR_MODEL_ROGUE_FIELD, error_msg,
+                                    field_name, field_value)
+                errors.append(result)
+                    
+    ### Return on if errors were found
+    if len(errors) > 0:
+        error_msg = 'Model validation errors'
+        return ModelResult(ERROR_MODEL_TYPE_CHECK, error_msg, cls, errors)
+
+    return ModelResult(OK, 'success', cls, new_data)
 
 
-def validate_class_fields(cls, values, validate_all=False):
-    """This is a convenience function that loops over _fields in
-    cls to validate them. If the field is not required AND not present,
-    it is skipped.
+def validate_values(cls, values):
+    """Validates `values` against a `class` definition or instance.  It takes
+    care to ensure require fields are present and pass validation and 
     """
-    fun = lambda k, v: v.required or k in values
-    return _validate_helper(cls, fun, values, validate_all=validate_all)
+    needs_check = lambda k, v: v.required or k in values
+    return _validate(cls, needs_check, values)
 
 
-def validate_class_partial(cls, values, validate_all=False):
-    """This is a convenience function that loops over _fields in
-    cls to validate them. This function is a partial validatation
-    only, meaning the values given and does not check if the model
-    is complete.
+def validate_instance(model):
+    """Extracts the values from the model and validates them via a call to
+    `validate_values`.
     """
-    fun = lambda k, v: k in values
-    return _validate_helper(cls, fun, values, validate_all=validate_all)
+    values = model._data
+    needs_check = lambda k, v: v.required or k in values
+    return _validate(model, needs_check, values)
+    
+
+def validate_partial(cls, values):
+    """This function will validate values against fields of the same name in
+    the model.  No checks for required fields are performed.
+
+    The idea here is you might validate subcomponents of a document and then
+    merge them later.
+    """
+    needs_check = lambda k, v: k in values
+    return _validate(cls, needs_check, values)

@@ -50,7 +50,7 @@ def apply_shape(cls, model_or_dict, field_converter, model_converter,
         elif isinstance(field_name, list) and len(field_value) > 0:
             if isinstance(field_value[0], Model):
                 model_dict[serialized_name] = [model_converter(vi)
-                                               for vi in field_vaue]
+                                               for vi in field_value]
                 
         ### Convert field as single field
         else:

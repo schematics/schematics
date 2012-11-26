@@ -2,13 +2,10 @@ import inspect
 import copy
 
 
-from schematics.base import (TypeException, ModelException, json)
+#from schematics.base import (TypeException, ModelException, json)
+from schematics.base import json
 from schematics.types import (DictFieldNotFound, schematic_types, BaseType,
                               UUIDType)
-
-
-__all__ = ['ModelMetaclass', 'TopLevelModelMetaclass', 'BaseModel',
-           'Model', 'TypeException']
 
 
 ###

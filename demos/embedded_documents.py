@@ -89,14 +89,19 @@ product_b = Product(sku=2,
                     price=3.99,
                     num_in_stock=4)
 
+#print 'Product_a as Python:\n\n    %s\n' % (to_python(product_a))
+
 
 ###
 ### Order instance
 ###
 
 order = Order(date_made=datetime.datetime.utcnow(),
-              line_items=[product_a,product_b])
+              line_items=[product_a, product_b])
+
 order.total=(product_a.price + product_b.price)
+
+#print 'Order as Python:\n\n    %s\n' % (to_python(order))
 
 
 ###
@@ -133,3 +138,4 @@ print 'Customer as Python:\n\n    %s\n' % (to_python(loaded_customer))
 
 ### Reserialize to JSON
 print 'Customer as JSON:\n\n    %s\n' % (to_json(loaded_customer))
+
