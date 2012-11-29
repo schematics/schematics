@@ -58,6 +58,10 @@ def _gen_options(klass, attrs):
     return options
 
 
+###
+### Metaclass Design
+###
+
 def _extract_fields(bases, attrs):
     ### Collect all fields in here
     model_fields = {}
@@ -79,10 +83,6 @@ def _extract_fields(bases, attrs):
             
     return model_fields
 
-
-###
-### Metaclass Design
-###
 
 class ModelMetaclass(type):
     def __new__(cls, name, bases, attrs):
