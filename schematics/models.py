@@ -22,7 +22,9 @@ class ModelOptions(object):
     def __init__(self, klass, db_namespace=None, roles=None):
         self.klass = klass
         self.db_namespace = db_namespace
-        self.roles = None
+
+        ### Default roles to an empty dict
+        self.roles = {}
         if roles is not None:
             self.roles = roles
 
