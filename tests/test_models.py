@@ -130,18 +130,54 @@ class TestMetaclass(unittest.TestCase):
 
 class TestModels(unittest.TestCase):
     def setUp(self):
-        class TestModel(Model):
-            some_int = IntType()
-        self._class = TestModel
-
+        pass
+        
     def tearDown(self):
         pass
     
     def test_equality(self):
-        tm1 = self._class()
+        class TestModel(Model):
+            some_int = IntType()
+
+        tm1 = TestModel()
         tm1.some_int = 4
         self.assertEqual(tm1, copy.copy(tm1))
-        tm2 = self._class()
+
+        tm2 = TestModel()
         tm2.some_int = 4
         self.assertEqual(tm1, tm2)
 
+    def test_model_field_list(self):
+        it = IntType()
+        class TestModel(Model):
+            some_int = it
+        
+        self.assertEqual({'some_int': it}, TestModel._fields)
+
+    def test_model_data(self):
+        class TestModel(Model):
+            some_int = IntType()
+
+        self.assertRaises(AttributeError, lambda: TestModel._data)        
+        
+    def test_instance_data(self):
+        class TestModel(Model):
+            some_int = IntType()
+
+        tm = TestModel()
+        tm.some_int = 5
+        
+        self.assertEqual({'some_int': 5}, tm._data)
+
+    def test_dict_interface(self):
+        class TestModel(Model):
+            some_int = IntType()
+
+        tm = TestModel()
+        tm.some_int = 5
+        
+        self.assertEqual(True, 'some_int' in tm)
+        self.assertEqual(5, tm['some_int'])
+        self.assertEqual(True, 'fake_key' not in tm)
+        
+        
