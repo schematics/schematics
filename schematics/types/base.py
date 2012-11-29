@@ -552,6 +552,9 @@ class BooleanType(BaseType):
     """A boolean field type.
     """
 
+    TRUE = ('True', 'true', '1')
+    FALSE = ('False', 'false', '0')
+
     def _jsonschema_type(self):
         return 'boolean'
 
@@ -562,6 +565,18 @@ class BooleanType(BaseType):
     @classmethod
     def _from_jsonschema_formats(self):
         return [None]
+
+    def __set__(self, instance, value):
+        """
+        Accept some form of True/False as string
+        """
+        if isinstance(value, (str, unicode)):
+            if value in BooleanType.TRUE:
+                value = True
+            elif value in BooleanType.FALSE:
+                value = False
+
+        instance._data[self.field_name] = value
 
     def for_python(self, value):
         return bool(value)
