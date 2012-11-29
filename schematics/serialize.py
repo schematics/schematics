@@ -1,3 +1,73 @@
+"""Serialize
+
+Serialization is essentially the process of converting a model into some other
+format.  The current formats supported are a Python dict and a JSON string. One
+could use Python's cPickle module or a msgpack too.
+
+The logic includes conversions from Schematics representation into formats
+suitable for some serialization method.  For example, Python datetime's will
+blow up json.dumps so we first convert the date into ISO8601 format.
+
+Serializing a model instance then looks like this:
+
+    a_dict = to_python(instance)
+
+There is additional logic that allows user's to remove fields from
+serialization based on the concept of configured roles.  The idea here is that
+it's typical to not want to share every field for some reason.  A whilelist
+and blacklist mechanism is provided for those fields.  The actual logic only
+requires a function so the behavior of the system is fully customizable.
+
+A class with role access specified looks like this:
+
+    class SomeModel(Model):
+        field_a = ...
+
+        class Options:
+            roles = {
+                'owner': blacklist('field_a'),
+                'public': whitelist('field_b', 'field_c'),
+            }
+
+Serializing data against a role then looks like this:
+
+    a_dict = make_safe_python(SomeModel, my_data, 'public')
+
+I can convert the data to JSON just as easily too.
+
+    a_str = make_safe_json(SomeModel, my_data, 'public')
+
+In addition to these mechanisms existing, they are fully recursive and will
+expand models if they are used as fields.  They will also apply a role
+recursively which allows users to embed models with unique role systems inside
+container models.
+
+That looks like this in code:
+
+    class SomeModel(Model):
+        name = StringType()
+        email = EmailType()
+        is_active = BooleanType()
+        class Options:
+            roles = {
+                'owner': blacklist('is_active'),
+                'public': whitelist('username', 'name'),
+            }
+    
+    class BlogPost(Model):
+        title = StringType()    
+        content = StringType()
+        author = ModelType(Author)
+        post_date = DateTimeType(default=datetime.datetime.now)
+        comments = ListType(ModelType(Comment))
+        deleted = BooleanType()   
+        class Options:
+            roles = {
+                'owner': whotelist(),
+                'public': whitelist('author', 'content', 'comments'),
+            }        
+"""
+
 import copy
 
 from schematics.types import schematic_types
