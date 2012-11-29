@@ -1,16 +1,19 @@
 #!/usr/bin/env python
 
 
-"""Comments.
-"""
-
-
 import unittest
 import json
 import datetime
 import copy
-from schematics.base import json
+
 from schematics.models import Model
+from schematics.serialize import (to_python, to_json, make_safe_python,
+                                  make_safe_json)
+
+from schematics.base import force_sys_json
+json = force_sys_json()
+print json
+
 import fixtures
 from fixtures import Model
 
@@ -24,8 +27,8 @@ class ModelSerializer:
     
     def setUp(self):
         self.instance = self.klass(**self.description)
-        self.as_python = self.instance.to_python()
-        self.as_json = self.instance.to_json(sort_keys=True)
+        self.as_python = to_python(self.instance)
+        self.as_json = to_json(self.instance, sort_keys=True)
         self.json_owner_safe = json.dumps(self.owner_safe, sort_keys=True)
         self.json_public_safe = json.dumps(self.public_safe, sort_keys=True)
 
@@ -37,88 +40,88 @@ class ModelSerializer:
                                                    sort_keys=True))
 
     def test_owner_safe(self):
-        owner_safe = self.klass.make_ownersafe(self.instance)
+        owner_safe = make_safe_python(self.klass, self.instance, 'owner')
         self.assertEqual(self.owner_safe, owner_safe)
 
     def test_json_owner_safe(self):
-        json_owner_safe = self.klass.make_json_ownersafe(self.instance,
-                                                         sort_keys=True)
+        json_owner_safe = make_safe_json(self.klass, self.instance, 'owner',
+                                         sort_keys=True)
         self.assertEqual(self.json_owner_safe, json_owner_safe)
 
     def test_public_safe(self):
-        public_safe = self.klass.make_publicsafe(self.instance)
+        public_safe = make_safe_python(self.klass, self.instance, 'public')
         self.assertEqual(self.public_safe, public_safe)
 
     def test_json_public_safe(self):
-        json_public_safe = self.klass.make_json_publicsafe(self.instance,
-                                                           sort_keys=True)
+        json_public_safe = make_safe_json(self.klass, self.instance, 'public',
+                                          sort_keys=True)
         self.assertEqual(self.json_public_safe, json_public_safe)
 
 
-class TestSimpleDoc(DocSerializer, unittest.TestCase):
-    klass = fixtures.SimpleDoc
+class TestSimpleModel(ModelSerializer, unittest.TestCase):
+    klass = fixtures.SimpleModel
+    
     description = {
-        '_cls'  : 'SimpleDoc',
-        '_types': ['SimpleDoc'],
         'title' : u'Misc Doc',
     }
+    
     owner_safe = {
         'title': 'Misc Doc',
     }
+    
     public_safe = {}
 
 
-class TestSubDoc(DocSerializer, unittest.TestCase):
-    klass = fixtures.SubDoc
+class TestSubModel(ModelSerializer, unittest.TestCase):
+    klass = fixtures.SubModel
+    
     description = {
-        '_cls': 'SimpleDoc.SubDoc',
-        '_types': ['SimpleDoc', 'SimpleDoc.SubDoc'],
         'title': u'Total Recall',
         'year': 1990,
         'thoughts': u'I wish I had three hands...',
     }
+    
     owner_safe = {
         'title': 'Total Recall',
         'year': 1990,
         'thoughts': 'I wish I had three hands...',
     }
+    
     public_safe = {
         'title': 'Total Recall',
         'year': 1990,
     }
 
 
-class TestMixedDoc(DocSerializer, unittest.TestCase):
-    klass = fixtures.MixedDoc
+class TestThingModel(ModelSerializer, unittest.TestCase):
+    klass = fixtures.ThingModel
+    
     description = {
-        '_cls': 'MixedDoc',
-        '_types': ['MixedDoc'],
-        'title': u'Mixed Document',
+        'title': u'Thing Model',
         'body': u'Scenester twee mlkshk readymade butcher. Letterpress\nportland +1 salvia, vinyl trust fund butcher gentrify farm-to-table brooklyn\nhelvetica DIY. Sartorial homo 3 wolf moon, banh mi blog retro mlkshk Austin\nmaster cleanse.\n',
         'liked': True,
         'archived': False,
         'deleted': False,
     }
+    
     owner_safe = {
-        'title': u'Mixed Document',
+        'title': u'Thing Model',
         'body': u'Scenester twee mlkshk readymade butcher. Letterpress\nportland +1 salvia, vinyl trust fund butcher gentrify farm-to-table brooklyn\nhelvetica DIY. Sartorial homo 3 wolf moon, banh mi blog retro mlkshk Austin\nmaster cleanse.\n',
         'liked': True,
         'archived': False,
         'deleted': False,
     }
+    
     public_safe = {}
 
 
-class TestEmbeddedDocs(DocSerializer, unittest.TestCase):
+class TestEmbeddedDocs(ModelSerializer, unittest.TestCase):
     klass = fixtures.BlogPost
+    
     description = {
-        '_cls': 'BlogPost',
-        '_types': ['BlogPost'],
         'title': u'Hipster Hodgepodge',
         'content': u'Retro single-origin coffee chambray stumptown, scenester VHS\nbicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free\ntrust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed\n',
         'author': {
-            '_cls': 'Author',
-            '_types': ['Author'],
             'username': u'j2d2',
             'name': u'james',
             'a_setting': True,
@@ -127,15 +130,11 @@ class TestEmbeddedDocs(DocSerializer, unittest.TestCase):
         },
         'comments': [
             {
-                '_cls': 'Comment',
-                '_types': ['Comment'],
                 'username': u'bro',
                 'text': u'This post was awesome!',
                 'email': u'bru@dudegang.com',
             },
             {
-                '_cls': 'Comment',
-                '_types': ['Comment'],
                 'username': u'barbie',
                 'text': u'This post is ridiculous',
                 'email': u'barbie@dudegang.com',
@@ -143,6 +142,7 @@ class TestEmbeddedDocs(DocSerializer, unittest.TestCase):
         ],
         'deleted': False,
     }
+    
     owner_safe = {
         'author': {
             'username': 'j2d2',
@@ -166,6 +166,7 @@ class TestEmbeddedDocs(DocSerializer, unittest.TestCase):
         ],
         'content': 'Retro single-origin coffee chambray stumptown, scenester VHS\nbicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free\ntrust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed\n'
     }
+    
     public_safe = {
         'author': {
             'name': 'james',
@@ -183,7 +184,3 @@ class TestEmbeddedDocs(DocSerializer, unittest.TestCase):
         ],
         'content': 'Retro single-origin coffee chambray stumptown, scenester VHS\nbicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free\ntrust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed\n'
     }
-    
-
-if __name__ == '__main__':
-    unittest.main()
