@@ -1,7 +1,9 @@
 import os
 from os import path
 
-from schematics.validation import (TypeResult, FieldResult, OK)
+from schematics.types import StringType
+from schematics.validation import (TypeResult, FieldResult, OK,
+                                   ERROR_TYPE_COERCION)
 
 
 class PathType(StringType):
@@ -77,7 +79,7 @@ class PathType(StringType):
                 permissions = self._access_to_permission_list(self.access)
                 error_msg = "path one or more of the following permissions: {}"
                 return FieldResult(ERROR_TYPE_COERCION,
-                                   error_msg.format(", ".join(permissions))
+                                   error_msg.format(", ".join(permissions)),
                                    self.field_name, value)
 
         return FieldResult(OK, 'success', self.field_name, value)
