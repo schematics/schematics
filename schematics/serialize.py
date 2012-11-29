@@ -9,24 +9,24 @@ from schematics.models import BaseModel, Model
 ### Serialization Shaping Functions
 ###
 
-def _reduce_loop(cls, model_or_dict, field_converter):
+def _reduce_loop(model, instance_or_dict, field_converter):
     """Each field's name, the field instance and the field's value are
     collected in a truple and yielded, making this a generator.
     """
-    for field_name in model_or_dict:
-        field_instance = cls._fields[field_name]
-        field_value = model_or_dict[field_name]
+    for field_name in instance_or_dict:
+        field_instance = model._fields[field_name]
+        field_value = instance_or_dict[field_name]
         yield (field_name, field_instance, field_value)
 
 
-def apply_shape(cls, model_or_dict, field_converter, model_converter,
+def apply_shape(model, instance_or_dict, field_converter, model_converter,
                 gottago, allow_none=False):
     """
     """
     model_dict = {}
 
     ### Loop over each field and either evict it or convert it
-    for truple in _reduce_loop(cls, model_or_dict, field_converter):
+    for truple in _reduce_loop(model, instance_or_dict, field_converter):
         ### Break 3-tuple out
         (field_name, field_instance, field_value) = truple
 
@@ -71,8 +71,8 @@ def wholelist(*field_list, **kw):
     """Returns a function that evicts nothing. Exists mainly to be an explicit
     allowance of all fields instead of a using an empty blacklist.
     """
-    gottago = lambda k,v: False
-    return gottago
+    _wholelist = lambda k,v: False
+    return _wholelist
 
     
 def whitelist(*field_list, **kw):
@@ -87,14 +87,13 @@ def whitelist(*field_list, **kw):
         allow_none = kw['allow_none']
 
     ### Default to ejecting the value
-    gottago = lambda k,v: True
+    _whitelist = lambda k,v: True
 
-    ### Create new `gottago` to handle field list if one is provided
     if field_list is not None and len(field_list) > 0:
-        def gottago(k, v):
+        def _whitelist(k, v):
             return k not in field_list or (not allow_none and v is None)
 
-    return gottago
+    return _whitelist
 
 
 def blacklist(*field_list, **kw):
@@ -109,13 +108,13 @@ def blacklist(*field_list, **kw):
         allow_none = kw['allow_none']
 
     ### Default to accepting the value
-    gottago = lambda k,v: False
+    _blacklist = lambda k,v: False
     
     if field_list is not None and len(field_list) > 0:
-        def gottago(k, v):
+        def _blacklist(k, v):
             return k in field_list or (not allow_none and v is None)
             
-    return gottago
+    return _blacklist
 
 
 ###
@@ -143,19 +142,19 @@ def to_json(model, gottago=wholelist(), encode=True, sort_keys=False, **kw):
         return data
 
 
-def make_safe_python(cls, model_or_dict, role, **kw):
+def make_safe_python(model, instance_or_dict, role, **kw):
     field_converter = lambda f, v: f.for_python(v)
     model_converter = lambda m: make_safe_python(m.__class__, m, role, **kw)
 
     gottago = lambda k,v: True
-    if role in cls._options.roles:
-        gottago = cls._options.roles[role]
+    if role in model._options.roles:
+        gottago = model._options.roles[role]
 
-    return apply_shape(cls, model_or_dict, field_converter, model_converter,
+    return apply_shape(model, instance_or_dict, field_converter, model_converter,
                        gottago, **kw)
     
 
-def make_safe_json(cls, model_or_dict, role, encode=True, sort_keys=False,
+def make_safe_json(model, instance_or_dict, role, encode=True, sort_keys=False,
                    **kw):
     field_converter = lambda f, v: f.for_json(v)
     model_converter = lambda m: make_safe_json(m.__class__, m, role,
@@ -163,10 +162,10 @@ def make_safe_json(cls, model_or_dict, role, encode=True, sort_keys=False,
                                                sort_keys=sort_keys)
 
     gottago = lambda k,v: True
-    if role in cls._options.roles:
-        gottago = cls._options.roles[role]
+    if role in model._options.roles:
+        gottago = model._options.roles[role]
 
-    data = apply_shape(cls, model_or_dict, field_converter, model_converter,
+    data = apply_shape(model, instance_or_dict, field_converter, model_converter,
                        gottago, **kw)
 
     if encode:
