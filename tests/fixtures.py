@@ -1,8 +1,8 @@
 import datetime
+import hashlib
+import json
 
-from dictshield.base import ShieldException
 from schematics.models import Model
-
 from schematics.types import (BaseType,
                               IntType,
                               BooleanType,
@@ -11,13 +11,10 @@ from schematics.types import (BaseType,
                               DateTimeType,
                               EmailType,
                               MD5Type)
-
-from schematics.validation import whitelist
-
-from schematics.types.compound import ListType, EmbeddedDocumentType
+from schematics.serialize import (whitelist, blacklist, wholelist,
+                                  make_safe_json)
+from schematics.types.compound import ListType, ModelType
 from schematics.types.mongo import ObjectIdType
-import hashlib
-import json
 
 
 ###
@@ -29,6 +26,11 @@ class SimpleModel(Model):
     """
     owner = ObjectIdType() # probably set required=True
     title = StringType(max_length=40)
+    class Options:
+        roles = {
+            'owner': wholelist(),
+        }
+            
 
 
 simple = SimpleModel(title='Misc Doc')
@@ -42,6 +44,7 @@ class SubModel(SimpleModel):
     thoughts = StringType(max_length=255)
     class Options:
         roles = {
+            'owner': wholelist(),
             'public': whitelist('title','year'),
         }
 
@@ -60,9 +63,18 @@ class InterestMixin(Model):
     deleted = BooleanType(default=False)
 
 
-class ThingModel(Model, InterestMixin):
+class OtherMixin(Model):
+    wat = BooleanType(default=False)
+    
+
+class ThingModel(InterestMixin):
     title = StringType()
     body = StringType()
+
+    class Options:
+        roles = {
+            'owner': wholelist(),
+        }
 
 
 thing_body = """Scenester twee mlkshk readymade butcher. Letterpress
@@ -71,7 +83,7 @@ helvetica DIY. Sartorial homo 3 wolf moon, banh mi blog retro mlkshk Austin
 master cleanse.
 """
 
-thing = ThingModel(title='Mixed Document', body=thing_body, liked=True)
+thing = ThingModel(title='Thing Model', body=thing_body, liked=True)
 
 
 ###
@@ -116,8 +128,8 @@ comment2 = Comment(text='This post is ridiculous', username='barbie',
 class BlogPost(Model):
     title = StringType()    
     content = StringType()
-    author = EmbeddedDocumentType(Author)
-    comments = ListType(EmbeddedDocumentType(Comment))
+    author = ModelType(Author)
+    comments = ListType(ModelType(Comment))
     deleted = BooleanType()   
     class Options:
         roles = {
@@ -149,7 +161,7 @@ class Action(Model):
 class SingleTask(Model):
     """A `SingleTask` associates a creation date with an `Action` instance.
     """
-    action = EmbeddedDocumentType(Action)
+    action = ModelType(Action)
     created_date = DateTimeType(default=datetime.datetime.now)
 
 
@@ -157,7 +169,7 @@ class TaskList(Model):
     """A `TaskList` associated a creation date and updated_date with a list of
     `Action` instances.
     """
-    actions = ListType(EmbeddedDocumentType(Action))
+    actions = ListType(ModelType(Action))
     created_date = DateTimeType(default=datetime.datetime.now)
     updated_date = DateTimeType(default=datetime.datetime.now)
     num_completed = IntType(default=0)
@@ -191,7 +203,7 @@ tl.actions = [a1, a2]
 ### Basic User model
 ###
 
-class BasicUser(Document):
+class BasicUser(Model):
     
     secret = MD5Type()
     name = StringType(required=True, max_length=50)
@@ -209,16 +221,15 @@ class BasicUser(Document):
 
 ### Create instance with bogus password
 u = BasicUser()
-u.secret = 'whatevz'
 u.name = 'test hash'
-
-### Set the password *correctly* using our `set_password` function
 u.set_password('whatevz')
+
 
 ###
 ### Instantiate an instance with this data
 ###
- 
+
+# user_dict
 total_input = {
     'secret': 'e8b5d682452313a6142c10b045a9a135',
     'name': 'J2D2',
@@ -228,7 +239,7 @@ total_input = {
 
 
 ### Check all types and collect all failures
-exceptions = .validate_class_types(total_input, validate_all=True)
+#exceptions = User.validate_class_types(total_input, validate_all=True)
 
 
 ###
@@ -240,8 +251,8 @@ total_input['rogue_field'] = 'MWAHAHA'
 
 user_doc = BasicUser(**total_input)
 #print 'Document as Python:\n    %s\n' % (user_doc.to_python())
-safe_doc = BasicUser.make_json_ownersafe(user_doc)
+safe_doc = make_safe_json(BasicUser, user_doc, 'owner')
 #print 'Owner safe doc:\n    %s\n' % (safe_doc)
-public_safe_doc = BasicUser.make_json_publicsafe(user_doc)
+public_safe_doc = make_safe_json(BasicUser, user_doc, 'public')
 #print 'Public safe doc:\n    %s\n' % (public_safe_doc)
 
