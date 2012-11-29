@@ -10,10 +10,6 @@ from schematics.models import Model
 from schematics.serialize import (to_python, to_json, make_safe_python,
                                   make_safe_json)
 
-from schematics.base import force_sys_json
-json = force_sys_json()
-print json
-
 import fixtures
 from fixtures import Model
 
