@@ -4,35 +4,144 @@
 import copy
 import unittest
 import json
-from dictshield.document import Document
-from dictshield.fields.base import IntField
+
+from schematics.models import (ModelOptions, _parse_options_config,
+                               _gen_options, _extract_fields,
+                               Model)
+                               
+from schematics.types.base import IntType
 
 
-class TestEqualityTest(unittest.TestCase):
+class TestOptions(unittest.TestCase):
+    """This test collection covers the `ModelOptions` class and related
+    functions.
+    """
     def setUp(self):
-        class TestDocument(Document):
-            some_int = IntField()
-        self.TestDoc = TestDocument
-        self.testdoc = TestDocument()
+        self._class = ModelOptions
 
-    def test_equality(self):
-        self.testdoc.some_int = 4
-        self.assertEqual(self.testdoc, copy.copy(self.testdoc)) 
-        some_other_doc = self.TestDoc()
-        some_other_doc.some_int = 4
-        self.assertNotEqual(self.testdoc, some_other_doc)
-        del some_other_doc._fields['id']
-        self.assertEqual(self.testdoc, some_other_doc)
+    def tearDown(self):
+        pass
+
+    def test_good_options_args(self):
+        args = {
+            'klass': None,
+            'db_namespace': None,
+            'roles': None,
+        }
+
+        mo = self._class(**args)
+        self.assertNotEqual(mo, None)
+
+        ### Test that a value for roles was generated
+        self.assertNotEqual(mo.roles, None)
+        self.assertEqual(mo.roles, {})
+
+    def test_bad_options_args(self):
+        args = {
+            'klass': None,
+            'db_namespace': None,
+            'roles': None,
+            'badkw': None,
+        }
+        with self.assertRaises(TypeError):
+            c = self._class(**args)
+
+    def test_no_options_args(self):
+        args = {}
+        mo = self._class(None, **args)
+        self.assertNotEqual(mo, None)
+
+    def test_options_parsing(self):
+        mo = ModelOptions(None)
+        mo.db_namespace = 'foo'
+        mo.roles = {}
+
+        class Options:
+            db_namespace = 'foo'
+            roles = {}
+            
+        attrs = { 'Options': Options }
+        oc = _parse_options_config(None, attrs, ModelOptions)
+
+        self.assertEqual(oc.__class__, mo.__class__)
+        self.assertEqual(oc.db_namespace, mo.db_namespace)
+        self.assertEqual(oc.roles, mo.roles)
+
+    def test_options_parsing_from_model(self):
+        class Foo(Model):
+            class Options:
+                db_namespace = 'foo'
+                roles = {}
+            
+        class Options:
+            db_namespace = 'foo'
+            roles = {}
+            
+        attrs = { 'Options': Options }
+        oc = _parse_options_config(Foo, attrs, ModelOptions)
+
+        f = Foo()
+        fo = f._options
         
-    def test_jsonify(self):
-        self.testdoc.some_int = 4
-        self.assertEqual(self.testdoc, copy.copy(self.testdoc)) 
-        some_other_doc = self.TestDoc()
-        some_other_doc.some_int = 4
-        self.assertNotEqual(self.testdoc, some_other_doc)
-        del some_other_doc._fields['id']
-        self.assertEqual(self.testdoc, some_other_doc)
+        self.assertEqual(oc.__class__, fo.__class__)
+        self.assertEqual(oc.db_namespace, fo.db_namespace)
+        self.assertEqual(oc.roles, fo.roles)
 
 
-if __name__ == '__main__':
-    unittest.main()
+class TestMetaclass(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_extract_class_fields(self):
+        bases = [Model]
+        attrs = {'i': IntType()}
+        
+        fields = _extract_fields(bases, attrs)
+        self.assertEqual(attrs, fields)
+
+    def test_bad_extract_class_fields(self):
+        bases = []
+        attrs = {'i': 5}
+        expected = {'i': IntType()}
+        
+        fields = _extract_fields(bases, attrs)
+        self.assertNotEqual(expected, fields)
+
+    def test_extract_subclass_fields(self):
+        class Foo(Model):
+            x = IntType()
+            y = IntType()
+            z = 5  # should be ignored
+
+        bases = [Foo]
+        attrs = {'i': IntType()}
+
+        fields = _extract_fields(bases, attrs)
+        expected = {
+            'i': attrs['i'],
+            'x': Foo.x,
+            'y': Foo.y,
+        }
+        self.assertEqual(fields, expected)
+
+
+class TestModels(unittest.TestCase):
+    def setUp(self):
+        class TestModel(Model):
+            some_int = IntType()
+        self._class = TestModel
+
+    def tearDown(self):
+        pass
+    
+    def test_equality(self):
+        tm1 = self._class()
+        tm1.some_int = 4
+        self.assertEqual(tm1, copy.copy(tm1))
+        tm2 = self._class()
+        tm2.some_int = 4
+        self.assertEqual(tm1, tm2)
+

@@ -1,99 +1,109 @@
 import datetime
 
 from dictshield.base import ShieldException
-from dictshield.document import Document, EmbeddedDocument
+from schematics.models import Model
 
-from dictshield.fields import (BaseField,
-                               IntField,
-                               BooleanField,
-                               StringField,
-                               FloatField,
-                               DateTimeField,
-                               EmailField,
-                               MD5Field)
+from schematics.types import (BaseType,
+                              IntType,
+                              BooleanType,
+                              StringType,
+                              FloatType,
+                              DateTimeType,
+                              EmailType,
+                              MD5Type)
 
-from dictshield.fields.compound import ListField, EmbeddedDocumentField
-from dictshield.fields.mongo import ObjectIdField
+from schematics.validation import whitelist
+
+from schematics.types.compound import ListType, EmbeddedDocumentType
+from schematics.types.mongo import ObjectIdType
 import hashlib
 import json
+
 
 ###
 ### Basic Class and Subclass
 ###
 
-class SimpleDoc(Document):
-    """Simple document that has one StringField member
+class SimpleModel(Model):
+    """Simple model that has one StringType member
     """
-    owner = ObjectIdField() # probably set required=True
-    title = StringField(max_length=40)
+    owner = ObjectIdType() # probably set required=True
+    title = StringType(max_length=40)
 
 
-simple_doc = SimpleDoc(title='Misc Doc')
+simple = SimpleModel(title='Misc Doc')
 
 
-class SubDoc(SimpleDoc):
-    """Subclass of `SimpleDoc`. Adds `year` and limits publicly shareable
-    fields to only 'title' and 'year'.
+class SubModel(SimpleModel):
+    """Subclass of `SimpleModel`. Adds `year` and limits publicly shareable
+    types to only 'title' and 'year'.
     """
-    _public_fields = ['title','year']
-    year = IntField(min_value=1950, max_value=datetime.datetime.now().year)
-    thoughts = StringField(max_length=255)
+    year = IntType(min_value=1950, max_value=datetime.datetime.now().year)
+    thoughts = StringType(max_length=255)
+    class Options:
+        roles = {
+            'public': whitelist('title','year'),
+        }
 
 
-sub_doc = SubDoc(title='Total Recall',
-                 year=1990,
-                 thoughts='I wish I had three hands...')
+sub = SubModel(title='Total Recall', year=1990,
+               thoughts='I wish I had three hands...')
+
 
 ###
-### Mixin Docs
+### Mixin Concept
 ###
 
-class InterestMixin(EmbeddedDocument):
-    liked = BooleanField(default=False)
-    archived = BooleanField(default=False)
-    deleted = BooleanField(default=False)
-    class Meta:
-        mixin = True
+class InterestMixin(Model):
+    liked = BooleanType(default=False)
+    archived = BooleanType(default=False)
+    deleted = BooleanType(default=False)
 
 
-class MixedDoc(Document, InterestMixin):
-    title = StringField()
-    body = StringField()
+class ThingModel(Model, InterestMixin):
+    title = StringType()
+    body = StringType()
 
 
-mixed_doc = MixedDoc()
-mixed_doc.title = 'Mixed Document'
-mixed_doc.body = """Scenester twee mlkshk readymade butcher. Letterpress
+thing_body = """Scenester twee mlkshk readymade butcher. Letterpress
 portland +1 salvia, vinyl trust fund butcher gentrify farm-to-table brooklyn
 helvetica DIY. Sartorial homo 3 wolf moon, banh mi blog retro mlkshk Austin
 master cleanse.
 """
-mixed_doc.liked = True
+
+thing = ThingModel(title='Mixed Document', body=thing_body, liked=True)
 
 
 ###
 ### Embedded Docs, each with Permissions config
 ###
 
-class Author(EmbeddedDocument):
-    _private_fields=['is_active']
-    _public_fields=['username', 'name']
-    name = StringField()
-    username = StringField()
-    email = EmailField()
-    a_setting = BooleanField()
-    is_active = BooleanField()
+class Author(Model):
+    name = StringType()
+    username = StringType()
+    email = EmailType()
+    a_setting = BooleanType()
+    is_active = BooleanType()
+    class Options:
+        roles = {
+            'owner': blacklist('is_active'),
+            'public': whitelist('username', 'name'),
+        }
 
 
 author = Author(name='james', username='j2d2', email='jdennis@gmail.com',
                 a_setting=True, is_active=True)
 
 
-class Comment(EmbeddedDocument):
-    _public_fields=['username', 'text']
-    text = StringField()
-    username = StringField()
-    email = EmailField()   
+class Comment(Model):
+    text = StringType()
+    username = StringType()
+    email = EmailType()   
+    class Options:
+        roles = {
+            'owner': wholelist(),
+            'public': whitelist('username', 'text'),
+        }
 
 
 comment1 = Comment(text='This post was awesome!', username='bro',
@@ -103,20 +113,24 @@ comment2 = Comment(text='This post is ridiculous', username='barbie',
                    email='barbie@dudegang.com')
 
 
-class BlogPost(Document):
-    _private_fields=['personal_thoughts']
-    _public_fields=['author', 'content', 'comments']
-    title = StringField()    
-    content = StringField()
-    author = EmbeddedDocumentField(Author)
-    comments = ListField(EmbeddedDocumentField(Comment))
-    deleted = BooleanField()   
+class BlogPost(Model):
+    title = StringType()    
+    content = StringType()
+    author = EmbeddedDocumentType(Author)
+    comments = ListType(EmbeddedDocumentType(Comment))
+    deleted = BooleanType()   
+    class Options:
+        roles = {
+            'owner': blacklist('personal_thoughts'),
+            'public': whitelist('author', 'content', 'comments'),
+        }
     
 
 content = """Retro single-origin coffee chambray stumptown, scenester VHS
 bicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free
 trust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed
 """
+
 blogpost = BlogPost(title='Hipster Hodgepodge', author=author, content=content,
                     comments=[comment1, comment2], deleted=False)
 
@@ -125,28 +139,28 @@ blogpost = BlogPost(title='Hipster Hodgepodge', author=author, content=content,
 ### Models
 ###
 
-class Action(EmbeddedDocument):
+class Action(Model):
     """An `Action` associates an action name with a list of tags.
     """
-    value = StringField(required=True, max_length=256)
-    tags = ListField(StringField())
+    value = StringType(required=True, max_length=256)
+    tags = ListType(StringType())
 
 
-class SingleTask(Document):
+class SingleTask(Model):
     """A `SingleTask` associates a creation date with an `Action` instance.
     """
-    action = EmbeddedDocumentField(Action)
-    created_date = DateTimeField(default=datetime.datetime.now)
+    action = EmbeddedDocumentType(Action)
+    created_date = DateTimeType(default=datetime.datetime.now)
 
 
-class TaskList(Document):
+class TaskList(Model):
     """A `TaskList` associated a creation date and updated_date with a list of
     `Action` instances.
     """
-    actions = ListField(EmbeddedDocumentField(Action))
-    created_date = DateTimeField(default=datetime.datetime.now)
-    updated_date = DateTimeField(default=datetime.datetime.now)
-    num_completed = IntField(default=0)
+    actions = ListType(EmbeddedDocumentType(Action))
+    created_date = DateTimeType(default=datetime.datetime.now)
+    updated_date = DateTimeType(default=datetime.datetime.now)
+    num_completed = IntType(default=0)
 
 
 ###
@@ -178,12 +192,16 @@ tl.actions = [a1, a2]
 ###
 
 class BasicUser(Document):
-    _public_fields = ['name', 'bio']
     
-    secret = MD5Field()
-    name = StringField(required=True, max_length=50)
-    bio = StringField(max_length=100)
+    secret = MD5Type()
+    name = StringType(required=True, max_length=50)
+    bio = StringType(max_length=100)
 
+    class Options:
+        roles = {
+            'public': whitelist('name', 'bio'),
+        }
+        
     def set_password(self, plaintext):
         hash_string = hashlib.md5(plaintext).hexdigest()
         self.secret = hash_string
@@ -209,15 +227,15 @@ total_input = {
 }
 
 
-### Check all fields and collect all failures
-exceptions = BasicUser.validate_class_fields(total_input, validate_all=True)
+### Check all types and collect all failures
+exceptions = .validate_class_types(total_input, validate_all=True)
 
 
 ###
-### Field Security
+### Type Security
 ###
 
-# Add the rogue field back to `total_input`
+# Add the rogue type back to `total_input`
 total_input['rogue_field'] = 'MWAHAHA'
 
 user_doc = BasicUser(**total_input)

@@ -9,13 +9,13 @@ import unittest
 import json
 import datetime
 import copy
-from dictshield.base import json
-from dictshield.document import Document
+from schematics.base import json
+from schematics.models import Model
 import fixtures
-from fixtures import Document
+from fixtures import Model
 
 
-class DocSerializer:
+class ModelSerializer:
     ### Subclass overrides these
     klass = None 
     description = dict()
