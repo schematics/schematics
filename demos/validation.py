@@ -59,6 +59,7 @@ u.name = 'this name is going to be much, much, much too long for this field'
 ### Validation will fail
 print 'VALIDATING: %s' % (to_python(u))
 result = validate_instance(u)
+print_result(result)
  
 
 ### Set the password *correctly* and validation will pass
