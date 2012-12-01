@@ -100,11 +100,10 @@ def apply_shape(model, instance_or_dict, field_converter, model_converter,
         ### Break 3-tuple out
         (field_name, field_instance, field_value) = truple
 
-        ### Use minimized field name if one exists
+        ### Check for alternate field name
         serialized_name = field_name
         if field_instance.minimized_field_name:
             serialized_name = field_instance.minimized_field_name
-        ### Use print name if one exists
         elif field_instance.print_name:
             serialized_name = field_instance.print_name
 
@@ -124,8 +123,11 @@ def apply_shape(model, instance_or_dict, field_converter, model_converter,
                 
         ### Convert field as single field
         else:
-            if field_value is None and allow_none:
-                model_dict[serialized_name] = None
+            if field_value is None:
+                if allow_none:
+                    model_dict[serialized_name] = None
+                else:
+                    continue  # throw it away
             else:
                 model_dict[serialized_name] = field_converter(field_instance,
                                                               field_value)
@@ -137,52 +139,43 @@ def apply_shape(model, instance_or_dict, field_converter, model_converter,
 ### Field Access Functions 
 ###
 
-def wholelist(*field_list, **kw):
+def wholelist(*field_list):
     """Returns a function that evicts nothing. Exists mainly to be an explicit
     allowance of all fields instead of a using an empty blacklist.
     """
-    _wholelist = lambda k,v: False
+    def _wholelist(k, v):
+        return False
     return _wholelist
 
     
-def whitelist(*field_list, **kw):
+def whitelist(*field_list):
     """Returns a function that operates as a whitelist for the provided list of
     fields.
 
     A whitelist is a list of fields explicitly named that are allowed.
     """
-    ### This hack let's have *field_list and keyword arguments together
-    allow_none = False
-    if 'allow_none' in kw:
-        allow_none = kw['allow_none']
-
-    ### Default to ejecting the value
-    _whitelist = lambda k,v: True
+    ### Default to rejecting the value
+    _whitelist = lambda k, v: True
 
     if field_list is not None and len(field_list) > 0:
         def _whitelist(k, v):
-            return k not in field_list or (not allow_none and v is None)
+            return k not in field_list
 
     return _whitelist
 
 
-def blacklist(*field_list, **kw):
+def blacklist(*field_list):
     """Returns a function that operates as a blacklist for the provided list of
     fields.
 
     A blacklist is a list of fields explicitly named that are not allowed.
     """
-    ### This hack let's have *field_list and keyword arguments together
-    allow_none = False
-    if 'allow_none' in kw:
-        allow_none = kw['allow_none']
-
-    ### Default to accepting the value
-    _blacklist = lambda k,v: False
+    ### Default to not rejecting the value
+    _blacklist = lambda k, v: False
     
     if field_list is not None and len(field_list) > 0:
         def _blacklist(k, v):
-            return k in field_list or (not allow_none and v is None)
+            return k in field_list
             
     return _blacklist
 
