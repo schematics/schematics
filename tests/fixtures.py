@@ -4,6 +4,7 @@ import json
 
 from schematics.models import Model
 from schematics.types import (BaseType,
+                              UUIDType,
                               IntType,
                               BooleanType,
                               StringType,
@@ -14,7 +15,6 @@ from schematics.types import (BaseType,
 from schematics.serialize import (whitelist, blacklist, wholelist,
                                   make_safe_json)
 from schematics.types.compound import ListType, ModelType
-from schematics.types.mongo import ObjectIdType
 
 
 ###
@@ -24,7 +24,7 @@ from schematics.types.mongo import ObjectIdType
 class SimpleModel(Model):
     """Simple model that has one StringType member
     """
-    owner = ObjectIdType() # probably set required=True
+    owner = UUIDType() # probably set required=True
     title = StringType(max_length=40)
     class Options:
         roles = {

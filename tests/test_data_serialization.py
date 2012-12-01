@@ -62,7 +62,7 @@ class TestSimpleModel(ModelSerializer, unittest.TestCase):
     }
     
     owner_safe = {
-        'title': 'Misc Doc',
+        'title': u'Misc Doc',
     }
     
     public_safe = {}
@@ -78,13 +78,13 @@ class TestSubModel(ModelSerializer, unittest.TestCase):
     }
     
     owner_safe = {
-        'title': 'Total Recall',
+        'title': u'Total Recall',
         'year': 1990,
-        'thoughts': 'I wish I had three hands...',
+        'thoughts': u'I wish I had three hands...',
     }
     
     public_safe = {
-        'title': 'Total Recall',
+        'title': u'Total Recall',
         'year': 1990,
     }
 
