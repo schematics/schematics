@@ -152,17 +152,21 @@ class ListType(BaseType):
             return FieldResult(OK, 'success', self.field_name, value)
 
         errors = []
+        good_data = []
         for item in value:
             for field in self.fields:
                 result = field.validate(item)
-                if result.tag is not OK:
+                if result.tag == OK:
+                    good_data.append(result.value)
+                else:
                     errors.append(result)
 
         if len(errors) > 0:
-            return FieldResult('Invalid ListType item', self.field_name,
-                               errors)
+            error_msg = 'Invalid ListType item'
+            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
+                               self.field_name, errors)
         
-        return FieldResult(OK, 'success', self.field_name, value)
+        return FieldResult(OK, 'success', self.field_name, good_data)
 
     def _set_owner_model(self, owner_model):
         for field in self.fields:

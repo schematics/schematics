@@ -7,7 +7,9 @@ import json
 from schematics.models import Model
 from schematics.types import  IntType, StringType
 from schematics.types.compound import SortedListType, ModelType, ListType
-from schematics.serialize import to_python
+from schematics.serialize import (to_python, wholelist, make_safe_json,
+                                  make_safe_python)
+from schematics.validation import validate_instance
 
 
 class TestSetGetSingleScalarData(unittest.TestCase):
@@ -16,8 +18,12 @@ class TestSetGetSingleScalarData(unittest.TestCase):
         
         class TestModel(Model):
             the_list = self.listtype
+            class Options:
+                roles = {
+                    'owner': wholelist(),
+                }
             
-        self.TestModel = TestModel
+        self.Testmodel = TestModel
         self.testmodel = TestModel()
 
     def test_good_value_for_python(self):
@@ -51,33 +57,38 @@ class TestSetGetSingleScalarData(unittest.TestCase):
 
     def test_good_values_into_json(self):
         self.testmodel.the_list = [2,2,2,2,2,2]
-        actual = self.Testmodel.make_json_ownersafe(self.testmodel)
+        actual = make_safe_json(self.Testmodel, self.testmodel, 'owner')
         expected = json.dumps({"the_list":[2,2,2,2,2,2]})
         self.assertEqual(actual, expected)
 
     def test_good_value_into_json(self):
         self.testmodel.the_list = [2]
-        actual = self.Testmodel.make_json_ownersafe(self.testmodel)
+        actual = make_safe_json(self.Testmodel, self.testmodel, 'owner')
         expected = json.dumps({"the_list":[2]})
         self.assertEqual(actual, expected)
 
     def test_good_value_validates(self):
         self.testmodel.the_list = [2,2,2,2,2,2]
-        self.testmodel.validate()
+        result = validate_instance(self.testmodel)
+        self.assertEqual(result.tag, 'OK')
 
     def test_coerceible_value_passes_validation(self):
         self.testmodel.the_list = ["2","2","2","2","2","2"]
-        self.testmodel.validate()
+        result = validate_instance(self.testmodel)
+        self.assertEqual(result.tag, 'OK')
 
     def test_uncoerceible_value_passes_validation(self):
         self.testmodel.the_list = ["2","2","2","2","horse","2"]
-        self.assertRaises(ShieldException, self.testmodel.validate)        
+        result = validate_instance(self.testmodel)
+        self.assertNotEqual(result.tag, 'OK')
         
-    @unittest.expectedFailure
     def test_validation_converts_value(self):
         self.testmodel.the_list = ["2","2","2","2","2","2"]
-        self.testmodel.validate()
-        self.assertEqual(self.testmodel.the_list, [2,2,2,2,2,2])
+        result = validate_instance(self.testmodel)
+        self.assertEqual(result.tag, 'OK')
+        converted_data = result.value
+        new_list = converted_data['the_list']
+        self.assertEqual(new_list, [2,2,2,2,2,2])
 
         
 class TestGetSingleEmbeddedData(unittest.TestCase):
@@ -85,19 +96,19 @@ class TestGetSingleEmbeddedData(unittest.TestCase):
         class EmbeddedTestmodel(Model):
             bandname = StringType()
             
-        self.embedded_test_document = EmbeddedTestmodel
+        self.embedded_test_model = EmbeddedTestmodel
         self.embedded_type = ModelType(EmbeddedTestmodel)
         
         class Testmodel(Model):
-            the_doc = ListType(self.embedded_field)
+            the_list = ListType(self.embedded_type)
             
         self.Testmodel = Testmodel
         self.testmodel = Testmodel()
 
     def test_good_value_for_python_upcasts(self):
-        self.testmodel.the_doc = [{'bandname': 'fugazi'}]
-        from_testmodel = self.testmodel.the_doc[0]
-        new_embedded_test = self.embedded_test_document()
+        self.testmodel.the_list = [{'bandname': 'fugazi'}]
+        from_testmodel = self.testmodel.the_list[0]
+        new_embedded_test = self.embedded_test_model()
         new_embedded_test['bandname'] = 'fugazi'
         self.assertEqual(from_testmodel, new_embedded_test)
 
