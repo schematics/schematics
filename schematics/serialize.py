@@ -120,6 +120,9 @@ def apply_shape(model, instance_or_dict, field_converter, model_converter,
             if isinstance(field_value[0], Model):
                 model_dict[serialized_name] = [model_converter(vi)
                                                for vi in field_value]
+            else:
+                model_dict[serialized_name] = field_converter(field_instance,
+                                                              field_value)
                 
         ### Convert field as single field
         else:

@@ -5,16 +5,18 @@ import unittest
 import json
 
 from schematics.models import Model
-from .fields import  IntField, StringField
-from dictshield.fields.compound import SortedListField, EmbeddedDocumentField, ListField
-from dictshield.base import ShieldException
+from schematics.types import  IntType, StringType
+from schematics.types.compound import SortedListType, ModelType, ListType
+from schematics.serialize import to_python
 
 
 class TestSetGetSingleScalarData(unittest.TestCase):
     def setUp(self):
-        self.listfield = ListField(IntField())
+        self.listtype = ListType(IntType())
+        
         class TestModel(Model):
-            the_list = self.listfield
+            the_list = self.listtype
+            
         self.TestModel = TestModel
         self.testmodel = TestModel()
 
@@ -24,7 +26,8 @@ class TestSetGetSingleScalarData(unittest.TestCase):
 
     def test_single_bad_value_for_python(self):
         self.testmodel.the_list = 2
-        self.assertEqual(self.testmodel.the_list, 2) #since no validation happens, nothing should yell at us
+        # since no validation happens, nothing should yell at us        
+        self.assertEqual(self.testmodel.the_list, 2) 
 
     def test_collection_good_values_for_python(self):
         self.testmodel.the_list = [2,2,2,2,2,2]
@@ -33,16 +36,17 @@ class TestSetGetSingleScalarData(unittest.TestCase):
     def test_collection_bad_values_for_python(self):
         expected = self.testmodel.the_list = ["2","2","2","2","2","2"]
         actual = self.testmodel.the_list
-        self.assertEqual(actual, expected)  #since no validation happens, nothing should yell at us
+        # since no validation happens, nothing should yell at us        
+        self.assertEqual(actual, expected)  
 
     def test_good_value_for_json(self):
         expected = self.testmodel.the_list = [2]
-        actual = self.listfield.for_json(self.testmodel.the_list)
+        actual = self.listtype.for_json(self.testmodel.the_list)
         self.assertEqual(actual, expected)
 
     def test_good_values_for_json(self):
         expected = self.testmodel.the_list = [2,2,2,2,2,2]
-        actual = self.listfield.for_json(self.testmodel.the_list)
+        actual = self.listtype.for_json(self.testmodel.the_list)
         self.assertEqual(actual, expected)
 
     def test_good_values_into_json(self):
@@ -78,37 +82,42 @@ class TestSetGetSingleScalarData(unittest.TestCase):
         
 class TestGetSingleEmbeddedData(unittest.TestCase):
     def setUp(self):
-        class EmbeddedTestmodel(EmbeddedDocument):
-            bandname = StringField()
-        self.embeded_test_document = EmbeddedTestmodel
-        self.embedded_field = EmbeddedDocumentField(EmbeddedTestmodel)
-        class Testmodel(Document):
-            the_doc = ListField(self.embedded_field)
+        class EmbeddedTestmodel(Model):
+            bandname = StringType()
+            
+        self.embedded_test_document = EmbeddedTestmodel
+        self.embedded_type = ModelType(EmbeddedTestmodel)
+        
+        class Testmodel(Model):
+            the_doc = ListType(self.embedded_field)
+            
         self.Testmodel = Testmodel
         self.testmodel = Testmodel()
 
     def test_good_value_for_python_upcasts(self):
         self.testmodel.the_doc = [{'bandname': 'fugazi'}]
         from_testmodel = self.testmodel.the_doc[0]
-        new_embedded_test = self.embeded_test_document()
+        new_embedded_test = self.embedded_test_document()
         new_embedded_test['bandname'] = 'fugazi'
         self.assertEqual(from_testmodel, new_embedded_test)
 
 
 class TestMultipleEmbeddedData(unittest.TestCase):
     def setUp(self):
-        class EmbeddedTestmodel(EmbeddedDocument):
-            bandname = StringField()
-        class SecondEmbeddedTestmodel(EmbeddedDocument):
-            food = StringField()
-        self.embeded_test_document = EmbeddedTestmodel
-        self.second_embeded_test_document = EmbeddedTestmodel
+        class EmbeddedTestmodel(Model):
+            bandname = StringType()
+            
+        class SecondEmbeddedTestmodel(Model):
+            food = StringType()
+            
+        self.embedded_test_document = EmbeddedTestmodel
+        self.second_embedded_test_document = EmbeddedTestmodel
         
-        self.embedded_field = EmbeddedDocumentField(EmbeddedTestmodel)
-        self.second_embedded_field = EmbeddedDocumentField(SecondEmbeddedTestmodel)
+        self.embedded_type = ModelType(EmbeddedTestmodel)
+        self.second_embedded_type = ModelType(SecondEmbeddedTestmodel)
 
-        class Testmodel(Document):
-            the_doc = ListField([self.embedded_field, self.second_embedded_field])
+        class Testmodel(Model):
+            the_doc = ListType([self.embedded_type, self.second_embedded_type])
 
         self.Testmodel = Testmodel
         self.testmodel = Testmodel()
@@ -117,19 +126,21 @@ class TestMultipleEmbeddedData(unittest.TestCase):
     def test_good_value_for_python_upcasts(self):
         self.testmodel.the_doc = [{'bandname': 'fugazi'}, {'food':'cake'}]
         actual = self.testmodel.the_doc
-        embeded_test_one = self.embeded_test_document()
-        embeded_test_one['bandname'] = 'fugazi'
-        embeded_test_two = self.second_embeded_test_document()
-        embeded_test_two['food'] = 'cake'
-        expected = [embeded_test_one, embeded_test_two]
+        embedded_test_one = self.embedded_test_document()
+        embedded_test_one['bandname'] = 'fugazi'
+        embedded_test_two = self.second_embedded_test_document()
+        embedded_test_two['food'] = 'cake'
+        expected = [embedded_test_one, embedded_test_two]
         self.assertEqual(actual, expected)
         
 
 class TestSetGetSingleScalarDataSorted(unittest.TestCase):
     def setUp(self):
-        self.listfield = SortedListField(IntField())
-        class Testmodel(Document):
-            the_list = self.listfield
+        self.listtype = SortedListType(IntType())
+        
+        class Testmodel(Model):
+            the_list = self.listtype
+            
         self.Testmodel = Testmodel
         self.testmodel = Testmodel()
 
@@ -141,5 +152,5 @@ class TestSetGetSingleScalarDataSorted(unittest.TestCase):
         expected = self.testmodel.the_list = [6,5,4,3,2,1]
         expected = copy.copy(expected)
         expected.reverse()
-        actual = self.testmodel.to_python()['the_list']
+        actual = to_python(self.testmodel)['the_list']
         self.assertEqual(actual, expected)
