@@ -108,8 +108,8 @@ def _validate(cls, needs_check, values, report_rogues=True):
             if _is_empty(field_value):
                 continue
 
-            ### Validate field value
-            result = field.validate(field_value)
+            ### Validate field value via call to BaseType._validate
+            result = field._validate(field_value)
             if result.tag != OK:
                 errors.append(result)
             else:
