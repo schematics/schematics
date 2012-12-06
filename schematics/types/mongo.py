@@ -2,7 +2,7 @@
 as part of the pymongo distribution.
 """
 
-from schematics.validation import FieldResult, ERROR_TYPE_COERCION
+from schematics.validation import FieldResult, ERROR_TYPE_COERCION, OK
 from schematics.types import BaseType
 
 import bson
