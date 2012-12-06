@@ -2,7 +2,8 @@
 
 import unittest
 from schematics.models import Model
-from schematics.validation import validate_instance
+from schematics.validation import (validate_instance, ERROR_FIELD_REQUIRED,
+    ERROR_FIELD_TYPE_CHECK)
 from schematics.types import StringType
 from schematics.types.compound import ModelType, ListType
 
@@ -51,6 +52,29 @@ class TestChoices(unittest.TestCase):
     def test_validation_failes_with_embedded(self):
         result = validate_instance(self.doc_embedded_invalid)
         self.assertNotEqual(result.tag, 'OK')
+
+
+class TestRequired(unittest.TestCase):
+    def setUp(self):
+        class TestDoc(Model):
+            first_name = StringType(required=True, min_length=2)
+            last_name = StringType()
+
+        self.data_simple_valid = {'first_name': 'Alex', 'last_name': 'Fox'}
+        self.data_simple_invalid = {}
+
+        self.doc_simple_valid = TestDoc(**self.data_simple_valid)
+        self.doc_simple_invalid = TestDoc(**self.data_simple_invalid)
+
+    def test_required_validates(self):
+        result = validate_instance(self.doc_simple_valid)
+        self.assertEqual(result.tag, 'OK')
+
+    def test_validation_fails(self):
+        result = validate_instance(self.doc_simple_invalid)
+        self.assertNotEqual(result.tag, 'OK')
+        self.assertEqual(len(result.value), 1)
+        self.assertEqual(result.value[0].tag, ERROR_FIELD_REQUIRED)
 
 
 if __name__ == '__main__':
