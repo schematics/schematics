@@ -105,7 +105,13 @@ def _validate(cls, needs_check, values, report_rogues=True):
             field_value = values[field_name]
 
             ### Don't validate nones or empty values  # TODO makea parameter
+            ### But if field is required, set error
             if _is_empty(field_value):
+                if field.required:
+                    error_msg = "Required field not found"
+                    result = FieldResult(ERROR_FIELD_REQUIRED, error_msg,
+                                        field_name, field_value)
+                    errors.append(result)
                 continue
 
             ### Validate field value via call to BaseType._validate
