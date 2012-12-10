@@ -125,24 +125,22 @@ class BaseModel(object):
         self._data = {}
         minimized_field_map = {}
 
-        # Assign default values to instance
+        ### Loop over fields in model
         for attr_name, attr_value in self._fields.items():
             # Use default value if present
             value = getattr(self, attr_name, None)
             setattr(self, attr_name, value)
+
+            field_name = attr_name
             if attr_value.minimized_field_name:
                 field_name = attr_value.minimized_field_name
-                minimized_field_map[field_name] = attr_name
+            elif attr_value.print_name:
+                field_name = attr_value.print_name
 
-        # Assign initial values to instance
-        for attr_name, attr_value in values.items():
-            try:
-                setattr(self, attr_name, attr_value)
-                if attr_name in minimized_field_map:
-                    setattr(self, minimized_field_map[attr_name], attr_value)
-            # Put a diaper on the keys that don't belong and send 'em home
-            except AttributeError:
-                pass
+            if field_name in values:
+                field_value = values[field_name]
+                setattr(self, attr_name, field_value)
+                    
 
     ###
     ### dict Interface
