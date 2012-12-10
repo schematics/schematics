@@ -20,7 +20,6 @@ class Media(Model):
 
 m = Media()
 m.id = uuid.uuid4()
-m.id
 m.title = 'word'
 
 # {'owner': None, '_id': UUID('5e3634f5-d37a-4cc8-b16a-cb23b04a7553'), 'title': u'word'}
