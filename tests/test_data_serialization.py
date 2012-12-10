@@ -180,3 +180,16 @@ class TestEmbeddedDocs(ModelSerializer, unittest.TestCase):
         ],
         'content': 'Retro single-origin coffee chambray stumptown, scenester VHS\nbicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free\ntrust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed\n'
     }
+
+
+class TestAltFieldNames(unittest.TestCase):
+    klass = fixtures.AltNames
+
+    def setUp(self):
+        description = {'something_else': 'whatever'}
+        self.instance = self.klass(**description)
+
+    def test_serialize_print_names(self):
+        x = to_python(self.instance)
+        self.assertEqual(x['something_else'], 'whatever')
+        self.assertEqual(self.instance.title, 'whatever')
