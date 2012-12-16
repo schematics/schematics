@@ -264,7 +264,7 @@ def for_jsonschema(model):
     """
     field_converter = lambda f, v: f.for_jsonschema()
     model_converter = lambda m: for_jsonschema(m)
-    gottago = blacklist([], allow_none=True)
+    gottago = blacklist([])
 
     properties = apply_shape(model.__class__, model, field_converter,
                              model_converter, gottago)

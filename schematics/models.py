@@ -1,5 +1,4 @@
 import inspect
-import copy
 
 
 #from schematics.base import (TypeException, ModelException, json)
