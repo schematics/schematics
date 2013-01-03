@@ -204,7 +204,7 @@ class StringType(BaseType):
     """A unicode string field.
     """
 
-    def __init__(self, regex=None, max_length=None, min_length=None, **kwargs):
+    def __init__(self, regex=None, max_length=None, min_length=None, empty=False, **kwargs):
         self.regex = re.compile(regex) if regex else None
         self.max_length = max_length
         self.min_length = min_length
@@ -252,6 +252,11 @@ class StringType(BaseType):
             error_msg = 'String value did not match validation regex'
             return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
                                self.field_name, value)
+                               
+        if not self.empty and len(value.strip()) == 0:
+            error_msg = 'String value cannot be empty'
+            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
+                               self.field_name, value)                               
 
         return FieldResult(OK, 'success', self.field_name, value)
     
