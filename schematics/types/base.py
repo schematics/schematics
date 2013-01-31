@@ -33,7 +33,7 @@ class BaseType(object):
 
     def __init__(self, required=False, default=None, field_name=None,
                  print_name=None, choices=None, validation=None, description=None,
-                 minimized_field_name=None):
+                 minimized_field_name=None, dirty=False):
 
         self.required = required
         self.default = default
@@ -43,6 +43,10 @@ class BaseType(object):
         self.validation = validation
         self.description = description
         self.minimized_field_name = minimized_field_name
+        # dirty make sense only if required == True.
+        # It indicates, that None values are valid
+        self.dirty = dirty
+        self._is_set = False
 
     def __get__(self, instance, owner):
         """Descriptor for retrieving a value from a field in a model. Do
@@ -64,6 +68,7 @@ class BaseType(object):
     def __set__(self, instance, value):
         """Descriptor for assigning a value to a field in a model.
         """
+        self._is_set = True
         instance._data[self.field_name] = value
 
     def for_python(self, value):
@@ -182,7 +187,7 @@ class UUIDType(BaseType):
         http://docs.python.org/library/uuid.html for accepted formats.
         """
         new_value = value
-        
+
         if not isinstance(value, (uuid.UUID,)):
             try:
                 new_value = uuid.UUID(value)
@@ -254,7 +259,7 @@ class StringType(BaseType):
                                self.field_name, value)
 
         return FieldResult(OK, 'success', self.field_name, value)
-    
+
 
     def lookup_member(self, member_name):
         return None
@@ -377,7 +382,7 @@ class NumberType(JsonNumberMixin, BaseType):
         if value != None and not isinstance(value, self.number_class):
             if self.number_class:
                 value = self.number_class(value)
-        instance._data[self.field_name] = value    
+        instance._data[self.field_name] = value
 
     def for_python(self, value):
         return self.number_class(value)
@@ -395,7 +400,7 @@ class NumberType(JsonNumberMixin, BaseType):
                                                           self.min_value)
             return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
                                self.field_name, value)
-        
+
         if self.max_value is not None and value > self.max_value:
             error_msg = '%s value above max_value: %s' % (self.number_type,
                                                           self.max_value)
@@ -518,7 +523,7 @@ class MD5Type(BaseType, JsonHashMixin):
             error_msg = 'MD5 value is not hex'
             return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
                                self.field_name, value)
-        
+
         return FieldResult(OK, 'success', self.field_name, value)
 
 
@@ -539,7 +544,7 @@ class SHA1Type(BaseType, JsonHashMixin):
             error_msg = 'SHA1 value is not hex'
             return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
                                self.field_name, value)
-        
+
         return FieldResult(OK, 'success', self.field_name, value)
 
 
@@ -586,7 +591,7 @@ class BooleanType(BaseType):
             error_msg = 'Not a boolean'
             return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
                                self.field_name, value)
-        
+
         return FieldResult(OK, 'success', self.field_name, value)
 
 
@@ -654,11 +659,11 @@ class DateTimeType(BaseType):
         iso8601 = '(\d\d\d\d)-(\d\d)-(\d\d)' \
                   'T(\d\d):(\d\d):(\d\d)(?:\.(\d\d\d\d\d\d))?'
         elements = re.findall(iso8601, datestring)
-        
+
         if len(elements) < 1:
             error_msg = 'Date string could not transform to datetime'
             return TypeResult(ERROR, error_msg, datestring)
-        
+
         date_info = elements[0]
         date_digits = [int(d) for d in date_info if d]
         value = datetime.datetime(*date_digits)
@@ -685,7 +690,7 @@ class DateTimeType(BaseType):
             error_msg = 'Not a datetime'
             return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
                                self.field_name, value)
-        
+
         return FieldResult(OK, 'success', self.field_name, value)
 
     def for_python(self, value):
@@ -706,7 +711,7 @@ class DictType(BaseType):
 
     def __init__(self, basecls=None, *args, **kwargs):
         self.basecls = basecls or BaseType
-        
+
         if not issubclass(self.basecls, BaseType):
             error_msg = 'basecls is not subclass of BaseType'
             return TypeResult(ERROR_TYPE_COERCION, error_msg, basecls)
@@ -727,7 +732,7 @@ class DictType(BaseType):
             error_msg = 'Invalid dictionary key - may not contain "." or "$"'
             return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
                                self.field_name, value)
-        
+
         return FieldResult(OK, 'success', self.field_name, value)
 
     def lookup_member(self, member_name):
@@ -773,5 +778,5 @@ class GeoPointType(BaseType):
             error_msg = 'GeoPointType can only accept tuples, lists, or dicts'
             return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
                                self.field_name, value)
-        
+
         return FieldResult(OK, 'success', self.field_name, value)

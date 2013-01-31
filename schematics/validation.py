@@ -48,7 +48,7 @@ ERROR_TYPE_COERCION = 'ERROR_TYPE_COERCION'  # type coercion failed
 FieldResult = namedtuple('FieldResult', 'tag message name value')
 ERROR_FIELD_TYPE_CHECK = 'ERROR_FIELD_TYPE_CHECK'  # field failed type check
 ERROR_FIELD_CONFIG = 'ERROR_FIELD_CONFIG'  # bad type instance config
-ERROR_FIELD_REQUIRED = 'ERROR_FIELD_REQUIRED'  # required field not found 
+ERROR_FIELD_REQUIRED = 'ERROR_FIELD_REQUIRED'  # required field not found
 ERROR_FIELD_BAD_CHOICE = 'ERROR_FIELD_BAD_CHOICE'  # bad type instance config
 
 ### Model Handling
@@ -63,12 +63,7 @@ ERROR_MODEL_ROGUE_FIELD = 'ERROR_MODEL_ROGUE_FIELD'  # field not found in model
 ###
 
 def _is_empty(field_value):
-    ### TODO if field_value is None, skip  ### TODO makea parameter
     if field_value is None:
-        return True
-    # treat empty strings as empty values and skip
-    if isinstance(field_value, (str, unicode)) and \
-           len(field_value.strip()) == 0:
         return True
     return False
 
@@ -100,19 +95,20 @@ def _validate(cls, needs_check, values, report_rogues=True):
 
     ### Validate data based on cls's structure
     for field_name, field in cls._fields.items():
-        ### Rely on parameter for whether or not we should check value 
+        ### Rely on parameter for whether or not we should check value
         if needs_check(field_name, field):
             field_value = values[field_name]
 
-            ### Don't validate nones or empty values  # TODO makea parameter
-            ### But if field is required, set error
+            ### If field is required and empty, set error
             if _is_empty(field_value):
-                if field.required:
+                if field.required and (not field.dirty or not field._is_set):
                     error_msg = "Required field not found"
                     result = FieldResult(ERROR_FIELD_REQUIRED, error_msg,
                                         field_name, field_value)
                     errors.append(result)
-                continue
+                    continue
+                elif field.dirty or not field._is_set:
+                    continue
 
             ### Validate field value via call to BaseType._validate
             result = field._validate(field_value)
@@ -132,7 +128,7 @@ def _validate(cls, needs_check, values, report_rogues=True):
                 result = FieldResult(ERROR_MODEL_ROGUE_FIELD, error_msg,
                                     field_name, field_value)
                 errors.append(result)
-                    
+
     ### Return on if errors were found
     if len(errors) > 0:
         error_msg = 'Model validation errors'
@@ -143,7 +139,7 @@ def _validate(cls, needs_check, values, report_rogues=True):
 
 def validate_values(cls, values):
     """Validates `values` against a `class` definition or instance.  It takes
-    care to ensure require fields are present and pass validation and 
+    care to ensure require fields are present and pass validation and
     """
     needs_check = lambda k, v: v.required or k in values
     return _validate(cls, needs_check, values)
@@ -156,7 +152,7 @@ def validate_instance(model):
     values = model._data
     needs_check = lambda k, v: v.required or k in values
     return _validate(model, needs_check, values)
-    
+
 
 def validate_partial(cls, values):
     """This function will validate values against fields of the same name in

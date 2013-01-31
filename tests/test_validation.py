@@ -31,7 +31,7 @@ class TestChoices(unittest.TestCase):
                 'info': ['somevalue', 'other']
             }
         }
-        
+
         self.doc_simple_valid = TestDoc(**self.data_simple_valid)
         self.doc_simple_invalid = TestDoc(**self.data_simple_invalid)
         self.doc_embedded_valid = TestDoc(**self.data_embeded_valid)
@@ -55,26 +55,78 @@ class TestChoices(unittest.TestCase):
 
 
 class TestRequired(unittest.TestCase):
-    def setUp(self):
-        class TestDoc(Model):
-            first_name = StringType(required=True, min_length=2)
-            last_name = StringType()
-
-        self.data_simple_valid = {'first_name': 'Alex', 'last_name': 'Fox'}
-        self.data_simple_invalid = {}
-
-        self.doc_simple_valid = TestDoc(**self.data_simple_valid)
-        self.doc_simple_invalid = TestDoc(**self.data_simple_invalid)
-
-    def test_required_validates(self):
-        result = validate_instance(self.doc_simple_valid)
-        self.assertEqual(result.tag, 'OK')
 
     def test_validation_fails(self):
-        result = validate_instance(self.doc_simple_invalid)
+        class TestDoc(Model):
+            first_name = StringType(required=True)
+
+        t = TestDoc()
+        result = validate_instance(t)
+
         self.assertNotEqual(result.tag, 'OK')
-        self.assertEqual(len(result.value), 1)
+        self.assertEqual(len(result.value), 1)  # Only one failure
         self.assertEqual(result.value[0].tag, ERROR_FIELD_REQUIRED)
+
+    def test_validation_none_fails(self):
+        class TestDoc(Model):
+            first_name = StringType(required=True)
+
+        t = TestDoc(first_name=None)
+        result = validate_instance(t)
+
+        self.assertNotEqual(result.tag, 'OK')
+        self.assertEqual(len(result.value), 1)  # Only one failure
+        self.assertEqual(result.value[0].tag, ERROR_FIELD_REQUIRED)
+
+    def test_validation_none_dirty_pass(self):
+        class TestDoc(Model):
+            first_name = StringType(required=True, dirty=True)
+
+        t = TestDoc(first_name=None)
+        result = validate_instance(t)
+
+        self.assertEqual(result.tag, 'OK')
+
+    def test_validation_notset_dirty_fails(self):
+        class TestDoc(Model):
+            first_name = StringType(required=True, dirty=True)
+
+        t = TestDoc()
+        result = validate_instance(t)
+
+        self.assertNotEqual(result.tag, 'OK')
+        self.assertEqual(len(result.value), 1)  # Only one failure
+        self.assertEqual(result.value[0].tag, ERROR_FIELD_REQUIRED)
+
+    def test_validation_empty_string_pass(self):
+        class TestDoc(Model):
+            first_name = StringType(required=True)
+
+        t = TestDoc(first_name='')
+        result = validate_instance(t)
+
+        self.assertEqual(result.tag, 'OK')
+
+    def test_validation_empty_string_length_fail(self):
+        class TestDoc(Model):
+            first_name = StringType(required=True, min_length=1)
+
+        t = TestDoc(first_name='')
+        result = validate_instance(t)
+
+        self.assertNotEqual(result.tag, 'OK')
+        self.assertEqual(len(result.value), 1)  # Only one failure
+        # Length failure, not *FIELD_REQUIRED*
+        self.assertEqual(result.value[0].tag, ERROR_FIELD_TYPE_CHECK)
+
+    def test_validation_none_string_length_pass(self):
+        class TestDoc(Model):
+            first_name = StringType(min_length=1)
+
+        t = TestDoc()
+        result = validate_instance(t)
+
+        self.assertEqual(result.tag, 'OK')
 
 
 if __name__ == '__main__':
