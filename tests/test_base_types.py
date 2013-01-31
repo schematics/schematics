@@ -1,10 +1,12 @@
 
 import copy
 import unittest
+import datetime
 
 from schematics.models import Model
 from schematics.types.base import *
 from schematics.validation import validate_instance
+from schematics.serialize import to_json, to_python
 
 class TestStringType(unittest.TestCase):
 
@@ -53,6 +55,15 @@ class TestIntType(unittest.TestCase):
         result = validate_instance(user)
         self.assertEqual(result.tag, 'OK')
 
+class TestDateTimeType(unittest.TestCase):
+
+    class User(Model):
+        joined_on = DateTimeType()
+
+    def testEmptyUser(self):
+        user = self.User()
+        user.joined_on = datetime.datetime.utcnow()
+        self.assertTrue(isinstance(user.joined_on, datetime.datetime))
 
 if __name__ == '__main__':
    unittest.main()

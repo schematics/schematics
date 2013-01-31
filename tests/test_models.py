@@ -180,4 +180,5 @@ class TestModels(unittest.TestCase):
         self.assertEqual(5, tm['some_int'])
         self.assertEqual(True, 'fake_key' not in tm)
         
-        
+if __name__ == '__main__':
+   unittest.main()

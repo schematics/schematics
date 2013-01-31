@@ -59,12 +59,20 @@ class BaseType(object):
             # Callable values are best for mutable defaults
             if callable(value):
                 value = value()
+
+        if value:
+           try:
+              val = self.to_python(value)
+              value = val
+           except:
+              pass
+
         return value
 
     def __set__(self, instance, value):
         """Descriptor for assigning a value to a field in a model.
         """
-        instance._data[self.field_name] = value
+        instance._data[self.field_name] = self.for_json(value)
 
     def for_python(self, value):
         """Convert a Structures type into native Python value

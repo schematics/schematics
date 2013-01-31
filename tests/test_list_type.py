@@ -42,6 +42,7 @@ class TestSetGetSingleScalarData(unittest.TestCase):
     def test_collection_bad_values_for_python(self):
         expected = self.testmodel.the_list = ["2","2","2","2","2","2"]
         actual = self.testmodel.the_list
+        # print validate_instance(self.testmodel)
         # since no validation happens, nothing should yell at us        
         self.assertEqual(actual, expected)  
 
@@ -165,3 +166,6 @@ class TestSetGetSingleScalarDataSorted(unittest.TestCase):
         expected.reverse()
         actual = to_python(self.testmodel)['the_list']
         self.assertEqual(actual, expected)
+
+if __name__ == '__main__':
+    unittest.main()
