@@ -146,6 +146,7 @@ class ListType(BaseType):
                     continue
 
     def for_python(self, value):
+        return self.Proxy(self.fields, value)
         return list(self.for_output_format('for_python', value))
 
     def for_json(self, value):
@@ -192,6 +193,124 @@ class ListType(BaseType):
 
     owner_model = property(_get_owner_model, _set_owner_model)
 
+    class Proxy(list):
+
+        def __init__(self, fields, list):
+            self.list = list
+            self.fields = fields
+
+        def first_acceptable_field_for_value(self, value):
+            for field in self.fields:
+                try:
+                    val = field.for_python(value)
+                    return field
+                except ValueError:
+                    continue
+            raise ValueError
+
+        def __lt__(self, other):
+            return self.list < other
+
+        def __le__(self, other):
+            return self.list <= other
+
+        def __eq__(self, other):
+            return self.list == other
+
+        def __ne__(self, other):
+            return self.list != other
+
+        def __gt__(self, other):
+            return self.list > other
+
+        def __ge__(self, other):
+            return self.list >= other
+
+        def __repr__(self):
+            return repr(self.list)
+
+        def __str__(self):
+            return str(self.list)
+
+        def __unicode__(self):
+            return unicode(self.list)
+
+        def __delitem__(self, index):
+            del self.list[index]
+
+        def __getitem__(self, index):
+            item = self.list[index]
+            field = self.first_acceptable_field_for_value(item)
+            return field.for_python(item)
+
+        def __setitem__(self, index, value):
+            field = self.first_acceptable_field_for_value(value)
+            self.list[index] = field.for_json(value)
+
+        def __delslice__(self, i, j):
+            del self.list[i:j]
+
+        def __getslice__(self, i, j):
+            return ListField.Proxy(self.fields, self.list[i:j])
+
+        def __setslice__(self, i, j, seq):
+            self.list[i:j] = (self.self.first_acceptable_field_for_value(v).for_json(v) for v in seq)
+
+        def __contains__(self, value):
+            field = self.first_acceptable_field_for_value(value)
+            for item in self.list:
+                if field.for_python(item) == value:
+                   return True
+            return False
+
+        def __iter__(self):
+            for index in range(len(self)):
+                yield self[index]
+
+        def __len__(self):
+            return len(self.list)
+
+        def __nonzero__(self):
+            return bool(self.list)
+
+        def append(self, *args, **kwargs):
+#           if args or not isinstance(self.field, DictField):
+            if len(args) != 1:
+                raise TypeError('append() takes exactly one argument '
+                                '(%s given)' % len(args))
+            value = args[0]
+            field = self.first_acceptable_field_for_value(value)
+            self.list.append(field.for_json(value))
+
+        def count(self, value):
+            return [i for i in self].count(value)
+
+        def extend(self, list):
+            for item in list:
+                self.append(item)
+
+        def index(self, value):
+            field = self.first_acceptable_field_for_value(value)
+            return self.list.index(field.for_json(value))
+
+        def insert(self, idx, *args, **kwargs):
+            if args or not isinstance(self.field, DictField):
+                if len(args) != 1:
+                    raise TypeError('insert() takes exactly 2 arguments '
+                                    '(%s given)' % len(args))
+                value = args[0]
+            else:
+                value = kwargs
+            self.list.insert(idx, self.field._to_json(value))
+
+        def remove(self, value):
+            field = self.first_acceptable_field_for_value(value)
+            return self.list.remove(field.for_json(value))
+
+        def pop(self, *args):
+            value = self.list.pop(*args)
+            field = self.first_acceptable_field_for_value(value)
+            return field.for_python(value)
 
 class SortedListType(ListType):
     """A ListType that sorts the contents of its list before writing to

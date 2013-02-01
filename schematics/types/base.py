@@ -61,11 +61,11 @@ class BaseType(object):
                 value = value()
 
         if value:
-           try:
-              val = self.to_python(value)
+#          try:
+              val = self.for_python(value)
               value = val
-           except:
-              pass
+#          except:
+#             raise Exception
 
         return value
 

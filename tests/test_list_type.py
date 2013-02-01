@@ -167,5 +167,40 @@ class TestSetGetSingleScalarDataSorted(unittest.TestCase):
         actual = to_python(self.testmodel)['the_list']
         self.assertEqual(actual, expected)
 
+class TestListTypeProxy(unittest.TestCase):
+
+    def setUp(self):
+        self.listtype = ListType(IntType())
+        class TestModel(Model):
+            the_list = self.listtype
+        self.TestModel = TestModel
+        self.testmodel = TestModel()
+
+    def testProxyAppend(self):
+        self.testmodel.the_list = [1,2]
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+        self.testmodel.the_list.append(3)
+        self.assertEqual( len(self.testmodel.the_list), 3 )
+        self.assertEqual( self.testmodel.the_list[2], 3 )
+
+    def testProxyContains(self):
+        self.testmodel.the_list = [1,2]
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+        self.assertTrue(1 in self.testmodel.the_list)
+
+    def testProxyCount(self):
+        self.testmodel.the_list = [1,2]
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+        self.assertEqual(0, self.testmodel.the_list.count(3))
+        self.assertEqual(1, self.testmodel.the_list.count(1))
+
+    def testProxyIndex(self):
+        self.testmodel.the_list = [1,2]
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+        self.assertEqual(0, self.testmodel.the_list.index(1))
+        self.assertRaises(ValueError, self.testmodel.the_list.index, 3)
+      
+
+
 if __name__ == '__main__':
     unittest.main()
