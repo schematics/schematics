@@ -199,7 +199,34 @@ class TestListTypeProxy(unittest.TestCase):
         assert isinstance(self.testmodel.the_list, ListType.Proxy)
         self.assertEqual(0, self.testmodel.the_list.index(1))
         self.assertRaises(ValueError, self.testmodel.the_list.index, 3)
-      
+     
+    def testProxyRemove(self):
+        self.testmodel.the_list = [1, 2]
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+        self.testmodel.the_list.remove(1)
+        self.assertEqual( len(self.testmodel.the_list), 1 )
+
+    def testProxyIter(self):
+        self.testmodel.the_list = [1, 2]
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+        # TODO - load from db, test type from list
+
+    def testProxyPop(self):
+        self.testmodel.the_list = [1, 2]
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+        self.assertEqual(self.testmodel.the_list.pop(), 2) 
+        self.assertEqual(len(self.testmodel.the_list), 1)
+
+    def testProxySlice(self):
+        self.testmodel.the_list = [1, 2, 3, 4, 5, 6]
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+        ll = self.testmodel.the_list[1:3]
+        self.assertEqual(len(ll), 2)
+        self.assertEqual(ll[0], 2)
+        self.testmodel.the_list[2:4] = [ i for i in range(6,8) ]
+        self.assertEqual(self.testmodel.the_list[2], 6)
+        del self.testmodel.the_list[3:]
+        self.assertEqual(len(self.testmodel.the_list),3)
 
 
 if __name__ == '__main__':

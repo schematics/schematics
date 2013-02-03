@@ -251,10 +251,10 @@ class ListType(BaseType):
             del self.list[i:j]
 
         def __getslice__(self, i, j):
-            return ListField.Proxy(self.fields, self.list[i:j])
+            return ListType.Proxy(self.fields, self.list[i:j])
 
         def __setslice__(self, i, j, seq):
-            self.list[i:j] = (self.self.first_acceptable_field_for_value(v).for_json(v) for v in seq)
+            self.list[i:j] = (self.first_acceptable_field_for_value(v).for_json(v) for v in seq)
 
         def __contains__(self, value):
             field = self.first_acceptable_field_for_value(value)
