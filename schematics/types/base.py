@@ -518,7 +518,7 @@ class MD5Type(BaseType, JsonHashMixin):
     @classmethod
     def generate(self, string):
         import hashlib
-        return hashlib.md5(string).hexdigest()
+        return hashlib.md5(string.encoded()).hexdigest()
 
     def validate(self, value):
         if len(value) != MD5Type.hash_length:
