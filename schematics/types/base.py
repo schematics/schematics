@@ -515,6 +515,11 @@ class MD5Type(BaseType, JsonHashMixin):
     """
     hash_length = 32
 
+    @classmethod
+    def generate(self, string):
+        import hashlib
+        return hashlib.md5(string).hexdigest()
+
     def validate(self, value):
         if len(value) != MD5Type.hash_length:
             error_msg = 'MD5 value is wrong length'
