@@ -61,10 +61,18 @@ class ListType(BaseType):
         self.primary_embedded = kwargs.pop('primary_embedded', None)
         super(ListType, self).__init__(**kwargs)
 
+    def __get__(self, instance, owner):
+        retval = super(ListType, self).__get__(instance, owner)
+        if type(retval) is list:
+           return self.for_python(retval)
+        return retval
+
     def __set__(self, instance, value_list):
         """Descriptor for assigning a value to a type in a model.
         """
         new_value = value_list
+        if new_value is None:
+           new_value = [ ]
 
         is_model = lambda tipe: isinstance(tipe, ModelType)
         model_fields = filter(is_model, self.fields)
@@ -111,7 +119,6 @@ class ListType(BaseType):
                     for model_field in model_fields:
                         ### TODO Validate SMARTER
                         datum_instance = model_field.model_type_obj(**result.value)
-                    #new_data.append(datum_instance)
                     new_data.append(datum_instance)
                 else:
                     errors_found = True
@@ -240,12 +247,18 @@ class ListType(BaseType):
 
         def __getitem__(self, index):
             item = self.list[index]
-            field = self.first_acceptable_field_for_value(item)
-            return field.for_python(item)
+            try:
+                field = self.first_acceptable_field_for_value(item)
+                return field.for_python(item)
+            except:
+                return item
 
         def __setitem__(self, index, value):
-            field = self.first_acceptable_field_for_value(value)
-            self.list[index] = field.for_json(value)
+            try:
+                field = self.first_acceptable_field_for_value(value)
+                self.list[index] = field.for_json(value)
+            except:
+                self.list[index] = value
 
         def __delslice__(self, i, j):
             del self.list[i:j]
@@ -274,10 +287,10 @@ class ListType(BaseType):
             return bool(self.list)
 
         def append(self, *args, **kwargs):
-#           if args or not isinstance(self.field, DictField):
+#           if args or not isinstance(self.fields[0], dict):
             if len(args) != 1:
                 raise TypeError('append() takes exactly one argument '
-                                '(%s given)' % len(args))
+                             '(%s given)' % len(args))
             value = args[0]
             field = self.first_acceptable_field_for_value(value)
             self.list.append(field.for_json(value))
@@ -394,7 +407,7 @@ class ModelType(BaseType):
         return for_jsonschema(self.model_type)
 
     def for_python(self, value):
-        return to_python(value)
+        return value
 
     def for_json(self, value):
         return to_json(value, encode=False)

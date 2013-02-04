@@ -176,6 +176,9 @@ class TestListTypeProxy(unittest.TestCase):
         self.TestModel = TestModel
         self.testmodel = TestModel()
 
+    def testEmptyList(self):
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+
     def testProxyAppend(self):
         self.testmodel.the_list = [1,2]
         assert isinstance(self.testmodel.the_list, ListType.Proxy)
