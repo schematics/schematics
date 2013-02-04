@@ -1,5 +1,5 @@
 import unittest
-from schematics.tests import test_base_types, test_list_type, test_validation
+import test_base_types, test_list_type, test_validation
 
 def suite():
     suite = unittest.TestSuite()
