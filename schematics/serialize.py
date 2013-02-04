@@ -239,6 +239,8 @@ def make_safe_json(model, instance_or_dict, role, encode=True, sort_keys=False,
     else:
         return data
 
+def make_safe_dict(model, instance_or_dict, role, sort_keys=False, **kw):
+    return make_safe_json(model, instance_or_dict, role, encode=False, sort_keys=sort_keys, **kw)
 
 ###
 ### Schema Serialization
