@@ -154,7 +154,6 @@ class ListType(BaseType):
 
     def for_python(self, value):
         return self.Proxy(self.fields, value)
-        return list(self.for_output_format('for_python', value))
 
     def for_json(self, value):
         """for_json must be careful to expand modeltypes into Python,
@@ -165,7 +164,8 @@ class ListType(BaseType):
     def validate(self, value):
         """Make sure that a list of valid fields is being used.
         """
-        if not isinstance(value, (list, tuple)):
+        value = self.Proxy(self.fields, value)
+        if not isinstance(value, (list, tuple, self.Proxy)):
             error_msg = 'Only lists and tuples may be used in a list field'
             raise FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
                               self.field_name, value)
@@ -246,12 +246,15 @@ class ListType(BaseType):
             del self.list[index]
 
         def __getitem__(self, index):
-            item = self.list[index]
+            value = self.list[index]
             try:
-                field = self.first_acceptable_field_for_value(item)
-                return field.for_python(item)
+                field = self.first_acceptable_field_for_value(value)
+                # TODO TEST
+                if isinstance(field, ModelType):
+                   return field.model_type_obj(**value)
+                return field.for_python(value)
             except:
-                return item
+                return value
 
         def __setitem__(self, index, value):
             try:

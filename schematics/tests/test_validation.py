@@ -52,6 +52,9 @@ class TestChoices(unittest.TestCase):
         result = validate_instance(self.doc_embedded_invalid)
         self.assertNotEqual(result.tag, 'OK')
 
+def suite():
+    suite = unittest.TestSuite()
+    return suite
 
 if __name__ == '__main__':
     unittest.main()

@@ -65,5 +65,12 @@ class TestDateTimeType(unittest.TestCase):
         user.joined_on = datetime.datetime.utcnow()
         self.assertTrue(isinstance(user.joined_on, datetime.datetime))
 
+def suite():
+    suite = unittest.TestSuite()
+    suite.addTest(unittest.makeSuite(TestStringType, 'test'))
+    suite.addTest(unittest.makeSuite(TestIntType, 'test'))
+    suite.addTest(unittest.makeSuite(TestDateTimeType, 'test'))
+    return suite
+
 if __name__ == '__main__':
-   unittest.main()
+   unittest.main(defaultTest='suite')

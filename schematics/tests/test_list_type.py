@@ -231,6 +231,9 @@ class TestListTypeProxy(unittest.TestCase):
         del self.testmodel.the_list[3:]
         self.assertEqual(len(self.testmodel.the_list),3)
 
+def suite():
+    suite = unittest.TestSuite()
+    return suite
 
 if __name__ == '__main__':
     unittest.main()
