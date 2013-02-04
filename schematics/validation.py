@@ -147,9 +147,11 @@ def validate_instance(model):
     """Extracts the values from the model and validates them via a call to
     `validate_values`.
     """
-    values = model._data
-    needs_check = lambda k, v: v.required or k in values
-    return _validate(model, needs_check, values)
+    if '_data' in model:
+        values = model._data
+        needs_check = lambda k, v: v.required or k in values
+        return _validate(model, needs_check, values)
+    return ModelResult(OK, 'No Model to Validate Against', None, None)
     
 
 def validate_partial(cls, values):
