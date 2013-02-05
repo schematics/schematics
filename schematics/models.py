@@ -4,8 +4,8 @@ import copy
 
 #from schematics.base import (TypeException, ModelException, json)
 from schematics.base import json
-from schematics.types import (DictFieldNotFound, schematic_types, BaseType,
-                              UUIDType)
+from schematics.types import (DictFieldNotFound, schematic_types)
+from schematics.types.base import BaseType
 
 
 ###

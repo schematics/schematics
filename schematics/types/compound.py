@@ -1,3 +1,5 @@
+from schematics import public
+
 try:
     from itertools import filterfalse  # python3 wutwut
 except:
@@ -7,7 +9,7 @@ from operator import itemgetter
 from decimal import Decimal
 
 from schematics.models import Model
-from schematics.types import BaseType, DictType, DecimalType
+from schematics.types.base import BaseType, DictType, DecimalType
 from schematics.datastructures import MultiValueDict
 from schematics.serialize import to_python, to_json, for_jsonschema
 from schematics.validation import (validate_instance, validate_values, OK,
@@ -18,6 +20,7 @@ from schematics.validation import (validate_instance, validate_values, OK,
 RECURSIVE_REFERENCE_CONSTANT = 'self'
 
 
+@public
 class ListType(BaseType):
     """A list type that wraps a standard type, allowing multiple instances
     of the type to be used as a list in the model.
@@ -328,6 +331,7 @@ class ListType(BaseType):
             field = self.first_acceptable_field_for_value(value)
             return field.for_python(value)
 
+@public
 class SortedListType(ListType):
     """A ListType that sorts the contents of its list before writing to
     the database in order to ensure that a sorted list is always
@@ -366,6 +370,7 @@ class SortedListType(ListType):
 ### Sub schematics
 ###
 
+@public
 class ModelType(BaseType):
     """A model field. Only valid values are subclasses of `schematics.Model`.
     """
@@ -431,6 +436,7 @@ class ModelType(BaseType):
         return self.model_type._fields.get(member_name)
 
 
+@public
 class MultiValueDictType(DictType):
     def __init__(self, basecls=None, *args, **kwargs):
         self.basecls = basecls or BaseType

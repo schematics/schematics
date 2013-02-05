@@ -3,6 +3,7 @@ import re
 import datetime
 import decimal
 
+from schematics import public
 
 from schematics.validation import (TypeResult, FieldResult,
                                    OK, ERROR_TYPE_COERCION, ERROR_FIELD_CONFIG,
@@ -161,6 +162,7 @@ class BaseType(object):
 ### Standard Types
 ###
 
+@public
 class UUIDType(BaseType):
     """A field that stores a valid UUID value and optionally auto-populates
     empty values with new UUIDs.
@@ -207,7 +209,7 @@ class UUIDType(BaseType):
 
         return str(value)
 
-
+@public
 class StringType(BaseType):
     """A unicode string field.
     """
@@ -272,6 +274,7 @@ class StringType(BaseType):
 ### Web fields
 ###
 
+@public
 class URLType(StringType):
     """A field that validates input as an URL.
 
@@ -318,6 +321,7 @@ class URLType(StringType):
         return FieldResult(OK, 'success', self.field_name, value)
 
 
+@public
 class EmailType(StringType):
     """A field that validates input as an E-Mail-Address.
     """
@@ -369,6 +373,7 @@ class JsonNumberMixin(object):
         return self.min_value
 
 
+@public
 class NumberType(JsonNumberMixin, BaseType):
     """A number field.
     """
@@ -413,6 +418,7 @@ class NumberType(JsonNumberMixin, BaseType):
         return FieldResult(OK, 'success', self.field_name, value)
 
 
+@public
 class IntType(NumberType):
     """A field that validates input as an Integer
     """
@@ -434,6 +440,7 @@ class IntType(NumberType):
         return [None]
 
 
+@public
 class LongType(NumberType):
     """A field that validates input as a Long
     """
@@ -443,6 +450,7 @@ class LongType(NumberType):
                                         *args, **kwargs)
 
 
+@public
 class FloatType(NumberType):
     """A field that validates input as a Float
     """
@@ -452,6 +460,7 @@ class FloatType(NumberType):
                                          *args, **kwargs)
 
 
+@public
 class DecimalType(BaseType, JsonNumberMixin):
     """A fixed-point decimal number field.
     """
@@ -510,6 +519,7 @@ class JsonHashMixin:
         return self.hash_length
 
 
+@public
 class MD5Type(BaseType, JsonHashMixin):
     """A field that validates input as resembling an MD5 hash.
     """
@@ -536,6 +546,7 @@ class MD5Type(BaseType, JsonHashMixin):
 
 
 
+@public
 class SHA1Type(BaseType, JsonHashMixin):
     """A field that validates input as resembling an SHA1 hash.
     """
@@ -561,6 +572,7 @@ class SHA1Type(BaseType, JsonHashMixin):
 ### Native type'ish fields
 ###
 
+@public
 class BooleanType(BaseType):
     """A boolean field type.
     """
@@ -604,6 +616,7 @@ class BooleanType(BaseType):
 
 
 
+@public
 class DateTimeType(BaseType):
     """A datetime field.
     """
@@ -709,6 +722,7 @@ class DateTimeType(BaseType):
         return result.value
 
 
+@public
 class DictType(BaseType):
     """A dictionary field that wraps a standard Python dictionary. This is
     similar to an `ModelType`, but the schematic is not defined.
@@ -747,6 +761,7 @@ class DictType(BaseType):
         return self.basecls(field_name=member_name)
 
 
+@public
 class GeoPointType(BaseType):
     """A list storing a latitude and longitude.
     """
