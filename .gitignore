@@ -3,6 +3,7 @@
 *.bak
 *.swp
 *.*~
+*.egg-info
 .ropeproject
 ./#*
 MANIFEST
