@@ -31,11 +31,23 @@ class TestChoices(unittest.TestCase):
                 'info': ['somevalue', 'other']
             }
         }
-        
+
         self.doc_simple_valid = TestDoc(**self.data_simple_valid)
         self.doc_simple_invalid = TestDoc(**self.data_simple_invalid)
         self.doc_embedded_valid = TestDoc(**self.data_embeded_valid)
         self.doc_embedded_invalid = TestDoc(**self.data_embeded_invalid)
+
+    def test_missing_attrs_dont_error(self):
+        class TestDoc(Model):
+            language = StringType(choices=['en', 'de'])
+        result = validate_instance(TestDoc())
+        self.assertEqual(result.tag, 'OK')
+
+    def test_missing_required_errors(self):
+        class TestDoc(Model):
+            language = StringType(choices=['en', 'de'], required=True)
+        result = validate_instance(TestDoc())
+        self.assertNotEqual(result.tag, 'OK')
 
     def test_choices_validates(self):
         result = validate_instance(self.doc_simple_valid)
