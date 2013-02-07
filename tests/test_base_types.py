@@ -65,11 +65,30 @@ class TestDateTimeType(unittest.TestCase):
         user.joined_on = datetime.datetime.utcnow()
         self.assertTrue(isinstance(user.joined_on, datetime.datetime))
 
+class TestIPv4Type(unittest.TestCase):
+    class Test(Model):
+        ip = IPv4Type()
+
+    def testValidIP(self):
+        test = self.Test()
+        test.ip = '8.8.8.8'
+        result = validate_instance(test)
+        self.assertEqual(result.tag, 'OK')
+
+    def testInvalidIPAddresses(self):
+        result = validate_instance( self.Test(ip='1.1.1.1.1') )
+        self.assertNotEqual(result.tag, 'OK')
+        result = validate_instance( self.Test(ip='1.1.11') )
+        self.assertNotEqual(result.tag, 'OK')
+        result = validate_instance( self.Test(ip='1.1.1111.1') )
+        self.assertNotEqual(result.tag, 'OK')
+
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestStringType, 'test'))
     suite.addTest(unittest.makeSuite(TestIntType, 'test'))
     suite.addTest(unittest.makeSuite(TestDateTimeType, 'test'))
+    suite.addTest(unittest.makeSuite(TestIPv4Type, 'test'))
     return suite
 
 if __name__ == '__main__':
