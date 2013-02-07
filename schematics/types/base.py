@@ -199,6 +199,48 @@ class UUIDType(BaseType):
 
         return str(value)
 
+class IPv4Type(BaseType):
+    """ A field that stores a valid IPv4 address """
+
+    def __init__(self, auto_fill=False, **kwargs):
+        super(IPv4Type, self).__init__(**kwargs)
+
+    def _jsonschema_type(self):
+        return 'string'
+
+    @classmethod
+    def valid_ip(cls, addr):
+        try:
+            addr = addr.strip().split(".")
+        except AttributeError:
+            return False
+        try:
+            return len(addr) == 4 and all(int(octet) < 256 for octet in addr)
+        except ValueError:
+            return False
+
+    def validate(self, value):
+        """
+          Make sure the value is a IPv4 address:
+          http://stackoverflow.com/questions/9948833/validate-ip-address-from-list
+        """
+        if not IPv4Type.valid_ip(value):
+            error_msg = 'Invalid IPv4 address'
+            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
+                               self.field_name, value)
+        return FieldResult(OK, 'success', self.field_name, value)
+
+    def _jsonschema_format(self):
+        return 'ip-address'
+
+    @classmethod
+    def _from_jsonschema_formats(self):
+        return ['ip-address']
+
+    @classmethod
+    def _from_jsonschema_types(self):
+        return ['string']
+
 
 class StringType(BaseType):
     """A unicode string field.
