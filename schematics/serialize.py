@@ -217,6 +217,10 @@ def to_dict(model, gottago=wholelist(), sort_keys=False, **kw):
     return to_json(model, gottago, encode=False, sort_keys=sort_keys, **kw)
 
 @public
+def to_safe_dict(model, role, sort_keys=False, **kw):
+    return make_safe_json(model.__class__, model, role, encode=False, sort_keys=sort_keys, **kw)
+
+@public
 def make_safe_python(model, instance_or_dict, role, **kw):
     field_converter = lambda f, v: f.for_python(v)
     model_converter = lambda m: make_safe_python(m.__class__, m, role, **kw)
