@@ -109,7 +109,7 @@ def _validate(cls, needs_check, values, report_rogues=False):
                if field.required:
                   errors.append(FieldResult(ERROR_FIELD_REQUIRED, "required field was empty",
                                 field_name, field_value))
-            continue
+               continue
 
             ### Validate field value via call to BaseType._validate
             result = field._validate(field_value)
