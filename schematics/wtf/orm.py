@@ -3,7 +3,10 @@ Tools for generating forms based on Schematics Models
 """
 from operator import itemgetter
 from schematics import public
+from schematics.models import Model
+from schematics.serialize import wholelist, whitelist, blacklist
 from wtforms import fields as f, validators, Form
+from wtforms.widgets import HiddenInput
 
 def converts(*args):
     def _inner(func):
@@ -27,7 +30,7 @@ class ModelConverter():
 
         self.converters = converters
 
-    def convert(self, model, field, field_args):
+    def convert(self, model, field, field_args, hidden=False):
         kwargs = {
             'label': getattr(field, 'verbose_name', field.field_name),
             'description': '',
@@ -35,27 +38,35 @@ class ModelConverter():
             'filters': [],
             'default': field.default,
         }
+
+        if hidden:
+           kwargs['widget'] = HiddenInput()
+
+        if model._data[field.field_name]:
+           kwargs['default'] = model._data[field.field_name]
+
         if field_args:
-            kwargs.update(field_args)
+           kwargs.update(field_args)
 
         if field.required:
-            kwargs['validators'].append(validators.Required())
+           kwargs['validators'].append(validators.Required())
         else:
-            kwargs['validators'].append(validators.Optional())
+           kwargs['validators'].append(validators.Optional())
 
         if field.choices:
-            kwargs['choices'] = field.choices
-            if kwargs.pop('multiple', False):
-                return f.SelectMultipleField(**kwargs)
-            return f.SelectField(**kwargs)
+           choices = [(x,x) for x in field.choices]
+           kwargs['choices'] = choices
+           if kwargs.pop('multiple', False):
+               return f.SelectMultipleField(**kwargs)
+           return f.SelectField(**kwargs)
 
         ftype = type(field).__name__
 
         if hasattr(field, 'to_form_field'):
-            return field.to_form_field(model, kwargs)
+           return field.to_form_field(model, kwargs)
 
         if ftype in self.converters:
-            return self.converters[ftype](model, field, kwargs)
+           return self.converters[ftype](model, field, kwargs)
 
     @classmethod
     def _string_common(cls, model, field, kwargs):
@@ -171,7 +182,7 @@ class ModelConverter():
         return
 
 
-def model_fields(model, only=None, exclude=None, field_args=None, converter=None):
+def model_fields(model, only=None, exclude=None, hidden=None, field_args=None, converter=None):
     """
     Generate a dictionary of fields for a given Django model.
 
@@ -183,34 +194,32 @@ def model_fields(model, only=None, exclude=None, field_args=None, converter=None
 
     converter = converter or ModelConverter()
     field_args = field_args or {}
-
-# -old-     names = ((k, v.creation_counter) for k, v in model._fields.iteritems())
-# -old-     field_names = map(itemgetter(0), sorted(names, key=itemgetter(1)))
-# -old- 
-# -old-     if only:
-# -old-         field_names = (x for x in field_names if x in only)
-# -old-     elif exclude:
-# -old-         field_names = (x for x in field_names if x not in exclude)
-# -old- 
-# -old-     field_dict = {}
-# -old-     for name in field_names:
-# -old-         model_field = model._fields[name]
-# -old-         field = converter.convert(model, model_field, field_args.get(name))
-# -old-         if field is not None:
-# -old-             field_dict[name] = field
-
+    gottago = wholelist()
     field_dict = { }
+
+    if only:
+       gottago = whitelist(*only)
+    elif exclude:
+       gottago = blacklist(*exclude)
+
     for field_name, field in model._fields.items():
-       # todo - check only/excludes
-       form_field = converter.convert(model, field, field_args.get(field_name))
+       if gottago(field_name, None): continue
+       ishidden = False
+       if hidden:
+          if field_name in hidden: ishidden=True
+          
+       form_field = converter.convert(model, field, field_args.get(field_name), hidden=ishidden)
+          
        if form_field is not None:
           field_dict[field_name] = form_field
 
+    from pprint import pprint
+    #pprint(field_dict)
     return field_dict
 
 
 @public
-def model_form(model, base_class=Form, only=None, exclude=None, field_args=None, converter=None):
+def model_form(model, base_class=Form, only=None, exclude=None, hidden=None, field_args=None, converter=None):
     """
     Create a wtforms Form for a given Schematic Model schema::
 
@@ -235,6 +244,8 @@ def model_form(model, base_class=Form, only=None, exclude=None, field_args=None,
         A converter to generate the fields based on the model properties. If
         not set, ``ModelConverter`` is used.
     """
-    field_dict = model_fields(model, only, exclude, field_args, converter)
+#   if field_args is None and m:
+#      field_args = model._data
+    field_dict = model_fields(model, only, exclude, hidden, field_args, converter)
     field_dict['model_class'] = model
     return type(model.__class__.__name__ + 'Form', (base_class,), field_dict)
