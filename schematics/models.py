@@ -137,6 +137,9 @@ class BaseModel(object):
             elif attr_value.print_name:
                 field_name = attr_value.print_name
 
+            if attr_value.form_name is None:
+               attr_value.form_name = field_name.title().replace('_',' ')
+
             if field_name in values:
                 field_value = values[field_name]
                 setattr(self, attr_name, field_value)

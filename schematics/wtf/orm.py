@@ -32,7 +32,7 @@ class ModelConverter():
 
     def convert(self, model, field, field_args, hidden=False):
         kwargs = {
-            'label': getattr(field, 'verbose_name', field.field_name),
+            'label': getattr(field, 'form_name', field.name),
             'description': '',
             'validators': [],
             'filters': [],
@@ -42,8 +42,8 @@ class ModelConverter():
         if hidden:
            kwargs['widget'] = HiddenInput()
 
-        if model._data[field.field_name]:
-           kwargs['default'] = model._data[field.field_name]
+        if model._data[field.name]:
+           kwargs['default'] = model._data[field.name]
 
         if field_args:
            kwargs.update(field_args)

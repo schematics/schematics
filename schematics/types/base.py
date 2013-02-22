@@ -34,7 +34,7 @@ class BaseType(object):
 
     def __init__(self, required=False, default=None, field_name=None,
                  print_name=None, choices=None, validation=None, description=None,
-                 minimized_field_name=None):
+                 minimized_field_name=None,form_name=None):
 
         self.required = required
         self.default = default
@@ -44,6 +44,11 @@ class BaseType(object):
         self.validation = validation
         self.description = description
         self.minimized_field_name = minimized_field_name
+        self.form_name = form_name
+
+    @property
+    def name(self):
+        return self.field_name
 
     def __get__(self, instance, owner):
         """Descriptor for retrieving a value from a field in a model. Do
