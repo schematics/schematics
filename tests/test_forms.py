@@ -1,6 +1,7 @@
 # encoding=utf-8
 
 import unittest
+import json
 
 from schematics import Form, InvalidForm
 from schematics.types import StringType, IntType, DateTimeType, BooleanType
@@ -59,8 +60,17 @@ class TestChoices(unittest.TestCase):
 
     def test_public_role(self):
         player = Player.from_json(self.good_data)
-        public_keys = set(player.to_json(role="public").keys())
-        self.assertEqual(public_keys, set('bio games name total_games'.split()))
+        public_json = json.dumps(player.to_json(role="public"))
+        expected_json = """{
+          "bio": "Iron master",
+          "games": [
+            {"opponent_id": 2},
+            {"opponent_id": 3}
+          ],
+          "name": "J\u00f6lli",
+          "total_games": 2
+        }"""
+        self.assertEqual(json.loads(public_json), json.loads(expected_json))
 
     def test_subclass_form(self):
         player = GameMaster.from_json(self.good_data)
