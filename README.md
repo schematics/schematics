@@ -16,6 +16,7 @@ never uses exceptions.  Exceptions are often misused and it is a matter of my
 personal taste to avoid them altogether.  Having a system that returns a list
 of validation data are easier to work with than systems that throw exceptions.
 
-The demos are fully up to date with the current thinking, but it's possible
-this library will change, or even has already changed significantly, beyond
-what people are used to with DictShield.  I believe that's a great thing.
+[The demos](https://github.com/j2labs/schematics/tree/master/demos) are fully
+up to date with the current thinking, but it's possible this library will
+change, or even has already changed significantly, beyond what people are used
+to with DictShield.  I believe that's a great thing.
