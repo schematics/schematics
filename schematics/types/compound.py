@@ -97,11 +97,9 @@ class ListType(BaseType):
                     test_keys = model_field.model_type_obj._fields.keys()
                     datum_keys = datum_fields
                     if set(test_keys) == set(datum_keys):
-                        print 'MEOW:', datum
                         if not isinstance(datum, dict):
                             datum = datum._data
                         datum_instance = model_field.model_type_obj(**datum)
-                        print 'DI:', datum_instance
 
                 ### Validate model
                 result = validate_instance(datum_instance)
