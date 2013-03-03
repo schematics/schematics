@@ -80,7 +80,7 @@ def _extract_fields(bases, attrs):
             ### attr_value = field instance
             attr_value.field_name = attr_name  # fields know their name
             model_fields[attr_name] = attr_value
-            
+
     return model_fields
 
 
@@ -130,8 +130,8 @@ class BaseModel(object):
             # Use default value if present
             value = getattr(self, attr_name, None)
             setattr(self, attr_name, value)
-
             field_name = attr_name
+            self._fields[attr_name]._is_set = False
             if attr_value.minimized_field_name:
                 field_name = attr_value.minimized_field_name
             elif attr_value.print_name:
@@ -140,7 +140,7 @@ class BaseModel(object):
             if field_name in values:
                 field_value = values[field_name]
                 setattr(self, attr_name, field_value)
-                    
+
 
     ###
     ### dict Interface
@@ -185,7 +185,7 @@ class BaseModel(object):
         return False
 
     ### Representation Descriptors
-    
+
     def __repr__(self):
         try:
             u = unicode(self)
@@ -197,7 +197,7 @@ class BaseModel(object):
         if hasattr(self, '__unicode__'):
             return unicode(self).encode('utf-8')
         return '%s object' % self.__class__.__name__
-    
+
 ###
 ### Model Manipulation Functions
 ###
@@ -219,7 +219,7 @@ def swap_field(klass, new_field, fields):
     klass_name = klass.__name__
     new_klass = type(klass_name, (klass,), {})
 
-    ### Generate the id_fields for each field we're updating. 
+    ### Generate the id_fields for each field we're updating.
     fields_dict = dict()
     for f in fields:
         new_klass._fields[f] = new_field()
