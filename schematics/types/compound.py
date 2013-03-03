@@ -22,6 +22,8 @@ class ListType(BaseType):
     """
 
     def __init__(self, fields, **kwargs):
+        super(ListType, self).__init__(**kwargs)
+
         ### Short hand
         is_basetype = lambda field: isinstance(field, BaseType)
         is_model = lambda field: isinstance(field, ModelType)
@@ -32,19 +34,22 @@ class ListType(BaseType):
             if is_model(fields):
                 kwargs.setdefault('primary_embedded', fields)
             fields = [fields]
-        # something other than a list
+            
+        ### something other than a list
         elif not isinstance(fields, list):
             error_msg = 'Argument to ListType constructor must be '
             error_msg = error_msg + 'a valid field or list of fields'
             
             return FieldResult(ERROR_FIELD_CONFIG, error_msg,
                                self.field_name, fields)
-        # some bad stuff in the list
+        
+        ### some bad stuff in the list
         elif list(ifilterfalse(is_basetype, fields)):
             error_msg = 'Argument to ListType constructor must be '
             error_msg = error_msg + 'a valid field or list of valid fields'
             return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
                                self.field_name, fields)
+        
         else:
             models = filter(is_model, fields)
             dicts = filter(is_dicttype, fields)
@@ -57,7 +62,6 @@ class ListType(BaseType):
         kwargs.setdefault('default', list)
 
         self.primary_embedded = kwargs.pop('primary_embedded', None)
-        super(ListType, self).__init__(**kwargs)
 
     def __set__(self, instance, value_list):
         """Descriptor for assigning a value to a type in a model.
@@ -78,26 +82,30 @@ class ListType(BaseType):
         if model_fields:
             new_data = list()
             for datum in value_list:
-                datum_instance = datum
+                datum_instance = None
                 is_dict = False
 
-                ### if `datum` is dict, attempt conversion
+                ### Extract field names from datum
+                datum_fields = None
                 if isinstance(datum, dict):
-                    is_dict = True
-                    ### Find a model that matches
-                    for model_field in model_fields:
-                        ### TODO Validate SMARTER
+                    datum_fields = datum.keys()
+                else:
+                    datum_fields = datum._fields.keys()
+                    
+                ### Determine matching model
+                for model_field in model_fields:
+                    test_keys = model_field.model_type_obj._fields.keys()
+                    datum_keys = datum_fields
+                    if set(test_keys) == set(datum_keys):
+                        print 'MEOW:', datum
+                        if not isinstance(datum, dict):
+                            datum = datum._data
                         datum_instance = model_field.model_type_obj(**datum)
+                        print 'DI:', datum_instance
 
-                #import pdb; pdb.set_trace()
+                ### Validate model
                 result = validate_instance(datum_instance)
-            
                 if result.tag == OK:
-                    ### Remove double instantiation
-                    for model_field in model_fields:
-                        ### TODO Validate SMARTER
-                        datum_instance = model_field.model_type_obj(**result.value)
-                    #new_data.append(datum_instance)
                     new_data.append(datum_instance)
                 else:
                     errors_found = True
