@@ -236,7 +236,10 @@ class StringType(BaseType):
         return unicode(value)
 
     def validate(self, value):
-        assert isinstance(value, (str, unicode))
+        if not isinstance(value, (str, unicode)):
+            error_msg = 'Not a boolean'
+            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
+                               self.field_name, value)
 
         if self.max_length is not None and len(value) > self.max_length:
             error_msg = 'String value is too long'
