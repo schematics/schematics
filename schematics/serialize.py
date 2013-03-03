@@ -53,19 +53,19 @@ That looks like this in code:
                 'owner': blacklist('is_active'),
                 'public': whitelist('username', 'name'),
             }
-    
+
     class BlogPost(Model):
-        title = StringType()    
+        title = StringType()
         content = StringType()
         author = ModelType(Author)
         post_date = DateTimeType(default=datetime.datetime.now)
         comments = ListType(ModelType(Comment))
-        deleted = BooleanType()   
+        deleted = BooleanType()
         class Options:
             roles = {
                 'owner': whotelist(),
                 'public': whitelist('author', 'content', 'comments'),
-            }        
+            }
 """
 
 import copy
@@ -90,7 +90,7 @@ def _reduce_loop(model, instance_or_dict, field_converter):
 
 
 def apply_shape(model, instance_or_dict, field_converter, model_converter,
-                gottago, allow_none=False):
+                gottago, allow_none=True):
     """
     """
     model_dict = {}
@@ -114,7 +114,7 @@ def apply_shape(model, instance_or_dict, field_converter, model_converter,
         ### Convert field as single model
         elif isinstance(field_value, Model):
             model_dict[serialized_name] = model_converter(field_value)
-            
+
         ### Convert field as list of models
         elif isinstance(field_value, list) and len(field_value) > 0:
             if isinstance(field_value[0], Model):
@@ -123,7 +123,7 @@ def apply_shape(model, instance_or_dict, field_converter, model_converter,
             else:
                 model_dict[serialized_name] = field_converter(field_instance,
                                                               field_value)
-                
+
         ### Convert field as single field
         else:
             if field_value is None:
@@ -139,7 +139,7 @@ def apply_shape(model, instance_or_dict, field_converter, model_converter,
 
 
 ###
-### Field Access Functions 
+### Field Access Functions
 ###
 
 def wholelist(*field_list):
@@ -150,7 +150,7 @@ def wholelist(*field_list):
         return False
     return _wholelist
 
-    
+
 def whitelist(*field_list):
     """Returns a function that operates as a whitelist for the provided list of
     fields.
@@ -175,11 +175,11 @@ def blacklist(*field_list):
     """
     ### Default to not rejecting the value
     _blacklist = lambda k, v: False
-    
+
     if field_list is not None and len(field_list) > 0:
         def _blacklist(k, v):
             return k in field_list
-            
+
     return _blacklist
 
 
@@ -218,7 +218,7 @@ def make_safe_python(model, instance_or_dict, role, **kw):
 
     return apply_shape(model, instance_or_dict, field_converter, model_converter,
                        gottago, **kw)
-    
+
 
 def make_safe_json(model, instance_or_dict, role, encode=True, sort_keys=False,
                    **kw):
@@ -317,11 +317,11 @@ def from_jsonschema(schema, model=Model):
 
 def map_jsonschema_field_to_schematics(schema_field, base_class,
                                        field_name=None):
-    
+
     # get the kind of field this is
     if not 'type' in schema_field:
         return  # not data, so ignore
-    
+
     tipe = schema_field.pop('type')
     fmt = schema_field.pop('format', None)
 
@@ -330,30 +330,30 @@ def map_jsonschema_field_to_schematics(schema_field, base_class,
         raise DictFieldNotFound
 
     kwargs = {}
-    
+
     # List types
     if tipe == 'array':
         items = schema_field.pop('items', None)
-        
-        # any possible item isn't allowed by listfield        
-        if items == None:  
+
+        # any possible item isn't allowed by listfield
+        if items == None:
             raise NotImplementedError
         # list of a single type
         elif isinstance(items, dict):
             items = [items]
-            
+
         kwargs['fields'] = [map_jsonschema_field_to_schematics(item, base_class)
                             for item in items]
 
-    # Embedded objects        
-    if tipe == 'object': 
+    # Embedded objects
+    if tipe == 'object':
         #schema_field['title'] = field_name
         model_type = from_jsonschema(base_class, schema_field)
         kwargs['model_type'] = model_type
         x = schema_field.pop('properties')
 
     # Remove, in case it's present
-    schema_field.pop('title', None)  
+    schema_field.pop('title', None)
 
     # Map jsonschema names to schematics names
     for kwarg_name, v in schema_field.items():

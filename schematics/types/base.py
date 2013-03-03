@@ -2,13 +2,10 @@ import uuid
 import re
 import datetime
 import decimal
+import itertools
 
-
-from schematics.validation import (TypeResult, FieldResult,
-                                   OK, ERROR_TYPE_COERCION, ERROR_FIELD_CONFIG,
-                                   ERROR_FIELD_BAD_CHOICE,
-                                   ERROR_FIELD_TYPE_CHECK)
 from schematics.types import schematic_types
+from schematics.exceptions import StopValidation, ValidationError
 
 
 class BaseTypeMetaClass(type):
@@ -32,7 +29,7 @@ class BaseType(object):
     __metaclass__ = BaseTypeMetaClass
 
     def __init__(self, required=False, default=None, field_name=None,
-                 print_name=None, choices=None, validation=None, description=None,
+                 print_name=None, choices=None, validators=None, description=None,
                  minimized_field_name=None, dirty=False):
 
         self.required = required
@@ -40,7 +37,7 @@ class BaseType(object):
         self.field_name = field_name
         self.print_name = print_name
         self.choices = choices
-        self.validation = validation
+        self.validators = validators
         self.description = description
         self.minimized_field_name = minimized_field_name
         # dirty make sense only if required == True.
@@ -81,35 +78,56 @@ class BaseType(object):
         """
         return self.for_python(value)
 
-    def validate(self, value):
+    def process(self, value):
         """Function that is overridden by subclasses for their validation logic
         """
-        pass
+        raise NotImplemented
 
-    def _validate(self, value):
-        """This function runs before `validate()` and handles applying the
-        global environment parameters.
+    def validate(self, value):
         """
+        Validates the field and returns True or False. `self.errors` will
+        contain any errors raised during validation. This is usually only
+        called by `Form.validate`. If at the end of validate no errors were
+        raised, assign `self.clean` the value.
+
+        """
+        self.errors = []
+
+        def aggregate_from_exception_errors(e):
+            if e.args and e.args[0]:
+                if isinstance(e.args[0], basestring):
+                    errors = [e.args[0]]
+                elif isinstance(e.args, (tuple, list)):
+                    errors = e.args[0]
+                else:
+                    errors = []
+                return errors
+
+        validator_chain = itertools.chain([self.process, self.choices_validation],
+                                          self.validators or [])
+        for validator in validator_chain:
+            try:
+                value = validator(value)
+            except StopValidation as e:
+                errors = aggregate_from_exception_errors(e)
+                self.errors.extend(errors)
+                return False
+            except (ValidationError, ValueError), e:
+                errors = aggregate_from_exception_errors(e)
+                self.errors.extend(errors)
+
+        if self.errors:
+            return False
+
+        self.clean = value
+        return True
+
+    def choices_validation(self, value):
         # `choices`
         if self.choices is not None:
             if value not in self.choices:
-                error_msg = 'Value must be one of %s.' % unicode(self.choices)
-                return FieldResult(ERROR_FIELD_BAD_CHOICE, error_msg,
-                                   self.field_name, value)
-
-        # `validation` function
-        if self.validation is not None:
-            if callable(self.validation):
-                if not self.validation(value):
-                    error_msg = 'Value failed custom validation.'
-                    return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                                       self.field_name, value)
-            else:
-                error_msg = 'Validation argument must be a callable.'
-                return FieldResult(ERROR_FIELD_CONFIG, error_msg,
-                                   self.field_name, value)
-
-        return self.validate(value)
+                raise ValidationError, 'Value must be one of %s.' % unicode(self.choices)
+        return value
 
     def _jsonschema_default(self):
         if callable(self.default):
@@ -182,21 +200,15 @@ class UUIDType(BaseType):
     def _jsonschema_type(self):
         return 'string'
 
-    def validate(self, value):
+    def process(self, value):
         """Make sure the value is a valid uuid representation.  See
         http://docs.python.org/library/uuid.html for accepted formats.
         """
-        new_value = value
 
         if not isinstance(value, (uuid.UUID,)):
-            try:
-                new_value = uuid.UUID(value)
-            except ValueError:
-                error_msg = 'Not a valid UUID value'
-                return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                                   self.field_name, value)
+            value = uuid.UUID(value)
 
-        return FieldResult(OK, 'success', self.field_name, new_value)
+        return value
 
     def for_json(self, value):
         """Return a JSON safe version of the UUID object.
@@ -240,28 +252,19 @@ class StringType(BaseType):
             return None
         return unicode(value)
 
-    def validate(self, value):
-        if not isinstance(value, (str, unicode)):
-            error_msg = 'Not a boolean'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+    def process(self, value):
+        value = unicode(value)
 
         if self.max_length is not None and len(value) > self.max_length:
-            error_msg = 'String value is too long'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, u'String value is too long'
 
         if self.min_length is not None and len(value) < self.min_length:
-            error_msg = 'String value is too short'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, u'String value is too short'
 
         if self.regex is not None and self.regex.match(value) is None:
-            error_msg = 'String value did not match validation regex'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, u'String value did not match validation regex'
 
-        return FieldResult(OK, 'success', self.field_name, value)
+        return value
 
 
     def lookup_member(self, member_name):
@@ -299,11 +302,9 @@ class URLType(StringType):
     def _from_jsonschema_formats(self):
         return ['url']
 
-    def validate(self, value):
+    def process(self, value):
         if not URLType.URL_REGEX.match(value):
-            error_msg = 'Invalid URL'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, 'Invalid URL'
 
         if self.verify_exists:
             import urllib2
@@ -311,11 +312,9 @@ class URLType(StringType):
                 request = urllib2.Request(value)
                 urllib2.urlopen(request)
             except Exception:
-                error_msg = 'URL does not exist'
-                return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                                   self.field_name, value)
+                raise ValidationError, 'URL does not exist'
 
-        return FieldResult(OK, 'success', self.field_name, value)
+        return value
 
 
 class EmailType(StringType):
@@ -333,12 +332,10 @@ class EmailType(StringType):
         re.IGNORECASE
     )
 
-    def validate(self, value):
+    def process(self, value):
         if not EmailType.EMAIL_REGEX.match(value):
-            error_msg = 'Invalid email address'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
-        return FieldResult(OK, 'success', self.field_name, value)
+            raise ValidationError, 'Invalid email address'
+        return value
 
 
     def _jsonschema_format(self):
@@ -390,27 +387,21 @@ class NumberType(JsonNumberMixin, BaseType):
     def for_python(self, value):
         return self.number_class(value)
 
-    def validate(self, value):
+    def process(self, value):
         try:
             value = self.number_class(value)
         except:
-            error_msg = 'Not %s' % self.number_type
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, 'Not %s' % self.number_type
 
         if self.min_value is not None and value < self.min_value:
-            error_msg = '%s value below min_value: %s' % (self.number_type,
+            raise ValidationError, '%s value below min_value: %s' % (self.number_type,
                                                           self.min_value)
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
 
         if self.max_value is not None and value > self.max_value:
-            error_msg = '%s value above max_value: %s' % (self.number_type,
+            raise ValidationError, '%s value above max_value: %s' % (self.number_type,
                                                           self.max_value)
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
 
-        return FieldResult(OK, 'success', self.field_name, value)
+        return value
 
 
 class IntType(NumberType):
@@ -468,28 +459,22 @@ class DecimalType(BaseType, JsonNumberMixin):
     def for_json(self, value):
         return unicode(value)
 
-    def validate(self, value):
+    def process(self, value):
         if not isinstance(value, decimal.Decimal):
             if not isinstance(value, basestring):
                 value = str(value)
             try:
                 value = decimal.Decimal(value)
             except Exception:
-                error_msg = 'Could not convert to decimal'
-                return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                                   self.field_name, value)
+                raise ValidationError, 'Could not convert to decimal'
 
         if self.min_value is not None and value < self.min_value:
-            error_msg ='Decimal value below min_value: %s' % self.min_value
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, 'Decimal value below min_value: %s' % self.min_value
 
         if self.max_value is not None and value > self.max_value:
-            error_msg = 'Decimal value above max_value: %s' % self.max_value
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, 'Decimal value above max_value: %s' % self.max_value
 
-        return FieldResult(OK, 'success', self.field_name, value)
+        return value
 
 
 ###
@@ -515,19 +500,15 @@ class MD5Type(BaseType, JsonHashMixin):
     """
     hash_length = 32
 
-    def validate(self, value):
+    def process(self, value):
         if len(value) != MD5Type.hash_length:
-            error_msg = 'MD5 value is wrong length'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, 'MD5 value is wrong length'
         try:
             value = int(value, 16)
         except:
-            error_msg = 'MD5 value is not hex'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, 'MD5 value is not hex'
 
-        return FieldResult(OK, 'success', self.field_name, value)
+        return value
 
 
 
@@ -536,19 +517,15 @@ class SHA1Type(BaseType, JsonHashMixin):
     """
     hash_length = 40
 
-    def validate(self, value):
+    def process(self, value):
         if len(value) != SHA1Type.hash_length:
-            error_msg = 'SHA1 value is wrong length'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, 'SHA1 value is wrong length'
         try:
             value = int(value, 16)
         except:
-            error_msg = 'SHA1 value is not hex'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, 'SHA1 value is not hex'
 
-        return FieldResult(OK, 'success', self.field_name, value)
+        return value
 
 
 
@@ -589,13 +566,11 @@ class BooleanType(BaseType):
     def for_python(self, value):
         return bool(value)
 
-    def validate(self, value):
+    def process(self, value):
         if not isinstance(value, bool):
-            error_msg = 'Not a boolean'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, 'Not a boolean'
 
-        return FieldResult(OK, 'success', self.field_name, value)
+        return value
 
 
 
@@ -664,13 +639,12 @@ class DateTimeType(BaseType):
         elements = re.findall(iso8601, datestring)
 
         if len(elements) < 1:
-            error_msg = 'Date string could not transform to datetime'
-            return TypeResult(ERROR, error_msg, datestring)
+            raise ValidationError, 'Date string could not transform to datetime'
 
         date_info = elements[0]
         date_digits = [int(d) for d in date_info if d]
         value = datetime.datetime(*date_digits)
-        return TypeResult(OK, 'success', value)
+        return value
 
     @classmethod
     def date_to_iso8601(cls, dt, format):
@@ -684,17 +658,14 @@ class DateTimeType(BaseType):
         elif hasattr(format, '__call__'):
             iso_dt = format(dt)
         else:
-            error_msg = 'DateTimeType format must be a string or callable'
-            return TypeResult(ERROR, error_msg, dt)
-        return TypeResult(OK, 'success', iso_dt)
+            raise ValidationError, 'DateTimeType format must be a string or callable'
+        return value
 
-    def validate(self, value):
+    def process(self, value):
         if not isinstance(value, datetime.datetime):
-            error_msg = 'Not a datetime'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, 'Not a datetime'
 
-        return FieldResult(OK, 'success', self.field_name, value)
+        return value
 
     def for_python(self, value):
         return value
@@ -716,27 +687,22 @@ class DictType(BaseType):
         self.basecls = basecls or BaseType
 
         if not issubclass(self.basecls, BaseType):
-            error_msg = 'basecls is not subclass of BaseType'
-            return TypeResult(ERROR_TYPE_COERCION, error_msg, basecls)
+            raise ValidationError, 'basecls is not subclass of BaseType'
 
         kwargs.setdefault('default', lambda: {})
         super(DictType, self).__init__(*args, **kwargs)
 
-    def validate(self, value):
+    def process(self, value):
         """Make sure that a list of valid fields is being used.
         """
         if not isinstance(value, dict):
-            error_msg = 'Only dictionaries may be used in a DictType'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, 'Only dictionaries may be used in a DictType'
 
         ### TODO this can probably be removed
         if any(('.' in k or '$' in k) for k in value):
-            error_msg = 'Invalid dictionary key - may not contain "." or "$"'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, 'Invalid dictionary key - may not contain "." or "$"'
 
-        return FieldResult(OK, 'success', self.field_name, value)
+        return value
 
     def lookup_member(self, member_name):
         return self.basecls(field_name=member_name)
@@ -758,28 +724,20 @@ class GeoPointType(BaseType):
     def _jsonschema_minLength(self):
         return 2
 
-    def validate(self, value):
+    def process(self, value):
         """Make sure that a geo-value is of type (x, y)
         """
         if not len(value) == 2:
-            error_msg = 'Value must be a two-dimensional point'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, 'Value must be a two-dimensional point'
         if isinstance(value, dict):
             for v in value.values():
                 if not isinstance(v, (float, int)):
-                    error_msg = 'Both values in point must be float or int'
-                    return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                                       self.field_name, value)
+                    raise ValidationError, 'Both values in point must be float or int'
         elif isinstance(value, (list, tuple)):
             if (not isinstance(value[0], (float, int)) and
                 not isinstance(value[1], (float, int))):
-                error_msg = 'Both values in point must be float or int'
-                return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                                   self.field_name, value)
+                raise ValidationError, 'Both values in point must be float or int'
         else:
-            error_msg = 'GeoPointType can only accept tuples, lists, or dicts'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
+            raise ValidationError, 'GeoPointType can only accept tuples, lists, or dicts'
 
-        return FieldResult(OK, 'success', self.field_name, value)
+        return value

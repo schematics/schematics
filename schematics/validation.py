@@ -30,37 +30,9 @@ Error cases will return a text representation of what happened for the message
 value. This value will always be log-friendly.
 """
 
-from collections import namedtuple
+from .models import Model
+from .exceptions import StopValidation, ValidationError
 
-
-###
-### Result Handlilng
-###
-
-OK = 'OK'
-
-### Type Handling
-TypeResult = namedtuple('TypeResult', 'tag message value')
-#ERROR_INVALID_TYPE
-ERROR_TYPE_COERCION = 'ERROR_TYPE_COERCION'  # type coercion failed
-
-### Field Handling
-FieldResult = namedtuple('FieldResult', 'tag message name value')
-ERROR_FIELD_TYPE_CHECK = 'ERROR_FIELD_TYPE_CHECK'  # field failed type check
-ERROR_FIELD_CONFIG = 'ERROR_FIELD_CONFIG'  # bad type instance config
-ERROR_FIELD_REQUIRED = 'ERROR_FIELD_REQUIRED'  # required field not found
-ERROR_FIELD_BAD_CHOICE = 'ERROR_FIELD_BAD_CHOICE'  # bad type instance config
-
-### Model Handling
-ModelResult = namedtuple('ModelResult', 'tag message model value')
-ERROR_MODEL_INVALID = 'ERROR_MODEL_INVALID'  # data is not a schematics model
-ERROR_MODEL_TYPE_CHECK = 'ERROR_MODEL_TYPE_CHECK'  # model failed type check
-ERROR_MODEL_ROGUE_FIELD = 'ERROR_MODEL_ROGUE_FIELD'  # field not found in model
-
-
-###
-### Validation Functions
-###
 
 def _is_empty(field_value):
     if field_value is None:
@@ -77,84 +49,74 @@ def _validate(cls, needs_check, values, report_rogues=True):
     mapped to an entry in `values`.  This entry is then validated against the
     field's validation function.
 
-    If errors are found they are accumulated in `errors` and return with a tag
-    signalling an error.
+    A (data, errors) tuple is returned::
 
-    If validation passes, the values are returned with all the values coerced
-    to their appropriate type, as specificed in the field's `validate`
-    function.
+        >>> items, errors = _validate(MyModel, lambda: True, foreign_data)
+        >>> if not errors:
+        >>>     model = MyModel(**items)
+        >>> else:
+        >>>     abort(422, errors=errors)
+        >>>
+
     """
-    ### Reject model if _fields isn't present
-    if not hasattr(cls, '_fields'):
-        error_msg = 'cls is not a Model instance'
-        return ModelResult(ERROR_MODEL_INVALID, error_msg, cls, values)
 
-    ### Containers for results
-    new_data = {}
-    errors = []
+    if isinstance(cls, Model):
+        cls = cls.__class__
 
-    ### Validate data based on cls's structure
+    assert issubclass(cls, Model)
+
+    data = {}
+    errors = {}
+    missing_error = u"This field is required"
+
+    # Validate data based on cls's structure
     for field_name, field in cls._fields.items():
-        ### Rely on parameter for whether or not we should check value
+        # Rely on parameter for whether or not we should check value
         if needs_check(field_name, field):
-            field_value = values[field_name]
+            field_value = values.get(field_name)
 
-            ### If field is required and empty, set error
+            # If field is required and empty, set error
             if _is_empty(field_value):
                 if field.required and (not field.dirty or not field._is_set):
-                    error_msg = "Required field not found"
-                    result = FieldResult(ERROR_FIELD_REQUIRED, error_msg,
-                                        field_name, field_value)
-                    errors.append(result)
+                    errors[field_name] = [missing_error]
                     continue
                 elif field.dirty or not field._is_set:
                     continue
 
-            ### Validate field value via call to BaseType._validate
-            result = field._validate(field_value)
-            if result.tag != OK:
-                errors.append(result)
+            # Validate field value via call to BaseType._validate
+            if field.validate(field_value):
+                data[field_name] = field.clean
             else:
-                new_data[field_name] = result.value
+                errors[field_name] = field.errors
 
-    ### Report rogue fields as errors if `report_rogues`
+    # Report rogue fields as errors if `report_rogues`
     if report_rogues:
-        class_fields = cls._fields.keys()
-        rogues_found = set(values.keys()) - set(class_fields)
+        rogues_found = set(values) - set(cls._fields)  # set takes iterables, iterating over keys in this instance
         if len(rogues_found) > 0:
             for field_name in rogues_found:
-                error_msg = 'Unknown field found'
-                field_value = values[field_name]
-                result = FieldResult(ERROR_MODEL_ROGUE_FIELD, error_msg,
-                                    field_name, field_value)
-                errors.append(result)
+                errors[field_name] = [u'%s is an illegal field' % field_name]
 
-    ### Return on if errors were found
-    if len(errors) > 0:
-        error_msg = 'Model validation errors'
-        return ModelResult(ERROR_MODEL_TYPE_CHECK, error_msg, cls, errors)
-
-    return ModelResult(OK, 'success', cls, new_data)
+    return data, errors
 
 
-def validate_values(cls, values):
+def validate_values(cls, values, report_rogues=True):
     """Validates `values` against a `class` definition or instance.  It takes
     care to ensure require fields are present and pass validation and
     """
     needs_check = lambda k, v: v.required or k in values
-    return _validate(cls, needs_check, values)
+    return _validate(cls, needs_check, values, report_rogues=report_rogues)
 
 
-def validate_instance(model):
+def validate_instance(model, report_rogues=True):
     """Extracts the values from the model and validates them via a call to
     `validate_values`.
     """
     values = model._data
     needs_check = lambda k, v: v.required or k in values
-    return _validate(model, needs_check, values)
+    return _validate(model, needs_check, values, report_rogues=report_rogues)
 
 
-def validate_partial(cls, values):
+def validate_partial(cls, values, report_rogues=True):
     """This function will validate values against fields of the same name in
     the model.  No checks for required fields are performed.
 
@@ -162,4 +124,4 @@ def validate_partial(cls, values):
     merge them later.
     """
     needs_check = lambda k, v: k in values
-    return _validate(cls, needs_check, values)
+    return _validate(cls, needs_check, values, report_rogues=report_rogues)

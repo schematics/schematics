@@ -16,11 +16,11 @@ from fixtures import Model
 
 class ModelSerializer:
     ### Subclass overrides these
-    klass = None 
+    klass = None
     description = dict()
     owner_safe = dict()
     public_safe = dict()
-    
+
     def setUp(self):
         self.instance = self.klass(**self.description)
         self.as_python = to_python(self.instance)
@@ -56,33 +56,37 @@ class ModelSerializer:
 
 class TestSimpleModel(ModelSerializer, unittest.TestCase):
     klass = fixtures.SimpleModel
-    
+
     description = {
         'title' : u'Misc Doc',
+        'owner': None,
     }
-    
+
     owner_safe = {
         'title': u'Misc Doc',
+        'owner': None,
     }
-    
+
     public_safe = {}
 
 
 class TestSubModel(ModelSerializer, unittest.TestCase):
     klass = fixtures.SubModel
-    
+
     description = {
         'title': u'Total Recall',
         'year': 1990,
         'thoughts': u'I wish I had three hands...',
+        'owner': None,
     }
-    
+
     owner_safe = {
         'title': u'Total Recall',
         'year': 1990,
         'thoughts': u'I wish I had three hands...',
+        'owner': None,
     }
-    
+
     public_safe = {
         'title': u'Total Recall',
         'year': 1990,
@@ -91,7 +95,7 @@ class TestSubModel(ModelSerializer, unittest.TestCase):
 
 class TestThingModel(ModelSerializer, unittest.TestCase):
     klass = fixtures.ThingModel
-    
+
     description = {
         'title': u'Thing Model',
         'body': u'Scenester twee mlkshk readymade butcher. Letterpress\nportland +1 salvia, vinyl trust fund butcher gentrify farm-to-table brooklyn\nhelvetica DIY. Sartorial homo 3 wolf moon, banh mi blog retro mlkshk Austin\nmaster cleanse.\n',
@@ -99,7 +103,7 @@ class TestThingModel(ModelSerializer, unittest.TestCase):
         'archived': False,
         'deleted': False,
     }
-    
+
     owner_safe = {
         'title': u'Thing Model',
         'body': u'Scenester twee mlkshk readymade butcher. Letterpress\nportland +1 salvia, vinyl trust fund butcher gentrify farm-to-table brooklyn\nhelvetica DIY. Sartorial homo 3 wolf moon, banh mi blog retro mlkshk Austin\nmaster cleanse.\n',
@@ -107,13 +111,13 @@ class TestThingModel(ModelSerializer, unittest.TestCase):
         'archived': False,
         'deleted': False,
     }
-    
+
     public_safe = {}
 
 
 class TestEmbeddedDocs(ModelSerializer, unittest.TestCase):
     klass = fixtures.BlogPost
-    
+
     description = {
         'title': u'Hipster Hodgepodge',
         'content': u'Retro single-origin coffee chambray stumptown, scenester VHS\nbicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free\ntrust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed\n',
@@ -138,7 +142,7 @@ class TestEmbeddedDocs(ModelSerializer, unittest.TestCase):
         ],
         'deleted': False,
     }
-    
+
     owner_safe = {
         'author': {
             'username': 'j2d2',
@@ -162,7 +166,7 @@ class TestEmbeddedDocs(ModelSerializer, unittest.TestCase):
         ],
         'content': 'Retro single-origin coffee chambray stumptown, scenester VHS\nbicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free\ntrust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed\n'
     }
-    
+
     public_safe = {
         'author': {
             'name': 'james',

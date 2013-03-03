@@ -1,16 +1,8 @@
 import inspect
 import copy
 
+from schematics.types import BaseType
 
-#from schematics.base import (TypeException, ModelException, json)
-from schematics.base import json
-from schematics.types import (DictFieldNotFound, schematic_types, BaseType,
-                              UUIDType)
-
-
-###
-### Model Configuration
-###
 
 class ModelOptions(object):
     """This class is a container for all metaclass configuration options. It's
@@ -198,57 +190,10 @@ class BaseModel(object):
             return unicode(self).encode('utf-8')
         return '%s object' % self.__class__.__name__
 
-###
-### Model Manipulation Functions
-###
-
-def swap_field(klass, new_field, fields):
-    """This function takes an existing class definition `klass` and create a
-    new version of the schematic with the fields in `fields` converted to
-    `field` instances.
-
-    Effectively doing this:
-
-        class.field_name = id_field()  # like ObjectIdType, perhaps
-
-    Returns the class for compatibility, making it compatible with a decorator.
-    """
-    ### The metaclass attributes will fake not having inheritance
-    cn = klass._model_name
-    sc = klass._superclasses
-    klass_name = klass.__name__
-    new_klass = type(klass_name, (klass,), {})
-
-    ### Generate the id_fields for each field we're updating.
-    fields_dict = dict()
-    for f in fields:
-        new_klass._fields[f] = new_field()
-
-    new_klass.id = new_klass._fields['id']
-    return new_klass
-
-
-def diff_id_field(id_field, field_list, *arg):
-    """This function is a decorator that takes an id field, like ObjectIdType,
-    and replaces the fields in `field_list` to use `id_field` instead.
-
-    Wrap a class definition and it will apply the field swap in an simply and
-    expressive way.
-
-    The function can be used as a decorator OR the adjusted class can be passed
-    as an optional third argument.
-    """
-    if len(arg) == 1:
-        return swap_field(arg[0], id_field, field_list)
-
-    def wrap(klass):
-        klass = swap_field(klass, id_field, field_list)
-        return klass
-    return wrap
-
 
 class Model(BaseModel):
-    """Model YEAH
-    """
+
     __metaclass__ = ModelMetaclass
     __optionsclass__ = ModelOptions
+
+
