@@ -1,22 +1,98 @@
-# Schematics
+Schematics
+==========
 
-Schematics is an easy way to model data.  It provides mechanisms for structuring
-data, initializing data, serializing data, formatting data and validating data
-against type definitions, like an email address.
+Python Data Structures for Humans™.
 
-It is going through substantial changes at the moment.  Please bear with me as
-I simplify, extend, and create a new foundation from which to build. 
+**This is a fork of the original project by @j2labs**
 
-I have been listening to everyone's suggestions and finally decided the right
-way to address them was to build a new core. 
+## My Changes
 
-Along the way I have decided to change some things about how validation will
-work.  It is going to be broken out into something that is list oriented and
-never uses exceptions.  Exceptions are often misused and it is a matter of my
-personal taste to avoid them altogether.  Having a system that returns a list
-of validation data are easier to work with than systems that throw exceptions.
+1. Removed modules `forms` and `types.mongo`.
+2. Changed the error reporting back to to `Exception` based. It now resembles
+   the validation chain implimented in WTForms. `FieldResult` and all that is
+   gone. Errors are aggregated into `self.errors` and further aggregated into a
+   dictionary. I needed this to inform API clients of data errors.
+3. The main validation methods now return a `(items, errors)` tuple instead of
+   a boolean.
+4. `Field.validators` is now a list of callables, similar to WTForms.
+5. Some things like type checking was mixed with the validation error reporting
+   layer have been changed into simple Python asserts. I considered this a
+   leaky abstraction.
 
-[The demos](https://github.com/j2labs/schematics/tree/master/demos) are fully
-up to date with the current thinking, but it's possible this library will
-change, or even has already changed significantly, beyond what people are used
-to with DictShield.  I believe that's a great thing.
+## Forms
+
+I added a top level convenience `schematics.Form`. This does 90% of what you
+will need in one class (apart from the actual `schematics.types` classes).
+Here’s some code to show off what can be accomplished with little heavy lifting.
+
+Please note, all the hard stuff is done in the original non-forked library.
+Credit where credit’s due.
+
+```python
+
+from schematics import Form, InvalidForm
+from schematics.types import StringType, IntType, DateTimeType, BooleanType
+from schematics.types.compound import ModelType, ListType
+from schematics.exceptions import ValidationError
+from schematics.serialize import whitelist
+
+
+class Game(Form):
+    opponent_id = IntType(required=True)
+
+class Player(Form):
+    total_games = IntType(min_value=0, required=True)
+    name = StringType(required=True)
+    verified = BooleanType()
+    bio = StringType()
+    games = ListType(ModelType(Game), required=True)
+
+    class Options:
+        roles = {
+            'public': whitelist('total_games', 'name', 'bio', 'games'),
+        }
+
+
+def multiple_of_three(value):
+    if value % 3 != 0:
+        raise ValidationError, u'Game master rank must be a multiple of 3'
+
+class GameMaster(Player):
+    rank = IntType(min_value=0, max_value=12, validators=[multiple_of_three], required=True)
+
+```
+
+Now that you have your form schemas defined you can start validating data and
+dumping it safely.
+
+```python
+>>> good_data = {
+...   'total_games': 2,
+...   'name': u'Jölli',
+...   'games': [{'opponent_id': 2}, {'opponent_id': 3}],
+...   'bio': u'Iron master',
+...   'rank': 6,
+... }
+>>> player = Player.from_json(good_data)
+>>> print json.dumps(player.to_json(), indent=2, sort_keys=True)
+{
+  "bio": "Iron master",
+  "games": [
+    {
+      "opponent_id": 2
+    },
+    {
+      "opponent_id": 3
+    }
+  ],
+  "name": "J\u00f6lli",
+  "total_games": 2,
+  "verified": null
+}
+
+```
+
+`to_json` has two keyword arguments:
+
++ `role`: The filter to make output consumable. Default: None (returns all keys)
++ `strict`: Strict mode raises errors for unexpected keys. Default: False
