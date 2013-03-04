@@ -2,12 +2,11 @@
 
 import copy
 import unittest
-import json
 
 from schematics import Model
 from schematics.types import  IntType, StringType
 from schematics.types.compound import SortedListType, ModelType, ListType
-from schematics.serialize import wholelist, make_safe_json
+from schematics.serialize import wholelist, to_safe_dict
 from schematics.validation import validate_instance
 
 
@@ -44,25 +43,25 @@ class TestSetGetSingleScalarData(unittest.TestCase):
         # since no validation happens, nothing should yell at us
         self.assertEqual(actual, expected)
 
-    def test_good_value_to_json(self):
+    def test_good_value_to_dict(self):
         expected = self.testmodel.the_list = [2]
-        actual = self.listtype.to_json(self.testmodel.the_list)
+        actual = self.listtype.to_dict(self.testmodel.the_list)
         self.assertEqual(actual, expected)
 
-    def test_good_values_to_json(self):
+    def test_good_values_to_dict(self):
         expected = self.testmodel.the_list = [2,2,2,2,2,2]
-        actual = self.listtype.to_json(self.testmodel.the_list)
+        actual = self.listtype.to_dict(self.testmodel.the_list)
         self.assertEqual(actual, expected)
 
-    def test_good_values_into_json(self):
+    def test_good_values_into_dict(self):
         self.testmodel.the_list = [2,2,2,2,2,2]
-        actual = make_safe_json(self.Testmodel, self.testmodel, 'owner')
+        actual = to_safe_dict(self.Testmodel, self.testmodel, 'owner')
         expected = {"the_list":[2,2,2,2,2,2]}
         self.assertEqual(actual, expected)
 
-    def test_good_value_into_json(self):
+    def test_good_value_into_dict(self):
         self.testmodel.the_list = [2]
-        actual = make_safe_json(self.Testmodel, self.testmodel, 'owner')
+        actual = to_safe_dict(self.Testmodel, self.testmodel, 'owner')
         expected = {"the_list":[2]}
         self.assertEqual(actual, expected)
 
@@ -165,5 +164,5 @@ class TestSetGetSingleScalarDataSorted(unittest.TestCase):
         expected = self.testmodel.the_list = [6,5,4,3,2,1]
         expected = copy.copy(expected)
         expected.reverse()
-        actual = self.testmodel.to_json()["the_list"]
+        actual = self.testmodel.to_dict()["the_list"]
         self.assertEqual(actual, expected)

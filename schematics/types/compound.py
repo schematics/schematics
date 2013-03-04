@@ -8,7 +8,7 @@ from .base import BaseType, DictType
 
 from ..models import BaseModel
 from ..datastructures import MultiValueDict
-from ..serialize import to_json
+from ..serialize import to_dict
 from ..validation import ValidationError, validate_instance, validate_values
 
 
@@ -103,19 +103,19 @@ class ListType(BaseType):
         if not errors_found:
             instance._data[self.field_name] = new_value
 
-    def _yield_to_json(self, value):
+    def _yield_to_dict(self, value):
         for item in value:
             for field in self.fields:
                 try:
-                    yield field.to_json(item)
+                    yield field.to_dict(item)
                 except ValueError:
                     continue
 
-    def to_json(self, value):
-        """to_json must be careful to expand modeltypes into Python,
+    def to_dict(self, value):
+        """to_dict must be careful to expand modeltypes into Python,
         not JSON.
         """
-        return list(self._yield_to_json(value))
+        return list(self._yield_to_dict(value))
 
     def process(self, value):
         """Make sure that a list of valid fields is being used.
@@ -165,8 +165,8 @@ class SortedListType(ListType):
             self._ordering = kwargs.pop('ordering')
         super(SortedListType, self).__init__(field, **kwargs)
 
-    def to_json(self, value):
-        unsorted = super(SortedListType, self).to_json(value)
+    def to_dict(self, value):
+        unsorted = super(SortedListType, self).to_dict(value)
         if self._ordering is not None:
             return sorted(unsorted, key=itemgetter(self._ordering))
         return sorted(unsorted)
@@ -203,8 +203,8 @@ class ModelType(BaseType):
                 self.model_type_obj = get_model(self.model_type_obj)
         return self.model_type_obj
 
-    def to_json(self, value):
-        return to_json(value)
+    def to_dict(self, value):
+        return to_dict(value)
 
     def process(self, value):
         """Make sure that the model instance is an instance of the
@@ -257,7 +257,7 @@ class MultiValueDictType(DictType):
 
         return value
 
-    def to_json(self, value):
+    def to_dict(self, value):
         output = {}
         for key, values in value.iterlists():
             output[key] = values

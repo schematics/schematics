@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
-
 import copy
 import unittest
-import json
 
 from schematics import Model
 from schematics.exceptions import InvalidModel
@@ -219,7 +217,7 @@ class TestModelInterface(unittest.TestCase):
             bio = StringType()
         input = {'bio': 'Genius', 'name': 'Joey'}
         model = TestModel2.validate(input)
-        self.assertEqual(model.to_json(), input)
+        self.assertEqual(model.to_dict(), input)
 
     def test_role_propagate(self):
         class Address(Model):

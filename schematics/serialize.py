@@ -2,7 +2,6 @@
 
 import copy
 import collections
-import json
 
 from .models import BaseModel
 
@@ -113,9 +112,9 @@ def blacklist(*field_list):
 ###
 
 
-def to_json(model, gottago=wholelist(), encode=True, sort_keys=False, **kw):
-    field_converter = lambda f, v: f.to_json(v)
-    model_converter = lambda m: to_json(m)
+def to_dict(model, gottago=wholelist(), encode=True, sort_keys=False, **kw):
+    field_converter = lambda f, v: f.to_dict(v)
+    model_converter = lambda m: to_dict(m)
 
     data = apply_shape(model.__class__, model, field_converter,
                        model_converter, gottago, **kw)
@@ -123,9 +122,9 @@ def to_json(model, gottago=wholelist(), encode=True, sort_keys=False, **kw):
     return data
 
 
-def make_safe_json(model, instance_or_dict, role, **kw):
-    field_converter = lambda f, v: f.to_json(v)
-    model_converter = lambda m: make_safe_json(m.__class__, m, role)
+def to_safe_dict(model, instance_or_dict, role, **kw):
+    field_converter = lambda f, v: f.to_dict(v)
+    model_converter = lambda m: to_safe_dict(m.__class__, m, role)
 
     gottago = lambda k, v: True
     if role in model._options.roles:

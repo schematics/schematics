@@ -52,7 +52,7 @@ class BaseType(object):
         self._is_set = True
         instance._data[self.field_name] = value
 
-    def to_json(self, value):
+    def to_dict(self, value):
         """Convert a Structures type into a value safe for JSON encoding
         """
         return value
@@ -140,7 +140,7 @@ class UUIDType(BaseType):
 
         return value
 
-    def to_json(self, value):
+    def to_dict(self, value):
         """Return a JSON safe version of the UUID object.
         """
 
@@ -268,7 +268,7 @@ class DecimalType(BaseType):
         self.min_value, self.max_value = min_value, max_value
         super(DecimalType, self).__init__(**kwargs)
 
-    def to_json(self, value):
+    def to_dict(self, value):
         return unicode(value)
 
     def process(self, value):
@@ -427,7 +427,7 @@ class DateTimeType(BaseType):
 
         return value
 
-    def to_json(self, value):
+    def to_dict(self, value):
         result = DateTimeType.date_to_iso8601(value, self.format)
         return result.value
 

@@ -1,6 +1,5 @@
 import datetime
 import hashlib
-import json
 
 from schematics import Model
 from schematics.types import (BaseType,
@@ -13,7 +12,7 @@ from schematics.types import (BaseType,
                               EmailType,
                               MD5Type)
 from schematics.serialize import (whitelist, blacklist, wholelist,
-                                  make_safe_json)
+                                  to_safe_dict)
 from schematics.types.compound import ListType, ModelType
 
 
@@ -251,9 +250,9 @@ total_input['rogue_field'] = 'MWAHAHA'
 
 user_doc = BasicUser(**total_input)
 #print 'Document as Python:\n    %s\n' % (user_doc.to_python())
-safe_doc = make_safe_json(BasicUser, user_doc, 'owner')
+safe_doc = to_safe_dict(BasicUser, user_doc, 'owner')
 #print 'Owner safe doc:\n    %s\n' % (safe_doc)
-public_safe_doc = make_safe_json(BasicUser, user_doc, 'public')
+public_safe_doc = to_safe_dict(BasicUser, user_doc, 'public')
 #print 'Public safe doc:\n    %s\n' % (public_safe_doc)
 
 

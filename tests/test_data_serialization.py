@@ -1,11 +1,10 @@
 
 import unittest
-import json
 import datetime
 import copy
 
 from schematics import Model
-from schematics.serialize import to_json, make_safe_json
+from schematics.serialize import to_dict, to_safe_dict
 
 import fixtures
 from fixtures import Model
@@ -20,20 +19,20 @@ class ModelSerializer:
 
     def setUp(self):
         self.instance = self.klass(**self.description)
-        self.as_json = to_json(self.instance)
-        self.json_owner_safe = self.owner_safe
-        self.json_public_safe = self.public_safe
+        self.as_dict = to_dict(self.instance)
+        self.dict_owner_safe = self.owner_safe
+        self.dict_public_safe = self.public_safe
 
-    def test_instance_to_json(self):
-        self.assertEquals(self.as_json, self.description)
+    def test_instance_to_dict(self):
+        self.assertEquals(self.as_dict, self.description)
 
-    def test_json_owner_safe(self):
-        json_owner_safe = make_safe_json(self.klass, self.instance, 'owner')
-        self.assertEqual(self.json_owner_safe, json_owner_safe)
+    def test_dict_owner_safe(self):
+        dict_owner_safe = to_safe_dict(self.klass, self.instance, 'owner')
+        self.assertEqual(self.dict_owner_safe, dict_owner_safe)
 
-    def test_json_public_safe(self):
-        json_public_safe = make_safe_json(self.klass, self.instance, 'public')
-        self.assertEqual(self.json_public_safe, json_public_safe)
+    def test_dict_public_safe(self):
+        dict_public_safe = to_safe_dict(self.klass, self.instance, 'public')
+        self.assertEqual(self.dict_public_safe, dict_public_safe)
 
 
 class TestSimpleModel(ModelSerializer, unittest.TestCase):
