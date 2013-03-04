@@ -129,12 +129,12 @@ def apply_shape(model, instance_or_dict, field_converter, model_converter,
         else:
             if field_value is None and not allow_none:
                 continue  # throw it away
-            elif field_value is None and allow_none:
-                model_dict[serialized_name] = None
             elif field_value is None and convert_none \
                        or field_value is not None:
                 model_dict[serialized_name] = field_converter(field_instance,
                                                               field_value)
+            elif field_value is None and allow_none:
+                model_dict[serialized_name] = None
 
     return model_dict
 
@@ -279,7 +279,7 @@ def for_jsonschema(model):
 
     return {
         'type': 'object',
-        'title': model.__class__.__name__,
+        'title': model._model_name,
         'properties': properties
     }
 

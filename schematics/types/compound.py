@@ -125,17 +125,8 @@ class ListType(BaseType):
     def _from_jsonschema_formats(self):
         return [None]
 
-    def for_jsonschema(self):
-        return self._jsonschema_items()
-
     def _jsonschema_items(self):
-        def collect():
-            for field in self.fields:
-                if isinstance(field, ModelType):
-                    yield field.for_jsonschema()
-                else:
-                    yield for_jsonschema(field)
-        return [x for x in collect()]
+        return [field.for_jsonschema() for field in self.fields]
 
     def for_output_format(self, output_format_method_name, value):
         for item in value:
