@@ -79,7 +79,7 @@ dumping it safely.
 ...   'rank': 6,
 ... }
 >>> player = Player.validate(good_data)
->>> print json.dumps(player.to_json(), indent=2, sort_keys=True)
+>>> print json.dumps(player.to_dict(), indent=2, sort_keys=True)
 {
   "bio": "Iron master",
   "games": [
@@ -104,7 +104,7 @@ and errors attached. When dealing with REST API’s this is no longer a
 requirement so I have opted for a more explicit `InvalidModel` exception.
 `InvalidModel.errors` is a dictionary that maps roughly 1:1 to the model fields.
 
-`Model.to_json`
+`Model.to_dict`
 
 + `role`: The filter to make output consumable. Default: None (returns all keys)
 
