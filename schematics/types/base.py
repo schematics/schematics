@@ -5,28 +5,12 @@ import decimal
 import itertools
 
 from ..exceptions import StopValidation, ValidationError
-from . import schematic_types
 
-
-class BaseTypeMetaClass(type):
-    def __init__(cls, name, bases, dct):
-        if hasattr(cls, '_from_jsonschema_formats'):
-            for fmt in cls._from_jsonschema_formats():
-                for tipe in cls._from_jsonschema_types():
-                    schematic_types[(tipe, fmt)] = cls
-        super(BaseTypeMetaClass, cls).__init__(name, bases, dct)
-
-
-###
-### Base Type
-###
 
 class BaseType(object):
     """A base class for Types in a Structures model. Instances of this
     class may be added to subclasses of `Model` to define a model schema.
     """
-
-    __metaclass__ = BaseTypeMetaClass
 
     def __init__(self, required=False, default=None, field_name=None,
                  print_name=None, choices=None, validators=None, description=None,
@@ -68,15 +52,10 @@ class BaseType(object):
         self._is_set = True
         instance._data[self.field_name] = value
 
-    def for_python(self, value):
-        """Convert a Structures type into native Python value
-        """
-        return value
-
-    def for_json(self, value):
+    def to_json(self, value):
         """Convert a Structures type into a value safe for JSON encoding
         """
-        return self.for_python(value)
+        return value
 
     def process(self, value):
         """Function that is overridden by subclasses for their validation logic
@@ -129,52 +108,6 @@ class BaseType(object):
                 raise ValidationError, 'Value must be one of %s.' % unicode(self.choices)
         return value
 
-    def _jsonschema_default(self):
-        if callable(self.default):
-            # jsonschema doesn't support procedural defaults
-            return None
-        else:
-            return self.default
-
-    def _jsonschema_description(self):
-        return self.description
-
-    def _jsonschema_title(self):
-        if self.field_name:
-            return self.field_name
-        else:
-            return None
-
-    def _jsonschema_type(self):
-        return 'any'
-
-    def _jsonschema_required(self):
-        if self.required is True:
-            return self.required
-        else:
-            return None
-
-    def for_jsonschema(self):
-        """Generate the jsonschema by mapping the value of all methods
-        beginning `_jsonschema_' to a key that is the name of the method after
-        `_jsonschema_'.
-
-        For example, `_jsonschema_type' will populate the schema key 'type'.
-        """
-
-        schema = {}
-        get_name = lambda x: x.startswith('_jsonschema')
-        for func_name in filter(get_name, dir(self)):
-            attr_name = func_name.split('_')[-1]
-            attr_value = getattr(self, func_name)()
-            if attr_value is not None:
-                schema[attr_name] = attr_value
-        return schema
-
-
-###
-### Standard Types
-###
 
 class UUIDType(BaseType):
     """A field that stores a valid UUID value and optionally auto-populates
@@ -197,9 +130,6 @@ class UUIDType(BaseType):
 
         instance._data[self.field_name] = value
 
-    def _jsonschema_type(self):
-        return 'string'
-
     def process(self, value):
         """Make sure the value is a valid uuid representation.  See
         http://docs.python.org/library/uuid.html for accepted formats.
@@ -210,7 +140,7 @@ class UUIDType(BaseType):
 
         return value
 
-    def for_json(self, value):
+    def to_json(self, value):
         """Return a JSON safe version of the UUID object.
         """
 
@@ -226,31 +156,6 @@ class StringType(BaseType):
         self.max_length = max_length
         self.min_length = min_length
         super(StringType, self).__init__(**kwargs)
-
-    def _jsonschema_type(self):
-        return 'string'
-
-    @classmethod
-    def _from_jsonschema_types(self):
-        return ['string']
-
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return [None, 'phone']
-
-    def _jsonschema_maxLength(self):
-        return self.max_length
-
-    def _jsonschema_minLength(self):
-        return self.min_length
-
-    def _jsonschema_pattern(self):
-        return self.regex
-
-    def for_python(self, value):
-        if value is None:
-            return None
-        return unicode(value)
 
     def process(self, value):
         value = unicode(value)
@@ -269,52 +174,6 @@ class StringType(BaseType):
 
     def lookup_member(self, member_name):
         return None
-
-
-###
-### Web fields
-###
-
-class URLType(StringType):
-    """A field that validates input as an URL.
-
-    If verify_exists=True is passed the validate function will make sure
-    the URL makes a valid connection.
-    """
-
-    URL_REGEX = re.compile(
-        r'^https?://'
-        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'
-        r'localhost|'
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
-        r'(?::\d+)?'
-        r'(?:/?|[/?]\S+)$', re.IGNORECASE
-    )
-
-    def __init__(self, verify_exists=False, **kwargs):
-        self.verify_exists = verify_exists
-        super(URLType, self).__init__(**kwargs)
-
-    def _jsonschema_format(self):
-        return 'url'
-
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return ['url']
-
-    def process(self, value):
-        if not URLType.URL_REGEX.match(value):
-            raise ValidationError, 'Invalid URL'
-
-        if self.verify_exists:
-            import urllib2
-            try:
-                request = urllib2.Request(value)
-                urllib2.urlopen(request)
-            except Exception:
-                raise ValidationError, 'URL does not exist'
-
-        return value
 
 
 class EmailType(StringType):
@@ -338,35 +197,7 @@ class EmailType(StringType):
         return value
 
 
-    def _jsonschema_format(self):
-        return 'email'
-
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return ['email']
-
-
-###
-### Numbers
-###
-
-class JsonNumberMixin(object):
-    """A mixin to support json schema validation for max, min, and type for all
-    number fields, including DecimalType, which does not inherit from
-    NumberType.
-    """
-
-    def _jsonschema_type(self):
-        return 'number'
-
-    def _jsonschema_maximum(self):
-        return self.max_value
-
-    def _jsonschema_minimum(self):
-        return self.min_value
-
-
-class NumberType(JsonNumberMixin, BaseType):
+class NumberType(BaseType):
     """A number field.
     """
 
@@ -383,9 +214,6 @@ class NumberType(JsonNumberMixin, BaseType):
             if self.number_class:
                 value = self.number_class(value)
         instance._data[self.field_name] = value
-
-    def for_python(self, value):
-        return self.number_class(value)
 
     def process(self, value):
         try:
@@ -413,17 +241,6 @@ class IntType(NumberType):
                                        number_type='Int',
                                        *args, **kwargs)
 
-    def _jsonschema_type(self):
-        return 'number'
-
-    @classmethod
-    def _from_jsonschema_types(self):
-        return ['number', 'integer']
-
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return [None]
-
 
 class LongType(NumberType):
     """A field that validates input as a Long
@@ -443,7 +260,7 @@ class FloatType(NumberType):
                                          *args, **kwargs)
 
 
-class DecimalType(BaseType, JsonNumberMixin):
+class DecimalType(BaseType):
     """A fixed-point decimal number field.
     """
 
@@ -451,12 +268,7 @@ class DecimalType(BaseType, JsonNumberMixin):
         self.min_value, self.max_value = min_value, max_value
         super(DecimalType, self).__init__(**kwargs)
 
-    def for_python(self, value):
-        if not isinstance(value, basestring):
-            value = unicode(value)
-        return decimal.Decimal(value)
-
-    def for_json(self, value):
+    def to_json(self, value):
         return unicode(value)
 
     def process(self, value):
@@ -477,25 +289,7 @@ class DecimalType(BaseType, JsonNumberMixin):
         return value
 
 
-###
-### Hashing fields
-###
-
-class JsonHashMixin:
-    """A mixin to support jsonschema validation for hashes
-    """
-
-    def _jsonschema_type(self):
-        return 'string'
-
-    def _jsonschema_maxLength(self):
-        return self.hash_length
-
-    def _jsonschema_minLength(self):
-        return self.hash_length
-
-
-class MD5Type(BaseType, JsonHashMixin):
+class MD5Type(BaseType):
     """A field that validates input as resembling an MD5 hash.
     """
     hash_length = 32
@@ -511,8 +305,7 @@ class MD5Type(BaseType, JsonHashMixin):
         return value
 
 
-
-class SHA1Type(BaseType, JsonHashMixin):
+class SHA1Type(BaseType):
     """A field that validates input as resembling an SHA1 hash.
     """
     hash_length = 40
@@ -528,28 +321,12 @@ class SHA1Type(BaseType, JsonHashMixin):
         return value
 
 
-
-###
-### Native type'ish fields
-###
-
 class BooleanType(BaseType):
     """A boolean field type.
     """
 
     TRUE = ('True', 'true', '1')
     FALSE = ('False', 'false', '0')
-
-    def _jsonschema_type(self):
-        return 'boolean'
-
-    @classmethod
-    def _from_jsonschema_types(self):
-        return ['boolean']
-
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return [None]
 
     def __set__(self, instance, value):
         """
@@ -563,9 +340,6 @@ class BooleanType(BaseType):
 
         instance._data[self.field_name] = value
 
-    def for_python(self, value):
-        return bool(value)
-
     def process(self, value):
         if not isinstance(value, bool):
             raise ValidationError, 'Not a boolean'
@@ -578,9 +352,6 @@ class DateTimeType(BaseType):
     """A datetime field.
     """
 
-    def _jsonschema_type(self):
-        return 'string'
-
     def __init__(self, format=None, **kwargs):
         if format is None:
             def formatter(dt):
@@ -592,17 +363,6 @@ class DateTimeType(BaseType):
         else:
             self.format = format
         super(DateTimeType, self).__init__(**kwargs)
-
-    def _jsonschema_format(self):
-        return 'date-time'
-
-    @classmethod
-    def _from_jsonschema_types(self):
-        return ['string']
-
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return ['date-time', 'date', 'time']
 
     def __set__(self, instance, value):
         """If `value` is a string, the string should match iso8601 format.
@@ -667,10 +427,7 @@ class DateTimeType(BaseType):
 
         return value
 
-    def for_python(self, value):
-        return value
-
-    def for_json(self, value):
+    def to_json(self, value):
         result = DateTimeType.date_to_iso8601(value, self.format)
         return result.value
 
@@ -679,9 +436,6 @@ class DictType(BaseType):
     """A dictionary field that wraps a standard Python dictionary. This is
     similar to an `ModelType`, but the schematic is not defined.
     """
-
-    def _jsonschema_type(self):
-        return 'object'
 
     def __init__(self, basecls=None, *args, **kwargs):
         self.basecls = basecls or BaseType
@@ -711,18 +465,6 @@ class DictType(BaseType):
 class GeoPointType(BaseType):
     """A list storing a latitude and longitude.
     """
-
-    def _jsonschema_type(self):
-        return 'array'
-
-    def _jsonschema_items(self):
-        return NumberType().for_jsonschema()
-
-    def _jsonschema_maxLength(self):
-        return 2
-
-    def _jsonschema_minLength(self):
-        return 2
 
     def process(self, value):
         """Make sure that a geo-value is of type (x, y)

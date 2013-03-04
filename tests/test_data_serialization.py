@@ -1,14 +1,11 @@
-#!/usr/bin/env python
-
 
 import unittest
 import json
 import datetime
 import copy
 
-from schematics.models import Model
-from schematics.serialize import (to_python, to_json, make_safe_python,
-                                  make_safe_json)
+from schematics import Model
+from schematics.serialize import to_json, make_safe_json
 
 import fixtures
 from fixtures import Model
@@ -23,34 +20,19 @@ class ModelSerializer:
 
     def setUp(self):
         self.instance = self.klass(**self.description)
-        self.as_python = to_python(self.instance)
-        self.as_json = to_json(self.instance, sort_keys=True)
-        self.json_owner_safe = json.dumps(self.owner_safe, sort_keys=True)
-        self.json_public_safe = json.dumps(self.public_safe, sort_keys=True)
-
-    def test_instance_to_python(self):
-        self.assertEquals(self.as_python, self.description)
+        self.as_json = to_json(self.instance)
+        self.json_owner_safe = self.owner_safe
+        self.json_public_safe = self.public_safe
 
     def test_instance_to_json(self):
-        self.assertEquals(self.as_json, json.dumps(self.description,
-                                                   sort_keys=True))
-
-    def test_owner_safe(self):
-        owner_safe = make_safe_python(self.klass, self.instance, 'owner')
-        self.assertEqual(self.owner_safe, owner_safe)
+        self.assertEquals(self.as_json, self.description)
 
     def test_json_owner_safe(self):
-        json_owner_safe = make_safe_json(self.klass, self.instance, 'owner',
-                                         sort_keys=True)
+        json_owner_safe = make_safe_json(self.klass, self.instance, 'owner')
         self.assertEqual(self.json_owner_safe, json_owner_safe)
 
-    def test_public_safe(self):
-        public_safe = make_safe_python(self.klass, self.instance, 'public')
-        self.assertEqual(self.public_safe, public_safe)
-
     def test_json_public_safe(self):
-        json_public_safe = make_safe_json(self.klass, self.instance, 'public',
-                                          sort_keys=True)
+        json_public_safe = make_safe_json(self.klass, self.instance, 'public')
         self.assertEqual(self.json_public_safe, json_public_safe)
 
 
@@ -194,6 +176,4 @@ class TestAltFieldNames(unittest.TestCase):
         self.instance = self.klass(**description)
 
     def test_serialize_print_names(self):
-        x = to_python(self.instance)
-        self.assertEqual(x['something_else'], 'whatever')
         self.assertEqual(self.instance.title, 'whatever')

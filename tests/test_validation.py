@@ -2,7 +2,8 @@
 
 import unittest
 import datetime
-from schematics.models import Model
+
+from schematics import Model
 from schematics.validation import (
     validate_instance, validate_values, validate_partial,
     ValidationError)

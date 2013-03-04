@@ -2,7 +2,7 @@ import datetime
 import hashlib
 import json
 
-from schematics.models import Model
+from schematics import Model
 from schematics.types import (BaseType,
                               UUIDType,
                               IntType,
@@ -30,7 +30,7 @@ class SimpleModel(Model):
         roles = {
             'owner': wholelist(),
         }
-            
+
 
 
 simple = SimpleModel(title='Misc Doc')
@@ -65,7 +65,7 @@ class InterestMixin(Model):
 
 class OtherMixin(Model):
     wat = BooleanType(default=False)
-    
+
 
 class ThingModel(InterestMixin):
     title = StringType()
@@ -110,7 +110,7 @@ author = Author(name='james', username='j2d2', email='jdennis@gmail.com',
 class Comment(Model):
     text = StringType()
     username = StringType()
-    email = EmailType()   
+    email = EmailType()
     class Options:
         roles = {
             'owner': wholelist(),
@@ -126,17 +126,17 @@ comment2 = Comment(text='This post is ridiculous', username='barbie',
 
 
 class BlogPost(Model):
-    title = StringType()    
+    title = StringType()
     content = StringType()
     author = ModelType(Author)
     comments = ListType(ModelType(Comment))
-    deleted = BooleanType()   
+    deleted = BooleanType()
     class Options:
         roles = {
             'owner': blacklist('personal_thoughts'),
             'public': whitelist('author', 'content', 'comments'),
         }
-    
+
 
 content = """Retro single-origin coffee chambray stumptown, scenester VHS
 bicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free
@@ -204,7 +204,7 @@ tl.actions = [a1, a2]
 ###
 
 class BasicUser(Model):
-    
+
     secret = MD5Type()
     name = StringType(required=True, max_length=50)
     bio = StringType(max_length=100)
@@ -213,7 +213,7 @@ class BasicUser(Model):
         roles = {
             'public': whitelist('name', 'bio'),
         }
-        
+
     def set_password(self, plaintext):
         hash_string = hashlib.md5(plaintext).hexdigest()
         self.secret = hash_string

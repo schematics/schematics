@@ -6,9 +6,9 @@ from operator import itemgetter
 
 from .base import BaseType, DictType
 
-from .. import Model
+from ..models import BaseModel
 from ..datastructures import MultiValueDict
-from ..serialize import to_python, to_json, for_jsonschema
+from ..serialize import to_json
 from ..validation import ValidationError, validate_instance, validate_values
 
 
@@ -103,38 +103,19 @@ class ListType(BaseType):
         if not errors_found:
             instance._data[self.field_name] = new_value
 
-    def _jsonschema_type(self):
-        return 'array'
-
-    @classmethod
-    def _from_jsonschema_types(self):
-        return ['array']
-
-
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return [None]
-
-    def _jsonschema_items(self):
-        return [for_jsonschema(field) for field in self.fields]
-
-    def for_output_format(self, output_format_method_name, value):
+    def _yield_to_json(self, value):
         for item in value:
             for field in self.fields:
                 try:
-                    value = getattr(field, output_format_method_name)(item)
-                    yield value
+                    yield field.to_json(item)
                 except ValueError:
                     continue
 
-    def for_python(self, value):
-        return list(self.for_output_format('for_python', value))
-
-    def for_json(self, value):
-        """for_json must be careful to expand modeltypes into Python,
+    def to_json(self, value):
+        """to_json must be careful to expand modeltypes into Python,
         not JSON.
         """
-        return list(self.for_output_format('for_json', value))
+        return list(self._yield_to_json(value))
 
     def process(self, value):
         """Make sure that a list of valid fields is being used.
@@ -184,25 +165,11 @@ class SortedListType(ListType):
             self._ordering = kwargs.pop('ordering')
         super(SortedListType, self).__init__(field, **kwargs)
 
-    def for_thing(self, value, meth):
-        unsorted = getattr(super(SortedListType, self), meth)(value)
+    def to_json(self, value):
+        unsorted = super(SortedListType, self).to_json(value)
         if self._ordering is not None:
             return sorted(unsorted, key=itemgetter(self._ordering))
         return sorted(unsorted)
-
-    def for_python(self, value):
-        return self.for_thing(value, 'for_python')
-
-    def for_json(self, value):
-        return self.for_thing(value, 'for_json')
-
-    @classmethod
-    def _from_jsonschema_types(self):
-        return []
-
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return []
 
 
 ###
@@ -213,7 +180,7 @@ class ModelType(BaseType):
     """A model field. Only valid values are subclasses of `schematics.Model`.
     """
     def __init__(self, model_type, **kwargs):
-        is_embeddable = lambda dt: issubclass(dt, Model)
+        is_embeddable = lambda dt: issubclass(dt, BaseModel)
         if not isinstance(model_type, basestring):
             if not model_type or not is_embeddable(model_type):
                 raise ValueError, 'Invalid model class provided to an ModelType'
@@ -222,10 +189,10 @@ class ModelType(BaseType):
 
     def __set__(self, instance, value):
         if value is None:
-            return
-        if not isinstance(value, self.model_type):
+            instance._data[self.field_name] = None
+        elif not isinstance(value, self.model_type):
             value = self.model_type(**value)
-        instance._data[self.field_name] = value
+            instance._data[self.field_name] = value
 
     @property
     def model_type(self):
@@ -236,25 +203,8 @@ class ModelType(BaseType):
                 self.model_type_obj = get_model(self.model_type_obj)
         return self.model_type_obj
 
-    def _jsonschema_type(self):
-        return 'object'
-
-    @classmethod
-    def _from_jsonschema_types(self):
-        return ['object']
-
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return [None]
-
-    def for_jsonschema(self):
-        return for_jsonschema(self.model_type)
-
-    def for_python(self, value):
-        return to_python(value)
-
-    def for_json(self, value):
-        return to_json(value, encode=False)
+    def to_json(self, value):
+        return to_json(value)
 
     def process(self, value):
         """Make sure that the model instance is an instance of the
@@ -307,7 +257,7 @@ class MultiValueDictType(DictType):
 
         return value
 
-    def for_json(self, value):
+    def to_json(self, value):
         output = {}
         for key, values in value.iterlists():
             output[key] = values
