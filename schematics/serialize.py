@@ -265,8 +265,6 @@ def for_jsonschema(model):
     """
     field_converter = lambda f, v: f.for_jsonschema()
     model_converter = lambda m: for_jsonschema(m)
-    def field_converter(f, v):
-        return f.for_jsonschema()
     gottago = blacklist([])
 
     if callable(model):
@@ -320,7 +318,7 @@ def from_jsonschema(schema, model=Model):
         for field_name, schema_field in schema['properties'].iteritems():
             field = map_jsonschema_field_to_schematics(schema_field, model)
             model_fields[field_name] = field
-        clss = type(class_name, (model,), model_fields)
+        clss = type(str(class_name), (model,), model_fields)
         return clss
     else:
         raise AttributeError('JSON schema missing one or more properties')
