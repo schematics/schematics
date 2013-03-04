@@ -19,6 +19,9 @@ Python Data Structures for Humans™.
    layer have been changed into simple Python asserts. I considered this a
    leaky abstraction.
 6. Removed `to_python`. Having the model instance is Python enough for me.
+7. Removed all jsonschema related things.
+8. Removed the demos. If this goes well I will write up proper documentation
+   with examples.
 
 ## Models
 
