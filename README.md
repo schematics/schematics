@@ -22,6 +22,7 @@ Python Data Structures for Humans™.
 7. Removed all jsonschema related things.
 8. Removed the demos. If this goes well I will write up proper documentation
    with examples.
+9. Renamed to_json to to_dict and removed all mention of json.
 
 ## Models
 
