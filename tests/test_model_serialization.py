@@ -9,10 +9,13 @@ import unittest
 import json
 import datetime
 import copy
-from dictshield.base import json
-from dictshield.document import Document
+
+from schematics.base import json
+from schematics.models import Model
+from schematics.serialize import to_jsonschema, from_jsonschema
+
 import fixtures
-from fixtures import Document
+from fixtures import SimpleModel
 
 
 class FixtureMixin():
@@ -32,25 +35,24 @@ class FixtureMixin():
         """Tests whether or not the test jsonschema matches what the test class
         returns for `to_jsonschema()`.
         """
-        self.assertEquals(self.jsonschema, json.loads(self.klass.to_jsonschema()))
+        self.assertEquals(self.jsonschema, json.loads(to_jsonschema(self.klass)))
 
     def test_class_from_jsonschema(self):
         """Tests loading the jsonschema into a Document instance and
         serializing back out to jsonschema via a comparison to the jsonschema
         provided by the test.
         """
-        if issubclass(self.klass, Document) and not self.klass._public_fields:
-            Document.from_jsonschema(self.jsonschema).to_jsonschema()
-            there = Document.from_jsonschema(self.jsonschema)
-            andbackagain = there.to_jsonschema()
+        if issubclass(self.klass, SimpleModel):
+            there = from_jsonschema(self.jsonschema, self.klass)
+            andbackagain = to_jsonschema(there)
             jsonschema = json.loads(andbackagain)
             self.assertEquals(self.jsonschema, jsonschema)
                               
 
-class TestSimpleDoc(unittest.TestCase, FixtureMixin):
-    klass = fixtures.SimpleDoc
+class TestSimpleModel(unittest.TestCase, FixtureMixin):
+    klass = fixtures.SimpleModel
     jsonschema = {
-        'title' : 'SimpleDoc',
+        'title' : 'SimpleModel',
         'type'  : 'object',
         'properties': {
             '_id' : { 'type' : 'string' },
@@ -64,10 +66,10 @@ class TestSimpleDoc(unittest.TestCase, FixtureMixin):
                 'maxLength': 40 }}}
 
 
-class TestSubDoc(unittest.TestCase, FixtureMixin):
-    klass = fixtures.SubDoc
+class TestSubModel(unittest.TestCase, FixtureMixin):
+    klass = fixtures.SubModel
     jsonschema = {
-        'title' : 'SubDoc',
+        'title' : 'SubModel',
         'type'  : 'object',
         'properties' : {
             'title' : {
@@ -80,32 +82,6 @@ class TestSubDoc(unittest.TestCase, FixtureMixin):
                 'title'  : 'year',
                 'type'   : 'number' }}}
 
-
-class TestSomeDoc(unittest.TestCase, FixtureMixin):
-    klass = fixtures.MixedDoc
-    jsonschema = {
-        'type'   : 'object',
-        'title'  : 'MixedDoc',
-        'properties': {
-            '_id' : { 'type' : 'string' },
-            'liked' : {
-                'title'  : 'liked',
-                'type'   : 'boolean',
-                'default': False },
-            'archived' : {
-                'title'  : 'archived',
-                'type'   : 'boolean',
-                'default': False },
-            'deleted' : {
-                'title'  : 'deleted',
-                'type'   : 'boolean',
-                'default': False },
-            'title' : {
-                'title'  : 'title',
-                'type'   : 'string' },
-            'body'  : {
-                'title'  : 'body',
-                'type'   : 'string' }}}
 
 
 class TestAuthor(unittest.TestCase, FixtureMixin):

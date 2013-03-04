@@ -89,7 +89,7 @@ class ModelMetaclass(type):
         """Processes a configuration of a Model type into a class.
         """
         ### Gen a class instance
-        klass = type.__new__(cls, name, bases, attrs)
+        klass = super(ModelMetaclass, cls).__new__(cls, name, bases, attrs)
 
         ### Parse metaclass config into options schematic
         options = _gen_options(klass, attrs)

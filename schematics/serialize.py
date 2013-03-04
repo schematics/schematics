@@ -69,6 +69,7 @@ That looks like this in code:
 """
 
 import copy
+import collections
 
 from schematics.types import schematic_types
 from schematics.base import json
@@ -90,7 +91,7 @@ def _reduce_loop(model, instance_or_dict, field_converter):
 
 
 def apply_shape(model, instance_or_dict, field_converter, model_converter,
-                gottago, allow_none=False):
+                gottago, allow_none=False, convert_none=False):
     """
     """
     model_dict = {}
@@ -116,8 +117,8 @@ def apply_shape(model, instance_or_dict, field_converter, model_converter,
             model_dict[serialized_name] = model_converter(field_value)
             
         ### Convert field as list of models
-        elif isinstance(field_value, list) and len(field_value) > 0:
-            if isinstance(field_value[0], Model):
+        elif isinstance(field_value, list): # and len(field_value) > 0:
+            if field_value and len(field_value) > 0 and isinstance(field_value[0], Model):
                 model_dict[serialized_name] = [model_converter(vi)
                                                for vi in field_value]
             else:
@@ -126,12 +127,12 @@ def apply_shape(model, instance_or_dict, field_converter, model_converter,
                 
         ### Convert field as single field
         else:
-            if field_value is None:
-                if allow_none:
-                    model_dict[serialized_name] = None
-                else:
-                    continue  # throw it away
-            else:
+            if field_value is None and not allow_none:
+                continue  # throw it away
+            elif field_value is None and allow_none:
+                model_dict[serialized_name] = None
+            elif field_value is None and convert_none \
+                       or field_value is not None:
                 model_dict[serialized_name] = field_converter(field_instance,
                                                               field_value)
 
@@ -264,10 +265,19 @@ def for_jsonschema(model):
     """
     field_converter = lambda f, v: f.for_jsonschema()
     model_converter = lambda m: for_jsonschema(m)
-    gottago = blacklist([], allow_none=True)
+    def field_converter(f, v):
+        return f.for_jsonschema()
+    gottago = blacklist([])
 
-    properties = apply_shape(model.__class__, model, field_converter,
-                             model_converter, gottago)
+    if callable(model):
+        properties = apply_shape(model, model(), field_converter,
+                                 model_converter, gottago, allow_none=True,
+                                 convert_none=True)
+    else:
+        properties = apply_shape(model.__class__, model, field_converter,
+                                 model_converter, gottago, allow_none=True,
+                                 convert_none=True)
+        
 
     return {
         'type': 'object',
@@ -310,7 +320,8 @@ def from_jsonschema(schema, model=Model):
         for field_name, schema_field in schema['properties'].iteritems():
             field = map_jsonschema_field_to_schematics(schema_field, model)
             model_fields[field_name] = field
-        return type(class_name, (model,), model_fields)
+        clss = type(class_name, (model,), model_fields)
+        return clss
     else:
         raise AttributeError('JSON schema missing one or more properties')
 
@@ -330,7 +341,7 @@ def map_jsonschema_field_to_schematics(schema_field, base_class,
         raise DictFieldNotFound
 
     kwargs = {}
-    
+
     # List types
     if tipe == 'array':
         items = schema_field.pop('items', None)

@@ -125,8 +125,17 @@ class ListType(BaseType):
     def _from_jsonschema_formats(self):
         return [None]
 
+    def for_jsonschema(self):
+        return self._jsonschema_items()
+
     def _jsonschema_items(self):
-        return [for_jsonschema(field) for field in self.fields]
+        def collect():
+            for field in self.fields:
+                if isinstance(field, ModelType):
+                    yield field.for_jsonschema()
+                else:
+                    yield for_jsonschema(field)
+        return [x for x in collect()]
 
     def for_output_format(self, output_format_method_name, value):
         for item in value:
@@ -238,10 +247,10 @@ class ModelType(BaseType):
 
     def __set__(self, instance, value):
         if value is None:
-            return
-        if not isinstance(value, self.model_type):
+            instance._data[self.field_name] = None
+        elif not isinstance(value, self.model_type):
             value = self.model_type(**value)
-        instance._data[self.field_name] = value
+            instance._data[self.field_name] = value
 
     @property
     def model_type(self):
@@ -251,6 +260,10 @@ class ModelType(BaseType):
             else:
                 self.model_type_obj = get_model(self.model_type_obj)
         return self.model_type_obj
+
+    #def __iter__(self):
+    #    print 'SELLLLLL:', self.model_type_obj.__dict__
+    #    return iter(self.model_type_obj._fields.keys())
 
     def _jsonschema_type(self):
         return 'object'
