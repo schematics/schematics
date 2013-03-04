@@ -147,7 +147,7 @@ def validate_instance(model):
     """Extracts the values from the model and validates them via a call to
     `validate_values`.
     """
-    values = model._data
+    values = model._data if hasattr(model, '_data') else {}
     needs_check = lambda k, v: v.required or k in values
     return _validate(model, needs_check, values)
     

@@ -95,9 +95,11 @@ class ListType(BaseType):
                 ### Determine matching model
                 for model_field in model_fields:
                     test_keys = model_field.model_type_obj._fields.keys()
-                    datum_keys = datum_fields
-                    if set(test_keys) == set(datum_keys):
-                        if not isinstance(datum, dict):
+
+                    if len(set(datum_fields) - set(test_keys)) == 0:
+                        if datum is None:
+                            datum = {}
+                        elif not isinstance(datum, dict):
                             datum = datum._data
                         datum_instance = model_field.model_type_obj(**datum)
 
@@ -251,10 +253,6 @@ class ModelType(BaseType):
             else:
                 self.model_type_obj = get_model(self.model_type_obj)
         return self.model_type_obj
-
-    #def __iter__(self):
-    #    print 'SELLLLLL:', self.model_type_obj.__dict__
-    #    return iter(self.model_type_obj._fields.keys())
 
     def _jsonschema_type(self):
         return 'object'
