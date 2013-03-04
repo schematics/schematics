@@ -1,37 +1,7 @@
-"""Validation
+# encoding=utf-8
 
-Validation is performed in a way that does not rely on Exceptions.  This means
-the return values have significance, but they are easy enough to check.  The
-goal of the validation system working this way is to increase awareness for how
-success and errors are handled.
-
-A structure inspired by Erlang's tagged tuples is used.  Schematics has a few
-structures that represent inspection results that are implemented as
-namedtuples.  Every tuple contains a `tag` and a `message`.  If more values are
-stored, that is a detail of the implementation.
-
-The tag itself is a mechanism for explicitly saying something happened.  Match
-the 'OK' tag in an if statement and continue your flow.  If you don't have OK,
-you must then handle the error.
-
-I like this model significantly better than an exception oriented mechanism
-exactly because the error handling is more explicit.
-
-Validation now looks like this:
-
-    result = validate_instance(some_instance)
-    if result.tag == OK:
-        print 'OK:', result.value
-    else:
-        print 'ERROR:', result.message
-        handle_error(result)
-
-Error cases will return a text representation of what happened for the message
-value. This value will always be log-friendly.
-"""
-
-from .models import Model
 from .exceptions import StopValidation, ValidationError
+from .models import BaseModel
 
 
 def _is_empty(field_value):
@@ -60,10 +30,10 @@ def _validate(cls, needs_check, values, report_rogues=True):
 
     """
 
-    if isinstance(cls, Model):
+    if isinstance(cls, BaseModel):
         cls = cls.__class__
 
-    assert issubclass(cls, Model)
+    assert issubclass(cls, BaseModel)
 
     data = {}
     errors = {}

@@ -1,29 +1,27 @@
 # encoding=utf-8
 
-from .models import Model
+from .models import BaseModel, ModelMetaclass, ModelOptions
 from .validation import validate_values, validate_partial
 from .serialize import make_safe_json, to_json
+from .exceptions import InvalidModel
 
 
-class InvalidForm(Exception):
-    def __init__(self, errors):
-        self.errors = errors
+class Model(BaseModel):
 
-
-class Form(Model):
-    """
-    A batteries included version of `Model`. Validation and serialization are
-    implemented as instance or class methods.
-
-    """
+    __metaclass__ = ModelMetaclass
+    __optionsclass__ = ModelOptions
 
     def to_json(self, role=None):
-        if role:
-            return make_safe_json(self.__class__, self, role, encode=False)
-        return to_json(self, encode=False)
+        """No filtering of output unless role is defined.
+
+        """
+
+        if role is None:
+            return to_json(self, lambda k, v: False, encode=False)
+        return make_safe_json(self.__class__, self, role, encode=False)
 
     @classmethod
-    def from_json(cls, items, partial=False, strict=False):
+    def validate(cls, items, partial=False, strict=False):
         """Validates incoming untrusted data. If `partial` is set it will allow
         partial data to validate, useful for PATCH requests. Returns a clean
         instance.
@@ -36,6 +34,6 @@ class Form(Model):
             items, errors = validate_values(cls, items, report_rogues=strict)
 
         if errors:
-            raise InvalidForm(errors)
+            raise InvalidModel(errors)
 
         return cls(**items)

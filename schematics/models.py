@@ -1,7 +1,7 @@
 import inspect
 import copy
 
-from schematics.types import BaseType
+from .types import BaseType
 
 
 class ModelOptions(object):
@@ -189,11 +189,4 @@ class BaseModel(object):
         if hasattr(self, '__unicode__'):
             return unicode(self).encode('utf-8')
         return '%s object' % self.__class__.__name__
-
-
-class Model(BaseModel):
-
-    __metaclass__ = ModelMetaclass
-    __optionsclass__ = ModelOptions
-
 

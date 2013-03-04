@@ -4,11 +4,12 @@ except:
     from itertools import ifilterfalse
 from operator import itemgetter
 
-from schematics.models import Model
-from schematics.types import BaseType, DictType
-from schematics.datastructures import MultiValueDict
-from schematics.serialize import to_python, to_json, for_jsonschema
-from schematics.validation import ValidationError, validate_instance, validate_values
+from .base import BaseType, DictType
+
+from .. import Model
+from ..datastructures import MultiValueDict
+from ..serialize import to_python, to_json, for_jsonschema
+from ..validation import ValidationError, validate_instance, validate_values
 
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'

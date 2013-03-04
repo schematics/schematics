@@ -4,8 +4,8 @@ import datetime
 import decimal
 import itertools
 
-from schematics.types import schematic_types
-from schematics.exceptions import StopValidation, ValidationError
+from ..exceptions import StopValidation, ValidationError
+from . import schematic_types
 
 
 class BaseTypeMetaClass(type):

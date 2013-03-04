@@ -18,29 +18,30 @@ Python Data Structures for Humans™.
 5. Some things like type checking was mixed with the validation error reporting
    layer have been changed into simple Python asserts. I considered this a
    leaky abstraction.
+6. Removed `to_python`. Having the model instance is Python enough for me.
 
-## Forms
+## Models
 
-I added a top level convenience `schematics.Form`. This does 90% of what you
-will need in one class (apart from the actual `schematics.types` classes).
+I added classmethod `validate` and `to_json` to the model. This does 90% of what
+you will need in one class (apart from the actual `schematics.types` classes).
 Here’s some code to show off what can be accomplished with little heavy lifting.
 
-Please note, all the hard stuff is done in the original non-forked library.
-Credit where credit’s due.
+All the hard stuff is done in the original non-forked library. Credit where
+credit’s due.
 
 ```python
 
-from schematics import Form, InvalidForm
+from schematics import Model, InvalidModel
 from schematics.types import StringType, IntType, DateTimeType, BooleanType
 from schematics.types.compound import ModelType, ListType
 from schematics.exceptions import ValidationError
 from schematics.serialize import whitelist
 
 
-class Game(Form):
+class Game(Model):
     opponent_id = IntType(required=True)
 
-class Player(Form):
+class Player(Model):
     total_games = IntType(min_value=0, required=True)
     name = StringType(required=True)
     verified = BooleanType()
@@ -73,7 +74,7 @@ dumping it safely.
 ...   'bio': u'Iron master',
 ...   'rank': 6,
 ... }
->>> player = Player.from_json(good_data)
+>>> player = Player.validate(good_data)
 >>> print json.dumps(player.to_json(), indent=2, sort_keys=True)
 {
   "bio": "Iron master",
@@ -92,7 +93,19 @@ dumping it safely.
 
 ```
 
-`to_json` has two keyword arguments:
+Constructing models with validate cleans the data before returning an instance.
+This is different from other forms libraries that allow you to construct dirty
+forms. The main reason to allow this, is to re-render forms in HTML with data
+and errors attached. When dealing with REST API’s this is no longer a
+requirement so I have opted for a more explicit `InvalidModel` exception.
+`InvalidModel.errors` is a dictionary that maps roughly 1:1 to the model fields.
+
+`Model.to_json`
 
 + `role`: The filter to make output consumable. Default: None (returns all keys)
-+ `strict`: Strict mode raises errors for unexpected keys. Default: False
+
+`Model.validate`
+
++ `items`: Untrusted data tree from `json.loads` or such
++ `strict`: Strict mode raises errors for unexpected keys. Default: True
++ `partial`: Ignore `required=True` requirements when validating fields. Default: False

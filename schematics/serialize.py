@@ -1,78 +1,10 @@
-"""Serialize
-
-Serialization is essentially the process of converting a model into some other
-format.  The current formats supported are a Python dict and a JSON string. One
-could use Python's cPickle module or a msgpack too.
-
-The logic includes conversions from Schematics representation into formats
-suitable for some serialization method.  For example, Python datetime's will
-blow up json.dumps so we first convert the date into ISO8601 format.
-
-Serializing a model instance then looks like this:
-
-    a_dict = to_python(instance)
-
-There is additional logic that allows user's to remove fields from
-serialization based on the concept of configured roles.  The idea here is that
-it's typical to not want to share every field for some reason.  A whilelist
-and blacklist mechanism is provided for those fields.  The actual logic only
-requires a function so the behavior of the system is fully customizable.
-
-A class with role access specified looks like this:
-
-    class SomeModel(Model):
-        field_a = ...
-
-        class Options:
-            roles = {
-                'owner': blacklist('field_a'),
-                'public': whitelist('field_b', 'field_c'),
-            }
-
-Serializing data against a role then looks like this:
-
-    a_dict = make_safe_python(SomeModel, my_data, 'public')
-
-I can convert the data to JSON just as easily too.
-
-    a_str = make_safe_json(SomeModel, my_data, 'public')
-
-In addition to these mechanisms existing, they are fully recursive and will
-expand models if they are used as fields.  They will also apply a role
-recursively which allows users to embed models with unique role systems inside
-container models.
-
-That looks like this in code:
-
-    class SomeModel(Model):
-        name = StringType()
-        email = EmailType()
-        is_active = BooleanType()
-        class Options:
-            roles = {
-                'owner': blacklist('is_active'),
-                'public': whitelist('username', 'name'),
-            }
-
-    class BlogPost(Model):
-        title = StringType()
-        content = StringType()
-        author = ModelType(Author)
-        post_date = DateTimeType(default=datetime.datetime.now)
-        comments = ListType(ModelType(Comment))
-        deleted = BooleanType()
-        class Options:
-            roles = {
-                'owner': whotelist(),
-                'public': whitelist('author', 'content', 'comments'),
-            }
-"""
+# encoding=utf-8
 
 import copy
 
-from schematics.types import schematic_types
-from schematics.base import json
-from schematics.models import BaseModel, Model
+from .types import schematic_types
+from .base import json
+from .models import BaseModel
 
 
 ###
@@ -112,12 +44,12 @@ def apply_shape(model, instance_or_dict, field_converter, model_converter,
             continue
 
         ### Convert field as single model
-        elif isinstance(field_value, Model):
+        elif isinstance(field_value, BaseModel):
             model_dict[serialized_name] = model_converter(field_value)
 
         ### Convert field as list of models
         elif isinstance(field_value, list) and len(field_value) > 0:
-            if isinstance(field_value[0], Model):
+            if isinstance(field_value[0], BaseModel):
                 model_dict[serialized_name] = [model_converter(vi)
                                                for vi in field_value]
             else:
@@ -212,7 +144,7 @@ def make_safe_python(model, instance_or_dict, role, **kw):
     field_converter = lambda f, v: f.for_python(v)
     model_converter = lambda m: make_safe_python(m.__class__, m, role, **kw)
 
-    gottago = lambda k,v: True
+    gottago = lambda k, v: True
     if role in model._options.roles:
         gottago = model._options.roles[role]
 
@@ -227,7 +159,7 @@ def make_safe_json(model, instance_or_dict, role, encode=True, sort_keys=False,
                                                encode=False,
                                                sort_keys=sort_keys)
 
-    gottago = lambda k,v: True
+    gottago = lambda k, v: True
     if role in model._options.roles:
         gottago = model._options.roles[role]
 
@@ -287,7 +219,7 @@ def to_jsonschema(model):
     return json.dumps(for_jsonschema(model))
 
 
-def from_jsonschema(schema, model=Model):
+def from_jsonschema(schema, model=BaseModel):
     """Generate a Schematics Model class from a JSON schema.  The JSON
     schema's title field will be the name of the class.  You must specify a
     title and at least one property or there will be an AttributeError.
