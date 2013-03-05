@@ -12,88 +12,74 @@ class BaseType(object):
     class may be added to subclasses of `Model` to define a model schema.
     """
 
-    def __init__(self, required=False, default=None, field_name=None,
-                 print_name=None, choices=None, validators=None, description=None,
-                 minimized_field_name=None, dirty=False):
+    def __init__(self, required=False, default=None, serialized_name=None,
+                 choices=None, validators=None, description=None):
 
         self.required = required
         self.default = default
-        self.field_name = field_name
-        self.print_name = print_name
+        self.serialized_name = serialized_name
         self.choices = choices
         self.validators = validators
         self.description = description
-        self.minimized_field_name = minimized_field_name
-        # dirty make sense only if required == True.
-        # It indicates, that None values are valid
-        self.dirty = dirty
-        self._is_set = False
 
-    def __get__(self, instance, owner):
-        """Descriptor for retrieving a value from a field in a model. Do
-        any necessary conversion between Python and `Structures` types.
-        """
-        if instance is None:
-            # Model class being used rather than a model object
-            return self
+    def __call__(self, value):
+        self.validate(value)
+        return self
 
-        value = instance._data.get(self.field_name)
-
-        if value is None:
-            value = self.default
-            # Callable values are best for mutable defaults
-            if callable(value):
-                value = value()
-        return value
-
-    def __set__(self, instance, value):
-        """Descriptor for assigning a value to a field in a model.
-        """
-        self._is_set = True
-        instance._data[self.field_name] = value
-
-    def to_dict(self, value):
+    def to_primitive(self, value):
         """Convert a Structures type into a value safe for JSON encoding
         """
         return value
 
-    def process(self, value):
-        """Function that is overridden by subclasses for their validation logic
+    def convert(self, value):
+        """Convert Python to something safe to serialize to JSON.
         """
-        raise NotImplemented
+        return value
 
     def validate(self, value):
         """
         Validates the field and returns True or False. `self.errors` will
         contain any errors raised during validation. This is usually only
         called by `Form.validate`. If at the end of validate no errors were
-        raised, assign `self.clean` the value.
+        raised, assign `self.clean` the value. Either `self.errors` or
+        `self.clean` is assigned, never both.
 
         """
+
+        try:
+            del self.errors
+            del self.clean
+        except AttributeError:
+            pass
+
         self.errors = []
 
         def aggregate_from_exception_errors(e):
             if e.args and e.args[0]:
-                if isinstance(e.args[0], basestring):
-                    errors = [e.args[0]]
-                elif isinstance(e.args, (tuple, list)):
+                if isinstance(e.args, (tuple, list)):
                     errors = e.args[0]
+                elif isinstance(e.args[0], basestring):
+                    errors = [e.args[0]]
                 else:
                     errors = []
-                return errors
+                return self.errors.extend(errors)
 
-        validator_chain = itertools.chain([self.process, self.choices_validation],
-                                          self.validators or [])
+        validator_chain = itertools.chain(
+            [
+                self.required_validation,
+                self.convert,
+                self.choices_validation
+            ],
+            self.validators or []
+        )
+
         for validator in validator_chain:
             try:
                 value = validator(value)
-            except StopValidation as e:
-                errors = aggregate_from_exception_errors(e)
-                self.errors.extend(errors)
-                return False
-            except (ValidationError, ValueError), e:
-                errors = aggregate_from_exception_errors(e)
-                self.errors.extend(errors)
+            except ValidationError, e:
+                aggregate_from_exception_errors(e)
+                if isinstance(e, StopValidation):
+                    return False
 
         if self.errors:
             return False
@@ -101,11 +87,16 @@ class BaseType(object):
         self.clean = value
         return True
 
+    def required_validation(self, value):
+        if self.required and value is None:
+            raise StopValidation(u'Field must have a significant value')
+        return value
+
     def choices_validation(self, value):
         # `choices`
         if self.choices is not None:
             if value not in self.choices:
-                raise ValidationError, 'Value must be one of %s.' % unicode(self.choices)
+                raise ValidationError(u'Value must be one of %s.' % unicode(self.choices))
         return value
 
 
@@ -114,23 +105,7 @@ class UUIDType(BaseType):
     empty values with new UUIDs.
     """
 
-    def __init__(self, auto_fill=False, **kwargs):
-        super(UUIDType, self).__init__(**kwargs)
-        self.auto_fill = auto_fill
-
-    def __set__(self, instance, value):
-        """Convert any text values provided into Python UUID objects and
-        auto-populate any empty values should auto_fill be set to True.
-        """
-        if not value and self.auto_fill is True:
-            value = uuid.uuid4()
-
-        if value and not isinstance(value, uuid.UUID):
-            value = uuid.UUID(value)
-
-        instance._data[self.field_name] = value
-
-    def process(self, value):
+    def convert(self, value):
         """Make sure the value is a valid uuid representation.  See
         http://docs.python.org/library/uuid.html for accepted formats.
         """
@@ -140,10 +115,9 @@ class UUIDType(BaseType):
 
         return value
 
-    def to_dict(self, value):
+    def to_primitive(self, value):
         """Return a JSON safe version of the UUID object.
         """
-
         return str(value)
 
 
@@ -157,7 +131,7 @@ class StringType(BaseType):
         self.min_length = min_length
         super(StringType, self).__init__(**kwargs)
 
-    def process(self, value):
+    def convert(self, value):
         value = unicode(value)
 
         if self.max_length is not None and len(value) > self.max_length:
@@ -191,7 +165,7 @@ class EmailType(StringType):
         re.IGNORECASE
     )
 
-    def process(self, value):
+    def convert(self, value):
         if not EmailType.EMAIL_REGEX.match(value):
             raise ValidationError, 'Invalid email address'
         return value
@@ -215,7 +189,7 @@ class NumberType(BaseType):
                 value = self.number_class(value)
         instance._data[self.field_name] = value
 
-    def process(self, value):
+    def convert(self, value):
         try:
             value = self.number_class(value)
         except:
@@ -268,10 +242,10 @@ class DecimalType(BaseType):
         self.min_value, self.max_value = min_value, max_value
         super(DecimalType, self).__init__(**kwargs)
 
-    def to_dict(self, value):
+    def to_primitive(self, value):
         return unicode(value)
 
-    def process(self, value):
+    def convert(self, value):
         if not isinstance(value, decimal.Decimal):
             if not isinstance(value, basestring):
                 value = str(value)
@@ -294,7 +268,7 @@ class MD5Type(BaseType):
     """
     hash_length = 32
 
-    def process(self, value):
+    def convert(self, value):
         if len(value) != MD5Type.hash_length:
             raise ValidationError, 'MD5 value is wrong length'
         try:
@@ -310,7 +284,7 @@ class SHA1Type(BaseType):
     """
     hash_length = 40
 
-    def process(self, value):
+    def convert(self, value):
         if len(value) != SHA1Type.hash_length:
             raise ValidationError, 'SHA1 value is wrong length'
         try:
@@ -328,22 +302,14 @@ class BooleanType(BaseType):
     TRUE = ('True', 'true', '1')
     FALSE = ('False', 'false', '0')
 
-    def __set__(self, instance, value):
-        """
-        Accept some form of True/False as string
-        """
-        if isinstance(value, (str, unicode)):
+    def convert(self, value):
+        if isinstance(value, basestring):
             if value in BooleanType.TRUE:
                 value = True
             elif value in BooleanType.FALSE:
                 value = False
-
-        instance._data[self.field_name] = value
-
-    def process(self, value):
-        if not isinstance(value, bool):
-            raise ValidationError, 'Not a boolean'
-
+            else:
+                raise ValueError, u'Invalid boolean value'
         return value
 
 
@@ -352,84 +318,33 @@ class DateTimeType(BaseType):
     """A datetime field.
     """
 
-    def __init__(self, format=None, **kwargs):
-        if format is None:
-            def formatter(dt):
-                if dt is None:
-                    return None
-                else:
-                    return dt.isoformat()
-            self.format = formatter
-        else:
-            self.format = format
+    input_formats = ('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S')
+
+    def __init__(self, input_format=None, format=input_formats[0], **kwargs):
+        if input_format is not None:
+            if not isinstance(input_format, (tuple, list)):
+                input_format = [input_format]
+            self.input_formats = input_format
+        self.format = format
         super(DateTimeType, self).__init__(**kwargs)
 
-    def __set__(self, instance, value):
-        """If `value` is a string, the string should match iso8601 format.
-        `iso8601_to_date` is called for conversion.
-
-        A datetime may be used (and is encouraged).
-        """
-        if isinstance(value, (str, unicode)):
-            result = DateTimeType.iso8601_to_date(value)
-            value = result.value
-
-        instance._data[self.field_name] = value
-
-    @classmethod
-    def iso8601_to_date(cls, datestring):
+    def convert(self, value):
         """Takes a string in ISO8601 format and converts it to a Python
-        datetime.  This is not present in the standard library, as far as I can
-        tell.
+        datetime. http://www.w3.org/TR/NOTE-datetime
 
-        Example: 'YYYY-MM-DDTHH:MM:SS.mmmmmm'
-
-        ISO8601's elements come in the same order as the inputs to creating
-        a datetime.datetime.  I pass the patterns directly into the datetime
-        constructor.
-
-        The ISO8601 spec is rather complex and allows for many variations in
-        formatting values.  Currently the format expected is strict, with the
-        only optional component being the six-digit microsecond field.
-
-        http://www.w3.org/TR/NOTE-datetime
         """
-        iso8601 = '(\d\d\d\d)-(\d\d)-(\d\d)' \
-                  'T(\d\d):(\d\d):(\d\d)(?:\.(\d\d\d\d\d\d))?'
-        elements = re.findall(iso8601, datestring)
 
-        if len(elements) < 1:
-            raise ValidationError, 'Date string could not transform to datetime'
+        for format in self.input_formats:
+            try:
+                return datetime.datetime.strptime(value, format)
+            except (ValueError, TypeError):
+                continue
+        raise ValidationError, u'Could not parse. Should be ISO8601.'
 
-        date_info = elements[0]
-        date_digits = [int(d) for d in date_info if d]
-        value = datetime.datetime(*date_digits)
-        return value
-
-    @classmethod
-    def date_to_iso8601(cls, dt, format):
-        """Classmethod that goes the opposite direction of iso8601_to_date.
-           Defaults to using isoformat(), but can use the optional format
-           argument either as a strftime format string or as a custom
-           date formatting function or lambda.
-        """
-        if isinstance(format, str):
-            iso_dt = dt.strftime(format)
-        elif hasattr(format, '__call__'):
-            iso_dt = format(dt)
-        else:
-            raise ValidationError, 'DateTimeType format must be a string or callable'
-        return value
-
-    def process(self, value):
-        if not isinstance(value, datetime.datetime):
-            raise ValidationError, 'Not a datetime'
-
-        return value
-
-    def to_dict(self, value):
-        result = DateTimeType.date_to_iso8601(value, self.format)
-        return result.value
+    def to_primitive(self, value):
+        if callable(self.format):
+            return format(value)
+        return value.strftime(self.format)
 
 
 class DictType(BaseType):
@@ -446,15 +361,11 @@ class DictType(BaseType):
         kwargs.setdefault('default', lambda: {})
         super(DictType, self).__init__(*args, **kwargs)
 
-    def process(self, value):
+    def convert(self, value):
         """Make sure that a list of valid fields is being used.
         """
         if not isinstance(value, dict):
             raise ValidationError, 'Only dictionaries may be used in a DictType'
-
-        ### TODO this can probably be removed
-        if any(('.' in k or '$' in k) for k in value):
-            raise ValidationError, 'Invalid dictionary key - may not contain "." or "$"'
 
         return value
 
@@ -466,7 +377,7 @@ class GeoPointType(BaseType):
     """A list storing a latitude and longitude.
     """
 
-    def process(self, value):
+    def convert(self, value):
         """Make sure that a geo-value is of type (x, y)
         """
         if not len(value) == 2:

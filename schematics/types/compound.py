@@ -1,265 +1,131 @@
-try:
-    from itertools import filterfalse  # python3 wutwut
-except:
-    from itertools import ifilterfalse
-from operator import itemgetter
+import itertools
 
-from .base import BaseType, DictType
-
-from ..models import BaseModel
-from ..datastructures import MultiValueDict
-from ..serialize import to_dict
-from ..validation import ValidationError, validate_instance, validate_values
+from ..exceptions import ValidationError, StopValidation
+from .base import BaseType
 
 
-RECURSIVE_REFERENCE_CONSTANT = 'self'
+class MultiType(BaseType):
 
+    def validate(self, value):
+        """Report dictionary of errors with lists of errors as values of each
+        key. Used by ModelType and ListType.
 
-class ListType(BaseType):
-    """A list type that wraps a standard type, allowing multiple instances
-    of the type to be used as a list in the model.
-    """
-
-    def __init__(self, fields, **kwargs):
-        super(ListType, self).__init__(**kwargs)
-
-        ### Short hand
-        is_basetype = lambda field: isinstance(field, BaseType)
-        is_model = lambda field: isinstance(field, ModelType)
-        is_dicttype = lambda field: isinstance(field, DictType)
-
-        ### fields is a schematic Type
-        if is_basetype(fields):
-            if is_model(fields):
-                kwargs.setdefault('primary_embedded', fields)
-            fields = [fields]
-
-        assert isinstance(fields, list)
-        for field in fields:
-            if not is_basetype(field):
-                raise ValueError, (u'Argument to ListType constructor must be a '
-                                    'valid field or list of valid fields')
-        assert not list(ifilterfalse(is_basetype, fields))
-
-        models = filter(is_model, fields)
-        dicts = filter(is_dicttype, fields)
-        if dicts:
-            kwargs.setdefault('primary_embedded', None)
-        if models:
-            kwargs.setdefault('primary_embedded', models[0])
-
-        self.fields = fields
-        kwargs.setdefault('default', list)
-
-        self.primary_embedded = kwargs.pop('primary_embedded', None)
-
-    def __set__(self, instance, value_list):
-        """Descriptor for assigning a value to a type in a model.
         """
-        new_value = value_list
 
-        is_model = lambda tipe: isinstance(tipe, ModelType)
-        model_fields = filter(is_model, self.fields)
+        try:
+            del self.errors
+            del self.clean
+        except AttributeError:
+            pass
 
-        if self.primary_embedded:
-            model_fields.remove(self.primary_embedded)
-            model_fields.insert(0, self.primary_embedded)
+        self.errors = {}
 
-        if value_list is None:
-            value_list = []  # have to use a list
+        def aggregate_from_exception_errors(e):
+            if e.args and e.args[0]:
+                if not isinstance(e.args[0], dict):
+                    return BaseType.validate(self, value)
+                self.errors.update(e.args[0])
 
-        errors_found = False
-        if model_fields:
-            new_data = list()
-            for datum in value_list:
-                datum_instance = None
-                is_dict = False
+        validator_chain = itertools.chain(
+            [
+                self.required_validation,
+                self.convert,
+            ],
+            self.validators or []
+        )
 
-                ### Extract field names from datum
-                datum_fields = None
-                if isinstance(datum, dict):
-                    datum_fields = datum.keys()
-                else:
-                    datum_fields = datum._fields.keys()
+        for validator in validator_chain:
+            try:
+                value = validator(value)
+            except ValueError, e:
+                aggregate_from_exception_errors(e)
+                if isinstance(e, StopValidation):
+                    return False
 
-                ### Determine matching model
-                for model_field in model_fields:
-                    test_keys = model_field.model_type_obj._fields.keys()
-                    datum_keys = datum_fields
-                    if set(test_keys) == set(datum_keys):
-                        if not isinstance(datum, dict):
-                            datum = datum._data
-                        datum_instance = model_field.model_type_obj(**datum)
+        if self.errors:
+            return False
 
-                ### Validate model
-                values, errors = validate_instance(datum_instance)
-                if not errors:
-                    new_data.append(datum_instance)
-                else:
-                    errors_found = True
-
-            new_value = new_data
-
-        if not errors_found:
-            instance._data[self.field_name] = new_value
-
-    def _yield_to_dict(self, value):
-        for item in value:
-            for field in self.fields:
-                try:
-                    yield field.to_dict(item)
-                except ValueError:
-                    continue
-
-    def to_dict(self, value):
-        """to_dict must be careful to expand modeltypes into Python,
-        not JSON.
-        """
-        return list(self._yield_to_dict(value))
-
-    def process(self, value):
-        """Make sure that a list of valid fields is being used.
-        """
-        if not isinstance(value, (list, tuple)):
-            raise ValueError, 'Only lists and tuples may be used in a list field'
-
-        if not self.fields:  # empty list
-            return value
-
-        errors = []
-        values = []
-        for i, item in enumerate(value, 1):
-            for field in self.fields:
-                if field.validate(item):
-                    values.append(field.clean)
-                else:
-                    # Label errors by their index
-                    errors.append(('index-' + str(i), field.errors))
-
-        if len(errors) > 0:
-            raise ValidationError, errors
-
-        return values
-
-    def _set_owner_model(self, owner_model):
-        for field in self.fields:
-            field.owner_model = owner_model
-        self._owner_model = owner_model
-
-    def _get_owner_model(self, owner_model):
-        self._owner_model = owner_model
-
-    owner_model = property(_get_owner_model, _set_owner_model)
+        self.clean = value
+        return True
 
 
-class SortedListType(ListType):
-    """A ListType that sorts the contents of its list before writing to
-    the database in order to ensure that a sorted list is always
-    retrieved.
-    """
-
-    _ordering = None
-
-    def __init__(self, field, **kwargs):
-        if 'ordering' in kwargs.keys():
-            self._ordering = kwargs.pop('ordering')
-        super(SortedListType, self).__init__(field, **kwargs)
-
-    def to_dict(self, value):
-        unsorted = super(SortedListType, self).to_dict(value)
-        if self._ordering is not None:
-            return sorted(unsorted, key=itemgetter(self._ordering))
-        return sorted(unsorted)
-
-
-###
-### Sub schematics
-###
-
-class ModelType(BaseType):
-    """A model field. Only valid values are subclasses of `schematics.Model`.
-    """
-    def __init__(self, model_type, **kwargs):
-        is_embeddable = lambda dt: issubclass(dt, BaseModel)
-        if not isinstance(model_type, basestring):
-            if not model_type or not is_embeddable(model_type):
-                raise ValueError, 'Invalid model class provided to an ModelType'
-        self.model_type_obj = model_type
+class ModelType(MultiType):
+    def __init__(self, model_class, **kwargs):
+        self._model_class = model_class
         super(ModelType, self).__init__(**kwargs)
 
-    def __set__(self, instance, value):
-        if value is None:
-            instance._data[self.field_name] = None
-        elif not isinstance(value, self.model_type):
-            value = self.model_type(**value)
-            instance._data[self.field_name] = value
+    @property
+    def model_class(self):
+        if self._model_class == "self":
+            return self.owner_model
+        return self._model_class
+
+    def convert(self, value):
+        if hasattr(value, "to_dict"):
+            value = value.to_dict()
+        if not isinstance(value, dict):
+            raise StopValidation(u'Please provide a mapping with keys: %s'
+                                    % u', '.join(self.model_class.fields))
+        return self.model_class(**value)
+
+    def to_primitive(self, value):
+        if isinstance(value, dict):
+            return value
+        return value.data
+
+
+class ListType(MultiType):
+
+    def __init__(self, field, min_size=None, max_size=None, **kwargs):
+        if not isinstance(field, BaseType):
+            field = field(**kwargs)
+        self.field = field
+        self.min_size = min_size
+        self.max_size = max_size
+        super(ListType, self).__init__(**kwargs)
 
     @property
-    def model_type(self):
-        if isinstance(self.model_type_obj, basestring):
-            if self.model_type_obj == RECURSIVE_REFERENCE_CONSTANT:
-                self.model_type_obj = self.owner_model
+    def model_class(self):
+        return self.field.model_class
+
+    def _force_list(self, value):
+        if value is None:
+            return []
+        try:
+            if isinstance(value, (dict, basestring)):
+                raise TypeError()
+            return list(value)
+        except TypeError:
+            return [value]
+
+    def convert(self, value):
+        value = self._force_list(value)
+        if self.min_size is not None and len(value) < self.min_size:
+            message = ({
+                True: u'Please provide at least %d item.',
+                False: u'Please provide at least %d items.'}[self.min_size == 1]
+            ) % self.min_size
+            raise ValidationError(message)
+        if self.max_size is not None and len(value) > self.max_size:
+            message = ({
+                True: u'Please provide no more than %d item.',
+                False: u'Please provide no more than %d items.'}[self.max_size == 1]
+            ) % self.max_size
+            raise ValidationError(message)
+        result = []
+        errors = {}
+        # Aggregate errors
+        for idx, item in enumerate(value, 1):
+            try:
+                item = self.field.required_validation(item)
+                item = self.field.convert(item)
+            except ValueError, e:
+                errors[idx] = e
             else:
-                self.model_type_obj = get_model(self.model_type_obj)
-        return self.model_type_obj
-
-    def to_dict(self, value):
-        return to_dict(value)
-
-    def process(self, value):
-        """Make sure that the model instance is an instance of the
-        Model subclass provided when the model was defined.
-        """
-        # Using isinstance also works for subclasses of self.model
-
-        if isinstance(value, dict):
-            value = self.model_type(**value)
-
-        if not isinstance(value, self.model_type):
-            raise ValueError, 'Invalid modeltype instance provided to an ModelType'
-
-        values, errors = validate_instance(value)
+                result.append(item)
         if errors:
-            raise ValidationError, errors
-        return values
+            raise ValidationError(errors)
+        return result
 
-    def lookup_member(self, member_name):
-        return self.model_type._fields.get(member_name)
-
-
-class MultiValueDictType(DictType):
-    def __init__(self, basecls=None, *args, **kwargs):
-        self.basecls = basecls or BaseType
-
-        assert not issubclass(self.basecls, BaseType), 'basecls is not subclass of BaseType'
-
-        kwargs.setdefault('default', lambda: MultiValueDict())
-        super(MultiValueDictType, self).__init__(*args, **kwargs)
-
-    def __set__(self, instance, value):
-        if value is not None and not isinstance(value, MultiValueDict):
-            value = MultiValueDict(value)
-
-        super(MultiValueDictType, self).__set__(instance, value)
-
-    def process(self, value):
-        """Make sure that a list of valid fields is being used.
-        """
-        if not isinstance(value, (dict, MultiValueDict)):
-            raise ValueError, 'Only dictionaries or MultiValueDict may be used in a '
-
-        ### TODO get rid of this
-        if any(('.' in k or '$' in k) for k in value):
-            error_msg = 'Invalid dictionary key name - keys may not contain '
-            error_msg = error_msg + '"." or "$" characters'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
-
-        return value
-
-    def to_dict(self, value):
-        output = {}
-        for key, values in value.iterlists():
-            output[key] = values
-
-        return output
+    def to_primitive(self, value):
+        return map(self.field.to_primitive, self._force_list(value))

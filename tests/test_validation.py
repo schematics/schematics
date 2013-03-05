@@ -3,12 +3,11 @@
 import unittest
 import datetime
 
-from schematics import Model
-from schematics.validation import (
-    validate_instance, validate_values, validate_partial,
-    ValidationError)
+from schematics.models import Model
+from schematics.exceptions import ValidationError
 from schematics.types import StringType, DateTimeType
 from schematics.types.compound import ModelType, ListType
+
 
 class TestChoices(unittest.TestCase):
     def setUp(self):
@@ -40,20 +39,20 @@ class TestChoices(unittest.TestCase):
         self.doc_embedded_invalid = TestDoc(**self.data_embeded_invalid)
 
     def test_choices_validates(self):
-        items, errors = validate_instance(self.doc_simple_valid)
-        self.assertEqual(errors, {})
+        valid = self.doc_simple_valid.validate(self.data_simple_valid)
+        self.assertEqual(valid, True)
 
     def test_validation_fails(self):
-        items, errors = validate_instance(self.doc_simple_invalid)
-        self.assertNotEqual(errors, {})
+        valid = self.doc_simple_invalid.validate(self.data_simple_invalid)
+        self.assertNotEqual(valid, True)
 
     def test_choices_validates_with_embedded(self):
-        items, errors = validate_instance(self.doc_embedded_valid)
-        self.assertEqual(errors, {})
+        valid = self.doc_embedded_valid.validate(self.data_embeded_valid)
+        self.assertEqual(valid, True)
 
     def test_validation_failes_with_embedded(self):
-        items, errors = validate_instance(self.doc_embedded_invalid)
-        self.assertNotEqual(errors, {})
+        valid = self.doc_embedded_invalid.validate(self.data_embeded_invalid)
+        self.assertNotEqual(valid, True)
 
 
 class TestRequired(unittest.TestCase):
@@ -63,73 +62,52 @@ class TestRequired(unittest.TestCase):
             first_name = StringType(required=True)
 
         t = TestDoc()
-        items, errors = validate_instance(t)
+        valid = t.validate(t.data)
 
-        self.assertNotEqual(errors, {})
-        self.assertEqual(len(errors), 1)  # Only one failure
-        self.assertIn(u'This field is required', errors.items()[0][1])
+        self.assertEqual(valid, False)
+        self.assertEqual(len(t.errors), 1)  # Only one failure
+        self.assertIn(u'This field is required', t.errors.items()[0][1])
 
     def test_validation_none_fails(self):
         class TestDoc(Model):
             first_name = StringType(required=True)
 
         t = TestDoc(first_name=None)
-        items, errors = validate_instance(t)
+        valid = t.validate(t.data)
 
-        self.assertNotEqual(errors, {})
-        self.assertEqual(len(errors), 1)  # Only one failure
-        self.assertIn(u'This field is required', errors.items()[0][1])
-
-    def test_validation_none_dirty_pass(self):
-        class TestDoc(Model):
-            first_name = StringType(required=True, dirty=True)
-
-        t = TestDoc(first_name=None)
-        items, errors = validate_instance(t)
-
-        self.assertEqual(errors, {})
-
-    def test_validation_notset_dirty_fails(self):
-        class TestDoc(Model):
-            first_name = StringType(required=True, dirty=True)
-
-        t = TestDoc()
-        items, errors = validate_instance(t)
-
-        self.assertNotEqual(errors, {})
-        self.assertEqual(len(errors), 1)  # Only one failure
-        self.assertIn(u'This field is required', errors.items()[0][1])
+        self.assertNotEqual(t.errors, {})
+        self.assertEqual(len(t.errors), 1)  # Only one failure
+        self.assertIn(u'This field is required', t.errors.items()[0][1])
 
     def test_validation_empty_string_pass(self):
         class TestDoc(Model):
             first_name = StringType(required=True)
 
         t = TestDoc(first_name='')
-        items, errors = validate_instance(t)
-
-        self.assertEqual(errors, {})
+        valid = t.validate(t.data)
+        self.assertEqual(valid, True)
 
     def test_validation_empty_string_length_fail(self):
         class TestDoc(Model):
             first_name = StringType(required=True, min_length=1)
 
         t = TestDoc(first_name='')
-        items, errors = validate_instance(t)
+        valid = t.validate(t.data)
 
-        self.assertNotEqual(errors, {})
-        self.assertEqual(len(errors), 1)  # Only one failure
+        self.assertEqual(valid, False)
+        self.assertEqual(len(t.errors), 1)  # Only one failure
         # Length failure, not *FIELD_REQUIRED*
-        self.assertIn('first_name', errors)
-        self.assertEqual(len(errors['first_name']), 1)
+        self.assertIn('first_name', t.errors)
+        self.assertEqual(len(t.errors['first_name']), 1)
 
     def test_validation_none_string_length_pass(self):
         class TestDoc(Model):
             first_name = StringType(min_length=1)
 
         t = TestDoc()
-        items, errors = validate_instance(t)
+        valid = t.validate(t.data)
 
-        self.assertEqual(errors, {})
+        self.assertEqual(valid, True)
 
 
 
@@ -146,20 +124,21 @@ class TestCustomValidators(unittest.TestCase):
 
         class TestDoc(Model):
             publish = DateTimeType(validators=[is_not_future])
-            author = StringType(dirty=True, required=True)
+            author = StringType(required=True)
             title = StringType(required=False)
 
         self.Doc = TestDoc
 
     def test_custom_validators(self):
 
-        items, errors = validate_values(self.Doc, {
+        doc = self.Doc()
+        valid = doc.validate({
             'publish': datetime.datetime(2012, 2, 1, 0, 0),
             'author': u'Hemingway',
             'title': u'Old Man',
         })
 
-        self.assertEqual(errors, {'publish': [self.future_error_msg]})
+        self.assertIn(self.future_error_msg, doc.errors['publish'])
 
 
 

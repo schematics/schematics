@@ -1,24 +1,21 @@
 import datetime
 import hashlib
 
-from schematics import Model
-from schematics.types import (BaseType,
-                              UUIDType,
+from schematics.models import Model
+from schematics.types import (UUIDType,
                               IntType,
                               BooleanType,
                               StringType,
-                              FloatType,
                               DateTimeType,
                               EmailType,
                               MD5Type)
-from schematics.serialize import (whitelist, blacklist, wholelist,
-                                  to_safe_dict)
 from schematics.types.compound import ListType, ModelType
+from schematics.serialize import whitelist, blacklist, wholelist
 
 
-###
-### Basic Class and Subclass
-###
+#
+# Basic Class and Subclass
+#
 
 class SimpleModel(Model):
     """Simple model that has one StringType member
@@ -52,9 +49,9 @@ sub = SubModel(title='Total Recall', year=1990,
                thoughts='I wish I had three hands...')
 
 
-###
-### Mixin Concept
-###
+#
+# Mixin Concept
+#
 
 class InterestMixin(Model):
     liked = BooleanType(default=False)
@@ -85,9 +82,9 @@ master cleanse.
 thing = ThingModel(title='Thing Model', body=thing_body, liked=True)
 
 
-###
-### Embedded Docs, each with Permissions config
-###
+#
+# Embedded Docs, each with Permissions config
+#
 
 class Author(Model):
     name = StringType()
@@ -146,9 +143,9 @@ blogpost = BlogPost(title='Hipster Hodgepodge', author=author, content=content,
                     comments=[comment1, comment2], deleted=False)
 
 
-###
-### Models
-###
+#
+# Models
+#
 
 class Action(Model):
     """An `Action` associates an action name with a list of tags.
@@ -174,33 +171,33 @@ class TaskList(Model):
     num_completed = IntType(default=0)
 
 
-###
-### Actions
-###
+#
+# Actions
+#
 
 a1 = Action(value='Hello Mike', tags=['Erlang', 'Mike Williams'])
 a2 = Action(value='Hello Joe', tags=['Erlang', 'Joe Armstrong'])
 
 
-###
-### SingleTask
-###
+#
+# SingleTask
+#
 
 st = SingleTask()
 st.action = a1
 
 
-###
-### TaskList
-###
+#
+# TaskList
+#
 
 tl = TaskList()
 tl.actions = [a1, a2]
 
 
-###
-### Basic User model
-###
+#
+# Basic User model
+#
 
 class BasicUser(Model):
 
@@ -218,15 +215,15 @@ class BasicUser(Model):
         self.secret = hash_string
 
 
-### Create instance with bogus password
+# Create instance with bogus password
 u = BasicUser()
 u.name = 'test hash'
 u.set_password('whatevz')
 
 
-###
-### Instantiate an instance with this data
-###
+#
+# Instantiate an instance with this data
+#
 
 # user_dict
 total_input = {
@@ -237,26 +234,26 @@ total_input = {
 }
 
 
-### Check all types and collect all failures
+# Check all types and collect all failures
 #exceptions = User.validate_class_types(total_input, validate_all=True)
 
 
-###
-### Type Security
-###
+#
+# Type Security
+#
 
 # Add the rogue type back to `total_input`
 total_input['rogue_field'] = 'MWAHAHA'
 
 user_doc = BasicUser(**total_input)
 #print 'Document as Python:\n    %s\n' % (user_doc.to_python())
-safe_doc = to_safe_dict(BasicUser, user_doc, 'owner')
+safe_doc = user_doc.serialize()  # to_safe_dict(BasicUser, user_doc, 'owner')
 #print 'Owner safe doc:\n    %s\n' % (safe_doc)
-public_safe_doc = to_safe_dict(BasicUser, user_doc, 'public')
+public_safe_doc = user_doc.serialize(role='public')  # "(BasicUser, user_doc, 'public')
 #print 'Public safe doc:\n    %s\n' % (public_safe_doc)
 
 
-### Alternate field names
+# Alternate field names
 
 class AltNames(Model):
-    title = StringType(print_name='something_else')
+    title = StringType(serialized_name='something_else')

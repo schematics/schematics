@@ -1,70 +1,71 @@
 # encoding=utf-8
 
-import copy
-import collections
-
-from .models import BaseModel
+from .types.compound import ModelType, ListType
+from .models import Model
 
 
-###
-### Serialization Shaping Functions
-###
-
-def _reduce_loop(model, instance_or_dict, field_converter):
-    """Each field's name, the field instance and the field's value are
+def _reduce_loop(model):
+    """Each field's name, the field MODEL and the field's value are
     collected in a truple and yielded, making this a generator.
     """
-    for field_name in instance_or_dict:
-        field_instance = model._fields[field_name]
-        field_value = instance_or_dict[field_name]
+    model_class = model.__class__
+    for field_name in model:
+        if field_name not in model_class._fields:
+            continue
+        field_instance = model_class._fields[field_name]
+        field_value = model[field_name]
         yield (field_name, field_instance, field_value)
 
 
-def apply_shape(model, instance_or_dict, field_converter, model_converter, gottago):
+def apply_shape(model, model_converter, role, gottago):
 
     model_dict = {}
 
     # Loop over each field and either evict it or convert it
-    for truple in _reduce_loop(model, instance_or_dict, field_converter):
+    for truple in _reduce_loop(model):
         # Break 3-tuple out
-        (field_name, field_instance, field_value) = truple
+        field_name, field_instance, field_value = truple
 
         # Check for alternate field name
         serialized_name = field_name
-        if field_instance.minimized_field_name:
-            serialized_name = field_instance.minimized_field_name
-        elif field_instance.print_name:
-            serialized_name = field_instance.print_name
+        if field_instance.serialized_name:
+            serialized_name = field_instance.serialized_name
+
+        print field_name, field_value
 
         # Evict field if it's gotta go
         if gottago(field_name, field_value):
+            print 1
             continue
 
         if field_value is None:
+            print 2
             model_dict[serialized_name] = None
             continue
 
         # Convert field as single model
-        if isinstance(field_value, BaseModel):
+        if isinstance(field_instance, ModelType):
+            print 3
             model_dict[serialized_name] = model_converter(field_value)
             continue
 
         # Convert field as list of models
-        if isinstance(field_value, list):
-            if field_value and isinstance(field_value[0], BaseModel):
+        if isinstance(field_instance, ListType):
+            print 4
+            if field_value and isinstance(field_value[0], Model):
                 model_dict[serialized_name] = [model_converter(vi)
                                                for vi in field_value]
                 continue
 
         # Convert field as single field
-        model_dict[serialized_name] = field_converter(field_instance, field_value)
+        model_dict[serialized_name] = field_instance.to_primitive(field_value)
 
     return model_dict
 
 
-###
-### Field Access Functions
-###
+#
+# Field Access Functions
+#
 
 def wholelist(*field_list):
     """Returns a function that evicts nothing. Exists mainly to be an explicit
@@ -81,7 +82,7 @@ def whitelist(*field_list):
 
     A whitelist is a list of fields explicitly named that are allowed.
     """
-    ### Default to rejecting the value
+    # Default to rejecting the value
     _whitelist = lambda k, v: True
 
     if field_list is not None and len(field_list) > 0:
@@ -97,7 +98,7 @@ def blacklist(*field_list):
 
     A blacklist is a list of fields explicitly named that are not allowed.
     """
-    ### Default to not rejecting the value
+    # Default to not rejecting the value
     _blacklist = lambda k, v: False
 
     if field_list is not None and len(field_list) > 0:
@@ -107,29 +108,15 @@ def blacklist(*field_list):
     return _blacklist
 
 
-###
-### Data Serialization
-###
+def serialize(instance, role, **kw):
+    model = instance.__class__
+    model_converter = lambda m: serialize(m, role)
 
-
-def to_dict(model, gottago=wholelist(), encode=True, sort_keys=False, **kw):
-    field_converter = lambda f, v: f.to_dict(v)
-    model_converter = lambda m: to_dict(m)
-
-    data = apply_shape(model.__class__, model, field_converter,
-                       model_converter, gottago, **kw)
-
-    return data
-
-
-def to_safe_dict(model, instance_or_dict, role, **kw):
-    field_converter = lambda f, v: f.to_dict(v)
-    model_converter = lambda m: to_safe_dict(m.__class__, m, role)
-
-    gottago = lambda k, v: True
+    gottago = lambda k, v: False
     if role in model._options.roles:
         gottago = model._options.roles[role]
+    elif role:
+        raise ValueError(u'%s Model has no role "%s"' % (
+            instance.__class__.__name__, role))
 
-    return apply_shape(model, instance_or_dict, field_converter, model_converter,
-                       gottago, **kw)
-
+    return apply_shape(instance, model_converter, role, gottago, **kw)

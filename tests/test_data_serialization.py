@@ -1,13 +1,11 @@
-
+import json
 import unittest
-import datetime
-import copy
 
-from schematics import Model
-from schematics.serialize import to_dict, to_safe_dict
+from . import fixtures
 
-import fixtures
-from fixtures import Model
+
+def pj(j):
+    return json.dumps(j, indent=2, sort_keys=True)
 
 
 class ModelSerializer:
@@ -19,27 +17,33 @@ class ModelSerializer:
 
     def setUp(self):
         self.instance = self.klass(**self.description)
-        self.as_dict = to_dict(self.instance)
+        self.as_dict = self.instance.serialize()
         self.dict_owner_safe = self.owner_safe
         self.dict_public_safe = self.public_safe
 
-    def test_instance_to_dict(self):
+    def test_instance_to_primitive(self):
         self.assertEquals(self.as_dict, self.description)
 
     def test_dict_owner_safe(self):
-        dict_owner_safe = to_safe_dict(self.klass, self.instance, 'owner')
+        dict_owner_safe = self.instance.serialize(role="owner")
         self.assertEqual(self.dict_owner_safe, dict_owner_safe)
 
     def test_dict_public_safe(self):
-        dict_public_safe = to_safe_dict(self.klass, self.instance, 'public')
+        dict_public_safe = self.instance.serialize(role="public")
         self.assertEqual(self.dict_public_safe, dict_public_safe)
 
 
-class TestSimpleModel(ModelSerializer, unittest.TestCase):
+class OnwerOnlyModelSerializer(ModelSerializer):
+
+    def test_dict_public_safe(self):
+        self.assertRaises(Exception, lambda: self.instance.serialize(role="public"))
+
+
+class TestSimpleModel(OnwerOnlyModelSerializer, unittest.TestCase):
     klass = fixtures.SimpleModel
 
     description = {
-        'title' : u'Misc Doc',
+        'title': u'Misc Doc',
         'owner': None,
     }
 
@@ -74,7 +78,7 @@ class TestSubModel(ModelSerializer, unittest.TestCase):
     }
 
 
-class TestThingModel(ModelSerializer, unittest.TestCase):
+class TestThingModel(OnwerOnlyModelSerializer, unittest.TestCase):
     klass = fixtures.ThingModel
 
     description = {

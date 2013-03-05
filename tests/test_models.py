@@ -1,15 +1,12 @@
-#!/usr/bin/env python
-
 import copy
 import unittest
+import datetime
 
-from schematics import Model
-from schematics.exceptions import InvalidModel
+from schematics.models import Model
 from schematics.serialize import whitelist
-from schematics.models import (
-    ModelOptions, _parse_options_config, _gen_options, _extract_fields)
+from schematics.models import ModelOptions
 
-from schematics.types.base import IntType, StringType
+from schematics.types.base import StringType, IntType, DateTimeType
 from schematics.types.compound import ListType, ModelType
 
 
@@ -26,21 +23,18 @@ class TestOptions(unittest.TestCase):
     def test_good_options_args(self):
         args = {
             'klass': None,
-            'db_namespace': None,
             'roles': None,
         }
 
         mo = self._class(**args)
         self.assertNotEqual(mo, None)
 
-        ### Test that a value for roles was generated
-        self.assertNotEqual(mo.roles, None)
-        self.assertEqual(mo.roles, {})
+        # Test that a value for roles was generated
+        self.assertEqual(mo.roles, None)
 
     def test_bad_options_args(self):
         args = {
             'klass': None,
-            'db_namespace': None,
             'roles': None,
             'badkw': None,
         }
@@ -52,81 +46,18 @@ class TestOptions(unittest.TestCase):
         mo = self._class(None, **args)
         self.assertNotEqual(mo, None)
 
-    def test_options_parsing(self):
-        mo = ModelOptions(None)
-        mo.db_namespace = 'foo'
-        mo.roles = {}
-
-        class Options:
-            db_namespace = 'foo'
-            roles = {}
-
-        attrs = { 'Options': Options }
-        oc = _parse_options_config(None, attrs, ModelOptions)
-
-        self.assertEqual(oc.__class__, mo.__class__)
-        self.assertEqual(oc.db_namespace, mo.db_namespace)
-        self.assertEqual(oc.roles, mo.roles)
-
     def test_options_parsing_from_model(self):
         class Foo(Model):
             class Options:
-                db_namespace = 'foo'
+                namespace = 'foo'
                 roles = {}
-
-        class Options:
-            db_namespace = 'foo'
-            roles = {}
-
-        attrs = { 'Options': Options }
-        oc = _parse_options_config(Foo, attrs, ModelOptions)
 
         f = Foo()
         fo = f._options
 
-        self.assertEqual(oc.__class__, fo.__class__)
-        self.assertEqual(oc.db_namespace, fo.db_namespace)
-        self.assertEqual(oc.roles, fo.roles)
-
-
-class TestMetaclass(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
-    def test_extract_class_fields(self):
-        bases = [Model]
-        attrs = {'i': IntType()}
-
-        fields = _extract_fields(bases, attrs)
-        self.assertEqual(attrs, fields)
-
-    def test_bad_extract_class_fields(self):
-        bases = []
-        attrs = {'i': 5}
-        expected = {'i': IntType()}
-
-        fields = _extract_fields(bases, attrs)
-        self.assertNotEqual(expected, fields)
-
-    def test_extract_subclass_fields(self):
-        class Foo(Model):
-            x = IntType()
-            y = IntType()
-            z = 5  # should be ignored
-
-        bases = [Foo]
-        attrs = {'i': IntType()}
-
-        fields = _extract_fields(bases, attrs)
-        expected = {
-            'i': attrs['i'],
-            'x': Foo.x,
-            'y': Foo.y,
-        }
-        self.assertEqual(fields, expected)
+        self.assertEqual(fo.__class__, ModelOptions)
+        self.assertEqual(fo.namespace, 'foo')
+        self.assertEqual(fo.roles, {})
 
 
 class TestModels(unittest.TestCase):
@@ -153,13 +84,13 @@ class TestModels(unittest.TestCase):
         class TestModel(Model):
             some_int = it
 
-        self.assertEqual({'some_int': it}, TestModel._fields)
+        self.assertEqual({'some_int': it}, TestModel.fields)
 
     def test_model_data(self):
         class TestModel(Model):
             some_int = IntType()
 
-        self.assertRaises(AttributeError, lambda: TestModel._data)
+        self.assertRaises(AttributeError, lambda: TestModel.data)
 
     def test_instance_data(self):
         class TestModel(Model):
@@ -168,7 +99,7 @@ class TestModels(unittest.TestCase):
         tm = TestModel()
         tm.some_int = 5
 
-        self.assertEqual({'some_int': 5}, tm._data)
+        self.assertEqual({'some_int': 5}, tm.data)
 
     def test_dict_interface(self):
         class TestModel(Model):
@@ -187,27 +118,12 @@ class TestModelInterface(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_validate_input(self):
-        class TestModel(Model):
-            name = StringType(required=True)
-        self.assertRaises(InvalidModel, lambda: TestModel.validate({}))
-        model = TestModel.validate({'name': 'a'})
-        self.assertEqual(model.name, 'a')
-
-    def test_validate_strict_input(self):
-        class TestModel(Model):
-            name = StringType(required=True)
-        input = {'name': 'a', 'invader': 'from mars'}
-        self.assertRaises(InvalidModel,
-            lambda: TestModel.validate(input, strict=True))
-        model = TestModel.validate(input, strict=False)
-        self.assertEqual(model.name, 'a')
-
     def test_validate_input_partial(self):
         class TestModel(Model):
             name = StringType(required=True)
             bio = StringType()
-        model = TestModel.validate({'bio': 'Genius'}, partial=True)
+        model = TestModel()
+        self.assertEqual(model.validate({'bio': 'Genius'}, partial=True), True)
         self.assertEqual(model.bio, 'Genius')
 
     def test_model_inheritance(self):
@@ -215,9 +131,11 @@ class TestModelInterface(unittest.TestCase):
             name = StringType(required=True)
         class TestModel2(TestModel):
             bio = StringType()
-        input = {'bio': 'Genius', 'name': 'Joey'}
-        model = TestModel2.validate(input)
-        self.assertEqual(model.to_dict(), input)
+        self.assertEqual(hasattr(TestModel2(), '_options'), True)
+        input = {'bio': u'Genius', 'name': u'Joey'}
+        model = TestModel2()
+        self.assertEqual(model.validate(input), True)
+        self.assertEqual(model.serialize(), input)
 
     def test_role_propagate(self):
         class Address(Model):
@@ -230,5 +148,92 @@ class TestModelInterface(unittest.TestCase):
             addresses = ListType(ModelType(Address))
             class Options:
                 roles = {'public': whitelist('name')}
-        model = User.validate({'name': 'a', 'addresses': [{'city': 'gotham'}]})
+        model = User()
+        self.assertEqual(model.validate({'name': 'a', 'addresses': [{'city': 'gotham'}]}), True)
         self.assertEqual(model.addresses[0].city, 'gotham')
+
+
+class TestCompoundTypes(unittest.TestCase):
+    """
+    """
+
+    def test_init(self):
+        class User(Model):
+            pass
+        User()
+
+    def test_field_default(self):
+        class User(Model):
+            name = StringType(default=u'Doggy')
+        u = User()
+        self.assertEqual(User.name.__class__, StringType)
+        self.assertEqual(u.name, u'Doggy')
+
+    def test_model_type(self):
+        class User(Model):
+            name = StringType()
+        class Card(Model):
+            user = ModelType(User)
+        c = Card(user={'name': u'Doggy'})
+        self.assertIsInstance(c.user, User)
+
+    def test_as_field_validate(self):
+        class User(Model):
+            name = StringType()
+        class Card(Model):
+            user = ModelType(User)
+        c = Card()
+        c.validate(dict(user={'name': u'Doggy'}))
+        self.assertEqual(c.user.name, u'Doggy')
+        self.assertEqual(c.validate(dict(user=[1])), False)
+        self.assertEqual(c.user.name, u'Doggy', u'Validation should not remove or modify existing data')
+
+        c = Card()
+        self.assertEqual(c.validate(dict(user=[1])), False)
+        self.assertRaises(AttributeError, lambda: c.user.name)
+
+    def test_model_field_validate_structure(self):
+        class User(Model):
+            name = StringType()
+        class Card(Model):
+            user = ModelType(User)
+        c = Card()
+        c.validate({'user': [1, 2]})
+        self.assertIn('user', c.errors)
+
+    def test_list_field(self):
+        class User(Model):
+            ids = ListType(StringType)
+        c = User()
+        self.assertEqual(c.validate({'ids': []}), True)
+
+    def test_list_field_required(self):
+        class User(Model):
+            ids = ListType(StringType, required=True)
+        c = User()
+        self.assertEqual(c.validate({'ids': []}), True)
+        self.assertEqual(c.validate({'ids': [None]}), False)
+        self.assertIsInstance(c.errors, dict)
+
+    def test_list_field_convert(self):
+        class User(Model):
+            ids = ListType(IntType)
+            date = DateTimeType()
+        c = User()
+        self.assertEqual(c.validate({'ids': ["1", "2"]}), True)
+        self.assertEqual(c.ids, [1, 2])
+        now = datetime.datetime.now()
+        self.assertEqual(c.validate({'date': now.isoformat()}), True)
+        self.assertEqual(c.date, now)
+
+    def test_list_model_field(self):
+        class User(Model):
+            name = StringType()
+        class Card(Model):
+            users = ListType(ModelType(User), min_size=1)
+        c = Card()
+        valid = c.validate({'users': {'name': u'Doggy'}})
+        self.assertEqual(valid, True)
+        valid = c.validate({'users': None})
+        self.assertEqual(c.errors['users'], [u'Please provide at least 1 item.'])
+        self.assertEqual(c.users[0].name, u'Doggy')
