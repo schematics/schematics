@@ -180,3 +180,7 @@ class TestAltFieldNames(unittest.TestCase):
 
     def test_serialize_print_names(self):
         self.assertEqual(self.instance.title, 'whatever')
+
+
+
+

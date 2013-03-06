@@ -8,6 +8,7 @@ from schematics.models import ModelOptions
 
 from schematics.types.base import StringType, IntType, DateTimeType
 from schematics.types.compound import ListType, ModelType
+from schematics.exceptions import ValidationError
 
 
 class TestOptions(unittest.TestCase):
@@ -126,16 +127,32 @@ class TestModelInterface(unittest.TestCase):
         self.assertEqual(model.validate({'bio': 'Genius'}, partial=True), True)
         self.assertEqual(model.bio, 'Genius')
 
-    def test_model_inheritance(self):
-        class TestModel(Model):
+    def test_raises_validation_error_on_init(self):
+        class User(Model):
             name = StringType(required=True)
-        class TestModel2(TestModel):
+            bio = StringType(required=True)
+
+        with self.assertRaises(ValidationError):
+            User(name="Joe")
+
+    def test_model_inheritance(self):
+        class Parent(Model):
+            name = StringType(required=True)
+
+        class Child(Parent):
             bio = StringType()
-        self.assertEqual(hasattr(TestModel2(), '_options'), True)
-        input = {'bio': u'Genius', 'name': u'Joey'}
-        model = TestModel2()
-        self.assertEqual(model.validate(input), True)
-        self.assertEqual(model.serialize(), input)
+
+        self.assertEqual(hasattr(Child(), '_options'), True)
+
+        input_data = {'bio': u'Genius', 'name': u'Joey'}
+
+        model = Child(name="Joey")
+        self.assertEqual(model.validate(input_data), True)
+        self.assertEqual(model.serialize(), input_data)
+
+        child = Child(name="Baby Jane", bio="Always behaves")
+        self.assertEqual(child.name, "Baby Jane")
+        self.assertEqual(child.bio, "Always behaves")
 
     def test_role_propagate(self):
         class Address(Model):

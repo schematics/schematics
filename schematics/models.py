@@ -105,7 +105,7 @@ class Model(object):
         self.initial = data
         self._primitive_fields_names = dict(self._yield_primitive_field_names())
         self.reset()
-        self.validate(data)
+        self.validate(data, raises=True)
 
     def _yield_primitive_field_names(self):
         for name in self._fields:
