@@ -246,6 +246,9 @@ def model_form(model, base_class=Form, only=None, exclude=None, hidden=None, fie
     """
 #   if field_args is None and m:
 #      field_args = model._data
+    import inspect
+    if inspect.isclass(model):
+       model = model()
     field_dict = model_fields(model, only, exclude, hidden, field_args, converter)
     field_dict['model_class'] = model
     return type(model.__class__.__name__ + 'Form', (base_class,), field_dict)
