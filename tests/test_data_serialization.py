@@ -175,8 +175,9 @@ class TestAltFieldNames(unittest.TestCase):
     klass = fixtures.AltNames
 
     def setUp(self):
-        description = {'something_else': 'whatever'}
-        self.instance = self.klass(**description)
+        self.description = {'something_else': 'whatever'}
+        self.instance = self.klass(**self.description)
 
     def test_serialize_print_names(self):
         self.assertEqual(self.instance.title, 'whatever')
+        self.assertEqual(self.instance.serialize(), self.description)

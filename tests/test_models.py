@@ -131,9 +131,11 @@ class TestModelInterface(unittest.TestCase):
             name = StringType(required=True)
         class TestModel2(TestModel):
             bio = StringType()
-        self.assertEqual(hasattr(TestModel2(), '_options'), True)
-        input = {'bio': u'Genius', 'name': u'Joey'}
         model = TestModel2()
+
+        self.assertEqual(hasattr(model, '_options'), True)
+
+        input = {'bio': u'Genius', 'name': u'Joey'}
         self.assertEqual(model.validate(input), True)
         self.assertEqual(model.serialize(), input)
 

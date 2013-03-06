@@ -149,14 +149,14 @@ class Model(object):
         for field_name, field in self._fields.iteritems():
             # Rely on parameter for whether or not we should check value
             serialized_field_name = self._primitive_fields_names[field_name]
-            if needs_check(field_name, field):
+            if needs_check(serialized_field_name, field):
                 # What does `Field.required` mean? Does it merely
                 # require presence or the value not be None? Here it means the
                 # value must not be None. However! We require the presence even
                 # though required is set to None if this is not a partial update.
                 # For this to validate the user should pick a partial validate.
 
-                field_value = input.setdefault(serialized_field_name)
+                field_value = input.get(serialized_field_name)
 
                 if field.required and field_value is None:
                     errors[field_name] = [u"This field is required"]
