@@ -104,7 +104,7 @@ class ModelConverter():
     def conv_Email(self, model, field, kwargs):
         kwargs['validators'].append(validators.Email())
         self._string_common(model, field, kwargs)
-        return NoneStringField(**kwargs)
+        return f.StringField(**kwargs)
 
     @converts('IntType')
     def conv_Int(self, model, field, kwargs):
