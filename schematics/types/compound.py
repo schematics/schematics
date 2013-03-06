@@ -71,7 +71,8 @@ class ModelType(MultiType):
         result = {}
         for name, field in self.fields.iteritems():
             try:
-                result[name] = field(value.get(name))
+                field.validate(value.get(name))
+                result[name] = field.clean
             except ValidationError, e:
                 errors[name] = e
         if errors:
@@ -81,7 +82,7 @@ class ModelType(MultiType):
     def to_primitive(self, value):
         result = {}
         for key, field in self.fields.iteritems():
-            result[key] = field.to_primitive(value.get(key))
+            result[key] = field.to_primitive(value.clean[key])
         return result
 
 
@@ -128,11 +129,10 @@ class ListType(MultiType):
         # Aggregate errors
         for idx, item in enumerate(value, 1):
             try:
-                item = self.field(item)
+                self.field.validate(item)
+                result.append(self.field)
             except ValidationError, e:
                 errors[idx] = e
-            else:
-                result.append(item)
         if errors:
             raise ValidationError(errors)
         return result

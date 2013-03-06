@@ -211,9 +211,11 @@ class TestCompoundTypes(unittest.TestCase):
 
     def test_list_field_required(self):
         class User(Model):
-            ids = ListType(StringType, required=True)
+            ids = ListType(StringType(required=True))
         c = User()
         self.assertEqual(c.validate({'ids': []}), True)
+        self.assertEqual(c.validate({'ids': [1]}), False)
+        print c.validate({'ids': [None]})
         self.assertEqual(c.validate({'ids': [None]}), False)
         self.assertIsInstance(c.errors, dict)
 
