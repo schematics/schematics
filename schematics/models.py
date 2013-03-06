@@ -33,7 +33,9 @@ class ModelMeta(type):
         for key, value in attrs.iteritems():
             if isinstance(value, BaseType):
                 fields[key] = value
-                attrs[key] = FieldDescriptor(key)
+
+        for key, field in fields.iteritems():
+            attrs[key] = FieldDescriptor(key)
 
         # Create a valid ModelOptions instance in `_options`
         _options_class = getattr(attrs, '__classoptions__', ModelOptions)
@@ -183,7 +185,10 @@ class Model(object):
         self._data.update(**data)
 
         for field_name, field in self._fields.iteritems():
-            setattr(self, field_name, data.get(field_name, field.default))
+            default = field.default
+            if callable(field.default):
+                default = field.default()
+            setattr(self, field_name, data.get(field_name, default))
 
         return True
 

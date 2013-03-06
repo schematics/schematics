@@ -121,32 +121,30 @@ class UUIDType(BaseType):
 
 
 class StringType(BaseType):
-    """A unicode string field.
+    """A unicode string field. Default minimum length is one. If you want to
+    accept empty strings, init with `min_length` 0.
+
     """
 
-    def __init__(self, regex=None, max_length=None, min_length=None, **kwargs):
+    def __init__(self, regex=None, max_length=None, min_length=1, **kwargs):
         self.regex = re.compile(regex) if regex else None
+        super(StringType, self).__init__(**kwargs)
         self.max_length = max_length
         self.min_length = min_length
-        super(StringType, self).__init__(**kwargs)
 
     def convert(self, value):
         value = unicode(value)
 
         if self.max_length is not None and len(value) > self.max_length:
-            raise ValidationError, u'String value is too long'
+            raise ValidationError(u'String value is too long')
 
         if self.min_length is not None and len(value) < self.min_length:
-            raise ValidationError, u'String value is too short'
+            raise ValidationError(u'String value is too short')
 
         if self.regex is not None and self.regex.match(value) is None:
-            raise ValidationError, u'String value did not match validation regex'
+            raise ValidationError(u'String value did not match validation regex')
 
         return value
-
-
-    def lookup_member(self, member_name):
-        return None
 
 
 class EmailType(StringType):
@@ -166,7 +164,7 @@ class EmailType(StringType):
 
     def convert(self, value):
         if not EmailType.EMAIL_REGEX.match(value):
-            raise ValidationError, 'Invalid email address'
+            raise ValidationError('Invalid email address')
         return value
 
 
@@ -183,7 +181,7 @@ class NumberType(BaseType):
         super(NumberType, self).__init__(**kwargs)
 
     def __set__(self, instance, value):
-        if value != None and not isinstance(value, self.number_class):
+        if value is not None and not isinstance(value, self.number_class):
             if self.number_class:
                 value = self.number_class(value)
         instance._data[self.field_name] = value
@@ -192,15 +190,15 @@ class NumberType(BaseType):
         try:
             value = self.number_class(value)
         except:
-            raise ValidationError, 'Not %s' % self.number_type
+            raise ValidationError('Not %s' % self.number_type)
 
         if self.min_value is not None and value < self.min_value:
-            raise ValidationError, '%s value below min_value: %s' % (self.number_type,
-                                                          self.min_value)
+            raise ValidationError('%s value below min_value: %s' % (
+                self.number_type, self.min_value))
 
         if self.max_value is not None and value > self.max_value:
-            raise ValidationError, '%s value above max_value: %s' % (self.number_type,
-                                                          self.max_value)
+            raise ValidationError('%s value above max_value: %s' % (
+                self.number_type, self.max_value))
 
         return value
 
@@ -211,8 +209,8 @@ class IntType(NumberType):
 
     def __init__(self, *args, **kwargs):
         super(IntType, self).__init__(number_class=int,
-                                       number_type='Int',
-                                       *args, **kwargs)
+                                      number_type='Int',
+                                      *args, **kwargs)
 
 
 class LongType(NumberType):
@@ -220,8 +218,8 @@ class LongType(NumberType):
     """
     def __init__(self, *args, **kwargs):
         super(LongType, self).__init__(number_class=long,
-                                        number_type='Long',
-                                        *args, **kwargs)
+                                       number_type='Long',
+                                       *args, **kwargs)
 
 
 class FloatType(NumberType):
@@ -229,8 +227,8 @@ class FloatType(NumberType):
     """
     def __init__(self, *args, **kwargs):
         super(FloatType, self).__init__(number_class=float,
-                                         number_type='Float',
-                                         *args, **kwargs)
+                                        number_type='Float',
+                                        *args, **kwargs)
 
 
 class DecimalType(BaseType):
@@ -251,13 +249,13 @@ class DecimalType(BaseType):
             try:
                 value = decimal.Decimal(value)
             except Exception:
-                raise ValidationError, 'Could not convert to decimal'
+                raise ValidationError('Could not convert to decimal')
 
         if self.min_value is not None and value < self.min_value:
-            raise ValidationError, 'Decimal value below min_value: %s' % self.min_value
+            raise ValidationError('Decimal value below min_value: %s' % self.min_value)
 
         if self.max_value is not None and value > self.max_value:
-            raise ValidationError, 'Decimal value above max_value: %s' % self.max_value
+            raise ValidationError('Decimal value above max_value: %s' % self.max_value)
 
         return value
 
@@ -269,11 +267,11 @@ class MD5Type(BaseType):
 
     def convert(self, value):
         if len(value) != MD5Type.hash_length:
-            raise ValidationError, 'MD5 value is wrong length'
+            raise ValidationError('MD5 value is wrong length')
         try:
             value = int(value, 16)
         except:
-            raise ValidationError, 'MD5 value is not hex'
+            raise ValidationError('MD5 value is not hex')
 
         return value
 
@@ -285,11 +283,11 @@ class SHA1Type(BaseType):
 
     def convert(self, value):
         if len(value) != SHA1Type.hash_length:
-            raise ValidationError, 'SHA1 value is wrong length'
+            raise ValidationError('SHA1 value is wrong length')
         try:
             value = int(value, 16)
         except:
-            raise ValidationError, 'SHA1 value is not hex'
+            raise ValidationError('SHA1 value is not hex')
 
         return value
 
@@ -308,9 +306,8 @@ class BooleanType(BaseType):
             elif value in BooleanType.FALSE:
                 value = False
             else:
-                raise ValueError, u'Invalid boolean value'
+                raise ValueError(u'Invalid boolean value')
         return value
-
 
 
 class DateTimeType(BaseType):
@@ -338,7 +335,7 @@ class DateTimeType(BaseType):
                 return datetime.datetime.strptime(value, format)
             except (ValueError, TypeError):
                 continue
-        raise ValidationError, u'Could not parse. Should be ISO8601.'
+        raise ValidationError(u'Could not parse. Should be ISO8601.')
 
     def to_primitive(self, value):
         if callable(self.format):
@@ -355,7 +352,7 @@ class DictType(BaseType):
         self.basecls = basecls or BaseType
 
         if not issubclass(self.basecls, BaseType):
-            raise ValidationError, 'basecls is not subclass of BaseType'
+            raise ValidationError('basecls is not subclass of BaseType')
 
         kwargs.setdefault('default', lambda: {})
         super(DictType, self).__init__(*args, **kwargs)
@@ -364,7 +361,7 @@ class DictType(BaseType):
         """Make sure that a list of valid fields is being used.
         """
         if not isinstance(value, dict):
-            raise ValidationError, 'Only dictionaries may be used in a DictType'
+            raise ValidationError('Only dictionaries may be used in a DictType')
 
         return value
 
@@ -380,16 +377,16 @@ class GeoPointType(BaseType):
         """Make sure that a geo-value is of type (x, y)
         """
         if not len(value) == 2:
-            raise ValidationError, 'Value must be a two-dimensional point'
+            raise ValidationError('Value must be a two-dimensional point')
         if isinstance(value, dict):
             for v in value.values():
                 if not isinstance(v, (float, int)):
-                    raise ValidationError, 'Both values in point must be float or int'
+                    raise ValidationError('Both values in point must be float or int')
         elif isinstance(value, (list, tuple)):
             if (not isinstance(value[0], (float, int)) and
                 not isinstance(value[1], (float, int))):
-                raise ValidationError, 'Both values in point must be float or int'
+                raise ValidationError('Both values in point must be float or int')
         else:
-            raise ValidationError, 'GeoPointType can only accept tuples, lists, or dicts'
+            raise ValidationError('GeoPointType can only accept tuples, lists, or dicts')
 
         return value
