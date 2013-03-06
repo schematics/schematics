@@ -188,7 +188,8 @@ class Model(object):
             default = field.default
             if callable(field.default):
                 default = field.default()
-            setattr(self, field_name, data.get(field_name, default))
+            data.setdefault(field_name, default)
+            setattr(self, field_name, data.get(field_name))
 
         return True
 
@@ -223,6 +224,11 @@ class Model(object):
                     return False
             return True
         return False
+
+    def get(self, key, default=None):
+        if key in self:
+            return self[key]
+        return default
 
     # Representation Descriptors
 
