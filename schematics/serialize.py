@@ -31,27 +31,21 @@ def apply_shape(model, model_converter, role, gottago):
         if field_instance.serialized_name:
             serialized_name = field_instance.serialized_name
 
-        print field_name, field_value
-
         # Evict field if it's gotta go
         if gottago(field_name, field_value):
-            print 1
             continue
 
         if field_value is None:
-            print 2
             model_dict[serialized_name] = None
             continue
 
         # Convert field as single model
         if isinstance(field_instance, ModelType):
-            print 3
             model_dict[serialized_name] = model_converter(field_value)
             continue
 
         # Convert field as list of models
         if isinstance(field_instance, ListType):
-            print 4
             if field_value and isinstance(field_value[0], Model):
                 model_dict[serialized_name] = [model_converter(vi)
                                                for vi in field_value]

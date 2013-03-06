@@ -23,8 +23,7 @@ class BaseType(object):
         self.description = description
 
     def __call__(self, value):
-        self.validate(value)
-        return self
+        return self.convert(value)  # TODO also run validation?
 
     def to_primitive(self, value):
         """Convert a Structures type into a value safe for JSON encoding

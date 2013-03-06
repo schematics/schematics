@@ -99,7 +99,7 @@ class TestModels(unittest.TestCase):
         tm = TestModel()
         tm.some_int = 5
 
-        self.assertEqual({'some_int': 5}, tm.data)
+        self.assertEqual({'some_int': 5}, tm._data)
 
     def test_dict_interface(self):
         class TestModel(Model):

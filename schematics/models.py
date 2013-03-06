@@ -2,6 +2,7 @@ import inspect
 
 from .types import BaseType
 from .types.compound import MultiType
+from .exceptions import ValidationError
 
 
 class ModelOptions(object):
@@ -65,30 +66,32 @@ class FieldDescriptor(object):
         try:
             if obj is None:
                 return type._fields[self.name]
-            return obj.data[self.name]
+            return obj._data[self.name]
         except KeyError:
             raise AttributeError(self.name)
 
-    def init_model(self, obj, value):
+    def init_model(self, field, value):
         """If raw values are assigned to a ModelType assign a model instance."""
         if isinstance(value, dict):  # But not an instance, make it one
-            value = obj.fields[self.name].model_class(**value)
+            model = field.model_class(**value)
+            return model
         return value
 
     def __set__(self, obj, value):
-        if isinstance(obj.fields[self.name], MultiType):
-            # print "OBJ", obj.fields[self.name].__class__.__name__, value
+        field = obj._fields[self.name]
+        if isinstance(field, MultiType):
             if isinstance(value, list):
-                value = [self.init_model(obj, item) for item in value]
+                value = [self.init_model(field, item) for item in value]
             else:
-                value = self.init_model(obj, value)
-        obj.data[self.name] = value
+                value = self.init_model(field, value)
+            # Also init_model for things underneath
+        obj._data[self.name] = value
 
     def __delete__(self, obj):
-        if self.name not in obj.fields:
+        if self.name not in obj._fields:
             raise AttributeError('%r has no attribute %r' %
                                  (type(obj).__name__, self.name))
-        del obj.fields[self.name]
+        del obj._fields[self.name]
 
 
 class Model(object):
@@ -96,32 +99,19 @@ class Model(object):
     __metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
-    def __init__(self, **values):
-        """Initiating a model with data is assumed to be safe. To trigger
-        validation for unsafe input, use the `validate` classmethod.
-
-        We expand data for fields that implement
-
-        """
-
-        self.initial = values
+    def __init__(self, **data):
+        self.initial = data
+        self._primitive_fields_names = dict(self._yield_primitive_field_names())
         self.reset()
+        self.validate(data)
 
-        self._field_names = dict(self._primitive_field_names())
-
-        for name, field in self.fields.iteritems():
-            serialized_name = self._field_names[name]
-            if hasattr(field, "default"):
-                value = values.setdefault(serialized_name, field.default)
-            setattr(self, name, value)
-
-    def _primitive_field_names(self):
-        for name in self.fields:
-            yield (name, self.fields[name].serialized_name or name)
+    def _yield_primitive_field_names(self):
+        for name in self._fields:
+            yield (name, self._fields[name].serialized_name or name)
 
     def reset(self):
-        self.data = self.initial.copy()
         self.errors = {}
+        self._data = {}
 
     def serialize(self, role=None):
         """Return data as it would be validated. No filtering of output unless
@@ -130,16 +120,7 @@ class Model(object):
         from .serialize import serialize
         return serialize(self, role)
 
-    def _autodiscover_data(self):
-        """Called by `validate` if no data is provided.  Finds the
-        matching data from the request object by default depending
-        on the default submit method of the form.
-        """
-        raise NotImplementedError(
-            'No data passed to the validation and data auto discovery not '
-            'implemented.  Override the `_autodiscover_data` method.')
-
-    def validate(self, data=None, partial=False, strict=False):
+    def validate(self, input, partial=False, strict=False, raises=False):
         """Validates incoming untrusted data. If `partial` is set it will allow
         partial data to validate, useful for PATCH requests. Returns a clean
         instance.
@@ -152,38 +133,28 @@ class Model(object):
         mapped to an entry in `items`.  This entry is then validated against the
         field's validation function.
 
-        A (data, errors) tuple is returned::
-
-            >>> items, errors = _validate(MyModel, lambda: True, foreign_data)
-            >>> if not errors:
-            >>>     model = MyModel(**items)
-            >>> else:
-            >>>     abort(422, errors=errors)
-            >>>
-
         """
 
         errors = {}
-
-        if data is None:
-            data = self._autodiscover_data()
+        data = {}
 
         if partial:
-            needs_check = lambda k, v: k in data
+            needs_check = lambda k, v: k in input
         else:
-            needs_check = lambda k, v: v.required or k in data
+            needs_check = lambda k, v: v.required or k in input
 
         # Validate data based on cls's structure
         for field_name, field in self._fields.iteritems():
             # Rely on parameter for whether or not we should check value
+            serialized_field_name = self._primitive_fields_names[field_name]
             if needs_check(field_name, field):
-                # Here we must ask what `Field.required` means. Does it merely
+                # What does `Field.required` mean? Does it merely
                 # require presence or the value not be None? Here it means the
                 # value must not be None. However! We require the presence even
-                # though required is set to None. For this to validate the user
-                # should pick a partial validate.
+                # though required is set to None if this is not a partial update.
+                # For this to validate the user should pick a partial validate.
 
-                field_value = data.setdefault(field_name)
+                field_value = input.setdefault(serialized_field_name)
 
                 if field.required and field_value is None:
                     errors[field_name] = [u"This field is required"]
@@ -204,21 +175,24 @@ class Model(object):
 
         if errors:
             self.errors = errors
+            if raises:
+                raise ValidationError(errors)
             return False
 
-        self.data.update(**data)
+        # Set internal data and touch the TypeDescriptors by setattr
+        self._data.update(**data)
+
+        for field_name, field in self._fields.iteritems():
+            setattr(self, field_name, data.get(field_name, field.default))
+
         return True
 
     def __iter__(self):
         return iter(self._fields)
 
-    @property
-    def fields(self):
-        return self._fields
-
     def __getitem__(self, name):
         try:
-            if name in self.data:
+            if name in self._data:
                 return getattr(self, name)
         except AttributeError:
             pass
@@ -226,19 +200,19 @@ class Model(object):
 
     def __setitem__(self, name, value):
         # Ensure that the field exists before settings its value
-        if name not in self.data:
+        if name not in self._data:
             raise KeyError(name)
         return setattr(self, name, value)
 
     def __contains__(self, name):
-        return name in self.data
+        return name in self._data
 
     def __len__(self):
-        return len(self.data)
+        return len(self._data)
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            keys = self.fields
+            keys = self._fields
             for key in keys:
                 if self[key] != other[key]:
                     return False

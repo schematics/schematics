@@ -23,10 +23,8 @@ class TestSetGetSingleScalarData(unittest.TestCase):
         self.testmodel = TestModel()
 
     def test_good_value_for_python(self):
-        self.listtype([2])
-        self.assertEqual(self.listtype.clean, [2])
-        self.listtype(["2"])
-        self.assertEqual(self.listtype.clean, [2])
+        self.assertEqual(self.listtype([2]), [2])
+        self.assertEqual(self.listtype(["2"]), [2])
 
     def test_single_bad_value_for_python(self):
         self.testmodel.the_list = 2

@@ -23,12 +23,23 @@ Python Data Structures for Humans™.
 8. Removed the demos. If this goes well I will write up proper documentation
    with examples.
 9. Renamed to_json to to_dict and removed all mention of json.
+10. Redid the declarative stuff and field getters and setters. Inspired by
+   fungiform by @mitsuhiko.
+11. Redid the compound types, not sure why, but that’s what happens when you
+   start refactoring and don’t know where to stop.
+
+Finally settled on terminology for receiving and sending data. The term
+"primitive" is used to express a lowest common denominator datatype. Usually
+this would pretty much be a string, but JSON is a little more expressive so
+we allow a little more here. All fields impliment `to_primitive` and `convert`.
+Again, taking queues from fungiform.
 
 ## Models
 
-I added classmethod `validate` and `to_json` to the model. This does 90% of what
-you will need in one class (apart from the actual `schematics.types` classes).
-Here’s some code to show off what can be accomplished with little heavy lifting.
+I added classmethod `validate` and `serialize` to the model. This does 90% of
+what you will need in one class (apart from the actual `schematics.types`
+classes). Here’s some code to show off what can be accomplished with little
+heavy lifting.
 
 All the hard stuff is done in the original non-forked library. Credit where
 credit’s due.
@@ -67,44 +78,27 @@ class GameMaster(Player):
 
 ```
 
-Now that you have your form schemas defined you can start validating data and
-dumping it safely.
+
+You can instantiate models with the constructor
 
 ```python
->>> good_data = {
-...   'total_games': 2,
-...   'name': u'Jölli',
-...   'games': [{'opponent_id': 2}, {'opponent_id': 3}],
-...   'bio': u'Iron master',
-...   'rank': 6,
-... }
->>> player = Player.validate(good_data)
->>> print json.dumps(player.to_dict(), indent=2, sort_keys=True)
-{
-  "bio": "Iron master",
-  "games": [
-    {
-      "opponent_id": 2
-    },
-    {
-      "opponent_id": 3
-    }
-  ],
-  "name": "J\u00f6lli",
-  "total_games": 2,
-  "verified": null
-}
-
+>>> model = Model(**items)
 ```
 
-Constructing models with validate cleans the data before returning an instance.
-This is different from other forms libraries that allow you to construct dirty
-forms. The main reason to allow this, is to re-render forms in HTML with data
-and errors attached. When dealing with REST API’s this is no longer a
-requirement so I have opted for a more explicit `InvalidModel` exception.
-`InvalidModel.errors` is a dictionary that maps roughly 1:1 to the model fields.
+Setting raw data will automatically initiate needed models:
 
-`Model.to_dict`
+```python
+>>> from schematics.models import Model
+>>> from schematics.types import StringType
+>>> from schematics.types.compound import ModelType
+>>>
+>>> model.user = {'name': u'Doggy'}
+>>> type()
+
+No validation has occured. To send data back out, user serialize and the role
+system.
+
+`Model.serialize`
 
 + `role`: The filter to make output consumable. Default: None (returns all keys)
 

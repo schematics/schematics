@@ -141,6 +141,55 @@ class TestCustomValidators(unittest.TestCase):
         self.assertIn(self.future_error_msg, doc.errors['publish'])
 
 
+class TestErrors(unittest.TestCase):
+
+    def setUp(self):
+
+        class Person(Model):
+            name = StringType(required=True)
+
+        class Course(Model):
+            id = StringType(required=True, validators=[])
+            attending = ListType(ModelType(Person))
+            prerequisit = ModelType("self")
+
+        class School(Model):
+            courses = ListType(ModelType(Course))
+
+        self.Person = Person
+        self.Course = Course
+        self.School = School
+
+        self.school = School()
+
+    valid_data = {
+        'courses': [
+            {'id': 'ENG103', 'attending': [
+                {'name': u'Danny'},
+                {'name': u'Sandy'}],
+             'prerequisit': None},
+            {'id': 'ENG203', 'attending': [
+                {'name': u'Danny'},
+                {'name': u'Sandy'}],
+             'prerequisit': {'id': 'ENG103'}}
+        ]
+    }
+
+    def test_deep_errors(self):
+
+        valid = self.school.validate(self.valid_data)
+        self.assertTrue(valid)
+        course1, course2 = self.school.courses
+        self.assertIsNone(course1.prerequisit)
+        self.assertIsInstance(course2.prerequisit, self.Course)
+
+        invalid_data = self.school.serialize()
+        invalid_data['courses'][0]['attending'][0]['name'] = None
+        valid = self.school.validate(invalid_data)
+        print self.school.errors
+        self.assertFalse(valid)
+        print self.school.errors
+
 
 if __name__ == '__main__':
     unittest.main()

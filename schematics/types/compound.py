@@ -37,7 +37,7 @@ class MultiType(BaseType):
         for validator in validator_chain:
             try:
                 value = validator(value)
-            except ValueError, e:
+            except ValidationError, e:
                 aggregate_from_exception_errors(e)
                 if isinstance(e, StopValidation):
                     return False
@@ -60,18 +60,29 @@ class ModelType(MultiType):
             return self.owner_model
         return self._model_class
 
+    @property
+    def fields(self):
+        return self.model_class._fields
+
     def convert(self, value):
-        if hasattr(value, "to_dict"):
-            value = value.to_dict()
         if not isinstance(value, dict):
-            raise StopValidation(u'Please provide a mapping with keys: %s'
-                                    % u', '.join(self.model_class.fields))
-        return self.model_class(**value)
+            raise ValidationError(u'Please use a mapping for this field')
+        errors = {}
+        result = {}
+        for name, field in self.fields.iteritems():
+            try:
+                result[name] = field(value.get(name))
+            except ValidationError, e:
+                errors[name] = e
+        if errors:
+            raise ValidationError(errors)
+        return self.model_class(**result)
 
     def to_primitive(self, value):
-        if isinstance(value, dict):
-            return value
-        return value.data
+        result = {}
+        for key, field in self.fields.iteritems():
+            result[key] = field.to_primitive(value.get(key))
+        return result
 
 
 class ListType(MultiType):
@@ -117,9 +128,8 @@ class ListType(MultiType):
         # Aggregate errors
         for idx, item in enumerate(value, 1):
             try:
-                item = self.field.required_validation(item)
-                item = self.field.convert(item)
-            except ValueError, e:
+                item = self.field(item)
+            except ValidationError, e:
                 errors[idx] = e
             else:
                 result.append(item)
