@@ -37,60 +37,13 @@ Describe data schemas and data geometry with Python classes:
   class User(Model):
       name = StringType()
 
-Init `User` with untrusted data to trigger validation:
+Init `User` with some data:
 
 .. code-block:: python
 
   >>> user = User({'name': u'Clint Eastwood'})
   >>> user.name
   u'Clint Eastwood'
-  >>>
-
-A more detailed example:
-
-.. code-block:: python
-
-  from schematics.models import Model
-  from schematics.types import StringType, IntType, BooleanType
-  from schematics.types.compound import ListType, ModelType
-
-  class Movie(Model):
-      name = StringType(required=True)
-      year = IntType(required=True)
-      credits = ListType(StringType())
-
-  class Actor(Model):
-      name = StringType(required=True)
-      movies = ListType(ModelType(Movie))
-      has_agent = BooleanType(default=True)
-      breakout_movie = ModelType(Movie)
-
-`ModelType` and `ListType` traverse validation or serialization of a model down
-to their subfields. You can express structures as deep as you like.
-
-.. code-block:: python
-
-  >>> actor = Actor({
-  ...     'name': u'Tom Cruise',
-  ...     'movies': [{
-  ...         'name': u'Top Gun',
-  ...         'year': 1986,
-  ...         'credits': ['Tony Scott']
-  ...     }]
-  ... })
-  ...
-  >>> actor.name
-  u'Tom Cruise'
-
-You can patch the object by assigning attributes to fields with raw data too
-(which  fails if the field doesn’t validate).
-
-.. code-block:: python
-
-  >>> actor.movies
-  [<Movie: Movie object>]
-
-Notice that `ModelType` instances return `Model` instances.
 
 Serialization and Roles
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -173,6 +126,55 @@ default  `__init__` accepts partial data and validates the keys supplied,
 whereas  `validate` sets partial to `False`. Both can be overriden with the
 `partial` keyword argument. The reason `p1.validate({'age': 26})` validated
 above, with `partial = False` is that `name` was already populated internally.
+
+Detailed Example
+~~~~~~~~~~~~~~~~
+
+What else can Schematics do?
+
+.. code-block:: python
+
+  from schematics.models import Model
+  from schematics.types import StringType, IntType, BooleanType
+  from schematics.types.compound import ListType, ModelType
+
+  class Movie(Model):
+      name = StringType(required=True)
+      year = IntType(required=True)
+      credits = ListType(StringType())
+
+  class Actor(Model):
+      name = StringType(required=True)
+      movies = ListType(ModelType(Movie))
+      has_agent = BooleanType(default=True)
+      breakout_movie = ModelType(Movie)
+
+`ModelType` and `ListType` traverse validation or serialization of a model down
+to their subfields. You can express structures as deep as you like.
+
+.. code-block:: python
+
+  >>> actor = Actor({
+  ...     'name': u'Tom Cruise',
+  ...     'movies': [{
+  ...         'name': u'Top Gun',
+  ...         'year': 1986,
+  ...         'credits': ['Tony Scott']
+  ...     }]
+  ... })
+  ...
+  >>> actor.name
+  u'Tom Cruise'
+
+You can patch the object by assigning attributes to fields with raw data too
+(which  fails if the field doesn’t validate).
+
+.. code-block:: python
+
+  >>> actor.movies
+  [<Movie: Movie object>]
+
+Notice that `ModelType` instances return `Model` instances.
 
 Indices and tables
 ==================
