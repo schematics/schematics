@@ -14,18 +14,51 @@ class TestDictType(unittest.TestCase):
         class PlayerInfo(Model):
             categories = DictType(StringType)
 
-        info = PlayerInfo(categories={
-            "math": "math"
-        })
+        info = PlayerInfo(dict(categories={
+            "math": "math",
+            "batman": "batman"
+        }))
 
         self.assertEqual(info.categories["math"], "math")
 
         d = info.serialize()
         self.assertEqual(d, {
             "categories": {
-                "math": "math"
+                "math": "math",
+                "batman": "batman"
             }
         })
+
+    def test_model_type(self):
+        class CategoryStats(Model):
+            category_slug = StringType()
+            total_wins = IntType()
+
+        class PlayerInfo(Model):
+            categories = DictType(ModelType(CategoryStats))
+
+        info = PlayerInfo(dict(categories={
+            "math": {
+                "category_slug": "math",
+                "total_wins": 1
+            },
+            "batman": {
+                "category_slug": "batman",
+                "total_wins": 3
+            }
+        }))
+
+        math_stats = CategoryStats({"category_slug": "math", "total_wins": 1})
+        self.assertEqual(info.categories["math"], math_stats)
+
+        d = info.serialize()
+        self.assertEqual(d, {
+            "categories": {
+                "math": "math",
+                "batman": "batman"
+            }
+        })
+
 
     # def test(self):
     #     class CategoryStatsInfo(StructuredObject):

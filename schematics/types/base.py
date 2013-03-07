@@ -135,9 +135,11 @@ class BaseType(object):
         the field is returned."""
         if model is not None and self.bound:
             raise TypeError('%r already bound' % type(model).__name__)
+
         rv = object.__new__(self.__class__)
         rv.__dict__.update(self.__dict__)
         rv.validators = self.validators[:]
+
         if model is not None:
             rv.model = model
         return rv
@@ -390,7 +392,7 @@ class DateTimeType(BaseType):
                 return datetime.datetime.strptime(value, format)
             except (ValueError, TypeError):
                 continue
-        raise ValidationError(u'Could not parse. Should be ISO8601.')
+        raise ValidationError(u'Could not parse {}. Should be ISO8601.'.format(value))
 
     def to_primitive(self, value):
         if callable(self.serialized_format):

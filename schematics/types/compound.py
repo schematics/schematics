@@ -65,6 +65,8 @@ class ModelType(MultiType):
         if not isinstance(value, dict):
             raise ValidationError(u'Please use a mapping for this field.')
 
+        print "ModelType.convert",
+
         errors = {}
         result = {}
         for name, field in self.fields.iteritems():
@@ -175,11 +177,10 @@ class DictType(MultiType):
         return self.field.model_class
 
     def convert(self, value):
+        value = value or {}
+
         if not isinstance(value, dict):
             raise ValidationError('Only dictionaries may be used in a DictType')
 
-        return value
-
-    def lookup_member(self, member_name):
-        return self.basecls(field_name=member_name)
-
+        print "DictType.convert", value
+        return dict((k, self.field(v)) for k, v in value.iteritems())

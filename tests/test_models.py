@@ -11,6 +11,75 @@ from schematics.types.compound import ListType, ModelType
 from schematics.exceptions import ValidationError
 
 
+class TestModels(unittest.TestCase):
+    def test_equality(self):
+        class Player(Model):
+            id = IntType()
+
+        p1 = Player({"id": 4})
+        self.assertEqual(p1, copy.copy(p1))
+
+        p2 = Player({"id": 4})
+        self.assertEqual(p1, p2)
+
+        p3 = Player({"id": 5})
+
+        self.assertTrue(p1 == p2)
+        self.assertTrue(p1 != p3)
+
+    def test_equality_with_embedded_models(self):
+        class Location(Model):
+            country_code = StringType()
+
+        class Player(Model):
+            id = IntType()
+            location = ModelType(Location)
+
+        p1 = Player(dict(id=1, location={"country_code": "US"}))
+        p2 = Player(dict(id=1, location={"country_code": "US"}))
+
+        self.assertTrue(p1.location == p2.location)
+        self.assertFalse(p1.location != p2.location)
+        self.assertEqual(p1.location, p2.location)
+
+        self.assertTrue(p1 == p2)
+        self.assertEqual(p1, p2)
+
+    def test_model_field_list(self):
+        it = IntType()
+
+        class TestModel(Model):
+            some_int = it
+
+        self.assertEqual({'some_int': it}, TestModel.fields)
+
+    def test_model_data(self):
+        class TestModel(Model):
+            some_int = IntType()
+
+        self.assertRaises(AttributeError, lambda: TestModel.data)
+
+    def test_instance_data(self):
+        class TestModel(Model):
+            some_int = IntType()
+
+        tm = TestModel()
+        tm.some_int = 5
+
+        self.assertEqual({'some_int': 5}, tm._data)
+
+    def test_dict_interface(self):
+        class TestModel(Model):
+            some_int = IntType()
+
+        tm = TestModel()
+        tm.some_int = 5
+
+        self.assertEqual(True, 'some_int' in tm)
+        self.assertEqual(5, tm['some_int'])
+        self.assertEqual(True, 'fake_key' not in tm)
+
+
 class TestOptions(unittest.TestCase):
     """This test collection covers the `ModelOptions` class and related
     functions.
@@ -61,89 +130,7 @@ class TestOptions(unittest.TestCase):
         self.assertEqual(fo.roles, {})
 
 
-class TestModels(unittest.TestCase):
-    def test_equality(self):
-        class TestModel(Model):
-            some_int = IntType()
-
-        tm1 = TestModel({"some_int": 4})
-        self.assertEqual(tm1, copy.copy(tm1))
-
-        tm2 = TestModel({"some_int": 4})
-        self.assertEqual(tm1, tm2)
-
-        tm3 = TestModel({"some_int": 5})
-
-        self.assertTrue(tm1 == tm2)
-        self.assertTrue(tm1 != tm3)
-
-    def test_equality_with_submodels(self):
-        class Location(Model):
-            country_code = StringType()
-
-        class Player(Model):
-            id = IntType()
-            location = ModelType(Location)
-
-        p1 = Player(id=1, location={"country_code": "US"})
-        p2 = Player(id=1, location={"country_code": "US"})
-
-        self.assertTrue(p1.location == p2.location)
-        self.assertFalse(p1.location != p2.location)
-        self.assertEqual(p1.location, p2.location)
-
-        self.assertTrue(p1 == p2)
-        self.assertEqual(p1, p2)
-
-    def test_model_field_list(self):
-        it = IntType()
-
-        class TestModel(Model):
-            some_int = it
-
-        self.assertEqual({'some_int': it}, TestModel.fields)
-
-    def test_model_data(self):
-        class TestModel(Model):
-            some_int = IntType()
-
-        self.assertRaises(AttributeError, lambda: TestModel.data)
-
-    def test_instance_data(self):
-        class TestModel(Model):
-            some_int = IntType()
-
-        tm = TestModel()
-        tm.some_int = 5
-
-        self.assertEqual({'some_int': 5}, tm._data)
-
-    def test_dict_interface(self):
-        class TestModel(Model):
-            some_int = IntType()
-
-        tm = TestModel()
-        tm.some_int = 5
-
-        self.assertEqual(True, 'some_int' in tm)
-        self.assertEqual(5, tm['some_int'])
-        self.assertEqual(True, 'fake_key' not in tm)
-
-
 class TestModelInterface(unittest.TestCase):
-
-    def setUp(self):
-        pass
-
-    def test_validate_input_partial(self):
-        class TestModel(Model):
-            name = StringType(required=True)
-            bio = StringType()
-
-        model = TestModel({'bio': 'Genius'}, partial=True)
-
-        self.assertIsNone(model.name)
-        self.assertEqual(model.bio, 'Genius')
 
     def test_raises_validation_error_on_init(self):
         class User(Model):
@@ -171,6 +158,16 @@ class TestModelInterface(unittest.TestCase):
         child = Child({"name": "Baby Jane", "bio": "Always behaves"})
         self.assertEqual(child.name, "Baby Jane")
         self.assertEqual(child.bio, "Always behaves")
+
+    def test_validate_input_partial(self):
+        class TestModel(Model):
+            name = StringType(required=True)
+            bio = StringType()
+
+        model = TestModel({'bio': 'Genius'}, partial=True)
+
+        self.assertIsNone(model.name)
+        self.assertEqual(model.bio, 'Genius')
 
     def test_role_propagate(self):
         class Address(Model):
@@ -248,9 +245,8 @@ class TestCompoundTypes(unittest.TestCase):
         class Card(Model):
             user = ModelType(User)
 
-        c = Card()
-        c.validate({'user': [1, 2]})
-        self.assertIn('user', c.errors)
+        with self.assertRaises(ValidationError):
+            Card({'user': [1, 2]})
 
     def test_list_field(self):
         class User(Model):
@@ -281,6 +277,9 @@ class TestCompoundTypes(unittest.TestCase):
         c = User({'ids': ["1", "2"]})
 
         self.assertEqual(c.ids, [1, 2])
+        now = datetime.datetime.now()
+        self.assertEqual(c.validate({'date': now.isoformat()}), True)
+        self.assertEqual(c.date, now)
 
     def test_list_model_field(self):
         class User(Model):

@@ -1,14 +1,16 @@
 
 
-def _bind(obj, form, memo):
+def _bind(field, model, memo):
     """Helper for the field binding.  This is inspired by the way `deepcopy`
     is implemented.
     """
     if memo is None:
         memo = {}
-    obj_id = id(obj)
-    if obj_id in memo:
-        return memo[obj_id]
-    rv = obj._bind(form, memo)
-    memo[obj_id] = rv
+
+    field_id = id(field)
+    if field_id in memo:
+        return memo[field_id]
+
+    rv = field._bind(model, memo)
+    memo[field_id] = rv
     return rv
