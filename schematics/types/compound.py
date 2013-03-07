@@ -2,6 +2,7 @@ import itertools
 
 from ..exceptions import ValidationError, StopValidation
 from .base import BaseType
+from .bind import _bind
 
 
 class MultiType(BaseType):
@@ -12,19 +13,14 @@ class MultiType(BaseType):
 
         """
 
-        try:
-            del self.errors
-            del self.clean
-        except AttributeError:
-            pass
-
-        self.errors = {}
+        errors = {}
 
         def aggregate_from_exception_errors(e):
             if e.args and e.args[0]:
                 if not isinstance(e.args[0], dict):
-                    return BaseType.validate(self, value)
-                self.errors.update(e.args[0])
+                    # We have a field level error, not for the instances
+                    raise e
+                errors.update(e.args[0])
 
         validator_chain = itertools.chain(
             [
@@ -42,11 +38,10 @@ class MultiType(BaseType):
                 if isinstance(e, StopValidation):
                     return False
 
-        if self.errors:
-            return False
+        if errors:
+            raise ValidationError(errors)
 
-        self.clean = value
-        return True
+        return value
 
 
 class ModelType(MultiType):
@@ -60,10 +55,6 @@ class ModelType(MultiType):
             return self.owner_model
         return self._model_class
 
-    @property
-    def fields(self):
-        return self.model_class._fields
-
     def convert(self, value):
         if not isinstance(value, dict):
             raise ValidationError(u'Please use a mapping for this field')
@@ -71,19 +62,25 @@ class ModelType(MultiType):
         result = {}
         for name, field in self.fields.iteritems():
             try:
-                field.validate(value.get(name))
-                result[name] = field.clean
+                result[name] = field.validate(value.get(name))
             except ValidationError, e:
                 errors[name] = e
         if errors:
             raise ValidationError(errors)
         return self.model_class(**result)
 
-    def to_primitive(self, value):
+    def to_primitive(self, values):
         result = {}
         for key, field in self.fields.iteritems():
-            result[key] = field.to_primitive(value.clean[key])
+            result[key] = field.to_primitive(values[key])
         return result
+
+    def _bind(self, model, memo):
+        rv = BaseType._bind(self, model, memo)
+        rv.fields = {}
+        for key, field in self.model_class.fields.iteritems():
+            rv.fields[key] = _bind(field, model, memo)
+        return rv
 
 
 class ListType(MultiType):
@@ -129,13 +126,17 @@ class ListType(MultiType):
         # Aggregate errors
         for idx, item in enumerate(value, 1):
             try:
-                self.field.validate(item)
-                result.append(self.field)
+                result.append(self.field(item))
             except ValidationError, e:
-                errors[idx] = e
+                errors['index-%s' % idx] = e
         if errors:
             raise ValidationError(errors)
         return result
 
     def to_primitive(self, value):
         return map(self.field.to_primitive, self._force_list(value))
+
+    def _bind(self, model, memo):
+        rv = BaseType._bind(self, model, memo)
+        rv.field = _bind(self.field, model, memo)
+        return rv

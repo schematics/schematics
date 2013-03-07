@@ -114,11 +114,11 @@ class Comment(Model):
         }
 
 
-comment1 = Comment(text='This post was awesome!', username='bro',
+comment1 = Comment(text=u'This post was awesome!', username=u'bro',
                    email='bru@dudegang.com')
 
-comment2 = Comment(text='This post is ridiculous', username='barbie',
-                   email='barbie@dudegang.com')
+comment2 = Comment(text=u'This post is ridiculous', username=u'barbie',
+                   email=u'barbie@dudegang.com')
 
 
 class BlogPost(Model):
@@ -134,12 +134,12 @@ class BlogPost(Model):
         }
 
 
-content = """Retro single-origin coffee chambray stumptown, scenester VHS
+content = u"""Retro single-origin coffee chambray stumptown, scenester VHS
 bicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free
 trust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed
 """
 
-blogpost = BlogPost(title='Hipster Hodgepodge', author=author, content=content,
+blogpost = BlogPost(title=u'Hipster Hodgepodge', author=author, content=content,
                     comments=[comment1, comment2], deleted=False)
 
 
@@ -232,10 +232,6 @@ total_input = {
     'bio': 'J2D2 loves music',
     'rogue_field': 'MWAHAHA',
 }
-
-
-# Check all types and collect all failures
-#exceptions = User.validate_class_types(total_input, validate_all=True)
 
 
 #

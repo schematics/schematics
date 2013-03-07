@@ -26,6 +26,8 @@ class ModelSerializer:
 
     def test_dict_owner_safe(self):
         dict_owner_safe = self.instance.serialize(role="owner")
+        # print pj(self.dict_owner_safe)
+        # print pj(dict_owner_safe)
         self.assertEqual(self.dict_owner_safe, dict_owner_safe)
 
     def test_dict_public_safe(self):

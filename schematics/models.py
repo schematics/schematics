@@ -1,6 +1,7 @@
 import inspect
 
 from .types import BaseType
+from .types.bind import _bind
 from .types.compound import MultiType
 from .exceptions import ValidationError
 
@@ -12,10 +13,10 @@ class ModelOptions(object):
 
     It also creates errors in cases where unknown options parameters are found.
     """
-    def __init__(self, klass, namespace=None, roles={}):
+    def __init__(self, klass, namespace=None, roles=None):
         self.klass = klass
         self.namespace = namespace
-        self.roles = roles
+        self.roles = roles or {}
 
 
 class ModelMeta(type):
@@ -27,15 +28,15 @@ class ModelMeta(type):
         fields = {}
 
         for base in reversed(bases):
-            if hasattr(base, '_fields'):
-                fields.update(base._fields)
+            if hasattr(base, 'fields'):
+                fields.update(base.fields)
 
         for key, value in attrs.iteritems():
             if isinstance(value, BaseType):
                 fields[key] = value
 
         for key, field in fields.iteritems():
-            attrs[key] = FieldDescriptor(key)
+            attrs[key] = FieldDescriptor(key)  # For accessing internal data by field name attributes
 
         # Create a valid ModelOptions instance in `_options`
         _options_class = getattr(attrs, '__classoptions__', ModelOptions)
@@ -46,7 +47,7 @@ class ModelMeta(type):
                     _options_members[k] = v
         attrs['_options'] = _options_class(cls, **_options_members)
 
-        attrs['_fields'] = fields
+        attrs['_unbound_fields'] = fields
         klass = type.__new__(cls, name, bases, attrs)
 
         for field in fields.values():
@@ -56,7 +57,7 @@ class ModelMeta(type):
 
     @property
     def fields(cls):
-        return cls._fields
+        return cls._unbound_fields
 
 
 class FieldDescriptor(object):
@@ -67,7 +68,7 @@ class FieldDescriptor(object):
     def __get__(self, obj, type=None):
         try:
             if obj is None:
-                return type._fields[self.name]
+                return type.fields[self.name]
             return obj._data[self.name]
         except KeyError:
             raise AttributeError(self.name)
@@ -103,6 +104,10 @@ class Model(object):
 
     def __init__(self, **data):
         self.initial = data
+        self._fields = {}
+        self.memo = {}
+        for name, field in self._unbound_fields.iteritems():
+            self._fields[name] = _bind(field, self, self.memo)
         self._primitive_fields_names = dict(self._yield_primitive_field_names())
         self.reset()
         self.validate(data)
@@ -162,10 +167,10 @@ class Model(object):
                     errors[field_name] = [u"This field is required"]
                     continue
 
-                if field.validate(field_value):
-                    data[field_name] = field.clean
-                else:
-                    errors[field_name] = field.errors
+                try:
+                    data[field_name] = field.validate(field_value)
+                except ValidationError, e:
+                    errors[field_name] = e.messages
 
         # Report rogue fields as errors if `strict`
         if strict:

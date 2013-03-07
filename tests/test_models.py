@@ -30,7 +30,7 @@ class TestOptions(unittest.TestCase):
         self.assertNotEqual(mo, None)
 
         # Test that a value for roles was generated
-        self.assertEqual(mo.roles, None)
+        self.assertEqual(mo.roles, {})
 
     def test_bad_options_args(self):
         args = {
@@ -205,7 +205,7 @@ class TestCompoundTypes(unittest.TestCase):
 
     def test_list_field(self):
         class User(Model):
-            ids = ListType(StringType)
+            ids = ListType(StringType, required=True)
         c = User()
         self.assertEqual(c.validate({'ids': []}), True)
 
@@ -214,8 +214,8 @@ class TestCompoundTypes(unittest.TestCase):
             ids = ListType(StringType(required=True))
         c = User()
         self.assertEqual(c.validate({'ids': []}), True)
-        self.assertEqual(c.validate({'ids': [1]}), False)
-        print c.validate({'ids': [None]})
+        c.validate({'ids': [1]})
+        self.assertEqual(c.validate({'ids': [1]}), True)
         self.assertEqual(c.validate({'ids': [None]}), False)
         self.assertIsInstance(c.errors, dict)
 

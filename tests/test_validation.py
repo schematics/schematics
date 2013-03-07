@@ -62,9 +62,8 @@ class TestRequired(unittest.TestCase):
             first_name = StringType(required=True)
 
         t = TestDoc()
-        valid = t.validate(t.data)
+        t.validate({})
 
-        self.assertEqual(valid, False)
         self.assertEqual(len(t.errors), 1)  # Only one failure
         self.assertIn(u'This field is required', t.errors.items()[0][1])
 
@@ -73,26 +72,26 @@ class TestRequired(unittest.TestCase):
             first_name = StringType(required=True)
 
         t = TestDoc(first_name=None)
-        valid = t.validate(t.data)
+        valid = t.validate(t.serialize())
 
         self.assertNotEqual(t.errors, {})
         self.assertEqual(len(t.errors), 1)  # Only one failure
         self.assertIn(u'This field is required', t.errors.items()[0][1])
 
-    def test_validation_empty_string_pass(self):
+    def test_validation_empty_string_not_pass(self):
         class TestDoc(Model):
             first_name = StringType(required=True)
 
         t = TestDoc(first_name='')
-        valid = t.validate(t.data)
-        self.assertEqual(valid, True)
+        valid = t.validate(t.serialize())
+        self.assertEqual(valid, False)
 
     def test_validation_empty_string_length_fail(self):
         class TestDoc(Model):
             first_name = StringType(required=True, min_length=1)
 
         t = TestDoc(first_name='')
-        valid = t.validate(t.data)
+        valid = t.validate(t.serialize())
 
         self.assertEqual(valid, False)
         self.assertEqual(len(t.errors), 1)  # Only one failure
@@ -105,8 +104,9 @@ class TestRequired(unittest.TestCase):
             first_name = StringType(min_length=1)
 
         t = TestDoc()
-        valid = t.validate(t.data)
-
+        valid = t.validate({'first_name': ''})
+        self.assertEqual(valid, False)
+        valid = t.validate({'first_name': None})
         self.assertEqual(valid, True)
 
 
@@ -175,7 +175,7 @@ class TestErrors(unittest.TestCase):
         ]
     }
 
-    def test_deep_errors(self):
+    def _test_deep_errors(self):
 
         valid = self.school.validate(self.valid_data)
         self.assertTrue(valid)
@@ -186,9 +186,7 @@ class TestErrors(unittest.TestCase):
         invalid_data = self.school.serialize()
         invalid_data['courses'][0]['attending'][0]['name'] = None
         valid = self.school.validate(invalid_data)
-        print self.school.errors
         self.assertFalse(valid)
-        print self.school.errors
 
 
 if __name__ == '__main__':
