@@ -157,7 +157,7 @@ class Model(object):
         from .serialize import expand
         return cls(expand(data))
 
-    def __init__(self, data=None, validate=True, partial=False, **kwargs):
+    def __init__(self, data=None, partial=False, raises=True, **kwargs):
         if data is None:
             data = {}
 
@@ -169,7 +169,7 @@ class Model(object):
             self._fields[name] = _bind(field, self, self._memo)
 
         self.reset()
-        self.validate(data, partial=partial, raises=validate)
+        self.validate(data, partial=partial, raises=raises)
 
     def reset(self):
         self.errors = {}
