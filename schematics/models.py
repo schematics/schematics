@@ -132,13 +132,13 @@ class FieldDescriptor(object):
 
     def __set__(self, obj, value):
         field = obj._fields[self.name]
-        if isinstance(field, MultiType):
-            if isinstance(value, list):
-                value = [self.init_model(field, item) for item in value]
-            else:
-                value = self.init_model(field, value)
-            # Also init_model for things underneath
-        obj._data[self.name] = value
+        # if isinstance(field, MultiType):
+        #     if isinstance(value, list):
+        #         value = [self.init_model(field, item) for item in value]
+        #     else:
+        #         value = self.init_model(field, value)
+        #     # Also init_model for things underneath
+        obj._data[self.name] = field(value)
 
     def __delete__(self, obj):
         if self.name not in obj._fields:
@@ -161,19 +161,15 @@ class Model(object):
         if data is None:
             data = {}
 
-        self.initial = data
+        self._initial = data
+
         self._fields = {}
-        self.memo = {}
+        self._memo = {}
         for name, field in self._unbound_fields.iteritems():
-            self._fields[name] = _bind(field, self, self.memo)
-        self._primitive_fields_names = dict(self._yield_primitive_field_names())
+            self._fields[name] = _bind(field, self, self._memo)
 
         self.reset()
         self.validate(data, partial=partial, raises=validate)
-
-    def _yield_primitive_field_names(self):
-        for name in self._fields:
-            yield (name, self._fields[name].serialized_name or name)
 
     def reset(self):
         self.errors = {}
@@ -215,7 +211,7 @@ class Model(object):
         # Validate data based on cls's structure
         for field_name, field in self._fields.iteritems():
             # Rely on parameter for whether or not we should check value
-            serialized_field_name = self._primitive_fields_names[field_name]
+            serialized_field_name = field.serialized_name or field_name
             if needs_check(serialized_field_name, field):
                 # What does `Field.required` mean? Does it merely
                 # require presence or the value not be None? Here it means the
@@ -257,7 +253,7 @@ class Model(object):
                 default = field.default()
             data.setdefault(field_name, default)
 
-            setattr(self, field_name, data.get(field_name))
+            self._data[field_name] = data.get(field_name)
 
         return True
 
