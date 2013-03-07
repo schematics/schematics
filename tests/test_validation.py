@@ -60,12 +60,12 @@ class TestChoices(unittest.TestCase):
 
 class TestRequired(unittest.TestCase):
 
-    def test_validation_fails(self):
+    def test_non_partial_init_fails(self):
         class TestDoc(Model):
             first_name = StringType(required=True)
 
         with self.assertRaises(ValidationError) as context:
-            TestDoc()
+            TestDoc(partial=False)
 
         exception = context.exception
 
@@ -77,7 +77,7 @@ class TestRequired(unittest.TestCase):
             first_name = StringType(required=True)
 
         with self.assertRaises(ValidationError) as context:
-            TestDoc({"first_name": None})
+            TestDoc().validate({"first_name": None})
 
         exception = context.exception
 
@@ -90,14 +90,14 @@ class TestRequired(unittest.TestCase):
             first_name = StringType(required=True)
 
         with self.assertRaises(ValidationError):
-            TestDoc({"first_name": ''})
+            TestDoc().validate({"first_name": ''})
 
     def test_validation_empty_string_length_fail(self):
         class TestDoc(Model):
             first_name = StringType(required=True, min_length=2)
 
         with self.assertRaises(ValidationError) as context:
-            TestDoc({"first_name": "A"})
+            TestDoc().validate({"first_name": "A"})
 
         exception = context.exception
 
