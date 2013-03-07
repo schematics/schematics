@@ -281,9 +281,6 @@ class TestCompoundTypes(unittest.TestCase):
         c = User({'ids': ["1", "2"]})
 
         self.assertEqual(c.ids, [1, 2])
-        now = datetime.datetime.now()
-        self.assertEqual(c.validate({'date': now.isoformat()}), True)
-        self.assertEqual(c.date, now)
 
     def test_list_model_field(self):
         class User(Model):
