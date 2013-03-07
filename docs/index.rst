@@ -22,6 +22,8 @@ Great for:
 .. toctree::
    :maxdepth: 2
 
+   api
+
 Quickstart
 ~~~~~~~~~~
 
