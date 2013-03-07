@@ -1,9 +1,8 @@
 
 import unittest
 
-from schematics.models import Model
-from schematics.serialize import serializable
-from schematics.types import StringType
+from schematics.models import Model, serializable, Serializable
+from schematics.types import StringType, LongType
 
 
 class TestSerializable(unittest.TestCase):
@@ -17,7 +16,6 @@ class TestSerializable(unittest.TestCase):
                 return "United States" if self.country_code == "US" else "Unknown"
 
         location_US = Location(country_code="US")
-        print Location.__dict__
 
         self.assertEqual(location_US.country_name, "United States")
 
@@ -37,12 +35,32 @@ class TestSerializable(unittest.TestCase):
 
             @serializable(serialized_name="cn")
             def country_name(self):
-                print "Country code", self._data, self.country_code
                 return "United States" if self.country_code == "US" else "Unknown"
 
-        location_US = Location(country_code="US")
+        location_US = Location(cc="US")
 
         self.assertEqual(location_US.country_name, "United States")
 
         d = location_US.serialize()
         self.assertEqual(d, {"cc": "US", "cn": "United States"})
+
+    def test_serializable_with_custom_serializable_class(self):
+        class ToUnicodeSerializable(Serializable):
+
+            def to_primitive(self, value):
+                return unicode(value)
+
+        class Player(Model):
+            id = LongType()
+
+            @serializable(serialized_class=ToUnicodeSerializable)
+            def player_id(self):
+                return self.id
+
+        player = Player(id=1)
+
+        self.assertEqual(player.id, 1)
+        self.assertEqual(player.player_id, 1)
+
+        d = player.serialize()
+        self.assertEqual(d, {"id": 1, "player_id": "1"})

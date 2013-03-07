@@ -1,8 +1,51 @@
 import inspect
+import itertools
 
 from .types import BaseType
 from .types.compound import MultiType
 from .exceptions import ValidationError
+
+
+def serializable(*args, **kwargs):
+    """
+    A serializable is a way to define dynamic serializable fields that are derived
+    from other fields.
+
+        class Location(Model):
+            country_code = StringType()
+
+            @serializable
+            def country_name(self):
+                return get_country_name(self.country_code)
+
+    Accepts two keyword arguments:
+
+        serialized_name: the name of this field in the serialized output
+        serialized_class: a custom subclass of Serializable if you want to override
+                            to_primitive
+
+    """
+    def wrapper(f):
+        SerializableClass = kwargs.get("serialized_class", Serializable)
+        return SerializableClass(f, serialized_name=kwargs.get("serialized_name", None))
+
+    if len(args) == 1 and callable(args[0]):
+        # No arguments, this is the decorator
+        # Set default values for the arguments
+        return wrapper(args[0])
+    else:
+        return wrapper
+
+
+class Serializable(property):
+
+    def __init__(self, *args, **kwargs):
+        self.serialized_name = kwargs.pop("serialized_name", None)
+
+        super(Serializable, self).__init__(*args, **kwargs)
+
+    def to_primitive(self, value):
+        return value
 
 
 class ModelOptions(object):
@@ -23,16 +66,21 @@ class ModelMeta(type):
     """
 
     def __new__(cls, name, bases, attrs):
-
         fields = {}
+        serializables = {}
 
         for base in reversed(bases):
             if hasattr(base, '_fields'):
                 fields.update(base._fields)
 
+            if hasattr(base, '_serializables'):
+                serializables.update(base._serializables)
+
         for key, value in attrs.iteritems():
             if isinstance(value, BaseType):
                 fields[key] = value
+            if isinstance(value, Serializable):
+                serializables[key] = value
 
         for key, field in fields.iteritems():
             attrs[key] = FieldDescriptor(key)
@@ -47,6 +95,7 @@ class ModelMeta(type):
         attrs['_options'] = _options_class(cls, **_options_members)
 
         attrs['_fields'] = fields
+        attrs["_serializables"] = serializables
         klass = type.__new__(cls, name, bases, attrs)
 
         for field in fields.values():
@@ -149,14 +198,14 @@ class Model(object):
         for field_name, field in self._fields.iteritems():
             # Rely on parameter for whether or not we should check value
             serialized_field_name = self._primitive_fields_names[field_name]
-            if needs_check(field_name, field):
+            if needs_check(serialized_field_name, field):
                 # What does `Field.required` mean? Does it merely
                 # require presence or the value not be None? Here it means the
                 # value must not be None. However! We require the presence even
                 # though required is set to None if this is not a partial update.
                 # For this to validate the user should pick a partial validate.
 
-                field_value = input.setdefault(serialized_field_name)
+                field_value = input.get(serialized_field_name)
 
                 if field.required and field_value is None:
                     errors[field_name] = [u"This field is required"]
@@ -194,11 +243,14 @@ class Model(object):
         return True
 
     def __iter__(self):
-        return iter(self._fields)
+        return itertools.chain(
+            self._fields.iteritems(),
+            self._serializables.iteritems()
+        )
 
     def __getitem__(self, name):
         try:
-            if name in self._data:
+            if name in self._data or name in self._serializables:
                 return getattr(self, name)
         except AttributeError:
             pass
@@ -211,7 +263,7 @@ class Model(object):
         return setattr(self, name, value)
 
     def __contains__(self, name):
-        return name in self._data
+        return name in self._data or name in self._serializables
 
     def __len__(self):
         return len(self._data)

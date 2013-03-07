@@ -23,7 +23,7 @@ class BaseType(object):
         self.description = description
 
     def __call__(self, value):
-        return self.convert(value)  # TODO also run validation?
+        return self.convert(value)
 
     def to_primitive(self, value):
         """Convert a Structures type into a value safe for JSON encoding
@@ -79,6 +79,11 @@ class BaseType(object):
                 aggregate_from_exception_errors(e)
                 if isinstance(e, StopValidation):
                     return False
+            else:
+                # Break validation chain if any of the
+                # validators legally returns None
+                if not self.required and value is None:
+                    break
 
         if self.errors:
             return False

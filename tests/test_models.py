@@ -154,6 +154,14 @@ class TestModelInterface(unittest.TestCase):
         self.assertEqual(child.name, "Baby Jane")
         self.assertEqual(child.bio, "Always behaves")
 
+        model = Child()
+
+        self.assertEqual(hasattr(model, '_options'), True)
+
+        input = {'bio': u'Genius', 'name': u'Joey'}
+        self.assertEqual(model.validate(input), True)
+        self.assertEqual(model.serialize(), input)
+
     def test_role_propagate(self):
         class Address(Model):
             city = StringType()
