@@ -1,7 +1,6 @@
 # encoding=utf-8
 
 from .types.compound import ModelType, ListType
-from .models import Model
 
 
 def _reduce_loop(model):
@@ -15,6 +14,8 @@ def _reduce_loop(model):
 
 def apply_shape(model, model_converter, role, gottago):
     model_dict = {}
+
+    Model = model.__class__
 
     # Loop over each field and either evict it or convert it
     for (field_name, field_instance, field_value) in _reduce_loop(model):

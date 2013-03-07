@@ -1,29 +1,34 @@
+# encoding=utf-8
+
 import inspect
 import itertools
 
 from .types import BaseType
 from .types.bind import _bind
-from .types.compound import MultiType
 from .exceptions import ValidationError
+from .serialize import serialize, flatten, expand
 
 
 def serializable(*args, **kwargs):
-    """
-    A serializable is a way to define dynamic serializable fields that are derived
-    from other fields.
+    """A serializable is a way to define dynamic serializable fields that are
+    derived from other fields.
 
-        class Location(Model):
-            country_code = StringType()
+    >>> from schematics.models import serializable
+    >>> class Location(Model):
+    ...     country_code = StringType()
+    ...     @serializable
+    ...     def country_name(self):
+    ...         return {'us': u'United States'}[self.country_code]
+    ...
+    >>> location = Location({'country_code': 'us'})
+    >>> location.serialize()
+    {'country_name': u'United States', 'country_code': u'us'}
+    >>>
 
-            @serializable
-            def country_name(self):
-                return get_country_name(self.country_code)
-
-    Accepts two keyword arguments:
-
-        serialized_name: the name of this field in the serialized output
-        serialized_class: a custom subclass of Serializable if you want to override
-                            to_primitive
+    :param serialized_name:
+        The name of this field in the serialized output.
+    :param serialized_class:
+        A custom subclass of `Serializable` if you want to override `to_primitive`
 
     """
     def wrapper(f):
@@ -148,16 +153,41 @@ class FieldDescriptor(object):
 
 
 class Model(object):
+    """Enclosure for fields and validation. Same pattern deployed by Django
+    models, SQLAlchemy declarative extension and other developer friendly
+    libraries.
+
+    >>> from schematics.models import Model
+    >>> from schematics.types import StringType
+    >>> class Person(Model):
+    ...     name = StringType(required=True)
+    ...
+    >>> person = Person({'name': u'Joey Bada$$'})
+    >>>
+
+    Let’s see some validation
+
+    >>> person = Person(raises=False)
+    >>> person.errors
+    {'name': [u'This field is required.']}
+    >>>
+
+    """
 
     __metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
-    @classmethod
-    def from_flat(cls, data):
-        from .serialize import expand
-        return cls(expand(data))
+    def __init__(self, data=None, partial=False, raises=True):
+        """
 
-    def __init__(self, data=None, partial=False, raises=True, **kwargs):
+        :param partial:
+            Allow partial data; useful for PATCH requests. Essentilly drops the
+            `required=True` arguments from field definitions. Default: False
+        :param raises:
+            When `True`, raise `ValidationError` at the end if errors were
+            found. Default: True
+
+        """
         if data is None:
             data = {}
 
@@ -175,28 +205,38 @@ class Model(object):
         self.errors = {}
         self._data = {}
 
+    @classmethod
+    def from_flat(cls, data):
+        return cls(expand(data))
+
     def serialize(self, role=None, flat=False):
         """Return data as it would be validated. No filtering of output unless
         role is defined.
         """
-        from .serialize import serialize, flatten
         if flat:
             return flatten(self, role)
         else:
             return serialize(self, role)
 
     def validate(self, input_data, partial=False, strict=False, raises=False):
-        """Validates incoming untrusted data. If `partial` is set it will allow
-        partial data to validate, useful for PATCH requests. Returns a clean
-        instance.
+        """Validates incoming untrusted data. If `partial` is set it will.
+        If data is valid, update the object state and return `True`, else set
+        `self.errors` and return `False`.
 
-        Loops across the fields in a Model definition, `cls`, and attempts
-        validation on any fields that require a check, as signalled by the
-        `needs_check` function.
+        The internal state of data and errors are kept in `self._data` and
+        `self.errors`, respectively.
 
-        The basis for validation is `cls`, so fields are located in `cls` and
-        mapped to an entry in `items`.  This entry is then validated against the
-        field's validation function.
+        :param input_data:
+            A `dict` or `dict`-like structure for incoming data.
+        :param partial:
+            Allow partial data to validate; useful for PATCH requests.
+            Essentilly drops the `required=True` arguments from field
+            definitions. Default: False
+        :param strict:
+            Complain about unrecognized keys. Default: False
+        :param raises:
+            When `True`, raise `ValidationError` at the end if errors were
+            found. Default: False
 
         """
 
