@@ -10,4 +10,4 @@ MANIFEST
 build
 dist
 PLANS.md
-
+*.egg-info

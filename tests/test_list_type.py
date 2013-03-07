@@ -116,33 +116,37 @@ class TestGetSingleEmbeddedData(unittest.TestCase):
 
 class TestMultipleEmbeddedData(unittest.TestCase):
     def setUp(self):
-        class EmbeddedTestmodel(Model):
+        class BandModel(Model):
             bandname = StringType()
             
-        class SecondEmbeddedTestmodel(Model):
+        class FoodModel(Model):
             food = StringType()
             
-        self.embedded_test_document = EmbeddedTestmodel
-        self.second_embedded_test_document = EmbeddedTestmodel
+        self.food_model = FoodModel
+        self.band_model = BandModel
+        self.the_list = ListType([ModelType(self.band_model),
+                                  ModelType(self.food_model)])
         
-        self.embedded_type = ModelType(EmbeddedTestmodel)
-        self.second_embedded_type = ModelType(SecondEmbeddedTestmodel)
-
         class Testmodel(Model):
-            the_doc = ListType([self.embedded_type, self.second_embedded_type])
+            the_list = ListType([ModelType(self.band_model),
+                                 ModelType(self.food_model)])
 
         self.Testmodel = Testmodel
         self.testmodel = Testmodel()
 
-    @unittest.expectedFailure #because the set shouldn't upcast until validation
+    #@unittest.expectedFailure #because the set shouldn't upcast until validation
     def test_good_value_for_python_upcasts(self):
-        self.testmodel.the_doc = [{'bandname': 'fugazi'}, {'food':'cake'}]
-        actual = self.testmodel.the_doc
-        embedded_test_one = self.embedded_test_document()
-        embedded_test_one['bandname'] = 'fugazi'
-        embedded_test_two = self.second_embedded_test_document()
-        embedded_test_two['food'] = 'cake'
-        expected = [embedded_test_one, embedded_test_two]
+        self.testmodel.the_list = [{'bandname': 'fugazi'}, {'food':'cake'}]
+        
+        actual = self.testmodel.the_list
+        
+        band = self.band_model()
+        band['bandname'] = 'fugazi'
+        
+        food = self.food_model()
+        food['food'] = 'cake'
+        
+        expected = [band, food]
         self.assertEqual(actual, expected)
         
 

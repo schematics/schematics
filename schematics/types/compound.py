@@ -27,6 +27,8 @@ class ListType(BaseType):
     """
 
     def __init__(self, fields, **kwargs):
+        super(ListType, self).__init__(**kwargs)
+
         ### Short hand
         is_basetype = lambda field: isinstance(field, BaseType)
         is_model = lambda field: isinstance(field, ModelType)
@@ -37,19 +39,22 @@ class ListType(BaseType):
             if is_model(fields):
                 kwargs.setdefault('primary_embedded', fields)
             fields = [fields]
-        # something other than a list
+            
+        ### something other than a list
         elif not isinstance(fields, list):
             error_msg = 'Argument to ListType constructor must be '
             error_msg = error_msg + 'a valid field or list of fields'
             
             return FieldResult(ERROR_FIELD_CONFIG, error_msg,
                                self.field_name, fields)
-        # some bad stuff in the list
+        
+        ### some bad stuff in the list
         elif list(ifilterfalse(is_basetype, fields)):
             error_msg = 'Argument to ListType constructor must be '
             error_msg = error_msg + 'a valid field or list of valid fields'
             return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
                                self.field_name, fields)
+        
         else:
             models = filter(is_model, fields)
             dicts = filter(is_dicttype, fields)
@@ -62,7 +67,6 @@ class ListType(BaseType):
         kwargs.setdefault('default', list)
 
         self.primary_embedded = kwargs.pop('primary_embedded', None)
-        super(ListType, self).__init__(**kwargs)
 
     def __get__(self, instance, owner):
         retval = super(ListType, self).__get__(instance, owner)
@@ -73,10 +77,6 @@ class ListType(BaseType):
     def __set__(self, instance, value_list):
         """Descriptor for assigning a value to a type in a model.
         """
-        new_value = value_list
-        if new_value is None:
-           new_value = [ ]
-
         is_model = lambda tipe: isinstance(tipe, ModelType)
         model_fields = filter(is_model, self.fields)
        
@@ -90,46 +90,51 @@ class ListType(BaseType):
         if value_list is None:
             value_list = []  # have to use a list
 
-        if decimal_fields:
-           new_data = list()
-           for datum in new_value:
-               datum_instance = datum
-               if isinstance(datum, Decimal):
-                  datum_instance = unicode(datum)
-               new_data.append(datum_instance)
-           new_value = new_data
+#       if decimal_fields:
+#          new_data = list()
+#          for datum in new_value:
+#              datum_instance = datum
+#              if isinstance(datum, Decimal):
+#                 datum_instance = unicode(datum)
+#              new_data.append(datum_instance)
+#          new_value = new_data
 
         errors_found = False
         if model_fields:
             new_data = list()
-            for datum in new_value:
-                datum_instance = datum
+            for datum in value_list:
+                datum_instance = None
                 is_dict = False
 
-                ### if `datum` is dict, attempt conversion
+                ### Extract field names from datum
+                datum_fields = None
                 if isinstance(datum, dict):
-                    is_dict = True
-                    ### Find a model that matches
-                    for model_field in model_fields:
-                        ### TODO Validate SMARTER
+                    datum_fields = datum.keys()
+                else:
+                    datum_fields = datum._fields.keys()
+                    
+                ### Determine matching model
+                for model_field in model_fields:
+                    test_keys = model_field.model_type_obj._fields.keys()
+
+                    if len(set(datum_fields) - set(test_keys)) == 0:
+                        if datum is None:
+                            datum = {}
+                        elif not isinstance(datum, dict):
+                            datum = datum._data
                         datum_instance = model_field.model_type_obj(**datum)
 
-                #import pdb; pdb.set_trace()
+                ### Validate model
                 result = validate_instance(datum_instance)
-            
                 if result.tag == OK:
-                    ### Remove double instantiation
-                    for model_field in model_fields:
-                        ### TODO Validate SMARTER
-                        datum_instance = model_field.model_type_obj(**result.value)
                     new_data.append(datum_instance)
                 else:
                     errors_found = True
                     
-            new_value = new_data
+            value_list = new_data
 
         if not errors_found:
-            instance._data[self.field_name] = new_value
+            instance._data[self.field_name] = value_list
 
     def _jsonschema_type(self):
         return 'array'
@@ -144,7 +149,7 @@ class ListType(BaseType):
         return [None]
 
     def _jsonschema_items(self):
-        return [for_jsonschema(field) for field in self.fields]
+        return [field.for_jsonschema() for field in self.fields]
 
     def for_output_format(self, output_format_method_name, value):
         for item in value:
@@ -386,10 +391,10 @@ class ModelType(BaseType):
 
     def __set__(self, instance, value):
         if value is None:
-            return
-        if not isinstance(value, self.model_type):
+            instance._data[self.field_name] = None
+        elif not isinstance(value, self.model_type):
             value = self.model_type(**value)
-        instance._data[self.field_name] = value
+            instance._data[self.field_name] = value
 
     @property
     def model_type(self):

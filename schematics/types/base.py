@@ -25,6 +25,7 @@ class BaseTypeMetaClass(type):
 ### Base Type
 ###
 
+@public
 class BaseType(object):
     """A base class for Types in a Structures model. Instances of this
     class may be added to subclasses of `Model` to define a model schema.
@@ -257,6 +258,28 @@ class IPv4Type(BaseType):
     def _from_jsonschema_types(self):
         return ['string']
 
+    def validate(self, value):
+        """
+          Make sure the value is a IPv4 address:
+          http://stackoverflow.com/questions/9948833/validate-ip-address-from-list
+        """
+        if not IPv4Type.valid_ip(value):
+            error_msg = 'Invalid IPv4 address'
+            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
+                               self.field_name, value)
+        return FieldResult(OK, 'success', self.field_name, value)
+
+    def _jsonschema_format(self):
+        return 'ip-address'
+
+    @classmethod
+    def _from_jsonschema_formats(self):
+        return ['ip-address']
+
+    @classmethod
+    def _from_jsonschema_types(self):
+        return ['string']
+
 @public
 class StringType(BaseType):
     """A unicode string field.
@@ -294,7 +317,10 @@ class StringType(BaseType):
         return unicode(value)
 
     def validate(self, value):
-        assert isinstance(value, (str, unicode))
+        if not isinstance(value, (str, unicode)):
+            error_msg = 'Not a boolean'
+            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
+                               self.field_name, value)
 
         if self.max_length is not None and len(value) > self.max_length:
             error_msg = 'String value is too long'
