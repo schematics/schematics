@@ -7,6 +7,16 @@ import itertools
 from ..exceptions import StopValidation, ValidationError
 
 
+def force_unicode(obj, encoding='utf-8'):
+    if isinstance(obj, basestring):
+        if not isinstance(obj, unicode):
+            obj = unicode(obj, encoding)
+    elif not obj is None:
+        obj = unicode(obj)
+
+    return obj
+
+
 class BaseType(object):
     """A base class for Types in a Structures model. Instances of this
     class may be added to subclasses of `Model` to define a model schema.
@@ -139,7 +149,7 @@ class StringType(BaseType):
         self.min_length = min_length
 
     def convert(self, value):
-        value = unicode(value)
+        value = force_unicode(value)
 
         if self.max_length is not None and len(value) > self.max_length:
             raise ValidationError(u'String value is too long')
@@ -347,32 +357,6 @@ class DateTimeType(BaseType):
         if callable(self.format):
             return format(value)
         return value.strftime(self.format)
-
-
-class DictType(BaseType):
-    """A dictionary field that wraps a standard Python dictionary. This is
-    similar to an `ModelType`, but the schematic is not defined.
-    """
-
-    def __init__(self, basecls=None, *args, **kwargs):
-        self.basecls = basecls or BaseType
-
-        if not issubclass(self.basecls, BaseType):
-            raise ValidationError('basecls is not subclass of BaseType')
-
-        kwargs.setdefault('default', lambda: {})
-        super(DictType, self).__init__(*args, **kwargs)
-
-    def convert(self, value):
-        """Make sure that a list of valid fields is being used.
-        """
-        if not isinstance(value, dict):
-            raise ValidationError('Only dictionaries may be used in a DictType')
-
-        return value
-
-    def lookup_member(self, member_name):
-        return self.basecls(field_name=member_name)
 
 
 class GeoPointType(BaseType):

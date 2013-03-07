@@ -158,3 +158,27 @@ class ListType(MultiType):
 
     def to_primitive(self, value):
         return map(self.field.to_primitive, self._force_list(value))
+
+
+class DictType(MultiType):
+
+    def __init__(self, field, **kwargs):
+        if not isinstance(field, BaseType):
+            field = field(**kwargs)
+
+        self.field = field
+
+        super(DictType, self).__init__(**kwargs)
+
+    @property
+    def model_class(self):
+        return self.field.model_class
+
+    def convert(self, value):
+        if not isinstance(value, dict):
+            raise ValidationError('Only dictionaries may be used in a DictType')
+
+        return value
+
+    def lookup_member(self, member_name):
+        return self.basecls(field_name=member_name)
