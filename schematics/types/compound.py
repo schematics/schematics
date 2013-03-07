@@ -51,12 +51,10 @@ class ModelType(MultiType):
 
     @property
     def model_class(self):
-        if self._model_class == "self":
-            return self.owner_model
         return self._model_class
 
     def convert(self, value):
-        if isinstance(value, self._model_class):
+        if isinstance(value, self.model_class):
             if value.errors:
                 raise ValidationError(u'Please supply a clean model instance.')
             else:
@@ -67,7 +65,7 @@ class ModelType(MultiType):
 
         errors = {}
         result = {}
-        for name, field in self._model_class.fields.iteritems():
+        for name, field in self.fields.iteritems():
             try:
                 result[name] = field.validate(value.get(name))
             except ValidationError, e:
@@ -78,7 +76,7 @@ class ModelType(MultiType):
 
     def to_primitive(self, values):
         result = {}
-        for key, field in self._model_class.fields.iteritems():
+        for key, field in self.fields.iteritems():
             result[key] = field.to_primitive(values[key])
 
         return result
@@ -89,6 +87,9 @@ class ModelType(MultiType):
         for key, field in self.model_class.fields.iteritems():
             rv.fields[key] = _bind(field, model, memo)
         return rv
+
+    def __repr__(self):
+        return object.__repr__(self)[:-1] + ' for %s>' % self._model_class
 
 
 class ListType(MultiType):
@@ -147,9 +148,9 @@ class ListType(MultiType):
             try:
                 result.append(self.field(item))
             except ValidationError, e:
-                errors['index-%s' % idx] = e
+                errors['index_%s' % idx] = e
         if errors:
-            raise ValidationError(errors)
+            raise ValidationError(sorted(errors.items()))
         return result
 
     def to_primitive(self, value):
@@ -163,31 +164,33 @@ class ListType(MultiType):
 
 class DictType(MultiType):
 
-    def __init__(self, value_type, key_coercer=None, **kwargs):
-        if not isinstance(value_type, BaseType):
-            value_type = value_type(**kwargs)
+    def __init__(self, field, coerce_key=None, **kwargs):
+        if not isinstance(field, BaseType):
+            field = field(**kwargs)
 
-        self.key_coercer = key_coercer or (lambda x: x)
-        self.value_type = value_type
+        self.coerce_key = coerce_key or str
+        self.field = field
 
         super(DictType, self).__init__(**kwargs)
 
     @property
     def model_class(self):
-        return self.value_type.model_class
+        return self.field.model_class
 
     def convert(self, value):
         value = value or {}
 
         if not isinstance(value, dict):
-            raise ValidationError('Only dictionaries may be used in a DictType')
+            raise ValidationError(u'Only dictionaries may be used in a DictType')
 
-        return dict((self.key_coercer(k), self.value_type(v)) for k, v in value.iteritems())
+        return dict((self.coerce_key(k), self.field(v))
+                    for k, v in value.iteritems())
 
     def to_primitive(self, value):
-        return dict((unicode(k), self.value_type.to_primitive(v)) for k, v in value.iteritems())
+        return dict((unicode(k), self.field.to_primitive(v))
+                    for k, v in value.iteritems())
 
     def _bind(self, model, memo):
         rv = BaseType._bind(self, model, memo)
-        rv.value_type = _bind(self.value_type, model, memo)
+        rv.field = _bind(self.field, model, memo)
         return rv

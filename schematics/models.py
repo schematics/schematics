@@ -100,7 +100,7 @@ class ModelMeta(type):
                     _options_members[k] = v
         attrs['_options'] = _options_class(cls, **_options_members)
 
-        attrs["_serializables"] = serializables
+        attrs['_serializables'] = serializables
         attrs['_unbound_fields'] = fields
 
         klass = type.__new__(cls, name, bases, attrs)
@@ -128,21 +128,8 @@ class FieldDescriptor(object):
         except KeyError:
             raise AttributeError(self.name)
 
-    def init_model(self, field, value):
-        """If raw values are assigned to a ModelType assign a model instance."""
-        if isinstance(value, dict):  # But not an instance, make it one
-            model = field.model_class(data=value)
-            return model
-        return value
-
     def __set__(self, obj, value):
         field = obj._fields[self.name]
-        # if isinstance(field, MultiType):
-        #     if isinstance(value, list):
-        #         value = [self.init_model(field, item) for item in value]
-        #     else:
-        #         value = self.init_model(field, value)
-        #     # Also init_model for things underneath
         obj._data[self.name] = field(value)
 
     def __delete__(self, obj):
@@ -172,22 +159,19 @@ class Model(object):
     {'name': [u'This field is required.']}
     >>>
 
+    :param partial:
+        Allow partial data; useful for PATCH requests. Essentilly drops the
+        `required=True` arguments from field definitions. Default: True
+    :param raises:
+        When `True`, raise `ValidationError` at the end if errors were
+        found. Default: True
+
     """
 
     __metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
     def __init__(self, data=None, partial=True, raises=True):
-        """
-
-        :param partial:
-            Allow partial data; useful for PATCH requests. Essentilly drops the
-            `required=True` arguments from field definitions. Default: True
-        :param raises:
-            When `True`, raise `ValidationError` at the end if errors were
-            found. Default: True
-
-        """
         if data is None:
             data = {}
 
@@ -347,8 +331,6 @@ class Model(object):
         if key in self:
             return self[key]
         return default
-
-    # Representation Descriptors
 
     def __repr__(self):
         try:

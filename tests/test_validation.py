@@ -152,7 +152,6 @@ class TestErrors(unittest.TestCase):
         class Course(Model):
             id = StringType(required=True, validators=[])
             attending = ListType(ModelType(Person))
-            prerequisit = ModelType("self")
 
         class School(Model):
             courses = ListType(ModelType(Course))
@@ -167,27 +166,36 @@ class TestErrors(unittest.TestCase):
         'courses': [
             {'id': 'ENG103', 'attending': [
                 {'name': u'Danny'},
-                {'name': u'Sandy'}],
-             'prerequisit': None},
+                {'name': u'Sandy'}]},
             {'id': 'ENG203', 'attending': [
                 {'name': u'Danny'},
-                {'name': u'Sandy'}],
-             'prerequisit': {'id': 'ENG103'}}
+                {'name': u'Sandy'}
+            ]}
         ]
     }
 
-    def _test_deep_errors(self):
+    def test_deep_errors(self):
 
         valid = self.school.validate(self.valid_data)
         self.assertTrue(valid)
-        course1, course2 = self.school.courses
-        self.assertIsNone(course1.prerequisit)
-        self.assertIsInstance(course2.prerequisit, self.Course)
-
         invalid_data = self.school.serialize()
         invalid_data['courses'][0]['attending'][0]['name'] = None
-        valid = self.school.validate(invalid_data)
+        valid = self.school.validate(invalid_data, raises=False)
         self.assertFalse(valid)
+
+    def test_field_binding(self):
+
+        new_school = self.School()
+        new_school.validate(self.valid_data)
+
+        self.school.validate(self.valid_data)
+
+        self.assertNotEqual(id(new_school), id(self.school))
+
+        self.assertNotEqual(
+            id(new_school.courses[0].attending[0]),
+            id(self.school.courses[0].attending[0])
+        )
 
 
 if __name__ == '__main__':

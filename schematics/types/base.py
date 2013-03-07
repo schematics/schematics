@@ -21,33 +21,30 @@ class BaseType(object):
     """A base class for Types in a Structures model. Instances of this
     class may be added to subclasses of `Model` to define a model schema.
 
+    :param required:
+        Invalidate field when value is None or is not supplied. Default:
+        False.
+    :param default:
+        When no data is provided default to this value. May be a callable.
+        Default: None.
+    :param serialized_name:
+        The name of this field defaults to the class attribute used in the
+        model. However if the field has another name in foreign data set
+        this argument. Serialized data will use this value for the key name
+        too.
+    :param choices:
+        An iterable of valid choices. This is the last step of the validator
+        chain.
+    :param validators:
+        A list of callables. Each callable receives the value of the
+        previous validator and in turn returns the value, not necessarily
+        unchanged. `ValidationError` or `StopValidation` exceptions are
+        caught and aggregated into an errors structure. Default: []
+
     """
 
     def __init__(self, required=False, default=None, serialized_name=None,
                  choices=None, validators=None, description=None):
-        """
-        :param required:
-            Invalidate field when value is None or is not supplied. Default:
-            False.
-        :param default:
-            When no data is provided default to this value. May be a callable.
-            Default: None.
-        :param serialized_name:
-            The name of this field defaults to the class attribute used in the
-            model. However if the field has another name in foreign data set
-            this argument. Serialized data will use this value for the key name
-            too.
-        :param choices:
-            An iterable of valid choices. This is the last step of the validator
-            chain.
-        :param validators:
-            A list of callables. Each callable receives the value of the
-            previous validator and in turn returns the value, not necessarily
-            unchanged. `ValidationError` or `StopValidation` exceptions are
-            caught and aggregated into an errors structure. Default: []
-
-
-        """
 
         self.required = required
         self.default = default
@@ -361,6 +358,13 @@ class BooleanType(BaseType):
 
 class DateTimeType(BaseType):
     """Defaults to converting to and from ISO8601 datetime values.
+
+    :param formats:
+        A value or list of values suitable for `datetime.datetime.strptime`
+        parsing. Default: `('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S')`
+    :param serialized_format:
+        The output format suitable for Python `strftime`. Default: `'%Y-%m-%dT%H:%M:%S.%f'`
+
     """
 
     DEFAULT_FORMATS = ('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S')
@@ -368,11 +372,6 @@ class DateTimeType(BaseType):
 
     def __init__(self, formats=None, serialized_format=None, **kwargs):
         """
-        :param formats:
-            A value or list of values suitable for `datetime.datetime.strptime`
-            parsing.
-        :param serialized_format:
-            The output format suitable for Python `strftime`.
 
         """
         if isinstance(format, basestring):

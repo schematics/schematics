@@ -94,7 +94,7 @@ class TestDictType(unittest.TestCase):
             slug = StringType()
 
         class PlayerInfo(Model):
-            categories = DictType(ModelType(CategoryStatsInfo), key_coercer=player_id)
+            categories = DictType(ModelType(CategoryStatsInfo), coerce_key=player_id)
 
         stats = CategoryStatsInfo({
             "slug": "math"
