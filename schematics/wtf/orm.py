@@ -90,6 +90,9 @@ class ModelConverter():
         if 'password' in kwargs:
             if kwargs.pop('password'):
                 return f.PasswordField(**kwargs)
+        if 'textarea' in kwargs:
+            if kwargs.pop('textarea'):
+                return f.TextAreaField(**kwargs)
         if field.max_length:
             return f.StringField(**kwargs)
         return f.TextAreaField(**kwargs)
