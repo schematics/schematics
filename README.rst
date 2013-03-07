@@ -7,6 +7,10 @@ There are big API changes in this fork. However it **is** documented and tested.
 Join #schematics on Freenode if you are interested in this project. This fork is
 in the process of being merged into the original.
 
+.. image:: https://secure.travis-ci.org/jokull/schematics.png?branch=master
+  :target: https://secure.travis-ci.org/jokull/schematics
+  :alt: Build Status
+
 Show me the Code!
 ~~~~~~~~~~~~~~~~~
 
@@ -36,6 +40,9 @@ This is currently an unstable, unofficial fork of Schematics. To install this
 fork::
 
   $ pip install git+git@github.com:jokull/schematics.git#egg=schematics
+
+Python 2.7 is supported. 2.6 support is close but test suite needs to be
+updated.
 
 Documentation
 ~~~~~~~~~~~~~
