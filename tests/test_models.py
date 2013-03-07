@@ -82,13 +82,34 @@ class TestModels(unittest.TestCase):
         class TestModel(Model):
             some_int = IntType()
 
-        tm1 = TestModel()
-        tm1.some_int = 4
+        tm1 = TestModel(some_int=4)
         self.assertEqual(tm1, copy.copy(tm1))
 
-        tm2 = TestModel()
-        tm2.some_int = 4
+        tm2 = TestModel(some_int=4)
         self.assertEqual(tm1, tm2)
+
+        tm3 = TestModel(some_int=5)
+
+        self.assertTrue(tm1 == tm2)
+        self.assertTrue(tm1 != tm3)
+
+    def test_equality_with_submodels(self):
+        class Location(Model):
+            country_code = StringType()
+
+        class Player(Model):
+            id = IntType()
+            location = ModelType(Location)
+
+        p1 = Player(id=1, location={"country_code": "US"})
+        p2 = Player(id=1, location={"country_code": "US"})
+
+        self.assertTrue(p1.location == p2.location)
+        self.assertFalse(p1.location != p2.location)
+        self.assertEqual(p1.location, p2.location)
+
+        self.assertTrue(p1 == p2)
+        self.assertEqual(p1, p2)
 
     def test_model_field_list(self):
         it = IntType()
@@ -275,7 +296,7 @@ class TestCompoundTypes(unittest.TestCase):
         class Card(Model):
             users = ListType(ModelType(User), min_size=1)
 
-        data = {'users': {'name': u'Doggy'}}
+        data = {'users': [{'name': u'Doggy'}]}
         c = Card(**data)
 
         valid = c.validate({'users': None})

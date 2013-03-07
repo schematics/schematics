@@ -65,8 +65,15 @@ class ModelType(MultiType):
         return self.model_class._fields
 
     def convert(self, value):
+        if isinstance(value, self._model_class):
+            if value.errors:
+                raise ValidationError(u'Please supply a clean model instance.')
+            else:
+                return value
+
         if not isinstance(value, dict):
-            raise ValidationError(u'Please use a mapping for this field')
+            raise ValidationError(u'Please use a mapping for this field.')
+
         errors = {}
         result = {}
         for name, field in self.fields.iteritems():
@@ -107,8 +114,12 @@ class ListType(MultiType):
         if value is None:
             return []
         try:
-            if isinstance(value, (dict, basestring)):
+            if isinstance(value, basestring):
                 raise TypeError()
+
+            if isinstance(value, dict):
+                return [value[str(k)] for k in sorted(map(int, value.keys()))]
+
             return list(value)
         except TypeError:
             return [value]

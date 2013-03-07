@@ -150,6 +150,11 @@ class Model(object):
     __metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
+    @classmethod
+    def from_flat(cls, data):
+        from .serialize import expand
+        return cls(**expand(data))
+
     def __init__(self, **data):
         self.initial = data
         self._primitive_fields_names = dict(self._yield_primitive_field_names())
@@ -164,12 +169,15 @@ class Model(object):
         self.errors = {}
         self._data = {}
 
-    def serialize(self, role=None):
+    def serialize(self, role=None, flat=False):
         """Return data as it would be validated. No filtering of output unless
         role is defined.
         """
-        from .serialize import serialize
-        return serialize(self, role)
+        from .serialize import serialize, flatten
+        if flat:
+            return flatten(self, role)
+        else:
+            return serialize(self, role)
 
     def validate(self, input, partial=False, strict=False, raises=False):
         """Validates incoming untrusted data. If `partial` is set it will allow
@@ -272,11 +280,15 @@ class Model(object):
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             keys = self._fields
+
             for key in keys:
-                if self[key] != other[key]:
+                if not self[key] == other[key]:
                     return False
             return True
         return False
+
+    def __ne__(self, other):
+        return not self == other
 
     def get(self, key, default=None):
         if key in self:
