@@ -87,16 +87,14 @@ class TestDictType(unittest.TestCase):
         })
 
     def test_key_type(self):
-        class PlayerIdType(LongType):
-
-            def to_primitive(self, value):
-                return unicode(value)
+        def player_id(value):
+            return long(value)
 
         class CategoryStatsInfo(Model):
             slug = StringType()
 
         class PlayerInfo(Model):
-            categories = DictType(ModelType(CategoryStatsInfo), key_type=PlayerIdType)
+            categories = DictType(ModelType(CategoryStatsInfo), key_coercer=player_id)
 
         stats = CategoryStatsInfo({
             "slug": "math"

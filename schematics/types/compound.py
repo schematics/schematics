@@ -163,23 +163,18 @@ class ListType(MultiType):
 
 class DictType(MultiType):
 
-    def __init__(self, field, key_type=None, **kwargs):
-        if not isinstance(field, BaseType):
-            field = field(**kwargs)
+    def __init__(self, value_type, key_coercer=None, **kwargs):
+        if not isinstance(value_type, BaseType):
+            value_type = value_type(**kwargs)
 
-        key_type = key_type or BaseType()
-        if not isinstance(key_type, BaseType):
-            key_type = key_type()
-
-        self.key_type = key_type
-
-        self.field = field
+        self.key_coercer = key_coercer or (lambda x: x)
+        self.value_type = value_type
 
         super(DictType, self).__init__(**kwargs)
 
     @property
     def model_class(self):
-        return self.field.model_class
+        return self.value_type.model_class
 
     def convert(self, value):
         value = value or {}
@@ -187,7 +182,12 @@ class DictType(MultiType):
         if not isinstance(value, dict):
             raise ValidationError('Only dictionaries may be used in a DictType')
 
-        return dict((self.key_type(k), self.field(v)) for k, v in value.iteritems())
+        return dict((self.key_coercer(k), self.value_type(v)) for k, v in value.iteritems())
 
     def to_primitive(self, value):
-        return dict((self.key_type.to_primitive(k), self.field.to_primitive(v)) for k, v in value.iteritems())
+        return dict((unicode(k), self.value_type.to_primitive(v)) for k, v in value.iteritems())
+
+    def _bind(self, model, memo):
+        rv = BaseType._bind(self, model, memo)
+        rv.value_type = _bind(self.value_type, model, memo)
+        return rv
