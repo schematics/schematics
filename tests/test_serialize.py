@@ -15,14 +15,14 @@ class TestSerializable(unittest.TestCase):
             def country_name(self):
                 return "United States" if self.country_code == "US" else "Unknown"
 
-        location_US = Location(country_code="US")
+        location_US = Location({"country_code": "US"})
 
         self.assertEqual(location_US.country_name, "United States")
 
         d = location_US.serialize()
         self.assertEqual(d, {"country_code": "US", "country_name": "United States"})
 
-        location_IS = Location(country_code="IS")
+        location_IS = Location({"country_code": "IS"})
 
         self.assertEqual(location_IS.country_name, "Unknown")
 
@@ -37,7 +37,7 @@ class TestSerializable(unittest.TestCase):
             def country_name(self):
                 return "United States" if self.country_code == "US" else "Unknown"
 
-        location_US = Location(cc="US")
+        location_US = Location({"cc": "US"})
 
         self.assertEqual(location_US.country_name, "United States")
 
@@ -57,7 +57,7 @@ class TestSerializable(unittest.TestCase):
             def player_id(self):
                 return self.id
 
-        player = Player(id=1)
+        player = Player({"id": 1})
 
         self.assertEqual(player.id, 1)
         self.assertEqual(player.player_id, 1)

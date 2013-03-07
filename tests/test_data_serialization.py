@@ -16,7 +16,7 @@ class ModelSerializer:
     public_safe = dict()
 
     def setUp(self):
-        self.instance = self.klass(**self.description)
+        self.instance = self.klass(self.description)
         self.as_dict = self.instance.serialize()
         self.dict_owner_safe = self.owner_safe
         self.dict_public_safe = self.public_safe
@@ -26,6 +26,8 @@ class ModelSerializer:
 
     def test_dict_owner_safe(self):
         dict_owner_safe = self.instance.serialize(role="owner")
+        # print pj(self.dict_owner_safe)
+        # print pj(dict_owner_safe)
         self.assertEqual(self.dict_owner_safe, dict_owner_safe)
 
     def test_dict_public_safe(self):
@@ -176,7 +178,7 @@ class TestAltFieldNames(unittest.TestCase):
 
     def setUp(self):
         self.description = {'something_else': 'whatever'}
-        self.instance = self.klass(**self.description)
+        self.instance = self.klass(self.description)
 
     def test_serialize_print_names(self):
         self.assertEqual(self.instance.title, 'whatever')

@@ -79,19 +79,20 @@ class TestListTypeWithModelType(unittest.TestCase):
 
         field = ListType(ModelType(User), min_size=1)
 
-        self.assertFalse(field.validate(None))
+        with self.assertRaises(ValidationError):
+            field.validate(None)
 
         class Card(Model):
             users = field
 
         with self.assertRaises(ValidationError) as cm:
-            Card(users=None)
+            Card({"users": None})
 
         exception = cm.exception
         self.assertEqual(exception.messages['users'], [u'This field is required.'])
 
         with self.assertRaises(ValidationError) as cm:
-            Card(users=[])
+            Card({"users": []})
 
         exception = cm.exception
         self.assertEqual(exception.messages['users'], [u'Please provide at least 1 item.'])

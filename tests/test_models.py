@@ -31,7 +31,7 @@ class TestOptions(unittest.TestCase):
         self.assertNotEqual(mo, None)
 
         # Test that a value for roles was generated
-        self.assertEqual(mo.roles, None)
+        self.assertEqual(mo.roles, {})
 
     def test_bad_options_args(self):
         args = {
@@ -62,33 +62,17 @@ class TestOptions(unittest.TestCase):
 
 
 class TestModels(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
-    def test_init_with_kwargs(self):
-        class Player(Model):
-            id = IntType()
-            display_name = StringType()
-
-        player = Player(id=1, display="johann")
-
-        self.assertEqual(player.id, 1)
-        self.assertEqual(player.display_name, "johann")
-
     def test_equality(self):
         class TestModel(Model):
             some_int = IntType()
 
-        tm1 = TestModel(some_int=4)
+        tm1 = TestModel({"some_int": 4})
         self.assertEqual(tm1, copy.copy(tm1))
 
-        tm2 = TestModel(some_int=4)
+        tm2 = TestModel({"some_int": 4})
         self.assertEqual(tm1, tm2)
 
-        tm3 = TestModel(some_int=5)
+        tm3 = TestModel({"some_int": 5})
 
         self.assertTrue(tm1 == tm2)
         self.assertTrue(tm1 != tm3)
@@ -155,8 +139,10 @@ class TestModelInterface(unittest.TestCase):
         class TestModel(Model):
             name = StringType(required=True)
             bio = StringType()
-        model = TestModel()
-        self.assertEqual(model.validate({'bio': 'Genius'}, partial=True), True)
+
+        model = TestModel({'bio': 'Genius'}, partial=True)
+
+        self.assertIsNone(model.name)
         self.assertEqual(model.bio, 'Genius')
 
     def test_raises_validation_error_on_init(self):
@@ -165,7 +151,7 @@ class TestModelInterface(unittest.TestCase):
             bio = StringType(required=True)
 
         with self.assertRaises(ValidationError):
-            User(name="Joe")
+            User(dict(name="Joe"))
 
     def test_model_inheritance(self):
         class Parent(Model):
@@ -174,40 +160,40 @@ class TestModelInterface(unittest.TestCase):
         class Child(Parent):
             bio = StringType()
 
-        self.assertEqual(hasattr(Child(), '_options'), True)
-
         input_data = {'bio': u'Genius', 'name': u'Joey'}
 
-        model = Child(name="Joey")
+        model = Child({
+            "name": "Joey"
+        })
         self.assertEqual(model.validate(input_data), True)
         self.assertEqual(model.serialize(), input_data)
 
-        child = Child(name="Baby Jane", bio="Always behaves")
+        child = Child({"name": "Baby Jane", "bio": "Always behaves"})
         self.assertEqual(child.name, "Baby Jane")
         self.assertEqual(child.bio, "Always behaves")
-
-        model = Child()
-
-        self.assertEqual(hasattr(model, '_options'), True)
-
-        input = {'bio': u'Genius', 'name': u'Joey'}
-        self.assertEqual(model.validate(input), True)
-        self.assertEqual(model.serialize(), input)
 
     def test_role_propagate(self):
         class Address(Model):
             city = StringType()
+
             class Options:
                 roles = {'public': whitelist('city')}
+
         class User(Model):
             name = StringType(required=True)
             password = StringType()
             addresses = ListType(ModelType(Address))
+
             class Options:
                 roles = {'public': whitelist('name')}
-        model = User()
-        self.assertEqual(model.validate({'name': 'a', 'addresses': [{'city': 'gotham'}]}), True)
+
+        model = User({'name': 'a', 'addresses': [{'city': 'gotham'}]})
         self.assertEqual(model.addresses[0].city, 'gotham')
+
+        d = model.serialize(role="public")
+        self.assertEqual(d, {
+            "name": "a",
+        })
 
 
 class TestCompoundTypes(unittest.TestCase):
@@ -217,11 +203,13 @@ class TestCompoundTypes(unittest.TestCase):
     def test_init(self):
         class User(Model):
             pass
+
         User()
 
     def test_field_default(self):
         class User(Model):
             name = StringType(default=u'Doggy')
+
         u = User()
         self.assertEqual(User.name.__class__, StringType)
         self.assertEqual(u.name, u'Doggy')
@@ -229,10 +217,13 @@ class TestCompoundTypes(unittest.TestCase):
     def test_model_type(self):
         class User(Model):
             name = StringType()
+
         class Card(Model):
             user = ModelType(User)
-        c = Card(user={'name': u'Doggy'})
+
+        c = Card({"user": {'name': u'Doggy'}})
         self.assertIsInstance(c.user, User)
+        self.assertEqual(c.user.name, "Doggy")
 
     def test_as_field_validate(self):
         class User(Model):
@@ -241,8 +232,7 @@ class TestCompoundTypes(unittest.TestCase):
         class Card(Model):
             user = ModelType(User)
 
-        c = Card()
-        c.validate(dict(user={'name': u'Doggy'}))
+        c = Card({"user": {'name': u'Doggy'}})
         self.assertEqual(c.user.name, u'Doggy')
         self.assertEqual(c.validate(dict(user=[1])), False)
         self.assertEqual(c.user.name, u'Doggy', u'Validation should not remove or modify existing data')
@@ -264,16 +254,22 @@ class TestCompoundTypes(unittest.TestCase):
 
     def test_list_field(self):
         class User(Model):
-            ids = ListType(StringType)
-        c = User()
+            ids = ListType(StringType, required=True)
+
+        c = User({
+            "ids": []
+        })
         self.assertEqual(c.validate({'ids': []}), True)
 
     def test_list_field_required(self):
         class User(Model):
-            ids = ListType(StringType, required=True)
+            ids = ListType(StringType(required=True))
 
-        c = User(ids=[])
+        c = User({
+            "ids": []
+        })
 
+        self.assertEqual(c.validate({'ids': [1]}), True)
         self.assertEqual(c.validate({'ids': [None]}), False)
         self.assertIsInstance(c.errors, dict)
 
@@ -282,8 +278,8 @@ class TestCompoundTypes(unittest.TestCase):
             ids = ListType(IntType)
             date = DateTimeType()
 
-        c = User()
-        self.assertEqual(c.validate({'ids': ["1", "2"]}), True)
+        c = User({'ids': ["1", "2"]})
+
         self.assertEqual(c.ids, [1, 2])
         now = datetime.datetime.now()
         self.assertEqual(c.validate({'date': now.isoformat()}), True)
@@ -297,7 +293,7 @@ class TestCompoundTypes(unittest.TestCase):
             users = ListType(ModelType(User), min_size=1)
 
         data = {'users': [{'name': u'Doggy'}]}
-        c = Card(**data)
+        c = Card(data)
 
         valid = c.validate({'users': None})
         self.assertFalse(valid)

@@ -14,7 +14,7 @@ class FlattenTests(unittest.TestCase):
             country_code = StringType()
             region_code = StringType()
 
-        info = Location(country_code="US", region_code="CA")
+        info = Location(dict(country_code="US", region_code="CA"))
         flat_dict = info.serialize(flat=True)
 
         self.assertEqual(flat_dict, {
@@ -36,8 +36,8 @@ class FlattenTests(unittest.TestCase):
             id = StringType()
             location = ModelType(Location)
 
-        location = Location(country_code="US", region_code="CA")
-        info = PlayerInfo(id=1, location=location)
+        location = Location(dict(country_code="US", region_code="CA"))
+        info = PlayerInfo(dict(id=1, location=location))
 
         flat_dict = info.serialize(flat=True)
 
@@ -67,18 +67,18 @@ class FlattenTests(unittest.TestCase):
             id = StringType()
             location = ModelType(Location)
 
-        location_info = Location(
+        location_info = Location(dict(
             country_code="US",
             region_code="CA",
             something={
                 "id": 1
             }
-        )
+        ))
 
-        info = PlayerInfo(
+        info = PlayerInfo(dict(
             id="1",
             location=location_info
-        )
+        ))
 
         flat_dict = info.serialize(flat=True)
 
@@ -132,7 +132,7 @@ class FlattenTests(unittest.TestCase):
                 }
             }]
         }
-        info = PlayerCategoryInfo(**input_data)
+        info = PlayerCategoryInfo(input_data)
 
         flat_dict = info.serialize(flat=True)
 

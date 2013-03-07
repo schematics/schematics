@@ -2,6 +2,7 @@ import inspect
 import itertools
 
 from .types import BaseType
+from .types.bind import _bind
 from .types.compound import MultiType
 from .exceptions import ValidationError
 
@@ -55,10 +56,10 @@ class ModelOptions(object):
 
     It also creates errors in cases where unknown options parameters are found.
     """
-    def __init__(self, klass, namespace=None, roles={}):
+    def __init__(self, klass, namespace=None, roles=None):
         self.klass = klass
         self.namespace = namespace
-        self.roles = roles
+        self.roles = roles or {}
 
 
 class ModelMeta(type):
@@ -70,8 +71,8 @@ class ModelMeta(type):
         serializables = {}
 
         for base in reversed(bases):
-            if hasattr(base, '_fields'):
-                fields.update(base._fields)
+            if hasattr(base, 'fields'):
+                fields.update(base.fields)
 
             if hasattr(base, '_serializables'):
                 serializables.update(base._serializables)
@@ -83,7 +84,7 @@ class ModelMeta(type):
                 serializables[key] = value
 
         for key, field in fields.iteritems():
-            attrs[key] = FieldDescriptor(key)
+            attrs[key] = FieldDescriptor(key)  # For accessing internal data by field name attributes
 
         # Create a valid ModelOptions instance in `_options`
         _options_class = getattr(attrs, '__classoptions__', ModelOptions)
@@ -94,8 +95,9 @@ class ModelMeta(type):
                     _options_members[k] = v
         attrs['_options'] = _options_class(cls, **_options_members)
 
-        attrs['_fields'] = fields
         attrs["_serializables"] = serializables
+        attrs['_unbound_fields'] = fields
+
         klass = type.__new__(cls, name, bases, attrs)
 
         for field in fields.values():
@@ -105,7 +107,7 @@ class ModelMeta(type):
 
     @property
     def fields(cls):
-        return cls._fields
+        return cls._unbound_fields
 
 
 class FieldDescriptor(object):
@@ -116,7 +118,7 @@ class FieldDescriptor(object):
     def __get__(self, obj, type=None):
         try:
             if obj is None:
-                return type._fields[self.name]
+                return type.fields[self.name]
             return obj._data[self.name]
         except KeyError:
             raise AttributeError(self.name)
@@ -124,7 +126,7 @@ class FieldDescriptor(object):
     def init_model(self, field, value):
         """If raw values are assigned to a ModelType assign a model instance."""
         if isinstance(value, dict):  # But not an instance, make it one
-            model = field.model_class(**value)
+            model = field.model_class(data=value)
             return model
         return value
 
@@ -153,13 +155,21 @@ class Model(object):
     @classmethod
     def from_flat(cls, data):
         from .serialize import expand
-        return cls(**expand(data))
+        return cls(expand(data))
 
-    def __init__(self, **data):
+    def __init__(self, data=None, validate=True, partial=False, **kwargs):
+        if data is None:
+            data = {}
+
         self.initial = data
+        self._fields = {}
+        self.memo = {}
+        for name, field in self._unbound_fields.iteritems():
+            self._fields[name] = _bind(field, self, self.memo)
         self._primitive_fields_names = dict(self._yield_primitive_field_names())
+
         self.reset()
-        self.validate(data, raises=True)
+        self.validate(data, partial=partial, raises=validate)
 
     def _yield_primitive_field_names(self):
         for name in self._fields:
@@ -179,7 +189,7 @@ class Model(object):
         else:
             return serialize(self, role)
 
-    def validate(self, input, partial=False, strict=False, raises=False):
+    def validate(self, input_data, partial=False, strict=False, raises=False):
         """Validates incoming untrusted data. If `partial` is set it will allow
         partial data to validate, useful for PATCH requests. Returns a clean
         instance.
@@ -198,9 +208,9 @@ class Model(object):
         data = {}
 
         if partial:
-            needs_check = lambda k, v: k in input
+            needs_check = lambda k, v: k in input_data
         else:
-            needs_check = lambda k, v: v.required or k in input
+            needs_check = lambda k, v: v.required or k in input_data
 
         # Validate data based on cls's structure
         for field_name, field in self._fields.iteritems():
@@ -213,16 +223,16 @@ class Model(object):
                 # though required is set to None if this is not a partial update.
                 # For this to validate the user should pick a partial validate.
 
-                field_value = input.get(serialized_field_name)
+                field_value = input_data.get(serialized_field_name)
 
                 if field.required and field_value is None:
                     errors[field_name] = [u"This field is required."]
                     continue
 
-                if field.validate(field_value):
-                    data[field_name] = field.clean
-                else:
-                    errors[field_name] = field.errors
+                try:
+                    data[field_name] = field.validate(field_value)
+                except ValidationError, e:
+                    errors[field_name] = e.messages
 
         # Report rogue fields as errors if `strict`
         if strict:
@@ -282,7 +292,7 @@ class Model(object):
             keys = self._fields
 
             for key in keys:
-                if not self[key] == other[key]:
+                if self[key] != other[key]:
                     return False
             return True
         return False

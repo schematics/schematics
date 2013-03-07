@@ -29,11 +29,11 @@ class BaseType(object):
         self.default = default
         self.serialized_name = serialized_name
         self.choices = choices
-        self.validators = validators
+        self.validators = validators or []
         self.description = description
 
     def __call__(self, value):
-        return self.convert(value)
+        return self.validate(value)
 
     def to_primitive(self, value):
         """Convert a Structures type into a value safe for JSON encoding
@@ -55,24 +55,18 @@ class BaseType(object):
 
         """
 
-        try:
-            del self.errors
-            del self.clean
-        except AttributeError:
-            pass
-
-        self.errors = []
+        errors = []
 
         def aggregate_from_exception_errors(e):
             print e.__dict__, e.args
             if e.args and e.args[0]:
                 if isinstance(e.args, (tuple, list)):
-                    errors = e.args[0]
+                    _errors = e.args[0]
                 elif isinstance(e.args[0], basestring):
-                    errors = [e.args[0]]
+                    _errors = [e.args[0]]
                 else:
-                    errors = []
-                return self.errors.extend(errors)
+                    _errors = []
+                return errors.extend(_errors)
 
         validator_chain = itertools.chain(
             [
@@ -89,18 +83,17 @@ class BaseType(object):
             except ValidationError, e:
                 aggregate_from_exception_errors(e)
                 if isinstance(e, StopValidation):
-                    return False
+                    break
             else:
                 # Break validation chain if any of the
                 # validators legally returns None
                 if not self.required and value is None:
                     break
 
-        if self.errors:
-            return False
+        if errors:
+            raise ValidationError(errors)
 
-        self.clean = value
-        return True
+        return value
 
     def required_validation(self, value):
         if self.required and value is None:
@@ -113,6 +106,23 @@ class BaseType(object):
             if value not in self.choices:
                 raise ValidationError(u'Value must be one of %s.' % unicode(self.choices))
         return value
+
+    def _bind(self, model, memo):
+        """Method that binds a field to a model. If `model` is None, a copy of
+        the field is returned."""
+        if model is not None and self.bound:
+            raise TypeError('%r already bound' % type(model).__name__)
+        rv = object.__new__(self.__class__)
+        rv.__dict__.update(self.__dict__)
+        rv.validators = self.validators[:]
+        if model is not None:
+            rv.model = model
+        return rv
+
+    @property
+    def bound(self):
+        """True if the form is bound."""
+        return 'model' in self.__dict__
 
 
 class UUIDType(BaseType):
@@ -142,6 +152,8 @@ class StringType(BaseType):
 
     """
 
+    allow_casts = (int, str)
+
     def __init__(self, regex=None, max_length=None, min_length=1, **kwargs):
         self.regex = re.compile(regex) if regex else None
         super(StringType, self).__init__(**kwargs)
@@ -149,7 +161,13 @@ class StringType(BaseType):
         self.min_length = min_length
 
     def convert(self, value):
-        value = force_unicode(value)
+        if not isinstance(value, unicode):
+            if isinstance(value, self.allow_casts):
+                if not isinstance(value, str):
+                    value = str(value)
+                value = unicode(value, 'utf-8')
+            else:
+                raise ValidationError(u'Illegal data value')
 
         if self.max_length is not None and len(value) > self.max_length:
             raise ValidationError(u'String value is too long')
@@ -196,16 +214,10 @@ class NumberType(BaseType):
         self.max_value = max_value
         super(NumberType, self).__init__(**kwargs)
 
-    def __set__(self, instance, value):
-        if value is not None and not isinstance(value, self.number_class):
-            if self.number_class:
-                value = self.number_class(value)
-        instance._data[self.field_name] = value
-
     def convert(self, value):
         try:
             value = self.number_class(value)
-        except:
+        except ValueError, e:
             raise ValidationError('Not %s' % self.number_type)
 
         if self.min_value is not None and value < self.min_value:

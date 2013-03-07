@@ -9,9 +9,7 @@ def _reduce_loop(model):
     collected in a truple and yielded, making this a generator.
     """
     for field_name, field_instance in model:
-        if field_name not in model:
-            continue
-        field_value = model[field_name]
+        field_value = model.get(field_name)
         yield (field_name, field_instance, field_value)
 
 
@@ -30,17 +28,17 @@ def apply_shape(model, model_converter, role, gottago):
         if gottago(field_name, field_value):
             continue
 
-        if field_value is None:
+        elif field_value is None:
             model_dict[serialized_name] = None
             continue
 
         # Convert field as single model
-        if isinstance(field_instance, ModelType):
+        elif isinstance(field_instance, ModelType):
             model_dict[serialized_name] = model_converter(field_value)
             continue
 
         # Convert field as list of models
-        if isinstance(field_instance, ListType):
+        elif isinstance(field_instance, ListType):
             if field_value and isinstance(field_value[0], Model):
                 model_dict[serialized_name] = [model_converter(vi)
                                                for vi in field_value]

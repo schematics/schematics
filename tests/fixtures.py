@@ -114,11 +114,11 @@ class Comment(Model):
         }
 
 
-comment1 = Comment(text='This post was awesome!', username='bro',
-                   email='bru@dudegang.com')
+comment1 = Comment(dict(text=u'This post was awesome!', username=u'bro',
+                   email='bru@dudegang.com'))
 
-comment2 = Comment(text='This post is ridiculous', username='barbie',
-                   email='barbie@dudegang.com')
+comment2 = Comment(dict(text=u'This post is ridiculous', username=u'barbie',
+                   email=u'barbie@dudegang.com'))
 
 
 class BlogPost(Model):
@@ -127,6 +127,7 @@ class BlogPost(Model):
     author = ModelType(Author)
     comments = ListType(ModelType(Comment))
     deleted = BooleanType()
+
     class Options:
         roles = {
             'owner': blacklist('personal_thoughts'),
@@ -134,13 +135,13 @@ class BlogPost(Model):
         }
 
 
-content = """Retro single-origin coffee chambray stumptown, scenester VHS
+content = u"""Retro single-origin coffee chambray stumptown, scenester VHS
 bicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free
 trust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed
 """
 
-blogpost = BlogPost(title='Hipster Hodgepodge', author=author, content=content,
-                    comments=[comment1, comment2], deleted=False)
+blogpost = BlogPost(dict(title=u'Hipster Hodgepodge', author=author, content=content,
+                    comments=[comment1, comment2], deleted=False))
 
 
 #
@@ -175,8 +176,8 @@ class TaskList(Model):
 # Actions
 #
 
-a1 = Action(value='Hello Mike', tags=['Erlang', 'Mike Williams'])
-a2 = Action(value='Hello Joe', tags=['Erlang', 'Joe Armstrong'])
+a1 = Action(dict(value='Hello Mike', tags=['Erlang', 'Mike Williams']))
+a2 = Action(dict(value='Hello Joe', tags=['Erlang', 'Joe Armstrong']))
 
 
 #
@@ -216,8 +217,7 @@ class BasicUser(Model):
 
 
 # Create instance with bogus password
-u = BasicUser()
-u.name = 'test hash'
+u = BasicUser(dict(name='test hash'))
 u.set_password('whatevz')
 
 
@@ -234,10 +234,6 @@ total_input = {
 }
 
 
-# Check all types and collect all failures
-#exceptions = User.validate_class_types(total_input, validate_all=True)
-
-
 #
 # Type Security
 #
@@ -245,7 +241,7 @@ total_input = {
 # Add the rogue type back to `total_input`
 total_input['rogue_field'] = 'MWAHAHA'
 
-user_doc = BasicUser(**total_input)
+user_doc = BasicUser(total_input)
 #print 'Document as Python:\n    %s\n' % (user_doc.to_python())
 safe_doc = user_doc.serialize()  # to_safe_dict(BasicUser, user_doc, 'owner')
 #print 'Owner safe doc:\n    %s\n' % (safe_doc)
