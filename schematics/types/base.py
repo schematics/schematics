@@ -20,10 +20,34 @@ def force_unicode(obj, encoding='utf-8'):
 class BaseType(object):
     """A base class for Types in a Structures model. Instances of this
     class may be added to subclasses of `Model` to define a model schema.
+
     """
 
     def __init__(self, required=False, default=None, serialized_name=None,
                  choices=None, validators=None, description=None):
+        """
+        :param required:
+            Invalidate field when value is None or is not supplied. Default:
+            False.
+        :param default:
+            When no data is provided default to this value. May be a callable.
+            Default: None.
+        :param serialized_name:
+            The name of this field defaults to the class attribute used in the
+            model. However if the field has another name in foreign data set
+            this argument. Serialized data will use this value for the key name
+            too.
+        :param choices:
+            An iterable of valid choices. This is the last step of the validator
+            chain.
+        :param validators:
+            A list of callables. Each callable receives the value of the
+            previous validator and in turn returns the value, not necessarily
+            unchanged. `ValidationError` or `StopValidation` exceptions are
+            caught and aggregated into an errors structure. Default: []
+
+
+        """
 
         self.required = required
         self.default = default
@@ -36,22 +60,21 @@ class BaseType(object):
         return self.validate(value)
 
     def to_primitive(self, value):
-        """Convert a Structures type into a value safe for JSON encoding
+        """Convert internal data to a value safe to serialize.
         """
         return value
 
     def convert(self, value):
-        """Convert Python to something safe to serialize to JSON.
+        """Convert untrusted data to a richer Python construct.
         """
         return value
 
     def validate(self, value):
         """
-        Validates the field and returns True or False. `self.errors` will
-        contain any errors raised during validation. This is usually only
-        called by `Form.validate`. If at the end of validate no errors were
-        raised, assign `self.clean` the value. Either `self.errors` or
-        `self.clean` is assigned, never both.
+        Validate the field and return a clean value or raise a `ValidationError`
+        with a list of errors raised by the validation chain. Stop the
+        validation process from continuing through the validators by raising
+        `StopValidation` instead of `ValidationError`.
 
         """
 
@@ -128,23 +151,15 @@ class BaseType(object):
 
 
 class UUIDType(BaseType):
-    """A field that stores a valid UUID value and optionally auto-populates
-    empty values with new UUIDs.
+    """A field that stores a valid UUID value.
     """
 
     def convert(self, value):
-        """Make sure the value is a valid uuid representation.  See
-        http://docs.python.org/library/uuid.html for accepted formats.
-        """
-
         if not isinstance(value, (uuid.UUID,)):
             value = uuid.UUID(value)
-
         return value
 
     def to_primitive(self, value):
-        """Return a JSON safe version of the UUID object.
-        """
         return str(value)
 
 
@@ -323,7 +338,12 @@ class SHA1Type(BaseType):
 
 
 class BooleanType(BaseType):
-    """A boolean field type.
+    """A boolean field type. In addition to `True` and `False`, coerces these
+    values:
+
+    + For `True`: "True", "true", "1"
+    + For `False`: "False", "false", "0"
+
     """
 
     TRUE = ('True', 'true', '1')
@@ -341,27 +361,33 @@ class BooleanType(BaseType):
 
 
 class DateTimeType(BaseType):
-    """A datetime field.
+    """Defaults to converting to and from ISO8601 datetime values.
     """
 
-    input_formats = ('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S')
+    DEFAULT_FORMATS = ('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S')
+    SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 
-    def __init__(self, input_format=None, format=input_formats[0], **kwargs):
-        if input_format is not None:
-            if not isinstance(input_format, (tuple, list)):
-                input_format = [input_format]
-            self.input_formats = input_format
-        self.format = format
+    def __init__(self, formats=None, serialized_format=None, **kwargs):
+        """
+        :param formats:
+            A value or list of values suitable for `datetime.datetime.strptime`
+            parsing.
+        :param serialized_format:
+            The output format suitable for Python `strftime`.
+
+        """
+        if isinstance(format, basestring):
+            formats = [formats]
+        if formats is None:
+            formats = self.DEFAULT_FORMATS
+        if serialized_format is None:
+            serialized_format = self.SERIALIZED_FORMAT
+        self.formats = formats
+        self.serialized_format = serialized_format
         super(DateTimeType, self).__init__(**kwargs)
 
     def convert(self, value):
-        """Takes a string in ISO8601 format and converts it to a Python
-        datetime. http://www.w3.org/TR/NOTE-datetime
-
-        """
-
-        for format in self.input_formats:
-            print value, format
+        for format in self.formats:
             try:
                 return datetime.datetime.strptime(value, format)
             except (ValueError, TypeError):
@@ -369,9 +395,9 @@ class DateTimeType(BaseType):
         raise ValidationError(u'Could not parse {}. Should be ISO8601.'.format(value))
 
     def to_primitive(self, value):
-        if callable(self.format):
-            return format(value)
-        return value.strftime(self.format)
+        if callable(self.serialized_format):
+            return self.serialized_format(value)
+        return value.strftime(self.serialized_format)
 
 
 class GeoPointType(BaseType):
