@@ -92,16 +92,61 @@ You can patch the object by assigning attributes to fields with raw data too
 
 Notice that `ModelType` instances return `Model` instances.
 
-Serialization
-~~~~~~~~~~~~~
+Serialization and Roles
+~~~~~~~~~~~~~~~~~~~~~~~
 
+To present data to clients we have the `Model.serialize` method. Default behavior
+is to output the same data you would need to reproduce the model in it’s current
+state.
 
+.. code-block:: python
+
+  >>> from schematics.models import Model
+  >>> from schematics.types import StringType
+  >>> from schematics.serialize import whitelist
+  >>>
+  >>> class Movie(Model):
+  ...     name = StringType()
+  ...     director = StringType()
+  ...     class Options:
+  ...         roles = {'public': whitelist('name')}
+  ...
+  >>> movie = Movie({'name': u'Trainspotting', 'director': u'Danny Boyle'})
+  >>> movie.serialize()
+  {'director': u'Danny Boyle', 'name': u'Trainspotting'}
+
+Great. We got the primitive data back. Date types would have been cast back and
+forth etc.
+
+What if we wanted to expose this to untrusted parties who mustn’t know the
+director?
+
+.. code-block:: python
+
+  >>> movie.serialize('public')
+  {'name': u'Trainspotting'}
+  >>>
 
 Validation
 ~~~~~~~~~~
 
-Custom validation per field is achieved with a list of callables. By default only
+Custom validation per field is achieved callables in `BaseField.validators`.
 
+.. code-block:: python
+
+  >>> from schematics.exceptions import ValidationError
+  >>> def is_uppercase(value):
+  ...     if value.upper() != value:
+  ...         raise ValidationError(u'Please speak up!')
+  ...     return value
+  ...
+  >>> class Person(Model):
+  ...     name = StringType(validators=[is_uppercase])
+  ...
+  >>> me = Person({'name': u'Jökull'}, raises=False)
+  >>> me.errors
+  {'name': [u'Please speak up!']}
+  >>>
 
 Indices and tables
 ==================
