@@ -205,7 +205,6 @@ def flatten(instance, role, prefix="", **kwargs):
 
         # Convert field as single model
         if isinstance(field_instance, ModelType):
-            print field_value
             flat_dict.update(flatten(field_value, role, prefix=serialized_name))
             continue
 

@@ -65,11 +65,9 @@ class ModelType(MultiType):
         if not isinstance(value, dict):
             raise ValidationError(u'Please use a mapping for this field.')
 
-        print "ModelType.convert",
-
         errors = {}
         result = {}
-        for name, field in self.fields.iteritems():
+        for name, field in self._model_class.fields.iteritems():
             try:
                 result[name] = field.validate(value.get(name))
             except ValidationError, e:
@@ -80,8 +78,9 @@ class ModelType(MultiType):
 
     def to_primitive(self, values):
         result = {}
-        for key, field in self.fields.iteritems():
+        for key, field in self._model_class.fields.iteritems():
             result[key] = field.to_primitive(values[key])
+
         return result
 
     def _bind(self, model, memo):
@@ -164,9 +163,15 @@ class ListType(MultiType):
 
 class DictType(MultiType):
 
-    def __init__(self, field, **kwargs):
+    def __init__(self, field, key_type=None, **kwargs):
         if not isinstance(field, BaseType):
             field = field(**kwargs)
+
+        key_type = key_type or BaseType()
+        if not isinstance(key_type, BaseType):
+            key_type = key_type()
+
+        self.key_type = key_type
 
         self.field = field
 
@@ -182,5 +187,7 @@ class DictType(MultiType):
         if not isinstance(value, dict):
             raise ValidationError('Only dictionaries may be used in a DictType')
 
-        print "DictType.convert", value
-        return dict((k, self.field(v)) for k, v in value.iteritems())
+        return dict((self.key_type(k), self.field(v)) for k, v in value.iteritems())
+
+    def to_primitive(self, value):
+        return dict((self.key_type.to_primitive(k), self.field.to_primitive(v)) for k, v in value.iteritems())
