@@ -5,7 +5,7 @@ class ValidationError(ValueError):
         if not isinstance(messages, (list, tuple, dict)):
             messages = [messages]
         # make all items in the list unicode
-        Exception.__init__(self, self.to_primary(messages))
+        Exception.__init__(self, messages)
         self.messages = messages
 
     def to_primary(self, messages):
