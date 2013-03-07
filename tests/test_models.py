@@ -138,7 +138,10 @@ class TestModelInterface(unittest.TestCase):
             bio = StringType(required=True)
 
         with self.assertRaises(ValidationError):
-            User(dict(name="Joe"))
+            User(dict(name="Joe"), partial=False)
+
+        with self.assertRaises(ValidationError):
+            User({'name': u'Jimi Hendrix'}).validate()
 
     def test_model_inheritance(self):
         class Parent(Model):
@@ -231,12 +234,19 @@ class TestCompoundTypes(unittest.TestCase):
 
         c = Card({"user": {'name': u'Doggy'}})
         self.assertEqual(c.user.name, u'Doggy')
-        self.assertEqual(c.validate(dict(user=[1])), False)
+        self.assertEqual(c.validate(dict(user=[1]), raises=False), False)
         self.assertEqual(c.user.name, u'Doggy', u'Validation should not remove or modify existing data')
 
         c = Card()
-        self.assertEqual(c.validate(dict(user=[1])), False)
+        self.assertEqual(c.validate(dict(user=[1]), raises=False), False)
         self.assertRaises(AttributeError, lambda: c.user.name)
+
+    def test_validation_uses_internal_state(self):
+        class User(Model):
+            name = StringType(required=True)
+            age = IntType(required=True)
+        u = User({'name': u'Henry VIII'})
+        self.assertEqual(u.validate({'age': 99}, raises=False), True, u'Calling `validate` did not take internal state into account')
 
     def test_model_field_validate_structure(self):
         class User(Model):
@@ -266,7 +276,7 @@ class TestCompoundTypes(unittest.TestCase):
         })
 
         self.assertEqual(c.validate({'ids': [1]}), True)
-        self.assertEqual(c.validate({'ids': [None]}), False)
+        self.assertEqual(c.validate({'ids': [None]}, raises=False), False)
         self.assertIsInstance(c.errors, dict)
 
     def test_list_field_convert(self):
@@ -292,7 +302,7 @@ class TestCompoundTypes(unittest.TestCase):
         data = {'users': [{'name': u'Doggy'}]}
         c = Card(data)
 
-        valid = c.validate({'users': None})
+        valid = c.validate({'users': None}, raises=False)
         self.assertFalse(valid)
         self.assertEqual(c.errors['users'], [u'This field is required.'])
         self.assertEqual(c.users[0].name, u'Doggy')

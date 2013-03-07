@@ -177,12 +177,12 @@ class Model(object):
     __metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
-    def __init__(self, data=None, partial=False, raises=True):
+    def __init__(self, data=None, partial=True, raises=True):
         """
 
         :param partial:
             Allow partial data; useful for PATCH requests. Essentilly drops the
-            `required=True` arguments from field definitions. Default: False
+            `required=True` arguments from field definitions. Default: True
         :param raises:
             When `True`, raise `ValidationError` at the end if errors were
             found. Default: True
@@ -218,7 +218,7 @@ class Model(object):
         else:
             return serialize(self, role)
 
-    def validate(self, input_data, partial=False, strict=False, raises=False):
+    def validate(self, input_data=None, partial=False, strict=False, raises=True):
         """Validates incoming untrusted data. If `partial` is set it will.
         If data is valid, update the object state and return `True`, else set
         `self.errors` and return `False`.
@@ -236,12 +236,15 @@ class Model(object):
             Complain about unrecognized keys. Default: False
         :param raises:
             When `True`, raise `ValidationError` at the end if errors were
-            found. Default: False
+            found. Default: True
 
         """
 
         errors = {}
         data = {}
+
+        if input_data is None:
+            input_data = {}
 
         if partial:
             needs_check = lambda k, v: k in input_data
@@ -259,7 +262,11 @@ class Model(object):
                 # though required is set to None if this is not a partial update.
                 # For this to validate the user should pick a partial validate.
 
-                field_value = input_data.get(serialized_field_name)
+                # Fallback to the internal value
+                if serialized_field_name in input_data:
+                    field_value = input_data.get(serialized_field_name)
+                else:
+                    field_value = self._data.get(serialized_field_name)
 
                 if field.required and field_value is None:
                     errors[field_name] = [u"This field is required."]

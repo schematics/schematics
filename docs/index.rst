@@ -143,10 +143,36 @@ Custom validation per field is achieved callables in `BaseField.validators`.
   >>> class Person(Model):
   ...     name = StringType(validators=[is_uppercase])
   ...
-  >>> me = Person({'name': u'Jökull'}, raises=False)
+  >>> me = Person({'name': u'Jökull'}, raises=False)  # Returns False
   >>> me.errors
   {'name': [u'Please speak up!']}
   >>>
+
+What about data integrity? Models don’t guarantee data integrity. They can be
+instantiated with partial data:
+
+.. code-block:: python
+
+  >>> from schematics.types import StringType, IntType, BooleanType
+  >>> from schematics.models import Model
+  >>> class Person(Model):
+      name = StringType(required=True)
+      age = IntType(required=True)
+  ...
+  >>> p1 = Person({'name': 'jbone'})
+  >>> p1.validate(raises=False)
+  False
+  >>> p1.validate({'age': 26})
+  True
+  >>> p1.serialize()
+  {'age': 26, 'name': u'jbone'}
+
+Notice that the model received part of the data on init without complaints.
+`__init__` and  `validate` are much the same, with an important difference: By
+default  `__init__` accepts partial data and validates the keys supplied,
+whereas  `validate` sets partial to `False`. Both can be overriden with the
+`partial` keyword argument. The reason `p1.validate({'age': 26})` validated
+above, with `partial = False` is that `name` was already populated internally.
 
 Indices and tables
 ==================
