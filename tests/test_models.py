@@ -278,6 +278,7 @@ class TestCompoundTypes(unittest.TestCase):
 
         self.assertEqual(c.ids, [1, 2])
         now = datetime.datetime.now()
+
         self.assertEqual(c.validate({'date': now.isoformat()}), True)
         self.assertEqual(c.date, now)
 

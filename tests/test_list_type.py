@@ -74,6 +74,53 @@ from schematics.exceptions import ValidationError
 
 class TestListTypeWithModelType(unittest.TestCase):
 
+    def test_list_with_default_type(self):
+        class CategoryStatsInfo(Model):
+            slug = StringType()
+
+        class PlayerInfo(Model):
+            categories = ListType(ModelType(CategoryStatsInfo))
+
+        math_stats = CategoryStatsInfo(dict(slug="math"))
+        twilight_stats = CategoryStatsInfo(dict(slug="twilight"))
+        info = PlayerInfo({
+            "categories": [{"slug": "math"}, {"slug": "twilight"}]
+        })
+
+        self.assertEqual(info.categories, [math_stats, twilight_stats])
+
+        d = info.serialize()
+        self.assertEqual(d, {
+            "categories": [{"slug": "math"}, {"slug": "twilight"}]
+        })
+
+    def test_coerce_to_list_with_default_type_defaults_to_empty_list(self):
+        class CategoryStatsInfo(Model):
+            slug = StringType()
+
+        class PlayerInfo(Model):
+            categories = ListType(ModelType(CategoryStatsInfo), default=lambda: [])
+
+        info = PlayerInfo()
+        self.assertEqual(info.categories, [])
+
+        d = info.serialize()
+        self.assertEqual(d, {
+            "categories": []
+        })
+
+    def test_list_defaults_to_none(self):
+        class PlayerInfo(Model):
+            following = ListType(StringType)
+
+        info = PlayerInfo()
+
+        self.assertIsNone(info.following)
+
+        self.assertEqual(info.serialize(), {
+            "following": None
+        })
+
     def test_validation_with_min_size(self):
         class User(Model):
             name = StringType()
