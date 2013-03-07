@@ -1,7 +1,7 @@
-Python Data Structures for Humans™.
+**Python Data Structures for Humans™.**
 
-**This is a fork of the `original project
-<https://github.com/j2labs/schematics>`_ by @j2labs**
+This is a fork of the `original project <https://github.com/j2labs/schematics>`_
+by @j2labs
 
 There are big API changes in this fork. However it **is** documented and tested.
 Join #schematics on Freenode if you are interested in this project. This fork is
