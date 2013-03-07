@@ -90,10 +90,14 @@ class ListType(MultiType):
     def __init__(self, field, min_size=None, max_size=None, **kwargs):
         if not isinstance(field, BaseType):
             field = field(**kwargs)
+
         self.field = field
         self.min_size = min_size
         self.max_size = max_size
         super(ListType, self).__init__(**kwargs)
+
+        if min_size is not None:
+            self.required = True
 
     @property
     def model_class(self):
@@ -111,18 +115,21 @@ class ListType(MultiType):
 
     def convert(self, value):
         value = self._force_list(value)
+
         if self.min_size is not None and len(value) < self.min_size:
             message = ({
                 True: u'Please provide at least %d item.',
                 False: u'Please provide at least %d items.'}[self.min_size == 1]
             ) % self.min_size
             raise ValidationError(message)
+
         if self.max_size is not None and len(value) > self.max_size:
             message = ({
                 True: u'Please provide no more than %d item.',
                 False: u'Please provide no more than %d items.'}[self.max_size == 1]
             ) % self.max_size
             raise ValidationError(message)
+
         result = []
         errors = {}
         # Aggregate errors
@@ -133,6 +140,7 @@ class ListType(MultiType):
                 errors[idx] = e
             else:
                 result.append(item)
+
         if errors:
             raise ValidationError(errors)
         return result

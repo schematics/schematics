@@ -68,6 +68,16 @@ class TestModels(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_init_with_kwargs(self):
+        class Player(Model):
+            id = IntType()
+            display_name = StringType()
+
+        player = Player(id=1, display="johann")
+
+        self.assertEqual(player.id, 1)
+        self.assertEqual(player.display_name, "johann")
+
     def test_equality(self):
         class TestModel(Model):
             some_int = IntType()
@@ -82,6 +92,7 @@ class TestModels(unittest.TestCase):
 
     def test_model_field_list(self):
         it = IntType()
+
         class TestModel(Model):
             some_int = it
 
@@ -205,8 +216,10 @@ class TestCompoundTypes(unittest.TestCase):
     def test_as_field_validate(self):
         class User(Model):
             name = StringType()
+
         class Card(Model):
             user = ModelType(User)
+
         c = Card()
         c.validate(dict(user={'name': u'Doggy'}))
         self.assertEqual(c.user.name, u'Doggy')
@@ -220,8 +233,10 @@ class TestCompoundTypes(unittest.TestCase):
     def test_model_field_validate_structure(self):
         class User(Model):
             name = StringType()
+
         class Card(Model):
             user = ModelType(User)
+
         c = Card()
         c.validate({'user': [1, 2]})
         self.assertIn('user', c.errors)
@@ -235,8 +250,9 @@ class TestCompoundTypes(unittest.TestCase):
     def test_list_field_required(self):
         class User(Model):
             ids = ListType(StringType, required=True)
-        c = User()
-        self.assertEqual(c.validate({'ids': []}), True)
+
+        c = User(ids=[])
+
         self.assertEqual(c.validate({'ids': [None]}), False)
         self.assertIsInstance(c.errors, dict)
 
@@ -244,6 +260,7 @@ class TestCompoundTypes(unittest.TestCase):
         class User(Model):
             ids = ListType(IntType)
             date = DateTimeType()
+
         c = User()
         self.assertEqual(c.validate({'ids': ["1", "2"]}), True)
         self.assertEqual(c.ids, [1, 2])
@@ -254,11 +271,14 @@ class TestCompoundTypes(unittest.TestCase):
     def test_list_model_field(self):
         class User(Model):
             name = StringType()
+
         class Card(Model):
             users = ListType(ModelType(User), min_size=1)
-        c = Card()
-        valid = c.validate({'users': {'name': u'Doggy'}})
-        self.assertEqual(valid, True)
+
+        data = {'users': {'name': u'Doggy'}}
+        c = Card(**data)
+
         valid = c.validate({'users': None})
-        self.assertEqual(c.errors['users'], [u'Please provide at least 1 item.'])
+        self.assertFalse(valid)
+        self.assertEqual(c.errors['users'], [u'This field is required.'])
         self.assertEqual(c.users[0].name, u'Doggy')

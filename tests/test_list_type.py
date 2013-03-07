@@ -6,6 +6,7 @@ from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.types.compound import ModelType, ListType
 from schematics.serialize import wholelist
+from schematics.exceptions import ValidationError
 
 
 class TestSetGetSingleScalarData(unittest.TestCase):
@@ -68,6 +69,32 @@ class TestSetGetSingleScalarData(unittest.TestCase):
         self.assertEqual(self.testmodel.errors, {})
         new_list = self.testmodel.the_list
         self.assertEqual(new_list, [2,2,2,2,2,2])
+
+
+class TestListTypeWithModelType(unittest.TestCase):
+
+    def test_validation_with_min_size(self):
+        class User(Model):
+            name = StringType()
+
+        field = ListType(ModelType(User), min_size=1)
+
+        self.assertFalse(field.validate(None))
+
+        class Card(Model):
+            users = field
+
+        with self.assertRaises(ValidationError) as cm:
+            Card(users=None)
+
+        exception = cm.exception
+        self.assertEqual(exception.messages['users'], [u'This field is required.'])
+
+        with self.assertRaises(ValidationError) as cm:
+            Card(users=[])
+
+        exception = cm.exception
+        self.assertEqual(exception.messages['users'], [u'Please provide at least 1 item.'])
 
 
 class TestGetSingleEmbeddedData(unittest.TestCase):

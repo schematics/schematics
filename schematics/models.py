@@ -208,7 +208,7 @@ class Model(object):
                 field_value = input.get(serialized_field_name)
 
                 if field.required and field_value is None:
-                    errors[field_name] = [u"This field is required"]
+                    errors[field_name] = [u"This field is required."]
                     continue
 
                 if field.validate(field_value):
@@ -222,7 +222,7 @@ class Model(object):
             rogues_found = set(data) - set(self._fields)
             if len(rogues_found) > 0:
                 for field_name in rogues_found:
-                    errors[field_name] = [u'%s is an illegal field' % field_name]
+                    errors[field_name] = [u'%s is an illegal field.' % field_name]
 
         if errors:
             self.errors = errors
@@ -238,6 +238,7 @@ class Model(object):
             if callable(field.default):
                 default = field.default()
             data.setdefault(field_name, default)
+
             setattr(self, field_name, data.get(field_name))
 
         return True

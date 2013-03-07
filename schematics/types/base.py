@@ -54,6 +54,7 @@ class BaseType(object):
         self.errors = []
 
         def aggregate_from_exception_errors(e):
+            print e.__dict__, e.args
             if e.args and e.args[0]:
                 if isinstance(e.args, (tuple, list)):
                     errors = e.args[0]
