@@ -62,9 +62,10 @@ class ModelType(MultiType):
             else:
                 return value
 
-        print value
         if not isinstance(value, dict):
             raise ValidationError(u'Please use a mapping for this field.')
+
+        print "ModelType.convert",
 
         errors = {}
         result = {}
@@ -181,5 +182,5 @@ class DictType(MultiType):
         if not isinstance(value, dict):
             raise ValidationError('Only dictionaries may be used in a DictType')
 
-        return value
-
+        print "DictType.convert", value
+        return dict((k, self.field(v)) for k, v in value.iteritems())
