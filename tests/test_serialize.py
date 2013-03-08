@@ -2,7 +2,7 @@
 import unittest
 
 from schematics.models import Model, serializable, Serializable
-from schematics.types import StringType, LongType
+from schematics.types import StringType, LongType, IntType
 
 
 class TestSerializable(unittest.TestCase):
@@ -64,3 +64,22 @@ class TestSerializable(unittest.TestCase):
 
         d = player.serialize()
         self.assertEqual(d, {"id": 1, "player_id": "1"})
+
+    def test_serializable_with_model(self):
+        class ExperienceLevel(Model):
+            level = IntType()
+            title = StringType()
+
+        class Player(Model):
+            total_points = IntType()
+
+            @serializable
+            def xp_level(self):
+                return ExperienceLevel(dict(level=self.total_points * 2, title="Best"))
+
+        player = Player({"total_points": 2})
+
+        self.assertEqual(player.xp_level.level, 4)
+
+        d = player.serialize()
+        self.assertEqual(d, {"total_points": 2, "xp_level": {"level": 4, "title": "Best"}})
