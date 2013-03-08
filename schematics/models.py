@@ -109,21 +109,6 @@ class Model(object):
     models, SQLAlchemy declarative extension and other developer friendly
     libraries.
 
-    >>> from schematics.models import Model
-    >>> from schematics.types import StringType
-    >>> class Person(Model):
-    ...     name = StringType(required=True)
-    ...
-    >>> person = Person({'name': u'Joey Bada$$'})
-    >>>
-
-    Let’s see some validation
-
-    >>> person = Person(raises=False)
-    >>> person.errors
-    {'name': [u'This field is required.']}
-    >>>
-
     :param partial:
         Allow partial data; useful for PATCH requests. Essentilly drops the
         `required=True` arguments from field definitions. Default: True
