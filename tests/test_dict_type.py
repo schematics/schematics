@@ -1,7 +1,7 @@
 
 import unittest
 
-from schematics.models import Model
+from schematics.models import Model, serializable
 from schematics.types import IntType, StringType, LongType
 from schematics.types.compound import ModelType, DictType
 from schematics.serialize import wholelist
@@ -67,7 +67,47 @@ class TestDictType(unittest.TestCase):
             }
         })
 
-    def test_coerce_to_dict_with_default_type_empty(self):
+    def test_dict_type_with_model_type_init_with_instance(self):
+        class ExperienceLevel(Model):
+            level = IntType()
+
+        class CategoryStats(Model):
+            category_slug = StringType()
+            total_wins = IntType()
+
+            @serializable
+            def xp_level(self):
+                return ExperienceLevel(dict(level=self.total_wins))
+
+        class PlayerInfo(Model):
+            id = IntType()
+            categories = DictType(ModelType(CategoryStats))
+            #TODO: Maybe it would be cleaner to have
+            #       DictType(CategoryStats) and implicitly convert to ModelType(CategoryStats)
+
+        math_stats = CategoryStats({
+            "category_slug": "math",
+            "total_wins": 1
+        })
+
+        info = PlayerInfo(dict(id=1, categories={
+            "math": math_stats,
+        }))
+
+        self.assertEqual(info.categories["math"], math_stats)
+
+        d = info.serialize()
+        self.assertEqual(d, {
+            "id": 1,
+            "categories": {
+                "math": {
+                    "category_slug": "math",
+                    "total_wins": 1
+                },
+            }
+        })
+
+    def test_with_empty(self):
         class CategoryStatsInfo(Model):
             slug = StringType()
 
