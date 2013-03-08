@@ -47,7 +47,7 @@ class MultiType(BaseType):
 class ModelType(MultiType):
     def __init__(self, model_class, **kwargs):
         self._model_class = model_class
-	self.fields = {}
+        self.fields = {}
         super(ModelType, self).__init__(**kwargs)
 
     @property
