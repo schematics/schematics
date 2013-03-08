@@ -10,8 +10,8 @@
  */
 
 @import url("basic.css");
-@import url(http://fonts.googleapis.com/css?family=Merriweather:400,900);
-@import url(http://fonts.googleapis.com/css?family=Lato:300,400);
+@import url(//fonts.googleapis.com/css?family=Merriweather:400,900);
+@import url(//fonts.googleapis.com/css?family=Lato:300,400);
 
 /* -- page layout ----------------------------------------------------------- */
 
