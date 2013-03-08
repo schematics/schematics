@@ -36,12 +36,9 @@ def apply_shape(model, model_converter, role, gottago):
             model_dict[serialized_name] = model_converter(field_value)
         elif isinstance(field_instance, ListType):
             if field_value and isinstance(field_value[0], Model):
-                model_dict[serialized_name] = [model_converter(vi)
-                                               for vi in field_value]
+		model_dict[serialized_name] = [model_converter(vi) for vi in field_value]
             else:
                 model_dict[serialized_name] = field_instance.to_primitive(field_value)
-        elif hasattr(field_value, "serialize"):
-            model_dict[serialized_name] = model_converter(field_value)
         else:
             model_dict[serialized_name] = field_instance.to_primitive(field_value)
 
