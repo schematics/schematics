@@ -10,7 +10,7 @@ is geared towards richer data structures like JSON.
 
 + Validating untrusted data from clients
 + Use with ``json.dumps`` and ``json.loads``
-+ Enforce object schemas across internal datastores
++ Enforce schemas and validation across internal datastores
 + Document your object schemas in code for schemaless NoSQL
 
 Quickstart
@@ -21,18 +21,19 @@ Describe data schemas and data geometry with Python classes:
 .. code-block:: python
 
   from schematics.models import Model
-  from schematics.types import StringType
+  from schematics.types import StringType, DecimalType
 
-  class User(Model):
-      name = StringType()
+  class WeatherReport(Model):
+      city = StringType()
+      temperature = DecimalType()
 
-Init ``User`` with some data:
+Create a weather report object from primitive data types
 
 .. code-block:: python
 
-  >>> user = User({'name': u'Clint Eastwood'})
-  >>> user.name
-  u'Clint Eastwood'
+  >>> report = WeatherReport({'city': u'Helsinki', 'temperature': '10.3'})
+  >>> report.temperature
+  Decimal('10.3')
 
 Serialization and Roles
 ~~~~~~~~~~~~~~~~~~~~~~~
