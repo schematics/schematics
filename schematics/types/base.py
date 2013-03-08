@@ -22,8 +22,8 @@ _next_position_hint = itertools.count().next
 
 
 class BaseType(object):
-    """A base class for Types in a Structures model. Instances of this
-    class may be added to subclasses of `Model` to define a model schema.
+    """A base class for Types in a Schematics model. Instances of this
+    class may be added to subclasses of ``Model`` to define a model schema.
 
     :param required:
         Invalidate field when value is None or is not supplied. Default:
@@ -33,17 +33,16 @@ class BaseType(object):
         Default: None.
     :param serialized_name:
         The name of this field defaults to the class attribute used in the
-        model. However if the field has another name in foreign data set
-        this argument. Serialized data will use this value for the key name
-        too.
+        model. However if the field has another name in foreign data set this
+        argument. Serialized data will use this value for the key name too.
     :param choices:
         An iterable of valid choices. This is the last step of the validator
         chain.
     :param validators:
-        A list of callables. Each callable receives the value of the
-        previous validator and in turn returns the value, not necessarily
-        unchanged. `ValidationError` or `StopValidation` exceptions are
-        caught and aggregated into an errors structure. Default: []
+        A list of callables. Each callable receives the value of the previous
+        validator and in turn returns the value, not necessarily unchanged.
+        ``ValidationError`` exceptions are caught and aggregated into an errors
+        structure. Default: []
 
     """
 
@@ -73,10 +72,10 @@ class BaseType(object):
 
     def validate(self, value):
         """
-        Validate the field and return a clean value or raise a `ValidationError`
-        with a list of errors raised by the validation chain. Stop the
-        validation process from continuing through the validators by raising
-        `StopValidation` instead of `ValidationError`.
+        Validate the field and return a clean value or raise a
+        ``ValidationError`` with a list of errors raised by the validation
+        chain. Stop the validation process from continuing through the
+        validators by raising ``StopValidation`` instead of ``ValidationError``.
 
         """
 
@@ -132,7 +131,7 @@ class BaseType(object):
         return value
 
     def _bind(self, model, memo):
-        """Method that binds a field to a model. If `model` is None, a copy of
+        """Method that binds a field to a model. If ``model`` is None, a copy of
         the field is returned."""
         if model is not None and self.bound:
             raise TypeError('%r already bound' % type(model).__name__)
@@ -166,7 +165,7 @@ class UUIDType(BaseType):
 
 class StringType(BaseType):
     """A unicode string field. Default minimum length is one. If you want to
-    accept empty strings, init with `min_length` 0.
+    accept empty strings, init with ``min_length`` 0.
 
     """
 
@@ -339,11 +338,11 @@ class SHA1Type(BaseType):
 
 
 class BooleanType(BaseType):
-    """A boolean field type. In addition to `True` and `False`, coerces these
+    """A boolean field type. In addition to ``True`` and ``False``, coerces these
     values:
 
-    + For `True`: "True", "true", "1"
-    + For `False`: "False", "false", "0"
+    + For ``True``: "True", "true", "1"
+    + For ``False``: "False", "false", "0"
 
     """
 
@@ -365,10 +364,10 @@ class DateTimeType(BaseType):
     """Defaults to converting to and from ISO8601 datetime values.
 
     :param formats:
-        A value or list of values suitable for `datetime.datetime.strptime`
+        A value or list of values suitable for ``datetime.datetime.strptime``
         parsing. Default: `('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S')`
     :param serialized_format:
-        The output format suitable for Python `strftime`. Default: `'%Y-%m-%dT%H:%M:%S.%f'`
+        The output format suitable for Python ``strftime``. Default: ``'%Y-%m-%dT%H:%M:%S.%f'``
 
     """
 
