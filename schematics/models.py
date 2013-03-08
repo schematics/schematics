@@ -158,14 +158,22 @@ class Model(object):
     def from_flat(cls, data):
         return cls(expand(data))
 
-    def serialize(self, role=None, flat=False):
+    def serialize(self, role=None):
         """Return data as it would be validated. No filtering of output unless
         role is defined.
+
+        :param role:
+            Filter output by a specific role
+
         """
-        if flat:
-            return flatten(self, role)
-        else:
-            return serialize(self, role)
+        return serialize(self, role)
+
+    def flatten(self, role=None):
+        """
+        Return data as a pure key-value dictionary, where the values are
+        primitive types (string, bool, int, long).
+        """
+        return flatten(self, role)
 
     def validate(self, input_data=None, partial=False, strict=False, raises=True):
         """Validates incoming untrusted data. If `partial` is set it will.

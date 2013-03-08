@@ -18,7 +18,7 @@ class FlattenTests(unittest.TestCase):
             region_code = StringType()
 
         info = Location(dict(country_code="US", region_code="CA"))
-        flat_dict = info.serialize(flat=True)
+        flat_dict = info.flatten()
 
         self.assertEqual(flat_dict, {
             "country_code": "US",
@@ -42,7 +42,7 @@ class FlattenTests(unittest.TestCase):
         location = Location(dict(country_code="US", region_code="CA"))
         info = PlayerInfo(dict(id=1, location=location))
 
-        flat_dict = info.serialize(flat=True)
+        flat_dict = info.flatten()
 
         self.assertEqual(flat_dict, {
             "id": "1",
@@ -83,7 +83,7 @@ class FlattenTests(unittest.TestCase):
             location=location_info
         ))
 
-        flat_dict = info.serialize(flat=True)
+        flat_dict = info.flatten()
 
         self.assertEqual(flat_dict, {
             "id": "1",
@@ -104,7 +104,7 @@ class FlattenTests(unittest.TestCase):
             categories = ListType(IntType, required=True)
 
         p = PlayerCategoryInfo(dict(id="1", categories=[]))
-        flat = p.serialize(flat=True)
+        flat = p.flatten()
 
         self.assertEqual(flat, {
             "id": "1",
@@ -121,7 +121,7 @@ class FlattenTests(unittest.TestCase):
             categories = ListType(IntType, required=True)
 
         p = PlayerCategoryInfo(dict(id="1", categories=[1, 2, 3]))
-        flat = p.serialize(flat=True)
+        flat = p.flatten()
 
         self.assertEqual(flat, {
             "id": "1",
@@ -173,7 +173,7 @@ class FlattenTests(unittest.TestCase):
         }
         info = PlayerCategoryInfo(input_data)
 
-        flat_dict = info.serialize(flat=True)
+        flat_dict = info.flatten()
 
         self.assertEqual(flat_dict, {
             "id": "1",
@@ -197,7 +197,7 @@ class FlattenTests(unittest.TestCase):
             categories = DictType(IntType, required=True)
 
         p = PlayerCategoryInfo(dict(id="1", categories={}))
-        flat = p.serialize(flat=True)
+        flat = p.flatten()
 
         self.assertEqual(flat, {
             "id": "1",
@@ -214,7 +214,7 @@ class FlattenTests(unittest.TestCase):
             categories = DictType(IntType, required=True)
 
         p = PlayerCategoryInfo(dict(id="1", categories={"a": 1, "b": 2}))
-        flat = p.serialize(flat=True)
+        flat = p.flatten()
 
         self.assertEqual(flat, {
             "id": "1",
@@ -240,7 +240,7 @@ class FlattenTests(unittest.TestCase):
                 "b": {"total_wins": 5},
             }
         ))
-        flat = p.serialize(flat=True)
+        flat = p.flatten()
 
         self.assertEqual(flat, {
             "id": "1",
@@ -267,12 +267,58 @@ class FlattenTests(unittest.TestCase):
 
         self.assertEqual(player.xp_level.level, 4)
 
-        flat = player.serialize(flat=True)
+        flat = player.flatten()
         self.assertEqual(flat, {"total_points": 2})
 
         player_from_flat = Player.from_flat(flat)
         self.assertEqual(player, player_from_flat)
 
+    def test_flatten_ignores_none_by_default(self):
+        class Player(Model):
+            id = StringType()
+            display_name = StringType()
+
+        player = Player({"display_name": "Joe"})
+
+        self.assertIsNone(player.id)
+
+        flat = player.flatten()
+        self.assertEqual(flat, {"display_name": "Joe"})
+
+        player_from_flat = Player.from_flat(flat)
+        self.assertEqual(player, player_from_flat)
+
+    def test_flatten_dicts_coercers_keys_to_strings(self):
+
+        class Player(Model):
+            id = StringType()
+
+        class Game(Model):
+            id = StringType()
+            players = DictType(ModelType(Player), coerce_key=lambda k: int(k))
+
+        g = Game(dict(
+            id="1",
+            players={
+                1: {
+                    "id": 1
+                }
+            }
+        ))
+
+        self.assertEqual(g.id, "1")
+        self.assertEqual(g.players, {1: Player(dict(id="1"))})
+
+        flat = g.flatten()
+
+        self.assertEqual(flat, {
+            "id": "1",
+            "players.1.id": "1"
+        })
+
+        g_from_flat = Game.from_flat(flat)
+
+        self.assertEqual(g, g_from_flat)
 
 
 #     def test_to_flat_dict_ignores_none(self):

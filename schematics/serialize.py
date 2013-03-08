@@ -92,14 +92,14 @@ def blacklist(*field_list):
     return _blacklist
 
 
-def serialize(instance, role, **kw):
+def serialize(instance, role, raise_error_on_role=True, **kw):
     model = instance.__class__
-    model_converter = lambda m: serialize(m, role)
+    model_converter = lambda m: serialize(m, role, raise_error_on_role=False)
 
     gottago = lambda k, v: False
     if role in model._options.roles:
         gottago = model._options.roles[role]
-    elif role:
+    elif role and raise_error_on_role:
         raise ValueError(u'%s Model has no role "%s"' % (
             instance.__class__.__name__, role))
 
@@ -141,7 +141,7 @@ def flatten_list_to_dict(l, role, prefix=None):
 def flatten_dict_to_dict(d, role, prefix=None):
     flat_dict = {}
     for k, v in d.iteritems():
-        key = ".".join((prefix, k))
+        key = ".".join(map(unicode, (prefix, k)))
 
         if hasattr(v.__class__, "_options"):
             flat_dict.update(flatten(v, role, prefix=key))
@@ -153,14 +153,14 @@ def flatten_dict_to_dict(d, role, prefix=None):
     return flat_dict
 
 
-def flatten(instance, role, prefix="", **kwargs):
+def flatten(instance, role, ignore_none=True, prefix="", **kwargs):
     model = instance.__class__
 
     gottago = lambda k, v: False
     if role in model._options.roles:
         gottago = model._options.roles[role]
     elif role:
-        raise ValueError(u'%s Model has no role "%s"' % (
+        raise ValueError(u'Model %s has no role "%s"' % (
             instance.__class__.__name__, role))
 
     flat_dict = {}
@@ -179,7 +179,8 @@ def flatten(instance, role, prefix="", **kwargs):
             serialized_name = ".".join((prefix, serialized_name))
 
         if field_value is None:
-            flat_dict[serialized_name] = None
+            if not ignore_none:
+                flat_dict[serialized_name] = None
         elif isinstance(field_instance, ModelType):
             flat_dict.update(flatten(field_value, role, prefix=serialized_name))
         elif isinstance(field_instance, ListType):
