@@ -1,7 +1,3 @@
-.. Schematics documentation master file, created by
-   sphinx-quickstart on Thu Mar  7 13:45:09 2013.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
 
 Schematics
 ==========
@@ -13,7 +9,7 @@ is geared towards richer data structures like JSON.
 Great for:
 
 + Validating untrusted data from clients
-+ Use with `json.dumps` and `json.loads`
++ Use with ``json.dumps`` and ``json.loads``
 + Enforce object schemas across internal datastores
 + Document your object schemas in code for schemaless NoSQL
 
@@ -37,7 +33,7 @@ Describe data schemas and data geometry with Python classes:
   class User(Model):
       name = StringType()
 
-Init `User` with some data:
+Init ``User`` with some data:
 
 .. code-block:: python
 
@@ -48,7 +44,7 @@ Init `User` with some data:
 Serialization and Roles
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-To present data to clients we have the `Model.serialize` method. Default behavior
+To present data to clients we have the ``Model.serialize`` method. Default behavior
 is to output the same data you would need to reproduce the model in it’s current
 state.
 
@@ -83,7 +79,7 @@ director?
 Validation
 ~~~~~~~~~~
 
-Custom validation per field is achieved callables in `BaseField.validators`.
+Custom validation per field is achieved callables in ``BaseField.validators``.
 
 .. code-block:: python
 
@@ -121,11 +117,11 @@ instantiated with partial data:
   {'age': 26, 'name': u'jbone'}
 
 Notice that the model received part of the data on init without complaints.
-`__init__` and  `validate` are much the same, with an important difference: By
-default  `__init__` accepts partial data and validates the keys supplied,
-whereas  `validate` sets partial to `False`. Both can be overriden with the
-`partial` keyword argument. The reason `p1.validate({'age': 26})` validated
-above, with `partial = False` is that `name` was already populated internally.
+``__init__`` and  ``validate`` are much the same, with an important difference: By
+default  ``__init__`` accepts partial data and validates the keys supplied,
+whereas  ``validate`` sets partial to ``False``. Both can be overriden with the
+``partial`` keyword argument. The reason ``p1.validate({'age': 26})`` validated
+above, with ``partial = False`` is that ``name`` was already populated internally.
 
 What about validation based on other data? Because the field declaration order
 is preserved you can attach model level validation for fields that have access
@@ -151,7 +147,7 @@ field declarations:
   >>> Signup().validate({'name': u'Brad', 'call_me': True})
   False
 
-Here `validate_call_me` can check the internal data state as it becomes
+Here ``validate_call_me`` can check the internal data state as it becomes
 populated *in the order that fields were defined on the model*.
 
 Detailed Example
@@ -176,7 +172,7 @@ What else can Schematics do?
       has_agent = BooleanType(default=True)
       breakout_movie = ModelType(Movie)
 
-`ModelType` and `ListType` traverse validation or serialization of a model down
+``ModelType`` and ``ListType`` traverse validation or serialization of a model down
 to their subfields. You can express structures as deep as you like.
 
 .. code-block:: python
@@ -201,7 +197,7 @@ You can patch the object by assigning attributes to fields with raw data too
   >>> actor.movies
   [<Movie: Movie object>]
 
-Notice that `ModelType` instances return `Model` instances.
+Notice that ``ModelType`` instances return ``Model`` instances.
 
 Indices and tables
 ==================
