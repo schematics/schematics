@@ -109,6 +109,8 @@ class Model(object):
     models, SQLAlchemy declarative extension and other developer friendly
     libraries.
 
+    :param data:
+        Data to validate and apply to the object.
     :param partial:
         Allow partial data; useful for PATCH requests. Essentilly drops the
         `required=True` arguments from field definitions. Default: True
@@ -161,27 +163,31 @@ class Model(object):
         """
         Return data as a pure key-value dictionary, where the values are
         primitive types (string, bool, int, long).
+
+        :param role:
+            Filter output by a specific role
+
         """
         return flatten(self, role)
 
     def validate(self, input_data=None, partial=False, strict=False, raises=True):
-        """Validates incoming untrusted data. If `partial` is set it will.
-        If data is valid, update the object state and return `True`, else set
-        `self.errors` and return `False`.
+        """Validates incoming untrusted data. If ``partial`` is set it will. If
+        data is valid, update the object state and return ``True``, else set
+        ``self.errors`` and return ``False``.
 
-        The internal state of data and errors are kept in `self._data` and
-        `self.errors`, respectively.
+        The internal state of data and errors are kept in ``self._data`` and
+        ``self.errors``, respectively.
 
         :param input_data:
-            A `dict` or `dict`-like structure for incoming data.
+            A ``dict`` or ``dict``-like structure for incoming data.
         :param partial:
             Allow partial data to validate; useful for PATCH requests.
-            Essentilly drops the `required=True` arguments from field
+            Essentilly drops the ``required=True`` arguments from field
             definitions. Default: False
         :param strict:
             Complain about unrecognized keys. Default: False
         :param raises:
-            When `True`, raise `ValidationError` at the end if errors were
+            When ``True``, raise ``ValidationError`` at the end if errors were
             found. Default: True
 
         """
