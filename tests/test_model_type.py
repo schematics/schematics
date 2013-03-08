@@ -4,12 +4,10 @@ import unittest
 
 from schematics.models import Model
 from schematics.types import IntType, StringType
-from schematics.types.compound import ModelType, ListType
-from schematics.serialize import wholelist
-from schematics.exceptions import ValidationError
+from schematics.types.compound import ModelType
 
 
-class TestSetGetSingleScalarData(unittest.TestCase):
+class TestModelType(unittest.TestCase):
 
     def test_simple_embedded_models(self):
         class Location(Model):

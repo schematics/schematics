@@ -3,8 +3,11 @@ import unittest
 
 from schematics.serialize import expand
 from schematics.models import Model
+from schematics.types.serializable import serializable
 from schematics.types import StringType, IntType
-from schematics.types.compound import ModelType, ListType
+from schematics.types.compound import (
+    ModelType, ListType, EMPTY_LIST, DictType, EMPTY_DICT
+)
 
 
 class FlattenTests(unittest.TestCase):
@@ -95,7 +98,43 @@ class FlattenTests(unittest.TestCase):
         self.assertEqual(info, info_from_flat_dict)
         self.assertEqual(info_from_flat_dict.location, location_info)
 
-    def test_to_flat_dict_if_has_json_list_as_attribute(self):
+    def test_flatten_wiht_listtype_empty_value(self):
+        class PlayerCategoryInfo(Model):
+            id = StringType(required=True)
+            categories = ListType(IntType, required=True)
+
+        p = PlayerCategoryInfo(dict(id="1", categories=[]))
+        flat = p.serialize(flat=True)
+
+        self.assertEqual(flat, {
+            "id": "1",
+            "categories": EMPTY_LIST
+        })
+
+        p_from_flat = PlayerCategoryInfo.from_flat(flat)
+        self.assertEqual(p_from_flat.categories, [])
+        self.assertEqual(p, p_from_flat)
+
+    def test_flatten_wiht_listtype_basic_types(self):
+        class PlayerCategoryInfo(Model):
+            id = StringType(required=True)
+            categories = ListType(IntType, required=True)
+
+        p = PlayerCategoryInfo(dict(id="1", categories=[1, 2, 3]))
+        flat = p.serialize(flat=True)
+
+        self.assertEqual(flat, {
+            "id": "1",
+            "categories.0": 1,
+            "categories.1": 2,
+            "categories.2": 3
+        })
+
+        p_from_flat = PlayerCategoryInfo.from_flat(flat)
+        self.assertEqual(p_from_flat.categories, [1, 2, 3])
+        self.assertEqual(p, p_from_flat)
+
+    def test_flatten_with_listtype(self):
         class ExperienceLevelInfo(Model):
             level = IntType()
             stars = IntType()
@@ -151,6 +190,90 @@ class FlattenTests(unittest.TestCase):
         info_from_flat_dict = PlayerCategoryInfo.from_flat(flat_dict)
 
         self.assertEqual(info, info_from_flat_dict)
+
+    def test_flatten_with_dicttype_empty_value(self):
+        class PlayerCategoryInfo(Model):
+            id = StringType(required=True)
+            categories = DictType(IntType, required=True)
+
+        p = PlayerCategoryInfo(dict(id="1", categories={}))
+        flat = p.serialize(flat=True)
+
+        self.assertEqual(flat, {
+            "id": "1",
+            "categories": EMPTY_DICT
+        })
+
+        p_from_flat = PlayerCategoryInfo.from_flat(flat)
+        self.assertEqual(p_from_flat.categories, {})
+        self.assertEqual(p, p_from_flat)
+
+    def test_flatten_with_dicttype_basic_types(self):
+        class PlayerCategoryInfo(Model):
+            id = StringType(required=True)
+            categories = DictType(IntType, required=True)
+
+        p = PlayerCategoryInfo(dict(id="1", categories={"a": 1, "b": 2}))
+        flat = p.serialize(flat=True)
+
+        self.assertEqual(flat, {
+            "id": "1",
+            "categories.a": 1,
+            "categories.b": 2
+        })
+
+        p_from_flat = PlayerCategoryInfo.from_flat(flat)
+        self.assertEqual(p, p_from_flat)
+
+    def test_flatten_with_dicttype_model_types(self):
+        class CategoryStats(Model):
+            total_wins = IntType()
+
+        class PlayerCategoryInfo(Model):
+            id = StringType(required=True)
+            categories = DictType(ModelType(CategoryStats), required=True)
+
+        p = PlayerCategoryInfo(dict(
+            id="1",
+            categories={
+                "a": {"total_wins": 1},
+                "b": {"total_wins": 5},
+            }
+        ))
+        flat = p.serialize(flat=True)
+
+        self.assertEqual(flat, {
+            "id": "1",
+            "categories.a.total_wins": 1,
+            "categories.b.total_wins": 5
+        })
+
+        p_from_flat = PlayerCategoryInfo.from_flat(flat)
+        self.assertEqual(p, p_from_flat)
+
+    def test_flatten_ignores_serializables_by_default(self):
+        class ExperienceLevel(Model):
+            level = IntType()
+            title = StringType()
+
+        class Player(Model):
+            total_points = IntType()
+
+            @serializable
+            def xp_level(self):
+                return ExperienceLevel(dict(level=self.total_points * 2, title="Best"))
+
+        player = Player({"total_points": 2})
+
+        self.assertEqual(player.xp_level.level, 4)
+
+        flat = player.serialize(flat=True)
+        self.assertEqual(flat, {"total_points": 2})
+
+        player_from_flat = Player.from_flat(flat)
+        self.assertEqual(player, player_from_flat)
+
+
 
 #     def test_to_flat_dict_ignores_none(self):
 #         class LocationInfo(StructuredObject):

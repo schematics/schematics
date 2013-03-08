@@ -92,6 +92,12 @@ class ModelType(MultiType):
         return object.__repr__(self)[:-1] + ' for %s>' % self._model_class
 
 
+EMPTY_LIST = "[]"
+# Serializing to flat dict needs to output purely primitive key value types that
+# can be safely put into e.g. redis. An empty list poses a problem as we cant
+# set None as the field can be none
+
+
 class ListType(MultiType):
 
     def __init__(self, field, min_size=None, max_size=None, **kwargs):
@@ -111,7 +117,7 @@ class ListType(MultiType):
         return self.field.model_class
 
     def _force_list(self, value):
-        if value is None:
+        if value is None or value == EMPTY_LIST:
             return []
         try:
             if isinstance(value, basestring):
@@ -162,6 +168,9 @@ class ListType(MultiType):
         return rv
 
 
+EMPTY_DICT = "{}"
+
+
 class DictType(MultiType):
 
     def __init__(self, field, coerce_key=None, **kwargs):
@@ -178,6 +187,9 @@ class DictType(MultiType):
         return self.field.model_class
 
     def convert(self, value):
+        if value == EMPTY_DICT:
+            value = {}
+
         value = value or {}
 
         if not isinstance(value, dict):
