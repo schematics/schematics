@@ -6,19 +6,12 @@ Schematics is a Python library to validate and serialize data structures. The
 internals are a lot like form libraries such as WTForms or Django forms, but
 is geared towards richer data structures like JSON.
 
-Great for:
+**Use Cases**
 
 + Validating untrusted data from clients
 + Use with ``json.dumps`` and ``json.loads``
 + Enforce object schemas across internal datastores
 + Document your object schemas in code for schemaless NoSQL
-
-.. Contents:
-
-.. toctree::
-   :maxdepth: 2
-
-   api
 
 Quickstart
 ~~~~~~~~~~
@@ -199,10 +192,12 @@ You can patch the object by assigning attributes to fields with raw data too
 
 Notice that ``ModelType`` instances return ``Model`` instances.
 
-Indices and tables
-==================
+API
+===
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. Contents:
 
+.. toctree::
+   :maxdepth: 2
+
+   api
