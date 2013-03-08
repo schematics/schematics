@@ -130,9 +130,7 @@ above, with `partial = False` is that `name` was already populated internally.
 What about validation based on other data? Because the field declaration order
 is preserved you can attach model level validation for fields that have access
 to other data. The order whith which fields are validated is the same as
-field declarations.
-
-Let’s create a form to ask for a date:
+field declarations:
 
 .. code-block:: python
 
