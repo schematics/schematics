@@ -19,15 +19,15 @@ def serializable(*args, **kwargs):
     {'country_name': u'United States', 'country_code': u'us'}
     >>>
     :param type:
-	A custom subclass of `BaseType` for enforcing a certain type
-	on serialization.
+        A custom subclass of `BaseType` for enforcing a certain type
+        on serialization.
     :param serialized_name:
         The name of this field in the serialized output.
     """
     def wrapper(f):
-	serialized_type = kwargs.pop("type", BaseType())
-	serialized_name = kwargs.pop("serialized_name", None)
-	return Serializable(f, type=serialized_type, serialized_name=serialized_name)
+        serialized_type = kwargs.pop("type", BaseType())
+        serialized_name = kwargs.pop("serialized_name", None)
+        return Serializable(f, type=serialized_type, serialized_name=serialized_name)
 
     if len(args) == 1 and callable(args[0]):
         # No arguments, this is the decorator
@@ -40,18 +40,18 @@ def serializable(*args, **kwargs):
 class Serializable(object):
 
     def __init__(self, f, type=None, serialized_name=None):
-	self.f = f
-	self.type = type
-	self.serialized_name = serialized_name
+        self.f = f
+        self.type = type
+        self.serialized_name = serialized_name
 
     def __get__(self, object, owner):
-	return self.f(object)
+        return self.f(object)
 
     def to_primitive(self, value):
-	return self.type.to_primitive(value)
+        return self.type.to_primitive(value)
 
     def _bind(self, model, memo):
-	rv = object.__new__(self.__class__)
-	rv.__dict__.update(self.__dict__)
-	rv.type = _bind(self.type, model, memo)
-	return rv
+        rv = object.__new__(self.__class__)
+        rv.__dict__.update(self.__dict__)
+        rv.type = _bind(self.type, model, memo)
+        return rv
