@@ -11,6 +11,30 @@ from .serialize import serialize, flatten, expand
 from .datastructures import OrderedDict
 
 
+class FieldDescriptor(object):
+
+    def __init__(self, name):
+	self.name = name
+
+    def __get__(self, model, type=None):
+	try:
+	    if model is None:
+		return type.fields[self.name]
+	    return model._data[self.name]
+	except KeyError:
+	    raise AttributeError(self.name)
+
+    def __set__(self, model, value):
+	field = model._fields[self.name]
+	model._data[self.name] = field(value)
+
+    def __delete__(self, model):
+	if self.name not in model._fields:
+	    raise AttributeError('%r has no attribute %r' %
+				 (type(model).__name__, self.name))
+	del model._fields[self.name]
+
+
 class ModelOptions(object):
     """This class is a container for all metaclass configuration options. It's
     primary purpose is to create an instance of a model's options for every
@@ -64,8 +88,8 @@ class ModelMeta(type):
                     _options_members[k] = v
         attrs['_options'] = _options_class(cls, **_options_members)
 
-        attrs['_serializables'] = serializables
         attrs['_validator_functions'] = validator_functions
+	attrs['_unbound_serializables'] = serializables
         attrs['_unbound_fields'] = fields
 
         klass = type.__new__(cls, name, bases, attrs)
@@ -78,30 +102,6 @@ class ModelMeta(type):
     @property
     def fields(cls):
         return cls._unbound_fields
-
-
-class FieldDescriptor(object):
-
-    def __init__(self, name):
-        self.name = name
-
-    def __get__(self, obj, type=None):
-        try:
-            if obj is None:
-                return type.fields[self.name]
-            return obj._data[self.name]
-        except KeyError:
-            raise AttributeError(self.name)
-
-    def __set__(self, obj, value):
-        field = obj._fields[self.name]
-        obj._data[self.name] = field(value)
-
-    def __delete__(self, obj):
-        if self.name not in obj._fields:
-            raise AttributeError('%r has no attribute %r' %
-                                 (type(obj).__name__, self.name))
-        del obj._fields[self.name]
 
 
 class Model(object):
@@ -143,9 +143,13 @@ class Model(object):
         self._initial = data
 
         self._fields = OrderedDict()
+	self._serializables = {}
         self._memo = {}
         for name, field in self._unbound_fields.iteritems():
             self._fields[name] = _bind(field, self, self._memo)
+
+	for name, field in self._unbound_serializables.iteritems():
+	    self._serializables[name] = _bind(field, self, self._memo)
 
         self.reset()
         self.validate(data, partial=partial, raises=raises)

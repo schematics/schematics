@@ -3,10 +3,9 @@ import unittest
 
 from schematics.models import Model
 from schematics.types import StringType, LongType, IntType
-from schematics.types.compound import ModelType
-from schematics.types.serializable import serializable, Serializable
+from schematics.types.compound import ModelType, DictType
+from schematics.types.serializable import serializable
 from schematics.serialize import blacklist
-
 
 
 class TestSerializable(unittest.TestCase):
@@ -33,6 +32,22 @@ class TestSerializable(unittest.TestCase):
         d = location_IS.serialize()
         self.assertEqual(d, {"country_code": "IS", "country_name": "Unknown"})
 
+    def test_serializable_doesnt_keep_global_state(self):
+	class Location(Model):
+	    country_code = StringType()
+
+	    @serializable
+	    def country_name(self):
+		return "United States" if self.country_code == "US" else "Unknown"
+
+	location_US = Location({"country_code": "US"})
+	location_IS = Location({"country_code": "IS"})
+
+	self.assertNotEqual(
+	    id(location_US._serializables["country_name"]),
+	    id(location_IS._serializables["country_name"])
+	)
+
     def test_serializable_with_serializable_name(self):
         class Location(Model):
             country_code = StringType(serialized_name="cc")
@@ -49,7 +64,7 @@ class TestSerializable(unittest.TestCase):
         self.assertEqual(d, {"cc": "US", "cn": "United States"})
 
     def test_serializable_with_custom_serializable_class(self):
-        class ToUnicodeSerializable(Serializable):
+	class PlayerIdType(LongType):
 
             def to_primitive(self, value):
                 return unicode(value)
@@ -57,7 +72,7 @@ class TestSerializable(unittest.TestCase):
         class Player(Model):
             id = LongType()
 
-            @serializable(serialized_class=ToUnicodeSerializable)
+	    @serializable(type=PlayerIdType())
             def player_id(self):
                 return self.id
 
@@ -77,7 +92,7 @@ class TestSerializable(unittest.TestCase):
         class Player(Model):
             total_points = IntType()
 
-            @serializable
+	    @serializable(type=ModelType(ExperienceLevel))
             def xp_level(self):
                 return ExperienceLevel(dict(level=self.total_points * 2, title="Best"))
 
@@ -87,6 +102,54 @@ class TestSerializable(unittest.TestCase):
 
         d = player.serialize()
         self.assertEqual(d, {"total_points": 2, "xp_level": {"level": 4, "title": "Best"}})
+
+    def test_serializable_with_dict(self):
+	class Player(Model):
+	    id = LongType()
+	    display_name = StringType()
+
+	class Game(Model):
+	    id = StringType()
+	    all_players = DictType(ModelType(Player), coerce_key=lambda k: long(k))
+
+	    class Options:
+		roles = {
+		    "public": blacklist("all_players")
+		}
+
+	    @serializable(type=DictType(ModelType(Player), coerce_key=lambda k: long(k)))
+	    def players(self):
+		return dict((pid, p) for pid, p in self.all_players.iteritems())
+
+	p1 = Player({"id": 1, "display_name": "A"})
+	p2 = Player({"id": 2, "display_name": "B"})
+
+	game = Game({
+	    "id": "1",
+	    "all_players": {
+		1: p1,
+		2: p2
+	    }
+	})
+
+	self.assertEqual(game.all_players[1], p1)
+	self.assertEqual(game.all_players[2], p2)
+
+	d = game.serialize(role="public")
+	print d
+	self.assertEqual(d, {
+	    "id": "1",
+	    "players": {
+		"1": {
+		    "id": 1,
+		    "display_name": "A"
+		},
+		"2": {
+		    "id": 2,
+		    "display_name": "B"
+		},
+	    }
+	})
 
 
 class TestRoles(unittest.TestCase):
