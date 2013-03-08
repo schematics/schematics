@@ -5,53 +5,10 @@ import itertools
 
 from .types import BaseType
 from .types.bind import _bind
+from .types.serializable import Serializable
 from .exceptions import ValidationError
 from .serialize import serialize, flatten, expand
-
-
-def serializable(*args, **kwargs):
-    """A serializable is a way to define dynamic serializable fields that are
-    derived from other fields.
-
-    >>> from schematics.models import serializable
-    >>> class Location(Model):
-    ...     country_code = StringType()
-    ...     @serializable
-    ...     def country_name(self):
-    ...         return {'us': u'United States'}[self.country_code]
-    ...
-    >>> location = Location({'country_code': 'us'})
-    >>> location.serialize()
-    {'country_name': u'United States', 'country_code': u'us'}
-    >>>
-
-    :param serialized_name:
-        The name of this field in the serialized output.
-    :param serialized_class:
-        A custom subclass of `Serializable` if you want to override `to_primitive`
-
-    """
-    def wrapper(f):
-        SerializableClass = kwargs.get("serialized_class", Serializable)
-        return SerializableClass(f, serialized_name=kwargs.get("serialized_name", None))
-
-    if len(args) == 1 and callable(args[0]):
-        # No arguments, this is the decorator
-        # Set default values for the arguments
-        return wrapper(args[0])
-    else:
-        return wrapper
-
-
-class Serializable(property):
-
-    def __init__(self, *args, **kwargs):
-        self.serialized_name = kwargs.pop("serialized_name", None)
-
-        super(Serializable, self).__init__(*args, **kwargs)
-
-    def to_primitive(self, value):
-        return value
+from .datastructures import OrderedDict
 
 
 class ModelOptions(object):
@@ -72,24 +29,31 @@ class ModelMeta(type):
     """
 
     def __new__(cls, name, bases, attrs):
-        fields = {}
+        fields = OrderedDict()
         serializables = {}
+        validator_functions = {}  # Model level
 
         for base in reversed(bases):
             if hasattr(base, 'fields'):
                 fields.update(base.fields)
-
             if hasattr(base, '_serializables'):
                 serializables.update(base._serializables)
+            if hasattr(base, '_validator_functions'):
+                validator_functions.update(base._validator_functions)
 
         for key, value in attrs.iteritems():
+            if key.startswith('validate_') and callable(value):
+                validator_functions[key[9:]] = value
             if isinstance(value, BaseType):
                 fields[key] = value
             if isinstance(value, Serializable):
                 serializables[key] = value
 
+        fields.sort(key=lambda i: i[1]._position_hint)
+
         for key, field in fields.iteritems():
-            attrs[key] = FieldDescriptor(key)  # For accessing internal data by field name attributes
+            # For accessing internal data by field name attributes
+            attrs[key] = FieldDescriptor(key)
 
         # Create a valid ModelOptions instance in `_options`
         _options_class = getattr(attrs, '__classoptions__', ModelOptions)
@@ -101,6 +65,7 @@ class ModelMeta(type):
         attrs['_options'] = _options_class(cls, **_options_members)
 
         attrs['_serializables'] = serializables
+        attrs['_validator_functions'] = validator_functions
         attrs['_unbound_fields'] = fields
 
         klass = type.__new__(cls, name, bases, attrs)
@@ -177,7 +142,7 @@ class Model(object):
 
         self._initial = data
 
-        self._fields = {}
+        self._fields = OrderedDict()
         self._memo = {}
         for name, field in self._unbound_fields.iteritems():
             self._fields[name] = _bind(field, self, self._memo)
@@ -186,8 +151,8 @@ class Model(object):
         self.validate(data, partial=partial, raises=raises)
 
     def reset(self):
-        self.errors = {}
         self._data = {}
+        self.errors = {}
 
     @classmethod
     def from_flat(cls, data):
@@ -257,7 +222,11 @@ class Model(object):
                     continue
 
                 try:
-                    data[field_name] = field.validate(field_value)
+                    value = field.validate(field_value)
+                    if field_name in self._validator_functions:
+                        context = dict(self._data, **data)
+                        value = self._validator_functions[field_name](self, context, value)
+                    data[field_name] = value
                 except ValidationError, e:
                     errors[field_name] = e.messages
 

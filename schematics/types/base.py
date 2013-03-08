@@ -17,6 +17,10 @@ def force_unicode(obj, encoding='utf-8'):
     return obj
 
 
+_last_position_hint = -1
+_next_position_hint = itertools.count().next
+
+
 class BaseType(object):
     """A base class for Types in a Structures model. Instances of this
     class may be added to subclasses of `Model` to define a model schema.
@@ -52,6 +56,7 @@ class BaseType(object):
         self.choices = choices
         self.validators = validators or []
         self.description = description
+        self._position_hint = _next_position_hint()  # For ordering of fields
 
     def __call__(self, value):
         return self.validate(value)

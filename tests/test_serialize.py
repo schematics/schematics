@@ -1,8 +1,9 @@
 
 import unittest
 
-from schematics.models import Model, serializable, Serializable
+from schematics.models import Model
 from schematics.types import StringType, LongType
+from schematics.types.serializable import serializable, Serializable
 
 
 class TestSerializable(unittest.TestCase):
