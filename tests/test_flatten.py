@@ -272,6 +272,21 @@ class FlattenTests(unittest.TestCase):
         player_from_flat = Player.from_flat(flat)
         self.assertEqual(player, player_from_flat)
 
+    def test_flatten_ignores_none_by_default(self):
+        class Player(Model):
+            id = StringType()
+            display_name = StringType()
+
+        player = Player({"display_name": "Joe"})
+
+        self.assertIsNone(player.id)
+
+        flat = player.flatten()
+        self.assertEqual(flat, {"display_name": "Joe"})
+
+        player_from_flat = Player.from_flat(flat)
+        self.assertEqual(player, player_from_flat)
+
     def test_flatten_dicts_coercers_keys_to_strings(self):
 
         class Player(Model):

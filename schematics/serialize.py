@@ -153,7 +153,7 @@ def flatten_dict_to_dict(d, role, prefix=None):
     return flat_dict
 
 
-def flatten(instance, role, prefix="", **kwargs):
+def flatten(instance, role, ignore_none=True, prefix="", **kwargs):
     model = instance.__class__
 
     gottago = lambda k, v: False
@@ -179,7 +179,8 @@ def flatten(instance, role, prefix="", **kwargs):
             serialized_name = ".".join((prefix, serialized_name))
 
         if field_value is None:
-            flat_dict[serialized_name] = None
+            if not ignore_none:
+                flat_dict[serialized_name] = None
         elif isinstance(field_instance, ModelType):
             flat_dict.update(flatten(field_value, role, prefix=serialized_name))
         elif isinstance(field_instance, ListType):
