@@ -38,9 +38,9 @@ Create a weather report object from primitive data types
 Serialization and Roles
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-To present data to clients we have the ``Model.serialize`` method. Default behavior
-is to output the same data you would need to reproduce the model in it’s current
-state.
+To present data to clients we have the ``Model.serialize`` method. Default
+behavior is to output the same data you would need to reproduce the model in its
+current state.
 
 .. code-block:: python
 
@@ -70,6 +70,9 @@ director?
   {'name': u'Trainspotting'}
   >>>
 
+The role, if found, is also used to filter data in contained models (more on
+nested structures below).
+
 Validation
 ~~~~~~~~~~
 
@@ -86,13 +89,15 @@ Custom validation per field is achieved callables in ``BaseField.validators``.
   >>> class Person(Model):
   ...     name = StringType(validators=[is_uppercase])
   ...
-  >>> me = Person({'name': u'Jökull'})  # Returns False
+  >>> me = Person({'name': u'Jökull'})
   >>> me.errors
   {'name': [u'Please speak up!']}
   >>>
 
-What about data integrity? Models don’t guarantee data integrity. They can be
-instantiated with partial data:
+If you want explicit exceptions init with ``raises=True`` or call
+``validate()`` on the object.
+
+Calling validate accepts data too:
 
 .. code-block:: python
 
@@ -110,17 +115,13 @@ instantiated with partial data:
   >>> p1.serialize()
   {'age': 26, 'name': u'jbone'}
 
-Notice that the model received part of the data on init without complaints.
-``__init__`` and  ``validate`` are much the same, with an important difference: By
-default  ``__init__`` accepts partial data and validates the keys supplied,
-whereas  ``validate`` sets partial to ``False``. Both can be overriden with the
-``partial`` keyword argument. The reason ``p1.validate({'age': 26})`` validated
-above, with ``partial = False`` is that ``name`` was already populated internally.
+The reason ``p1.validate({'age': 26})`` validated above is that ``name`` was
+already populated internally. The internal state of the object was updated.f
 
-What about validation based on other data? Because the field declaration order
-is preserved you can attach model level validation for fields that have access
-to other data. The order whith which fields are validated is the same as
-field declarations:
+What about field validation based on other model data? The order whith which
+fields are declared is preserved inside the model. So if the validity of a field
+depends on another field’s value, just make sure to declare it below its
+dependencies:
 
 .. code-block:: python
 
@@ -140,9 +141,6 @@ field declarations:
   True
   >>> Signup().validate({'name': u'Brad', 'call_me': True})
   False
-
-Here ``validate_call_me`` can check the internal data state as it becomes
-populated *in the order that fields were defined on the model*.
 
 Detailed Example
 ~~~~~~~~~~~~~~~~
