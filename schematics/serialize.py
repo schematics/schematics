@@ -92,14 +92,14 @@ def blacklist(*field_list):
     return _blacklist
 
 
-def serialize(instance, role, **kw):
+def serialize(instance, role, raise_error_on_role=True, **kw):
     model = instance.__class__
-    model_converter = lambda m: serialize(m, role)
+    model_converter = lambda m: serialize(m, role, raise_error_on_role=False)
 
     gottago = lambda k, v: False
     if role in model._options.roles:
         gottago = model._options.roles[role]
-    elif role:
+    elif role and raise_error_on_role:
         raise ValueError(u'%s Model has no role "%s"' % (
             instance.__class__.__name__, role))
 
@@ -160,7 +160,7 @@ def flatten(instance, role, ignore_none=True, prefix="", **kwargs):
     if role in model._options.roles:
         gottago = model._options.roles[role]
     elif role:
-        raise ValueError(u'%s Model has no role "%s"' % (
+        raise ValueError(u'Model %s has no role "%s"' % (
             instance.__class__.__name__, role))
 
     flat_dict = {}

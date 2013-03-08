@@ -3,6 +3,8 @@ import unittest
 
 from schematics.models import Model, serializable, Serializable
 from schematics.types import StringType, LongType, IntType
+from schematics.types.compound import ModelType
+from schematics.serialize import blacklist
 
 
 class TestSerializable(unittest.TestCase):
@@ -83,3 +85,49 @@ class TestSerializable(unittest.TestCase):
 
         d = player.serialize()
         self.assertEqual(d, {"total_points": 2, "xp_level": {"level": 4, "title": "Best"}})
+
+
+class TestRoles(unittest.TestCase):
+
+    def test_fails_if_role_is_not_found(self):
+        class Player(Model):
+            id = StringType()
+
+        p = Player(dict(id="1"))
+
+        with self.assertRaises(ValueError):
+            p.serialize(role="public")
+
+    def test_doesnt_fail_if_role_isnt_found_on_embedded_models(self):
+        class ExperienceLevel(Model):
+            level = IntType()
+            title = StringType()
+
+        class Player(Model):
+            id = StringType()
+            secret = StringType()
+
+            xp_level = ModelType(ExperienceLevel)
+
+            class Options:
+                roles = {
+                    "public": blacklist("secret")
+                }
+
+        p = Player(dict(
+            id="1",
+            secret="super_secret",
+            xp_level={
+                "level": 1,
+                "title": "Starter"
+            }
+        ))
+
+        d = p.serialize(role="public")
+        self.assertEqual(d, {
+            "id": "1",
+            "xp_level": {
+                "level": 1,
+                "title": "Starter"
+            }
+        })
