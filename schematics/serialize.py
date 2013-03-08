@@ -141,7 +141,7 @@ def flatten_list_to_dict(l, role, prefix=None):
 def flatten_dict_to_dict(d, role, prefix=None):
     flat_dict = {}
     for k, v in d.iteritems():
-        key = ".".join((prefix, k))
+        key = ".".join(map(unicode, (prefix, k)))
 
         if hasattr(v.__class__, "_options"):
             flat_dict.update(flatten(v, role, prefix=key))
