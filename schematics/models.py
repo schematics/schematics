@@ -113,10 +113,10 @@ class Model(object):
         Data to validate and apply to the object.
     :param partial:
         Allow partial data; useful for PATCH requests. Essentilly drops the
-        `required=True` arguments from field definitions. Default: True
+        ``required=True`` arguments from field definitions. Default: ``True``
     :param raises:
-        When `True`, raise `ValidationError` at the end if errors were
-        found. Default: True
+        When ``True``, raise ``ValidationError`` at the end if errors were
+        found. Default: ``True``
 
     """
 

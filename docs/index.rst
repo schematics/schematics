@@ -18,7 +18,7 @@ Quickstart
 
 Describe data schemas and data geometry with Python classes:
 
-.. code-block:: python
+.. testcode:: intro
 
   from schematics.models import Model
   from schematics.types import StringType, DecimalType
@@ -29,7 +29,7 @@ Describe data schemas and data geometry with Python classes:
 
 Create a weather report object from primitive data types
 
-.. code-block:: python
+.. doctest:: intro
 
   >>> report = WeatherReport({'city': u'Helsinki', 'temperature': '10.3'})
   >>> report.temperature
@@ -42,7 +42,7 @@ To present data to clients we have the ``Model.serialize`` method. Default
 behavior is to output the same data you would need to reproduce the model in its
 current state.
 
-.. code-block:: python
+.. doctest::
 
   >>> from schematics.models import Model
   >>> from schematics.types import StringType
@@ -64,7 +64,7 @@ forth etc.
 What if we wanted to expose this to untrusted parties who mustn’t know the
 director?
 
-.. code-block:: python
+.. doctest::
 
   >>> movie.serialize('public')
   {'name': u'Trainspotting'}
@@ -78,7 +78,7 @@ Validation
 
 Custom validation per field is achieved callables in ``BaseField.validators``.
 
-.. code-block:: python
+.. doctest::
 
   >>> from schematics.exceptions import ValidationError
   >>> def is_uppercase(value):
@@ -89,7 +89,7 @@ Custom validation per field is achieved callables in ``BaseField.validators``.
   >>> class Person(Model):
   ...     name = StringType(validators=[is_uppercase])
   ...
-  >>> me = Person({'name': u'Jökull'})
+  >>> me = Person({'name': u'Jökull'}, raises=False)
   >>> me.errors
   {'name': [u'Please speak up!']}
   >>>
@@ -99,13 +99,13 @@ If you want explicit exceptions init with ``raises=True`` or call
 
 Calling validate accepts data too:
 
-.. code-block:: python
+.. doctest::
 
   >>> from schematics.types import StringType, IntType, BooleanType
   >>> from schematics.models import Model
   >>> class Person(Model):
-      name = StringType(required=True)
-      age = IntType(required=True)
+  ...     name = StringType(required=True)
+  ...     age = IntType(required=True)
   ...
   >>> p1 = Person({'name': 'jbone'})
   >>> p1.validate(raises=False)
@@ -123,7 +123,7 @@ fields are declared is preserved inside the model. So if the validity of a field
 depends on another field’s value, just make sure to declare it below its
 dependencies:
 
-.. code-block:: python
+.. doctest::
 
   >>> from schematics.models import Model
   >>> from schematics.types import StringType, BooleanType
@@ -139,7 +139,7 @@ dependencies:
   ...
   >>> Signup().validate({'name': u'Brad'})
   True
-  >>> Signup().validate({'name': u'Brad', 'call_me': True})
+  >>> Signup().validate({'name': u'Brad', 'call_me': True}, raises=False)
   False
 
 Detailed Example
@@ -147,7 +147,7 @@ Detailed Example
 
 What else can Schematics do?
 
-.. code-block:: python
+.. testcode:: detailed
 
   from schematics.models import Model
   from schematics.types import StringType, IntType, BooleanType
@@ -164,10 +164,10 @@ What else can Schematics do?
       has_agent = BooleanType(default=True)
       breakout_movie = ModelType(Movie)
 
-``ModelType`` and ``ListType`` traverse validation or serialization of a model down
-to their subfields. You can express structures as deep as you like.
+Special field types ``ModelType`` and ``ListType`` allow traversal of validation
+or serialization of nested fields. With these you can express deep structures.
 
-.. code-block:: python
+.. doctest:: detailed
 
   >>> actor = Actor({
   ...     'name': u'Tom Cruise',
@@ -184,12 +184,15 @@ to their subfields. You can express structures as deep as you like.
 You can patch the object by assigning attributes to fields with raw data too
 (which  fails if the field doesn’t validate).
 
-.. code-block:: python
+.. doctest:: detailed
 
   >>> actor.movies
   [<Movie: Movie object>]
 
 Notice that ``ModelType`` instances return ``Model`` instances.
+
+You can patch the object by assigning attributes to fields with raw data too
+(which  fails if the field doesn’t validate).
 
 API
 ===
