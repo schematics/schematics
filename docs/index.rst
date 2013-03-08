@@ -152,7 +152,7 @@ field declarations:
   False
 
 Here `validate_call_me` can check the internal data state as it becomes
-populated __in the order that fields were defined on the model__.
+populated *in the order that fields were defined on the model*.
 
 Detailed Example
 ~~~~~~~~~~~~~~~~
