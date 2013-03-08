@@ -14,25 +14,25 @@ from .datastructures import OrderedDict
 class FieldDescriptor(object):
 
     def __init__(self, name):
-	self.name = name
+        self.name = name
 
     def __get__(self, model, type=None):
-	try:
-	    if model is None:
-		return type.fields[self.name]
-	    return model._data[self.name]
-	except KeyError:
-	    raise AttributeError(self.name)
+        try:
+            if model is None:
+                return type.fields[self.name]
+            return model._data[self.name]
+        except KeyError:
+            raise AttributeError(self.name)
 
     def __set__(self, model, value):
-	field = model._fields[self.name]
-	model._data[self.name] = field(value)
+        field = model._fields[self.name]
+        model._data[self.name] = field(value)
 
     def __delete__(self, model):
-	if self.name not in model._fields:
-	    raise AttributeError('%r has no attribute %r' %
-				 (type(model).__name__, self.name))
-	del model._fields[self.name]
+        if self.name not in model._fields:
+            raise AttributeError('%r has no attribute %r' %
+                                 (type(model).__name__, self.name))
+        del model._fields[self.name]
 
 
 class ModelOptions(object):
@@ -89,7 +89,7 @@ class ModelMeta(type):
         attrs['_options'] = _options_class(cls, **_options_members)
 
         attrs['_validator_functions'] = validator_functions
-	attrs['_unbound_serializables'] = serializables
+        attrs['_unbound_serializables'] = serializables
         attrs['_unbound_fields'] = fields
 
         klass = type.__new__(cls, name, bases, attrs)
@@ -143,13 +143,13 @@ class Model(object):
         self._initial = data
 
         self._fields = OrderedDict()
-	self._serializables = {}
+        self._serializables = {}
         self._memo = {}
         for name, field in self._unbound_fields.iteritems():
             self._fields[name] = _bind(field, self, self._memo)
 
-	for name, field in self._unbound_serializables.iteritems():
-	    self._serializables[name] = _bind(field, self, self._memo)
+        for name, field in self._unbound_serializables.iteritems():
+            self._serializables[name] = _bind(field, self, self._memo)
 
         self.reset()
         self.validate(data, partial=partial, raises=raises)
