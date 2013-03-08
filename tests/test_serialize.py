@@ -1,10 +1,12 @@
 
 import unittest
 
-from schematics.models import Model, serializable, Serializable
+from schematics.models import Model
 from schematics.types import StringType, LongType, IntType
 from schematics.types.compound import ModelType
+from schematics.types.serializable import serializable, Serializable
 from schematics.serialize import blacklist
+
 
 
 class TestSerializable(unittest.TestCase):

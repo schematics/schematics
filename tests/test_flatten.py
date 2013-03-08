@@ -2,7 +2,8 @@
 import unittest
 
 from schematics.serialize import expand
-from schematics.models import Model, serializable
+from schematics.models import Model
+from schematics.types.serializable import serializable
 from schematics.types import StringType, IntType
 from schematics.types.compound import (
     ModelType, ListType, EMPTY_LIST, DictType, EMPTY_DICT

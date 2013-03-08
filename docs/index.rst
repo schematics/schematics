@@ -96,7 +96,7 @@ Custom validation per field is achieved callables in `BaseField.validators`.
   >>> class Person(Model):
   ...     name = StringType(validators=[is_uppercase])
   ...
-  >>> me = Person({'name': u'Jökull'}, raises=False)  # Returns False
+  >>> me = Person({'name': u'Jökull'})  # Returns False
   >>> me.errors
   {'name': [u'Please speak up!']}
   >>>
@@ -126,6 +126,33 @@ default  `__init__` accepts partial data and validates the keys supplied,
 whereas  `validate` sets partial to `False`. Both can be overriden with the
 `partial` keyword argument. The reason `p1.validate({'age': 26})` validated
 above, with `partial = False` is that `name` was already populated internally.
+
+What about validation based on other data? Because the field declaration order
+is preserved you can attach model level validation for fields that have access
+to other data. The order whith which fields are validated is the same as
+field declarations:
+
+.. code-block:: python
+
+  >>> from schematics.models import Model
+  >>> from schematics.types import StringType, BooleanType
+  >>> from schematics.exceptions import ValidationError
+  >>>
+  >>> class Signup(Model):
+  ...     name = StringType()
+  ...     call_me = BooleanType(default=False)
+  ...     def validate_call_me(self, data, value):
+  ...         if data['name'] == u'Brad' and value is True:
+  ...             raise ValidationError(u'I’m sorry I never call people who’s name is Brad')
+  ...         return value
+  ...
+  >>> Signup().validate({'name': u'Brad'})
+  True
+  >>> Signup().validate({'name': u'Brad', 'call_me': True})
+  False
+
+Here `validate_call_me` can check the internal data state as it becomes
+populated *in the order that fields were defined on the model*.
 
 Detailed Example
 ~~~~~~~~~~~~~~~~

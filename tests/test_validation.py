@@ -5,7 +5,7 @@ import datetime
 
 from schematics.models import Model
 from schematics.exceptions import ValidationError
-from schematics.types import StringType, DateTimeType
+from schematics.types import StringType, DateTimeType, BooleanType
 from schematics.types.compound import ModelType, ListType
 
 
@@ -115,11 +115,13 @@ class TestRequired(unittest.TestCase):
         self.assertEqual(valid, True)
 
 
+future_error_msg = u'Future dates are not valid'
+
+
 class TestCustomValidators(unittest.TestCase):
 
     def test_custom_validators(self):
         now = datetime.datetime(2012, 1, 1, 0, 0)
-        future_error_msg = u'Future dates are not valid'
 
         def is_not_future(dt, *args):
             if dt > now:
@@ -140,6 +142,74 @@ class TestCustomValidators(unittest.TestCase):
         exception = context.exception
 
         self.assertIn(future_error_msg, exception.messages['publish'])
+
+
+class TestModelLevelValidators(unittest.TestCase):
+
+    def setUp(self):
+        self.now = datetime.datetime(2012, 1, 1, 0, 0)
+        self.future = self.now + datetime.timedelta(1)
+
+    def test_model_validators(self):
+        class TestDoc(Model):
+            can_future = BooleanType()
+            publish = DateTimeType()
+
+            def validate_publish(self, data, dt):
+                if dt > self.now and data['can_future']:
+                    raise ValidationError(future_error_msg)
+
+        with self.assertRaises(ValidationError):
+            TestDoc().validate({'publish': self.future})
+
+    def test_position_hint(self):
+
+        input = str(self.future.isoformat())
+
+        class BadModel(Model):
+            publish = DateTimeType()
+            can_future = BooleanType(default=False)
+
+            def validate_publish(self, data, dt):
+                data['can_future']
+
+        with self.assertRaises(KeyError):
+            BadModel({'publish': input})
+
+    def test_multi_key_validation(self):
+
+        input = str(self.future.isoformat())
+
+        class GoodModel(Model):
+            should_raise = BooleanType(default=True)
+            publish = DateTimeType()
+
+            def validate_publish(self, data, dt):
+                if data['should_raise'] is True:
+                    raise ValidationError(u'')
+                return dt
+
+        with self.assertRaises(ValidationError):
+            GoodModel().validate({'publish': input})
+
+        self.assertTrue(GoodModel().validate({'publish': input, 'should_raise': False}))
+
+        with self.assertRaises(ValidationError):
+            GoodModel().validate({'publish': input, 'should_raise': True})
+
+    def test_multi_key_validation_part_two(self):
+        class Signup(Model):
+            name = StringType()
+            call_me = BooleanType(default=False)
+
+            def validate_call_me(self, data, value):
+                if data['name'] == u'Brad' and value is True:
+                    raise ValidationError(u'I\'m sorry I never call people who\'s name is Brad')
+                return value
+
+        assert Signup().validate({'name': u'Brad'}) is True
+        assert Signup().validate({'name': u'Brad', 'call_me': False}, raises=False) is True
+        assert Signup().validate({'name': u'Brad', 'call_me': True}, raises=False) is False
 
 
 class TestErrors(unittest.TestCase):

@@ -1,11 +1,10 @@
 
 import unittest
 
-from schematics.models import Model, serializable
-from schematics.types import IntType, StringType, LongType
+from schematics.models import Model
+from schematics.types import IntType, StringType
+from schematics.types.serializable import serializable
 from schematics.types.compound import ModelType, DictType
-from schematics.serialize import wholelist
-from schematics.exceptions import ValidationError
 
 
 class TestDictType(unittest.TestCase):
