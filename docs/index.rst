@@ -94,7 +94,7 @@ Custom validation per field is achieved callables in ``BaseField.validators``.
   {'name': [u'Please speak up!']}
   >>>
 
-If you want explicit exceptions init with ``raises=True`` or call
+If you want explicit exceptions, initialize with ``raises=True`` or call
 ``validate()`` on the object.
 
 Calling validate accepts data too:
@@ -116,7 +116,8 @@ Calling validate accepts data too:
   {'age': 26, 'name': u'jbone'}
 
 The reason ``p1.validate({'age': 26})`` validated above is that ``name`` was
-already populated internally. The internal state of the object was updated.f
+already populated internally. The internal state of the object was updated.
+Only valid batches of data are applied to the internal state.
 
 What about field validation based on other model data? The order whith which
 fields are declared is preserved inside the model. So if the validity of a field
@@ -189,7 +190,7 @@ You can patch the object by assigning attributes to fields with raw data too
   >>> actor.movies
   [<Movie: Movie object>]
 
-Notice that ``ModelType`` instances return ``Model`` instances.
+Notice that ``ModelType`` fields return ``Model`` instances.
 
 You can patch the object by assigning attributes to fields with raw data too
 (which  fails if the field doesn’t validate).
