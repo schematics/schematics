@@ -140,11 +140,6 @@ class BaseModel(object):
             if field_name in values:
                 field_value = values[field_name]
                 setattr(self, attr_name, field_value)
-                    
-
-    ###
-    ### dict Interface
-    ###
 
     def __iter__(self):
         return iter(self._fields)
@@ -176,16 +171,12 @@ class BaseModel(object):
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             keys = self._fields
-            if not hasattr(other, 'id'):
-                keys.pop("id", None)
             for key in keys:
                 if self[key] != other[key]:
                     return False
             return True
         return False
 
-    ### Representation Descriptors
-    
     def __repr__(self):
         try:
             u = unicode(self)
