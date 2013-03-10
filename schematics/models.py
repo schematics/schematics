@@ -177,6 +177,11 @@ class BaseModel(object):
             return True
         return False
 
+    def get(self, key, default=None):
+        if key in self:
+            return self[key]
+        return default
+
     def __repr__(self):
         try:
             u = unicode(self)
