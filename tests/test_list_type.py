@@ -10,6 +10,7 @@ from schematics.types.compound import SortedListType, ModelType, ListType
 from schematics.serialize import (to_python, wholelist, make_safe_json,
                                   make_safe_python)
 from schematics.validation import validate_instance
+from schematics.exceptions import ValidationError
 
 
 class TestSetGetSingleScalarData(unittest.TestCase):
@@ -69,25 +70,22 @@ class TestSetGetSingleScalarData(unittest.TestCase):
 
     def test_good_value_validates(self):
         self.testmodel.the_list = [2,2,2,2,2,2]
-        result = validate_instance(self.testmodel)
-        self.assertEqual(result.tag, 'OK')
+        validate_instance(self.testmodel)
 
     def test_coerceible_value_passes_validation(self):
         self.testmodel.the_list = ["2","2","2","2","2","2"]
-        result = validate_instance(self.testmodel)
-        self.assertEqual(result.tag, 'OK')
+        validate_instance(self.testmodel)
 
     def test_uncoerceible_value_passes_validation(self):
         self.testmodel.the_list = ["2","2","2","2","horse","2"]
-        result = validate_instance(self.testmodel)
-        self.assertNotEqual(result.tag, 'OK')
+        fun = lambda: validate_instance(self.testmodel)
+        self.assertRaises(ValidationError, fun)
         
     def test_validation_converts_value(self):
         self.testmodel.the_list = ["2","2","2","2","2","2"]
-        result = validate_instance(self.testmodel)
-        self.assertEqual(result.tag, 'OK')
-        converted_data = result.value
-        new_list = converted_data['the_list']
+        validate_instance(self.testmodel)        
+        result = to_python(self.testmodel)
+        new_list = result['the_list']
         self.assertEqual(new_list, [2,2,2,2,2,2])
 
         

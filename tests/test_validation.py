@@ -2,10 +2,10 @@
 
 import unittest
 from schematics.models import Model
-from schematics.validation import (validate_instance, ERROR_FIELD_REQUIRED,
-    ERROR_FIELD_TYPE_CHECK)
+from schematics.validation import validate_instance
 from schematics.types import StringType
 from schematics.types.compound import ModelType, ListType
+from schematics.exceptions import ValidationError
 
 
 class TestChoices(unittest.TestCase):
@@ -41,29 +41,26 @@ class TestChoices(unittest.TestCase):
         class TestDoc(Model):
             language = StringType(choices=['en', 'de'])
         result = validate_instance(TestDoc())
-        self.assertEqual(result.tag, 'OK')
 
     def test_missing_required_errors(self):
         class TestDoc(Model):
             language = StringType(choices=['en', 'de'], required=True)
-        result = validate_instance(TestDoc())
-        self.assertNotEqual(result.tag, 'OK')
+        fun = lambda: validate_instance(TestDoc())
+        self.assertRaises(ValidationError, fun)
 
     def test_choices_validates(self):
-        result = validate_instance(self.doc_simple_valid)
-        self.assertEqual(result.tag, 'OK')
+        validate_instance(self.doc_simple_valid)
 
     def test_validation_fails(self):
-        result = validate_instance(self.doc_simple_invalid)
-        self.assertNotEqual(result.tag, 'OK')
+        fun = lambda: validate_instance(self.doc_simple_invalid)
+        self.assertRaises(ValidationError, fun)
 
     def test_choices_validates_with_embedded(self):
-        result = validate_instance(self.doc_embedded_valid)
-        self.assertEqual(result.tag, 'OK')
+        validate_instance(self.doc_embedded_valid)
 
     def test_validation_failes_with_embedded(self):
-        result = validate_instance(self.doc_embedded_invalid)
-        self.assertNotEqual(result.tag, 'OK')
+        fun = lambda: validate_instance(self.doc_embedded_invalid)
+        self.assertRaises(ValidationError, fun)
 
 
 class TestRequired(unittest.TestCase):
@@ -79,14 +76,11 @@ class TestRequired(unittest.TestCase):
         self.doc_simple_invalid = TestDoc(**self.data_simple_invalid)
 
     def test_required_validates(self):
-        result = validate_instance(self.doc_simple_valid)
-        self.assertEqual(result.tag, 'OK')
+        validate_instance(self.doc_simple_valid)
 
     def test_validation_fails(self):
-        result = validate_instance(self.doc_simple_invalid)
-        self.assertNotEqual(result.tag, 'OK')
-        self.assertEqual(len(result.value), 1)
-        self.assertEqual(result.value[0].tag, ERROR_FIELD_REQUIRED)
+        fun = lambda: validate_instance(self.doc_simple_invalid)
+        self.assertRaises(ValidationError, fun)
 
 
 if __name__ == '__main__':
