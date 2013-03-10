@@ -119,7 +119,9 @@ class ModelMetaclass(type):
 ### Model schematics
 ###
 
-class BaseModel(object):
+class Model(object):
+    __metaclass__ = ModelMetaclass
+    __optionsclass__ = ModelOptions
 
     def __init__(self, **values):
         self._data = {}
@@ -193,10 +195,3 @@ class BaseModel(object):
         if hasattr(self, '__unicode__'):
             return unicode(self).encode('utf-8')
         return '%s object' % self.__class__.__name__
-
-
-class Model(BaseModel):
-    """Model YEAH
-    """
-    __metaclass__ = ModelMetaclass
-    __optionsclass__ = ModelOptions
