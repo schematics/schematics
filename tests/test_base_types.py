@@ -7,6 +7,8 @@ from schematics.models import Model
 from schematics.types.base import *
 from schematics.validation import validate_instance
 from schematics.serialize import to_json, to_python
+from schematics.exceptions import ValidationError
+
 
 class TestStringType(unittest.TestCase):
 
@@ -18,15 +20,13 @@ class TestStringType(unittest.TestCase):
         user.name = "Ryan"
         self.assertEqual(user.name, "Ryan")
         self.assertTrue(isinstance(user.name, unicode))
-        result = validate_instance(user)
-        self.assertEqual(result.tag, 'OK')
+        assert validate_instance(user)
 
     def testUserWithName(self):
         user = self.User(name="Ryan")
         self.assertEqual(user.name, "Ryan")
         self.assertTrue(isinstance(user.name, unicode))
-        result = validate_instance(user)
-        self.assertEqual(result.tag, 'OK')
+        assert validate_instance(user)
 
 class TestIntType(unittest.TestCase):
 
@@ -38,22 +38,19 @@ class TestIntType(unittest.TestCase):
         user.age = 34
         self.assertEqual(user.age, 34)
         self.assertTrue(isinstance(user.age, int))
-        result = validate_instance(user)
-        self.assertEqual(result.tag, 'OK')
+        assert validate_instance(user)
 
     def testUserWithIntAge(self):
         user = self.User(age=34)
         self.assertEqual(user.age, 34)
         self.assertTrue(isinstance(user.age, int))
-        result = validate_instance(user)
-        self.assertEqual(result.tag, 'OK')
+        assert validate_instance(user)
 
     def testUserWithStringAge(self):
         user = self.User(age="34")
         self.assertEqual(user.age, 34)
         self.assertTrue(isinstance(user.age, int))
-        result = validate_instance(user)
-        self.assertEqual(result.tag, 'OK')
+        assert validate_instance(user)
 
 class TestDateTimeType(unittest.TestCase):
 
@@ -72,16 +69,18 @@ class TestIPv4Type(unittest.TestCase):
     def testValidIP(self):
         test = self.Test()
         test.ip = '8.8.8.8'
-        result = validate_instance(test)
-        self.assertEqual(result.tag, 'OK')
+        assert validate_instance(test)
 
     def testInvalidIPAddresses(self):
-        result = validate_instance( self.Test(ip='1.1.1.1.1') )
-        self.assertNotEqual(result.tag, 'OK')
-        result = validate_instance( self.Test(ip='1.1.11') )
-        self.assertNotEqual(result.tag, 'OK')
-        result = validate_instance( self.Test(ip='1.1.1111.1') )
-        self.assertNotEqual(result.tag, 'OK')
+        fun = lambda: validate_instance(self.Test(ip='1.1.1.1.1'))
+        self.assertRaises(ValidationError, fun)
+        
+        fun = lambda: validate_instance( self.Test(ip='1.1.11') )
+        self.assertRaises(ValidationError, fun)
+        
+        fun = lambda: validate_instance( self.Test(ip='1.1.1111.1') )
+        self.assertNotEqual(ValidationError, fun)
+
 
 def suite():
     suite = unittest.TestSuite()
@@ -90,6 +89,7 @@ def suite():
     suite.addTest(unittest.makeSuite(TestDateTimeType, 'test'))
     suite.addTest(unittest.makeSuite(TestIPv4Type, 'test'))
     return suite
+
 
 if __name__ == '__main__':
    unittest.main(defaultTest='suite')

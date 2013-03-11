@@ -1,6 +1,7 @@
 from schematics.models import Model
 from schematics.types.path import PathType, ExecutablePathType
 from schematics.validation import validate_instance
+from schematics.exceptions import ValidationError
 
 import unittest
 
@@ -16,12 +17,12 @@ class PathTypeTestCase(unittest.TestCase):
 
         foo = Foo(path="/tmp")
         validate_instance(foo)
-
+        
         foo.path = "/tmp/this_file_doesnt_exist_with_some_random_digits_13467487681356573"
-        result = validate_instance(foo)
-        self.assertNotEqual(result.tag, 'OK')
+        fun = lambda: validate_instance(foo)
+        self.assertRaises(ValidationError, fun)
+        
             
-
     def test_path_isdir(self):
         class Foo(Model):
             path = PathType(isdir=True)
@@ -30,8 +31,9 @@ class PathTypeTestCase(unittest.TestCase):
         validate_instance(foo)
 
         foo.path = "/etc/hosts"
-        result = validate_instance(foo)
-        self.assertNotEqual(result.tag, 'OK')
+        fun = lambda: validate_instance(foo)
+        self.assertRaises(ValidationError, fun)
+        
 
     def test_path_isfile(self):
         class Foo(Model):
@@ -41,20 +43,21 @@ class PathTypeTestCase(unittest.TestCase):
         validate_instance(foo)
 
         foo.path = "/tmp"
-        result = validate_instance(foo)
-        self.assertNotEqual(result.tag, 'OK')
+        fun = lambda: validate_instance(foo)
+        self.assertRaises(ValidationError, fun)
+
 
     def test_path__can_create_or_write(self):
         class Foo(Model):
             path = PathType(can_create_or_write=True)
 
         foo = Foo(path="/tmp/file_that_doesnt_exist_but_can_be_created")
-        result = validate_instance(foo)
-        self.assertEqual(result.tag, 'OK')
+        validate_instance(foo)
 
         foo.path = "/tmp/dir_that_doesnt_exist/file_that_doesnt_exist"
-        result = validate_instance(foo)
-        self.assertNotEqual(result.tag, 'OK')
+        fun = lambda: validate_instance(foo)
+        self.assertRaises(ValidationError, fun)
+
 
 class ExecutablePathTestCase(unittest.TestCase):
     def setUp(self):
@@ -67,9 +70,8 @@ class ExecutablePathTestCase(unittest.TestCase):
             path = ExecutablePathType()
 
         foo = Foo(path="/bin/sh")
-        result = validate_instance(foo)
-        self.assertEqual(result.tag, 'OK')
+        validate_instance(foo)
 
         foo.path = "/bin/file_that_doesnt_exist"
-        result = validate_instance(foo)
-        self.assertNotEqual(result.tag, 'OK')
+        fun = lambda: validate_instance(foo)
+        self.assertRaises(ValidationError, fun)        

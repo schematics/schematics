@@ -2,7 +2,6 @@ import inspect
 import copy
 
 
-#from schematics.base import (TypeException, ModelException, json)
 from schematics.base import json
 from schematics.types import (DictFieldNotFound, schematic_types)
 from schematics.types.base import BaseType
@@ -66,20 +65,14 @@ def _extract_fields(bases, attrs):
     ### Collect all fields in here
     model_fields = {}
 
-    ### Aggregate fields found in base classes first
     for base in bases:
-        ### Configure `_fields` list
         if hasattr(base, '_fields'):
             model_fields.update(base._fields)
 
-    ### Collect field info from attrs
-    for attr_name, attr_value in attrs.items():
-        has_class = hasattr(attr_value, "__class__")
-        if has_class and issubclass(attr_value.__class__, BaseType):
-            ### attr_name = field name
-            ### attr_value = field instance
-            attr_value.field_name = attr_name  # fields know their name
-            model_fields[attr_name] = attr_value
+    for field_name, field_value in attrs.items():
+        if isinstance(field_value, BaseType):
+            field_value.field_name = field_name
+            model_fields[field_name] = field_value
             
     return model_fields
 
@@ -88,23 +81,23 @@ class ModelMetaclass(type):
     def __new__(cls, name, bases, attrs):
         """Processes a configuration of a Model type into a class.
         """
+        ### Parse metaclass config into options class
+        options = _gen_options(cls, attrs)
+
+        ### Extract fields and wrap in FieldDescriptors
+        fields =  _extract_fields(bases, attrs)
+
+        ### Put generates attributes in attrs dict
+        attrs['_options'] = options
+        attrs['_fields'] = fields
+        attrs['_model_name'] = name
+
         ### Gen a class instance
         klass = super(ModelMetaclass, cls).__new__(cls, name, bases, attrs)
 
-        ### Parse metaclass config into options schematic
-        options = _gen_options(klass, attrs)
-        if hasattr(klass, 'Options'):
-            delattr(klass, 'Options')
-
-        ### Extract fields and attach klass as owner
-        fields =  _extract_fields(bases, attrs)
+        ### Each field has access to it's containing class
         for field in fields.values():
             field.owner_model = klass
-
-        ### Attach collected data to klass
-        setattr(klass, '_options', options)
-        setattr(klass, '_fields', fields)
-        setattr(klass, '_model_name', name)
 
         ### Fin.
         return klass
@@ -119,7 +112,9 @@ class ModelMetaclass(type):
 ### Model schematics
 ###
 
-class BaseModel(object):
+class Model(object):
+    __metaclass__ = ModelMetaclass
+    __optionsclass__ = ModelOptions
 
     def __init__(self, **values):
         self._data = {}
@@ -132,9 +127,11 @@ class BaseModel(object):
             setattr(self, attr_name, value)
 
             field_name = attr_name
-            if attr_value.minimized_field_name:
+            if attr_value.minimized_field_name \
+                   and attr_value.minimized_field_name in values:
                 field_name = attr_value.minimized_field_name
-            elif attr_value.print_name:
+            elif attr_value.print_name \
+                     and attr_value.print_name in values:
                 field_name = attr_value.print_name
 
             if attr_value.form_name is None:
@@ -143,11 +140,6 @@ class BaseModel(object):
             if field_name in values:
                 field_value = values[field_name]
                 setattr(self, attr_name, field_value)
-                    
-
-    ###
-    ### dict Interface
-    ###
 
     def __iter__(self):
         return iter(self._fields)
@@ -179,16 +171,17 @@ class BaseModel(object):
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             keys = self._fields
-            if not hasattr(other, 'id'):
-                keys.pop("id", None)
             for key in keys:
                 if self[key] != other[key]:
                     return False
             return True
         return False
 
-    ### Representation Descriptors
-    
+    def get(self, key, default=None):
+        if key in self:
+            return self[key]
+        return default
+
     def __repr__(self):
         try:
             u = unicode(self)
@@ -200,10 +193,3 @@ class BaseModel(object):
         if hasattr(self, '__unicode__'):
             return unicode(self).encode('utf-8')
         return '%s object' % self.__class__.__name__
-
-
-class Model(BaseModel):
-    """Model YEAH
-    """
-    __metaclass__ = ModelMetaclass
-    __optionsclass__ = ModelOptions

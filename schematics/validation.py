@@ -1,66 +1,8 @@
-"""Validation
-
-Validation is performed in a way that does not rely on Exceptions.  This means
-the return values have significance, but they are easy enough to check.  The
-goal of the validation system working this way is to increase awareness for how
-success and errors are handled.
-
-A structure inspired by Erlang's tagged tuples is used.  Schematics has a few
-structures that represent inspection results that are implemented as
-namedtuples.  Every tuple contains a `tag` and a `message`.  If more values are
-stored, that is a detail of the implementation.
-
-The tag itself is a mechanism for explicitly saying something happened.  Match
-the 'OK' tag in an if statement and continue your flow.  If you don't have OK,
-you must then handle the error.
-
-I like this model significantly better than an exception oriented mechanism
-exactly because the error handling is more explicit.
-
-Validation now looks like this:
-
-    result = validate_instance(some_instance)
-    if result.tag == OK:
-        print 'OK:', result.value
-    else:
-        print 'ERROR:', result.message
-        handle_error(result)
-
-Error cases will return a text representation of what happened for the message
-value. This value will always be log-friendly.
+"""
 """
 
-from collections import namedtuple
+from exceptions import ValidationError
 
-
-###
-### Result Handlilng
-###
-
-OK = 'OK'
-
-### Type Handling
-TypeResult = namedtuple('TypeResult', 'tag message value')
-#ERROR_INVALID_TYPE
-ERROR_TYPE_COERCION = 'ERROR_TYPE_COERCION'  # type coercion failed
-
-### Field Handling
-FieldResult = namedtuple('FieldResult', 'tag message name value')
-ERROR_FIELD_TYPE_CHECK = 'ERROR_FIELD_TYPE_CHECK'  # field failed type check
-ERROR_FIELD_CONFIG = 'ERROR_FIELD_CONFIG'  # bad type instance config
-ERROR_FIELD_REQUIRED = 'ERROR_FIELD_REQUIRED'  # required field not found
-ERROR_FIELD_BAD_CHOICE = 'ERROR_FIELD_BAD_CHOICE'  # bad type instance config
-
-### Model Handling
-ModelResult = namedtuple('ModelResult', 'tag message model value')
-ERROR_MODEL_INVALID = 'ERROR_MODEL_INVALID'  # data is not a schematics model
-ERROR_MODEL_TYPE_CHECK = 'ERROR_MODEL_TYPE_CHECK'  # model failed type check
-ERROR_MODEL_ROGUE_FIELD = 'ERROR_MODEL_ROGUE_FIELD'  # field not found in model
-
-
-###
-### Validation Functions
-###
 
 def _is_empty(field_value):
     ### TODO if field_value is None, skip  ### TODO makea parameter
@@ -92,7 +34,7 @@ def _validate(cls, needs_check, values, report_rogues=False):
     ### Reject model if _fields isn't present
     if not hasattr(cls, '_fields'):
         error_msg = 'cls is not a Model instance'
-        return ModelResult(ERROR_MODEL_INVALID, error_msg, cls, values)
+        raise ValidationError(error_msg)
 
     ### Containers for results
     new_data = {}
@@ -107,22 +49,21 @@ def _validate(cls, needs_check, values, report_rogues=False):
             except KeyError:
                 field_value = None
 
-            ### Don't validate nones or empty values  # TODO makea parameter
-            ### But if field is required, set error
+            ### TODO - this will be the new validation system soon
             if _is_empty(field_value):
                 if field.required:
-                    error_msg = "Required field not found"
-                    result = FieldResult(ERROR_FIELD_REQUIRED, error_msg,
-                                        field_name, field_value)
-                    errors.append(result)
+                    error_msg = "Required field (%s) not found" % field_name
+                    errors.append(error_msg)
                 continue
 
             ### Validate field value via call to BaseType._validate
-            result = field._validate(field_value)
-            if result.tag != OK:
-                errors.append(result)
-            else:
-                new_data[field_name] = result.value
+            try:
+                field._validate(field_value)
+                ### TODO clean this
+                result = field.for_python(field_value)
+                new_data[field_name] = result
+            except ValidationError, ve:
+                errors.append(ve.messages)
 
     ### Report rogue fields as errors if `report_rogues`
     if report_rogues:
@@ -132,16 +73,14 @@ def _validate(cls, needs_check, values, report_rogues=False):
             for field_name in rogues_found:
                 error_msg = 'Unknown field found'
                 field_value = values[field_name]
-                result = FieldResult(ERROR_MODEL_ROGUE_FIELD, error_msg,
-                                    field_name, field_value)
-                errors.append(result)
+                errors.append(error_msg)
 
     ### Return on if errors were found
     if len(errors) > 0:
         error_msg = 'Model validation errors'
-        return ModelResult(ERROR_MODEL_TYPE_CHECK, error_msg, cls, errors)
+        raise ValidationError(error_msg)
 
-    return ModelResult(OK, 'success', cls, new_data)
+    return new_data
 
 
 def validate_values(cls, values):

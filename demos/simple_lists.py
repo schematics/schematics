@@ -3,27 +3,27 @@
 
 """Action 1 as Python:
 
-    {'_types': ['Action'], '_cls': 'Action', 'value': u'Hello Mike', 'tags': [u'Erlang', u'Mike Williams']}
+    {'value': u'Hello Mike', 'tags': [u'Erlang', u'Mike Williams']}
 
 Action 2 as JSON:
 
-    {"_types": ["Action"], "_cls": "Action", "value": "Hello Joe", "tags": ["Erlang", "Joe Armstrong"]}
+    {"value": "Hello Joe", "tags": ["Erlang", "Joe Armstrong"]}
 
 Single task as Python:
 
-    {'action': {'_types': ['Action'], '_cls': 'Action', 'value': u'Hello Mike', 'tags': [u'Erlang', u'Mike Williams']}, '_types': ['SingleTask'], '_cls': 'SingleTask', 'created_date': datetime.datetime(2011, 12, 10, 22, 16, 22, 273267)}
+    {'action': {'value': u'Hello Mike', 'tags': [u'Erlang', u'Mike Williams']}, 'created_date': datetime.datetime(2011, 12, 10, 22, 16, 22, 273267)}
 
 Single task as JSON:
 
-    {"action": {"_types": ["Action"], "_cls": "Action", "value": "Hello Mike", "tags": ["Erlang", "Mike Williams"]}, "_types": ["SingleTask"], "_cls": "SingleTask", "created_date": "2011-12-10T22:16:22.273267"}
+    {"action": {"value": "Hello Mike", "tags": ["Erlang", "Mike Williams"]}, "created_date": "2011-12-10T22:16:22.273267"}
 
 Tasklist as Python:
 
-    {'updated_date': datetime.datetime(2011, 12, 10, 22, 16, 22, 273521), '_types': ['TaskList'], 'num_completed': 0, 'actions': [{'_types': ['Action'], '_cls': 'Action', 'value': u'Hello Mike', 'tags': [u'Erlang', u'Mike Williams']}, {'_types': ['Action'], '_cls': 'Action', 'value': u'Hello Joe', 'tags': [u'Erlang', u'Joe Armstrong']}], '_cls': 'TaskList', 'created_date': datetime.datetime(2011, 12, 10, 22, 16, 22, 273558)}
+    {'updated_date': datetime.datetime(2011, 12, 10, 22, 16, 22, 273521), 'num_completed': 0, 'actions': ['value': u'Hello Mike', 'tags': [u'Erlang', u'Mike Williams']}, {'value': u'Hello Joe', 'tags': [u'Erlang', u'Joe Armstrong']}], 'created_date': datetime.datetime(2011, 12, 10, 22, 16, 22, 273558)}
 
 Tasklist as JSON:
 
-    {"updated_date": "2011-12-10T22:16:22.273521", "_types": ["TaskList"], "num_completed": 0, "actions": [{"_types": ["Action"], "_cls": "Action", "value": "Hello Mike", "tags": ["Erlang", "Mike Williams"]}, {"_types": ["Action"], "_cls": "Action", "value": "Hello Joe", "tags": ["Erlang", "Joe Armstrong"]}], "_cls": "TaskList", "created_date": "2011-12-10T22:16:22.273558"}
+    {"updated_date": "2011-12-10T22:16:22.273521", "num_completed": 0, "actions": [{"value": "Hello Mike", "tags": ["Erlang", "Mike Williams"]}, {"value": "Hello Joe", "tags": ["Erlang", "Joe Armstrong"]}], "created_date": "2011-12-10T22:16:22.273558"}
 """
 
 

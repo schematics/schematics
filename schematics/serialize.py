@@ -72,7 +72,7 @@ import copy
 from schematics import public
 from schematics.types import schematic_types
 from schematics.base import json
-from schematics.models import BaseModel, Model
+from schematics.models import Model
 
 
 ###

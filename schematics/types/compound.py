@@ -12,9 +12,8 @@ from schematics.models import Model
 from schematics.types.base import BaseType, DictType, DecimalType
 from schematics.datastructures import MultiValueDict
 from schematics.serialize import to_python, to_json, for_jsonschema
-from schematics.validation import (validate_instance, validate_values, OK,
-                                   ERROR_FIELD_TYPE_CHECK, ERROR_FIELD_CONFIG,
-                                   ModelResult, FieldResult)
+from schematics.validation import validate_instance, validate_values
+from schematics.exceptions import ValidationError
 
 
 RECURSIVE_REFERENCE_CONSTANT = 'self'
@@ -45,15 +44,13 @@ class ListType(BaseType):
             error_msg = 'Argument to ListType constructor must be '
             error_msg = error_msg + 'a valid field or list of fields'
             
-            return FieldResult(ERROR_FIELD_CONFIG, error_msg,
-                               self.field_name, fields)
+            raise ValidationError(error_msg)
         
         ### some bad stuff in the list
         elif list(ifilterfalse(is_basetype, fields)):
             error_msg = 'Argument to ListType constructor must be '
             error_msg = error_msg + 'a valid field or list of valid fields'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, fields)
+            raise ValidationError(error_msg)
         
         else:
             models = filter(is_model, fields)
@@ -125,10 +122,10 @@ class ListType(BaseType):
                         datum_instance = model_field.model_type_obj(**datum)
 
                 ### Validate model
-                result = validate_instance(datum_instance)
-                if result.tag == OK:
+                try:
+                    result = validate_instance(datum_instance)
                     new_data.append(datum_instance)
-                else:
+                except ValidationError, ve:
                     errors_found = True
                     
             value_list = new_data
@@ -175,28 +172,26 @@ class ListType(BaseType):
         value = self.Proxy(self.fields, value)
         if not isinstance(value, (list, tuple, self.Proxy)):
             error_msg = 'Only lists and tuples may be used in a list field'
-            raise FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                              self.field_name, value)
+            raise ValidationError(error_msg)
 
-        if not self.fields:  # empty list
-            return FieldResult(OK, 'success', self.field_name, value)
+        if not self.fields:
+            return True
 
         errors = []
         good_data = []
         for item in value:
             for field in self.fields:
-                result = field.validate(item)
-                if result.tag == OK:
-                    good_data.append(result.value)
-                else:
-                    errors.append(result)
+                try:
+                    field.validate(item)
+                    value = field.for_python(item)
+                    good_data.append(value)
+                except ValidationError, ve:
+                    errors.append(ve)
 
         if len(errors) > 0:
-            error_msg = 'Invalid ListType item'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, errors)
+            raise ValidationError('Invalid ListType item')
         
-        return FieldResult(OK, 'success', self.field_name, good_data)
+        return True
 
     def _set_owner_model(self, owner_model):
         for field in self.fields:
@@ -384,8 +379,7 @@ class ModelType(BaseType):
         if not isinstance(model_type, basestring):
             if not model_type or not is_embeddable(model_type):
                 error_msg = 'Invalid model class provided to an ModelType'
-                return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                                   self.field_name, model_type)
+                raise ValidationError(error_msg)
         self.model_type_obj = model_type
         super(ModelType, self).__init__(**kwargs)
 
@@ -394,7 +388,7 @@ class ModelType(BaseType):
             instance._data[self.field_name] = None
         elif not isinstance(value, self.model_type):
             value = self.model_type(**value)
-            instance._data[self.field_name] = value
+        instance._data[self.field_name] = value
 
     @property
     def model_type(self):
@@ -432,9 +426,7 @@ class ModelType(BaseType):
         # Using isinstance also works for subclasses of self.model
         if not isinstance(value, self.model_type):
             error_msg = 'Invalid modeltype instance provided to an ModelType'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
-
+            raise ValidationError(error_msg)
         return validate_instance(value)
 
     def lookup_member(self, member_name):
@@ -448,8 +440,7 @@ class MultiValueDictType(DictType):
         
         if not issubclass(self.basecls, BaseType):
             error_msg = 'basecls is not subclass of BaseType'
-            return FieldResult(ERROR_FIELD_CONFIG, error_msg,
-                               self.field_name, fields)
+            raise ValidationError(error_msg)
         
         kwargs.setdefault('default', lambda: MultiValueDict())
         super(MultiValueDictType, self).__init__(*args, **kwargs)
@@ -466,17 +457,14 @@ class MultiValueDictType(DictType):
         if not isinstance(value, (dict, MultiValueDict)):
             error_msg = 'Only dictionaries or MultiValueDict may be used in a '
             error_msg = error_msg + 'DictType'
-            return  FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                                self.field_name, value)
+            raise ValidationError(error_msg)
 
         ### TODO get rid of this
         if any(('.' in k or '$' in k) for k in value):
             error_msg = 'Invalid dictionary key name - keys may not contain '
             error_msg = error_msg + '"." or "$" characters'
-            return FieldResult(ERROR_FIELD_TYPE_CHECK, error_msg,
-                               self.field_name, value)
-        
-        return FieldResult(OK, 'success', self.field_name, value)
+            raise ValidationError(error_msg)
+        return True
 
     def for_json(self, value):
         output = {}
