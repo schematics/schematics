@@ -1,7 +1,7 @@
 # encoding=utf-8
 
 from .types.compound import (
-    ModelType, ListType, EMPTY_LIST, DictType, EMPTY_DICT
+    MultiType, ModelType, ListType, EMPTY_LIST, DictType, EMPTY_DICT
 )
 
 
@@ -17,28 +17,18 @@ def _reduce_loop(model):
 def apply_shape(model, model_converter, role, gottago):
     model_dict = {}
 
-    Model = model.__class__
-
-    # Loop over each field and either evict it or convert it
     for (field_name, field_instance, field_value) in _reduce_loop(model):
-        # Evict field if it's gotta go
         if gottago(field_name, field_value):
             continue
 
-        # Check for alternate field name
         serialized_name = field_name
         if field_instance.serialized_name:
             serialized_name = field_instance.serialized_name
 
         if field_value is None:
             model_dict[serialized_name] = None
-        elif isinstance(field_instance, ModelType):
-            model_dict[serialized_name] = model_converter(field_value)
-        elif isinstance(field_instance, ListType):
-            if field_value and isinstance(field_value[0], Model):
-                model_dict[serialized_name] = [model_converter(vi) for vi in field_value]
-            else:
-                model_dict[serialized_name] = field_instance.to_primitive(field_value)
+        elif isinstance(field_instance, MultiType):
+            model_dict[serialized_name] = field_instance.to_primitive(field_value, model_converter)
         else:
             model_dict[serialized_name] = field_instance.to_primitive(field_value)
 
@@ -162,12 +152,10 @@ def flatten(instance, role, ignore_none=True, prefix="", **kwargs):
 
     flat_dict = {}
 
-    # Loop over each field and either evict it or convert it
     for (field_name, field_instance, field_value) in _reduce_loop(instance):
         if gottago(field_name, field_value):
             continue
 
-        # Check for alternate field name
         serialized_name = field_name
         if field_instance.serialized_name:
             serialized_name = field_instance.serialized_name

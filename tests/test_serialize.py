@@ -136,7 +136,7 @@ class TestSerializable(unittest.TestCase):
         self.assertEqual(game.all_players[2], p2)
 
         d = game.serialize(role="public")
-        print d
+
         self.assertEqual(d, {
             "id": "1",
             "players": {
@@ -149,6 +149,61 @@ class TestSerializable(unittest.TestCase):
                     "display_name": "B"
                 },
             }
+        })
+
+    def test_serializable_with_embedded_models(self):
+        class ExperienceLevel(Model):
+            level = IntType()
+            stars = IntType()
+
+            @classmethod
+            def from_total_points(cls, total_points, category_slug):
+                return cls(dict(level=total_points*2, stars=total_points))
+
+        class CategoryStatsInfo(Model):
+            category_slug = StringType()
+            total_points = IntType(default=0)
+
+            @serializable(type=ModelType(ExperienceLevel))
+            def xp_level(self):
+                return ExperienceLevel.from_total_points(self.total_points, self.category_slug)
+
+        class PlayerInfo(Model):
+            id = LongType()
+            display_name = StringType()
+
+        class PlayerCategoryInfo(PlayerInfo):
+            categories = DictType(ModelType(CategoryStatsInfo))
+
+        info = PlayerCategoryInfo(dict(
+            id="1",
+            display_name="John Doe",
+            categories={
+                "math": {
+                    "category_slug": "math",
+                    "total_points": 1
+                }
+            }
+        ))
+
+        self.assertEqual(info.categories["math"].xp_level.level, 2)
+        self.assertEqual(info.categories["math"].xp_level.stars, 1)
+
+        d = info.serialize()
+        self.assertEqual(d, {
+            "id": 1,
+            "display_name": "John Doe",
+            "categories": {
+                "math": {
+                    "category_slug": "math",
+                    "total_points": 1,
+                    "xp_level": {
+                        "level": 2,
+                        "stars": 1
+                    }
+                }
+            }
+
         })
 
 

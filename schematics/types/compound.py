@@ -43,11 +43,14 @@ class MultiType(BaseType):
 
         return value
 
+    def to_primitive(self, value, model_converter=None):
+        raise NotImplemented()
+
 
 class ModelType(MultiType):
     def __init__(self, model_class, **kwargs):
         self._model_class = model_class
-        self.fields = {}
+        self.fields = self.model_class.fields
         super(ModelType, self).__init__(**kwargs)
 
     @property
@@ -75,10 +78,14 @@ class ModelType(MultiType):
             raise ValidationError(errors)
         return self.model_class(result)
 
-    def to_primitive(self, values):
+    def to_primitive(self, values, model_converter=None):
         result = {}
         for key, field in self.fields.iteritems():
-            result[key] = field.to_primitive(values[key])
+            value = values[key]
+            if isinstance(field, MultiType):
+                result[key] = model_converter(value)
+            else:
+                result[key] = field.to_primitive(value)
 
         return result
 
@@ -160,8 +167,13 @@ class ListType(MultiType):
             raise ValidationError(sorted(errors.items()))
         return result
 
-    def to_primitive(self, value):
-        return map(self.field.to_primitive, self._force_list(value))
+    def to_primitive(self, value, model_converter):
+        if model_converter and isinstance(self.field, MultiType):
+            convert = model_converter
+        else:
+            convert = lambda v: self.field.to_primitive(v)
+
+        return map(convert, self._force_list(value))
 
     def _bind(self, model, memo):
         rv = BaseType._bind(self, model, memo)
@@ -199,9 +211,13 @@ class DictType(MultiType):
         return dict((self.coerce_key(k), self.field(v))
                     for k, v in value.iteritems())
 
-    def to_primitive(self, value):
-        return dict((unicode(k), self.field.to_primitive(v))
-                    for k, v in value.iteritems())
+    def to_primitive(self, value, model_converter=None):
+        if model_converter and isinstance(self.field, MultiType):
+            convert = model_converter
+        else:
+            convert = lambda v: self.field.to_primitive(v)
+
+        return dict((unicode(k), convert(v)) for k, v in value.iteritems())
 
     def _bind(self, model, memo):
         rv = BaseType._bind(self, model, memo)

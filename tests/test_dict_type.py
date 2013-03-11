@@ -74,7 +74,7 @@ class TestDictType(unittest.TestCase):
             category_slug = StringType()
             total_wins = IntType()
 
-            @serializable
+            @serializable(type=ModelType(ExperienceLevel))
             def xp_level(self):
                 return ExperienceLevel(dict(level=self.total_wins))
 
@@ -96,12 +96,16 @@ class TestDictType(unittest.TestCase):
         self.assertEqual(info.categories["math"], math_stats)
 
         d = info.serialize()
+
         self.assertEqual(d, {
             "id": 1,
             "categories": {
                 "math": {
                     "category_slug": "math",
-                    "total_wins": 1
+                    "total_wins": 1,
+                    "xp_level": {
+                        "level": 1
+                    }
                 },
             }
         })

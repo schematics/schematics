@@ -103,6 +103,12 @@ class ModelMeta(type):
     def fields(cls):
         return cls._unbound_fields
 
+    def __iter__(self):
+        return itertools.chain(
+            self._unbound_fields.iteritems(),
+            self._unbound_serializables.iteritems()
+        )
+
 
 class Model(object):
     """Enclosure for fields and validation. Same pattern deployed by Django
