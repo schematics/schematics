@@ -165,7 +165,7 @@ class Model(object):
         """
         return serialize(self, role)
 
-    def flatten(self, role=None):
+    def flatten(self, role=None, prefix=""):
         """
         Return data as a pure key-value dictionary, where the values are
         primitive types (string, bool, int, long).
@@ -174,7 +174,7 @@ class Model(object):
             Filter output by a specific role
 
         """
-        return flatten(self, role)
+        return flatten(self, role, prefix=prefix)
 
     def validate(self, input_data=None, partial=False, strict=False, raises=True):
         """Validates incoming untrusted data. If ``partial`` is set it will. If
@@ -267,14 +267,16 @@ class Model(object):
         return True
 
     def __iter__(self):
-        return itertools.chain(
+        all_fields = itertools.chain(
             self._fields.iteritems(),
             self._serializables.iteritems()
         )
 
+        return ((field_name, field, self[field_name]) for field_name, field in all_fields)
+
     def __getitem__(self, name):
         try:
-            if name in self._data or name in self._serializables:
+            if name in self:
                 return getattr(self, name)
         except AttributeError:
             pass

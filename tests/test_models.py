@@ -172,29 +172,6 @@ class TestModelInterface(unittest.TestCase):
         self.assertIsNone(model.name)
         self.assertEqual(model.bio, 'Genius')
 
-    def test_role_propagate(self):
-        class Address(Model):
-            city = StringType()
-
-            class Options:
-                roles = {'public': whitelist('city')}
-
-        class User(Model):
-            name = StringType(required=True)
-            password = StringType()
-            addresses = ListType(ModelType(Address))
-
-            class Options:
-                roles = {'public': whitelist('name')}
-
-        model = User({'name': 'a', 'addresses': [{'city': 'gotham'}]})
-        self.assertEqual(model.addresses[0].city, 'gotham')
-
-        d = model.serialize(role="public")
-        self.assertEqual(d, {
-            "name": "a",
-        })
-
 
 class TestCompoundTypes(unittest.TestCase):
     """

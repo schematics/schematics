@@ -43,19 +43,35 @@ class MultiType(BaseType):
 
         return value
 
-    def to_primitive(self, value, model_converter=None):
+    def serialize(self, value, role, raise_error_on_role=False):
         raise NotImplemented()
+
+    def filter_by_role(self, clean_value, primitive_value, role, raise_error_on_role=False):
+        raise NotImplemented()
+
+
+def get_serialized_name(field_name, field):
+    serialized_name = field_name
+    if field.serialized_name:
+        serialized_name = field.serialized_name
+    return serialized_name
 
 
 class ModelType(MultiType):
     def __init__(self, model_class, **kwargs):
-        self._model_class = model_class
+        self.model_class = model_class
         self.fields = self.model_class.fields
         super(ModelType, self).__init__(**kwargs)
 
-    @property
-    def model_class(self):
-        return self._model_class
+    def _bind(self, model, memo):
+        rv = BaseType._bind(self, model, memo)
+        rv.fields = {}
+        for key, field in self.model_class.fields.iteritems():
+            rv.fields[key] = _bind(field, model, memo)
+        return rv
+
+    def __repr__(self):
+        return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
 
     def convert(self, value):
         if isinstance(value, self.model_class):
@@ -65,7 +81,7 @@ class ModelType(MultiType):
                 return value
 
         if not isinstance(value, dict):
-            raise ValidationError(u'Please use a mapping for this field.')
+            raise ValidationError(u'Please use a mapping for this field not {}.'.format(type(value)))
 
         errors = {}
         result = {}
@@ -78,26 +94,47 @@ class ModelType(MultiType):
             raise ValidationError(errors)
         return self.model_class(result)
 
-    def to_primitive(self, values, model_converter=None):
-        result = {}
-        for key, field in self.fields.iteritems():
-            value = values[key]
-            if isinstance(field, MultiType):
-                result[key] = model_converter(value)
+    def to_primitive(self, model_instance):
+        primitive_data = {}
+        for field_name, field, value in model_instance:
+            if value is None:
+                primitive_value = None
             else:
-                result[key] = field.to_primitive(value)
+                primitive_value = field.to_primitive(value)
 
-        return result
+            primitive_data[get_serialized_name(field_name, field)] = primitive_value
 
-    def _bind(self, model, memo):
-        rv = BaseType._bind(self, model, memo)
-        rv.fields = {}
-        for key, field in self.model_class.fields.iteritems():
-            rv.fields[key] = _bind(field, model, memo)
-        return rv
+        return primitive_data
 
-    def __repr__(self):
-        return object.__repr__(self)[:-1] + ' for %s>' % self._model_class
+    def serialize(self, model_instance, role, raise_error_on_role=False):
+        primitive_data = self.to_primitive(model_instance)
+
+        self.filter_by_role(model_instance, primitive_data, role, raise_error_on_role)
+
+        return primitive_data
+
+    def filter_by_role(self, model_instance, primitive_data, role, raise_error_on_role=False):
+        gottago = lambda k, v: False
+        if role in self.model_class._options.roles:
+            gottago = self.model_class._options.roles[role]
+        elif role and raise_error_on_role:
+            raise ValueError(u'%s Model has no role "%s"' % (
+                self.model_class.__name__, role))
+
+        for field_name, field, value in model_instance:
+            serialized_name = get_serialized_name(field_name, field)
+
+            if gottago(field_name, value):
+                primitive_data.pop(serialized_name)
+            elif isinstance(field, MultiType):
+                primitive_value = primitive_data[serialized_name]
+                field.filter_by_role(
+                    value,
+                    primitive_value,
+                    role
+                )
+
+        return primitive_data
 
 
 EMPTY_LIST = "[]"
@@ -119,6 +156,11 @@ class ListType(MultiType):
 
         if min_size is not None:
             self.required = True
+
+    def _bind(self, model, memo):
+        rv = BaseType._bind(self, model, memo)
+        rv.field = _bind(self.field, model, memo)
+        return rv
 
     @property
     def model_class(self):
@@ -167,18 +209,15 @@ class ListType(MultiType):
             raise ValidationError(sorted(errors.items()))
         return result
 
-    def to_primitive(self, value, model_converter):
-        if model_converter and isinstance(self.field, MultiType):
-            convert = model_converter
-        else:
-            convert = lambda v: self.field.to_primitive(v)
+    def to_primitive(self, value):
+        return map(self.field.to_primitive, value)
 
-        return map(convert, self._force_list(value))
+    def filter_by_role(self, clean_list, primitive_list, role, raise_error_on_role=False):
+        if isinstance(self.field, MultiType):
+            for clean_value, primitive_value in zip(clean_list, primitive_list):
+                self.field.filter_by_role(clean_value, primitive_value, role)
 
-    def _bind(self, model, memo):
-        rv = BaseType._bind(self, model, memo)
-        rv.field = _bind(self.field, model, memo)
-        return rv
+        return primitive_list
 
 
 EMPTY_DICT = "{}"
@@ -195,9 +234,10 @@ class DictType(MultiType):
 
         super(DictType, self).__init__(**kwargs)
 
-    @property
-    def model_class(self):
-        return self.field.model_class
+    def _bind(self, model, memo):
+        rv = BaseType._bind(self, model, memo)
+        rv.field = _bind(self.field, model, memo)
+        return rv
 
     def convert(self, value):
         if value == EMPTY_DICT:
@@ -211,15 +251,15 @@ class DictType(MultiType):
         return dict((self.coerce_key(k), self.field(v))
                     for k, v in value.iteritems())
 
-    def to_primitive(self, value, model_converter=None):
-        if model_converter and isinstance(self.field, MultiType):
-            convert = model_converter
-        else:
-            convert = lambda v: self.field.to_primitive(v)
+    def to_primitive(self, value):
+        return dict((unicode(k), self.field.to_primitive(v)) for k, v in value.iteritems())
 
-        return dict((unicode(k), convert(v)) for k, v in value.iteritems())
+    def filter_by_role(self, clean_data, primitive_data, role, raise_error_on_role=False):
+        if isinstance(self.field, MultiType):
+            for key, clean_value in clean_data.iteritems():
+                primitive_value = primitive_data[unicode(key)]
 
-    def _bind(self, model, memo):
-        rv = BaseType._bind(self, model, memo)
-        rv.field = _bind(self.field, model, memo)
-        return rv
+                self.field.filter_by_role(clean_value, primitive_value, role)
+
+        return primitive_data
+

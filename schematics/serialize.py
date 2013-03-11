@@ -1,39 +1,8 @@
 # encoding=utf-8
 
 from .types.compound import (
-    MultiType, ModelType, ListType, EMPTY_LIST, DictType, EMPTY_DICT
+    ModelType, ListType, EMPTY_LIST, DictType, EMPTY_DICT
 )
-
-
-def _reduce_loop(model):
-    """Each field's name, the field MODEL and the field's value are
-    collected in a truple and yielded, making this a generator.
-    """
-    for field_name, field_instance in model:
-        field_value = model.get(field_name)
-        yield (field_name, field_instance, field_value)
-
-
-def apply_shape(model, model_converter, role, gottago):
-    model_dict = {}
-
-    for (field_name, field_instance, field_value) in _reduce_loop(model):
-        if gottago(field_name, field_value):
-            continue
-
-        serialized_name = field_name
-        if field_instance.serialized_name:
-            serialized_name = field_instance.serialized_name
-
-        if field_value is None:
-            model_dict[serialized_name] = None
-        elif isinstance(field_instance, MultiType):
-            model_dict[serialized_name] = field_instance.to_primitive(field_value, model_converter)
-        else:
-            model_dict[serialized_name] = field_instance.to_primitive(field_value)
-
-    return model_dict
-
 
 #
 # Field Access Functions
@@ -79,18 +48,9 @@ def blacklist(*field_list):
     return _blacklist
 
 
-def serialize(instance, role, raise_error_on_role=True, **kw):
-    model = instance.__class__
-    model_converter = lambda m: serialize(m, role, raise_error_on_role=False)
-
-    gottago = lambda k, v: False
-    if role in model._options.roles:
-        gottago = model._options.roles[role]
-    elif role and raise_error_on_role:
-        raise ValueError(u'%s Model has no role "%s"' % (
-            instance.__class__.__name__, role))
-
-    return apply_shape(instance, model_converter, role, gottago, **kw)
+def serialize(instance, role, raise_error_on_role=True):
+    model_field = ModelType(instance.__class__)
+    return model_field.serialize(instance, role, raise_error_on_role)
 
 
 def expand(data, context=None):
@@ -152,7 +112,7 @@ def flatten(instance, role, ignore_none=True, prefix="", **kwargs):
 
     flat_dict = {}
 
-    for (field_name, field_instance, field_value) in _reduce_loop(instance):
+    for field_name, field_instance, field_value in instance:
         if gottago(field_name, field_value):
             continue
 

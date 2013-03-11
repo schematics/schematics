@@ -134,6 +134,24 @@ class FlattenTests(unittest.TestCase):
         self.assertEqual(p_from_flat.categories, [1, 2, 3])
         self.assertEqual(p, p_from_flat)
 
+    def test_flatten_with_listtype_after_appending(self):
+
+        class Game(Model):
+            players = ListType(StringType, default=lambda: [])
+
+        game = Game()
+        game.players.append("John")
+
+        flat_dict = game.flatten()
+
+        self.assertEqual(flat_dict, {
+            "players.0": "John",
+        })
+
+        game_from_flat_dict = Game.from_flat(flat_dict)
+
+        self.assertEqual(game, game_from_flat_dict)
+
     def test_flatten_with_listtype(self):
         class ExperienceLevelInfo(Model):
             level = IntType()

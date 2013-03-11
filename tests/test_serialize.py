@@ -3,9 +3,9 @@ import unittest
 
 from schematics.models import Model
 from schematics.types import StringType, LongType, IntType
-from schematics.types.compound import ModelType, DictType
+from schematics.types.compound import ModelType, DictType, ListType
 from schematics.types.serializable import serializable
-from schematics.serialize import blacklist
+from schematics.serialize import blacklist, whitelist
 
 
 class TestSerializable(unittest.TestCase):
@@ -103,51 +103,44 @@ class TestSerializable(unittest.TestCase):
         d = player.serialize()
         self.assertEqual(d, {"total_points": 2, "xp_level": {"level": 4, "title": "Best"}})
 
-    def test_serializable_with_dict(self):
-        class Player(Model):
+    def test_serializable_with_embedded_models_and_list(self):
+        class Question(Model):
             id = LongType()
-            display_name = StringType()
+
+        class QuestionPack(Model):
+            id = LongType()
+            questions = ListType(ModelType(Question))
 
         class Game(Model):
             id = StringType()
-            all_players = DictType(ModelType(Player), coerce_key=lambda k: long(k))
+            question_pack = ModelType(QuestionPack)
 
-            class Options:
-                roles = {
-                    "public": blacklist("all_players")
-                }
-
-            @serializable(type=DictType(ModelType(Player), coerce_key=lambda k: long(k)))
-            def players(self):
-                return dict((pid, p) for pid, p in self.all_players.iteritems())
-
-        p1 = Player({"id": 1, "display_name": "A"})
-        p2 = Player({"id": 2, "display_name": "B"})
+        q1 = Question({"id": 1})
+        q2 = Question({"id": 2})
 
         game = Game({
             "id": "1",
-            "all_players": {
-                1: p1,
-                2: p2
+            "question_pack": {
+                "id": 2,
+                "questions": [q1, q2]
             }
         })
 
-        self.assertEqual(game.all_players[1], p1)
-        self.assertEqual(game.all_players[2], p2)
+        self.assertEqual(game.question_pack.questions[0], q1)
+        self.assertEqual(game.question_pack.questions[1], q2)
 
-        d = game.serialize(role="public")
+        d = game.serialize()
 
         self.assertEqual(d, {
             "id": "1",
-            "players": {
-                "1": {
+            "question_pack": {
+                "id": 2,
+                "questions": [{
                     "id": 1,
-                    "display_name": "A"
                 },
-                "2": {
+                {
                     "id": 2,
-                    "display_name": "B"
-                },
+                }]
             }
         })
 
@@ -209,6 +202,29 @@ class TestSerializable(unittest.TestCase):
 
 class TestRoles(unittest.TestCase):
 
+    def test_role_propagate(self):
+        class Address(Model):
+            city = StringType()
+
+            class Options:
+                roles = {'public': whitelist('city')}
+
+        class User(Model):
+            name = StringType(required=True)
+            password = StringType()
+            addresses = ListType(ModelType(Address))
+
+            class Options:
+                roles = {'public': whitelist('name')}
+
+        model = User({'name': 'a', 'addresses': [{'city': 'gotham'}]})
+        self.assertEqual(model.addresses[0].city, 'gotham')
+
+        d = model.serialize(role="public")
+        self.assertEqual(d, {
+            "name": "a",
+        })
+
     def test_fails_if_role_is_not_found(self):
         class Player(Model):
             id = StringType()
@@ -250,4 +266,135 @@ class TestRoles(unittest.TestCase):
                 "level": 1,
                 "title": "Starter"
             }
+        })
+
+    def test_uses_roles_on_embedded_models_if_found(self):
+        class ExperienceLevel(Model):
+            level = IntType()
+            title = StringType()
+
+            class Options:
+                roles = {
+                    "public": blacklist("title")
+                }
+
+        class Player(Model):
+            id = StringType()
+            secret = StringType()
+
+            xp_level = ModelType(ExperienceLevel)
+
+            class Options:
+                roles = {
+                    "public": blacklist("secret")
+                }
+
+        p = Player(dict(
+            id="1",
+            secret="super_secret",
+            xp_level={
+                "level": 1,
+                "title": "Starter"
+            }
+        ))
+
+        d = p.serialize(role="public")
+        self.assertEqual(d, {
+            "id": "1",
+            "xp_level": {
+                "level": 1,
+            }
+        })
+
+    def test_serializable_with_dict_and_roles(self):
+        class Player(Model):
+            id = LongType()
+            display_name = StringType()
+
+            class Options:
+                roles = {
+                    "public": blacklist("id")
+                }
+
+        class Game(Model):
+            id = StringType()
+            result = IntType()
+            players = DictType(ModelType(Player), coerce_key=lambda k: long(k))
+
+            class Options:
+                roles = {
+                    "public": blacklist("result")
+                }
+
+        p1 = Player({"id": 1, "display_name": "A"})
+        p2 = Player({"id": 2, "display_name": "B"})
+
+        game = Game({
+            "id": "1",
+            "players": {
+                1: p1,
+                2: p2
+            }
+        })
+
+        self.assertEqual(game.players[1], p1)
+        self.assertEqual(game.players[2], p2)
+
+        d = game.serialize(role="public")
+
+        self.assertEqual(d, {
+            "id": "1",
+            "players": {
+                "1": {
+                    "display_name": "A"
+                },
+                "2": {
+                    "display_name": "B"
+                },
+            }
+        })
+
+    def test_serializable_with_list_and_roles(self):
+        class Player(Model):
+            id = LongType()
+            display_name = StringType()
+
+            class Options:
+                roles = {
+                    "public": blacklist("id")
+                }
+
+        class Game(Model):
+            id = StringType()
+            result = IntType()
+            players = ListType(ModelType(Player))
+
+            class Options:
+                roles = {
+                    "public": blacklist("result")
+                }
+
+        p1 = Player({"id": 1, "display_name": "A"})
+        p2 = Player({"id": 2, "display_name": "B"})
+
+        game = Game({
+            "id": "1",
+            "players": [p1, p2]
+        })
+
+        self.assertEqual(game.players[0], p1)
+        self.assertEqual(game.players[1], p2)
+
+        d = game.serialize(role="public")
+
+        self.assertEqual(d, {
+            "id": "1",
+            "players": [
+                {
+                    "display_name": "A"
+                },
+                {
+                    "display_name": "B"
+                },
+            ]
         })
