@@ -49,19 +49,30 @@ class BaseType(object):
             # Model class being used rather than a model object
             return self
 
+        if self.field_name not in instance._data:
+            raise AttributeError(self.field_name)
+    
         value = instance._data.get(self.field_name)
 
-        if value is None:
+        if value is None and self.default:
             value = self.default
             # Callable values are best for mutable defaults
             if callable(value):
                 value = value()
+
         return value
 
     def __set__(self, instance, value):
         """Descriptor for assigning a value to a field in a model.
         """
         instance._data[self.field_name] = value
+
+    def __delete__(self, instance):
+        if self.name not in instance._fields:
+            instance_name = type(instance).__name__
+            error_msg = '%r has no attribute %r' % (instance_name, self.name)
+            raise AttributeError(error_msg)
+        del instance._fields[self.name]
 
     def for_python(self, value):
         """Convert a Structures type into native Python value
