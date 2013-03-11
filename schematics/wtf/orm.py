@@ -6,7 +6,7 @@ from schematics import public
 from schematics.models import Model
 from schematics.serialize import wholelist, whitelist, blacklist
 from wtforms import fields as f, validators, Form
-from wtforms.widgets import HiddenInput
+from wtforms.widgets import HiddenInput, TextInput
 
 def converts(*args):
     def _inner(func):
@@ -184,6 +184,22 @@ class ModelConverter():
     def conv_GenericReference(self, model, field, kwargs):
         return
 
+#
+# Bootstrap Model Converters
+#
+class BootstrapDatePicker(TextInput):
+    def __call__(self, field, **kwargs):
+        kwargs['class'] = 'datepicker'
+        kwargs['data-date-format'] = 'mm/dd/yy'
+        return super(BootstrapDatePicker, self).__call__(field, **kwargs)
+
+@public
+class BootstrapModelConverter(ModelConverter):
+
+    @converts('DateTimeType')
+    def conv_DateTime(self, model, field, kwargs):
+        kwargs['widget']=BootstrapDatePicker()
+        return f.DateField(**kwargs)
 
 def model_fields(model, only=None, exclude=None, hidden=None, field_args=None, converter=None):
     """
