@@ -127,9 +127,11 @@ class Model(object):
             setattr(self, attr_name, value)
 
             field_name = attr_name
-            if attr_value.minimized_field_name:
+            if attr_value.minimized_field_name \
+                   and attr_value.minimized_field_name in values:
                 field_name = attr_value.minimized_field_name
-            elif attr_value.print_name:
+            elif attr_value.print_name \
+                     and attr_value.print_name in values:
                 field_name = attr_value.print_name
 
             if field_name in values:
