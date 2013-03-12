@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(name='schematics',
       license='BSD',
-      version='2.0.0dev',
+      version='0.5',
       description='Structured Data for Humans',
       author='James Dennis',
       author_email='jdennis@gmail.com',
