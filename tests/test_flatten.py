@@ -30,6 +30,19 @@ class FlattenTests(unittest.TestCase):
         self.assertEqual(type(info), type(info_from_flat_dict))
         self.assertEqual(info, info_from_flat_dict)
 
+    def test_flatten_with_root_prefix(self):
+        class Location(Model):
+            country_code = StringType()
+            region_code = StringType()
+
+        info = Location(dict(country_code="US", region_code="CA"))
+        flat_dict = info.flatten(prefix="my_location")
+
+        self.assertEqual(flat_dict, {
+            "my_location.country_code": "US",
+            "my_location.region_code": "CA"
+        })
+
     def test_to_flat_dict_one_level_deep(self):
         class Location(Model):
             country_code = StringType()

@@ -71,7 +71,8 @@ class ModelType(MultiType):
                 return value
 
         if not isinstance(value, dict):
-            raise ValidationError(u'Please use a mapping for this field not {}.'.format(type(value)))
+            raise ValidationError(u'Please use a mapping for this field or {} instance.'.format(
+                self.model_class.__name__))
 
         errors = {}
         result = {}

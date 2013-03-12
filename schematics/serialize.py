@@ -103,11 +103,11 @@ def flatten_to_dict(o, prefix=None, ignore_none=True):
     return flat_dict
 
 
-def flatten(instance, role, raise_error_on_role=True, ignore_none=True, prefix="", **kwargs):
+def flatten(instance, role, raise_error_on_role=True, ignore_none=True, prefix=None, **kwargs):
     model_field = ModelType(instance.__class__)
 
     primitive_data = model_field.to_primitive(instance, include_serializables=False)
 
     model_field.filter_by_role(instance, primitive_data, role, raise_error_on_role)
 
-    return flatten_to_dict(primitive_data)
+    return flatten_to_dict(primitive_data, prefix=prefix, ignore_none=ignore_none)
