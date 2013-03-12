@@ -5,6 +5,7 @@ import copy
 from schematics.base import json
 from schematics.types import (DictFieldNotFound, schematic_types, BaseType,
                               UUIDType)
+from schematics.validation import validate
 
 
 ###
@@ -137,6 +138,11 @@ class Model(object):
             if field_name in values:
                 field_value = values[field_name]
                 setattr(self, attr_name, field_value)
+
+    def validate(self, values=None, **kwargs):
+        if values is None:
+            values = self._data if hasattr(self, '_data') else {}
+        return validate(self.__class__, values, **kwargs)
 
     def __iter__(self):
         return iter(self._fields)

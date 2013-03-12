@@ -7,7 +7,7 @@
 import hashlib
 
 from schematics.models import Model
-from schematics.validation import validate_instance, validate_values
+from schematics.validation import validate
 from schematics.serialize import to_python, whitelist, wholelist
 from schematics.types import MD5Type, StringType
 from schematics.exceptions import ValidationError
@@ -48,7 +48,7 @@ u.name = 'this name is going to be much, much, much too long for this field'
 ### Validation will fail
 print 'VALIDATING: %s' % (to_python(u))
 try:
-    validate_instance(u)
+    u.validate()
 except ValidationError, ve:
     print '    FAILED:', ve
  
@@ -59,7 +59,7 @@ u.set_password('whatevz')
 print 'VALIDATING: %s' % (to_python(u))
 
 ### Validation will pass
-validate_instance(u)
+u.validate()
 
 
 ###
@@ -76,7 +76,7 @@ total_input = {
 print 'VALIDATING: %s' % (total_input)
 
 ### Validate dict against our model definition
-validate_values(User, total_input)
+validate(User, total_input)
 
 
 ### Add the rogue type back to `total_input`

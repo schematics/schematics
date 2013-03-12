@@ -15,9 +15,7 @@ def _is_empty(field_value):
     return False
 
 
-def _validate(cls, values, partial=False, report_rogues=False):
-    """TODO
-    """
+def validate(cls, values, partial=False, report_rogues=False):
     ### Reject model if _fields isn't present
     if not hasattr(cls, '_fields'):
         error_msg = 'cls is not a Model instance'
@@ -69,32 +67,7 @@ def _validate(cls, values, partial=False, report_rogues=False):
 
     ### Return on if errors were found
     if len(errors) > 0:
-        error_msg = 'Model validation errors'
-        raise ValidationError(error_msg)
+        #error_msg = 'Model validation errors'
+        raise ValidationError(errors)
 
     return new_data
-
-
-def validate_values(cls, values):
-    """Validates `values` against a `class` definition or instance.  It takes
-    care to ensure require fields are present and pass validation and
-    """
-    return _validate(cls, values)
-
-
-def validate_instance(model):
-    """Extracts the values from the model and validates them via a call to
-    `validate_values`.
-    """
-    values = model._data if hasattr(model, '_data') else {}
-    return _validate(model, values)
-
-
-def validate_partial(cls, values):
-    """This function will validate values against fields of the same name in
-    the model.  No checks for required fields are performed.
-
-    The idea here is you might validate subcomponents of a document and then
-    merge them later.
-    """
-    return _validate(cls, values, partial=True)

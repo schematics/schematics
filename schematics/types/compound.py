@@ -8,7 +8,7 @@ from schematics.models import Model
 from schematics.types import BaseType, DictType
 from schematics.datastructures import MultiValueDict
 from schematics.serialize import to_python, to_json, for_jsonschema
-from schematics.validation import validate_instance, validate_values
+from schematics.validation import validate
 from schematics.exceptions import ValidationError
 
 
@@ -102,7 +102,7 @@ class ListType(BaseType):
 
                 ### Validate model
                 try:
-                    result = validate_instance(datum_instance)
+                    result = datum_instance.validate()
                     new_data.append(datum_instance)
                 except ValidationError, ve:
                     errors_found = True
@@ -276,7 +276,7 @@ class ModelType(BaseType):
         if not isinstance(value, self.model_type):
             error_msg = 'Invalid modeltype instance provided to an ModelType'
             raise ValidationError(error_msg)
-        return validate_instance(value)
+        return value.validate()
 
     def lookup_member(self, member_name):
         return self.model_type._fields.get(member_name)

@@ -2,7 +2,7 @@
 
 import unittest
 from schematics.models import Model
-from schematics.validation import validate_instance
+from schematics.validation import validate
 from schematics.types import StringType
 from schematics.types.compound import ModelType, ListType
 from schematics.exceptions import ValidationError
@@ -40,26 +40,26 @@ class TestChoices(unittest.TestCase):
     def test_missing_attrs_dont_error(self):
         class TestDoc(Model):
             language = StringType(choices=['en', 'de'])
-        result = validate_instance(TestDoc())
+        TestDoc().validate()
 
     def test_missing_required_errors(self):
         class TestDoc(Model):
             language = StringType(choices=['en', 'de'], required=True)
-        fun = lambda: validate_instance(TestDoc())
+        fun = lambda: TestDoc().validate()
         self.assertRaises(ValidationError, fun)
 
     def test_choices_validates(self):
-        validate_instance(self.doc_simple_valid)
+        self.doc_simple_valid.validate()
 
     def test_validation_fails(self):
-        fun = lambda: validate_instance(self.doc_simple_invalid)
+        fun = lambda: self.doc_simple_invalid.validate()
         self.assertRaises(ValidationError, fun)
 
     def test_choices_validates_with_embedded(self):
-        validate_instance(self.doc_embedded_valid)
+        self.doc_embedded_valid.validate()
 
     def test_validation_failes_with_embedded(self):
-        fun = lambda: validate_instance(self.doc_embedded_invalid)
+        fun = lambda: self.doc_embedded_invalid.validate()
         self.assertRaises(ValidationError, fun)
 
 
@@ -76,10 +76,10 @@ class TestRequired(unittest.TestCase):
         self.doc_simple_invalid = TestDoc(**self.data_simple_invalid)
 
     def test_required_validates(self):
-        validate_instance(self.doc_simple_valid)
+        self.doc_simple_valid.validate()
 
     def test_validation_fails(self):
-        fun = lambda: validate_instance(self.doc_simple_invalid)
+        fun = lambda: self.doc_simple_invalid.validate()
         self.assertRaises(ValidationError, fun)
 
 

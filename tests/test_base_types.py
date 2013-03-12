@@ -5,7 +5,7 @@ import datetime
 
 from schematics.models import Model
 from schematics.types.base import *
-from schematics.validation import validate_instance
+from schematics.validation import validate
 from schematics.serialize import to_json, to_python
 from schematics.exceptions import ValidationError
 
@@ -17,16 +17,16 @@ class TestIPv4Type(unittest.TestCase):
     def testValidIP(self):
         test = self.Test()
         test.ip = '8.8.8.8'
-        validate_instance(test)
+        test.validate(test)
 
     def testInvalidIPAddresses(self):
-        fun = lambda: validate_instance(self.Test(ip='1.1.1.1.1'))
+        fun = lambda: self.Test(ip='1.1.1.1.1').validate()
         self.assertRaises(ValidationError, fun)
         
-        fun = lambda: validate_instance( self.Test(ip='1.1.11') )
+        fun = lambda: self.Test(ip='1.1.11').validate()
         self.assertRaises(ValidationError, fun)
         
-        fun = lambda: validate_instance( self.Test(ip='1.1.1111.1') )
+        fun = lambda: self.Test(ip='1.1.1111.1').validate()
         self.assertNotEqual(ValidationError, fun)
 
 
