@@ -94,7 +94,7 @@ class TestListTypeWithModelType(unittest.TestCase):
             "categories": [{"slug": "math"}, {"slug": "twilight"}]
         })
 
-    def test_coerce_to_list_with_default_type_defaults_to_empty_list(self):
+    def test_set_default(self):
         class CategoryStatsInfo(Model):
             slug = StringType()
 
@@ -120,6 +120,50 @@ class TestListTypeWithModelType(unittest.TestCase):
         self.assertEqual(info.serialize(), {
             "following": None
         })
+
+    def test_list_default_to_none_embedded_model(self):
+        class QuestionResource(Model):
+            url = StringType()
+
+        class QuestionResources(Model):
+            pictures = ListType(ModelType(QuestionResource))
+
+        class Question(Model):
+            id = StringType()
+            resources = ModelType(QuestionResources)
+
+        class QuestionPack(Model):
+            id = StringType()
+            questions = ListType(ModelType(Question))
+
+        question_pack = QuestionPack({
+            "id": "1",
+            "questions": [
+                {
+                    "id": "1"
+                },
+                {
+                    "id": "2",
+                    "resources": {
+                        "pictures": []
+                    }
+                },
+                {
+                    "id": "3",
+                    "resources": {
+                        "pictures": [{
+                            "url": "http://www.mbl.is/djok"
+                        }]
+                    }
+                },
+            ]
+        })
+
+        self.assertIsNone(question_pack.questions[0].resources)
+        self.assertEqual(question_pack.questions[1].resources["pictures"], [])
+
+        resource = QuestionResource({"url": "http://www.mbl.is/djok"})
+        self.assertEqual(question_pack.questions[2].resources["pictures"][0], resource)
 
     def test_validation_with_min_size(self):
         class User(Model):

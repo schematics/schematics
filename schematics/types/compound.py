@@ -64,6 +64,9 @@ class ModelType(MultiType):
         return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
 
     def convert(self, value):
+        if value is None:  # We have already checked if the field is required. If it is None it should continue being None
+            return None
+
         if isinstance(value, self.model_class):
             if value.errors:
                 raise ValidationError(u'Please supply a clean model instance.')
