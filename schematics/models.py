@@ -3,8 +3,7 @@ import copy
 
 
 from schematics.base import json
-from schematics.types import (DictFieldNotFound, schematic_types, BaseType,
-                              UUIDType)
+from schematics.types.base import BaseType
 
 
 ###
@@ -133,6 +132,9 @@ class Model(object):
             elif attr_value.print_name \
                      and attr_value.print_name in values:
                 field_name = attr_value.print_name
+
+            if attr_value.form_name is None:
+               attr_value.form_name = field_name.title().replace('_',' ')
 
             if field_name in values:
                 field_value = values[field_name]

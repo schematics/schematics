@@ -43,6 +43,7 @@ class TestSetGetSingleScalarData(unittest.TestCase):
     def test_collection_bad_values_for_python(self):
         expected = self.testmodel.the_list = ["2","2","2","2","2","2"]
         actual = self.testmodel.the_list
+        # print validate_instance(self.testmodel)
         # since no validation happens, nothing should yell at us        
         self.assertEqual(actual, expected)  
 
@@ -82,6 +83,7 @@ class TestSetGetSingleScalarData(unittest.TestCase):
         self.assertRaises(ValidationError, fun)
         
     def test_validation_converts_value(self):
+        # todo - to_python should convert the list to python values
         self.testmodel.the_list = ["2","2","2","2","2","2"]
         validate_instance(self.testmodel)        
         result = to_python(self.testmodel)
@@ -167,3 +169,74 @@ class TestSetGetSingleScalarDataSorted(unittest.TestCase):
         expected.reverse()
         actual = to_python(self.testmodel)['the_list']
         self.assertEqual(actual, expected)
+
+class TestListTypeProxy(unittest.TestCase):
+
+    def setUp(self):
+        self.listtype = ListType(IntType())
+        class TestModel(Model):
+            the_list = self.listtype
+        self.TestModel = TestModel
+        self.testmodel = TestModel()
+
+    def testEmptyList(self):
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+
+    def testProxyAppend(self):
+        self.testmodel.the_list = [1,2]
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+        self.testmodel.the_list.append(3)
+        self.assertEqual( len(self.testmodel.the_list), 3 )
+        self.assertEqual( self.testmodel.the_list[2], 3 )
+
+    def testProxyContains(self):
+        self.testmodel.the_list = [1,2]
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+        self.assertTrue(1 in self.testmodel.the_list)
+
+    def testProxyCount(self):
+        self.testmodel.the_list = [1,2]
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+        self.assertEqual(0, self.testmodel.the_list.count(3))
+        self.assertEqual(1, self.testmodel.the_list.count(1))
+
+    def testProxyIndex(self):
+        self.testmodel.the_list = [1,2]
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+        self.assertEqual(0, self.testmodel.the_list.index(1))
+        self.assertRaises(ValueError, self.testmodel.the_list.index, 3)
+     
+    def testProxyRemove(self):
+        self.testmodel.the_list = [1, 2]
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+        self.testmodel.the_list.remove(1)
+        self.assertEqual( len(self.testmodel.the_list), 1 )
+
+    def testProxyIter(self):
+        self.testmodel.the_list = [1, 2]
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+        # TODO - load from db, test type from list
+
+    def testProxyPop(self):
+        self.testmodel.the_list = [1, 2]
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+        self.assertEqual(self.testmodel.the_list.pop(), 2) 
+        self.assertEqual(len(self.testmodel.the_list), 1)
+
+    def testProxySlice(self):
+        self.testmodel.the_list = [1, 2, 3, 4, 5, 6]
+        assert isinstance(self.testmodel.the_list, ListType.Proxy)
+        ll = self.testmodel.the_list[1:3]
+        self.assertEqual(len(ll), 2)
+        self.assertEqual(ll[0], 2)
+        self.testmodel.the_list[2:4] = [ i for i in range(6,8) ]
+        self.assertEqual(self.testmodel.the_list[2], 6)
+        del self.testmodel.the_list[3:]
+        self.assertEqual(len(self.testmodel.the_list),3)
+
+def suite():
+    suite = unittest.TestSuite()
+    return suite
+
+if __name__ == '__main__':
+    unittest.main()

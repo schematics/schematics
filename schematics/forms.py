@@ -49,6 +49,7 @@ Using it looks a bit like this:
 
 
 from schematics.types.base import BaseType
+from schematics.models import ModelMetaclass
 
 
 # ClassName => input type
@@ -74,7 +75,8 @@ class Form(object):
     """
     def __init__(self, model, private_fields=None, field_map=default_field_map,
                  name_map=default_name_map):
-        if not isinstance(model, TopLevelModelMetaclass):
+        #if not isinstance(model, TopLevelModelMetaclass):
+        if not isinstance(model, ModelMetaclass):
             error_msg = '<model> argument must be top level Structures class'
             raise FormPunch(error_msg)
 
@@ -82,7 +84,7 @@ class Form(object):
         self._model = model
 
         # The name of the class
-        self._class_name = model._class_name
+        self._class_name = model.__class__.__name__
 
         # Field Maps allow mapping fields to input types
         self._field_map = field_map
@@ -99,7 +101,8 @@ class Form(object):
             private_overrides = set(private_fields)
             self._hidden_fields = internal_fields.union(private_overrides)
         else:
-            self._hidden_fields = self._model._get_internal_fields()
+            #self._hidden_fields = self._model._get_internal_fields()
+            self._hidden_fields = [ ]
 
     ###
     ### Formatting Helpers

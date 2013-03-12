@@ -1,11 +1,15 @@
+from schematics import public
+
 try:
     from itertools import filterfalse  # python3 wutwut
 except:
     from itertools import ifilterfalse
 from operator import itemgetter
 
+from decimal import Decimal
+
 from schematics.models import Model
-from schematics.types import BaseType, DictType
+from schematics.types.base import BaseType, DictType, DecimalType
 from schematics.datastructures import MultiValueDict
 from schematics.serialize import to_python, to_json, for_jsonschema
 from schematics.validation import validate_instance, validate_values
@@ -15,12 +19,14 @@ from schematics.exceptions import ValidationError
 RECURSIVE_REFERENCE_CONSTANT = 'self'
 
 
+@public
 class ListType(BaseType):
     """A list type that wraps a standard type, allowing multiple instances
     of the type to be used as a list in the model.
     """
 
     def __init__(self, fields, **kwargs):
+        kwargs.setdefault('default', list)
         super(ListType, self).__init__(**kwargs)
 
         ### Short hand
@@ -56,9 +62,13 @@ class ListType(BaseType):
                 kwargs.setdefault('primary_embedded', models[0])
 
         self.fields = fields
-        kwargs.setdefault('default', list)
-
         self.primary_embedded = kwargs.pop('primary_embedded', None)
+
+    def __get__(self, instance, owner):
+        retval = super(ListType, self).__get__(instance, owner)
+        if type(retval) is list:
+           return self.for_python(retval)
+        return retval
 
     def __set__(self, instance, value_list):
         """Descriptor for assigning a value to a type in a model.
@@ -67,7 +77,7 @@ class ListType(BaseType):
 
         is_model = lambda tipe: isinstance(tipe, ModelType)
         model_fields = filter(is_model, self.fields)
-        
+       
         if self.primary_embedded:
             model_fields.remove(self.primary_embedded)
             model_fields.insert(0, self.primary_embedded)
@@ -137,7 +147,7 @@ class ListType(BaseType):
                     continue
 
     def for_python(self, value):
-        return list(self.for_output_format('for_python', value))
+        return self.Proxy(self.fields, value)
 
     def for_json(self, value):
         """for_json must be careful to expand modeltypes into Python,
@@ -148,7 +158,8 @@ class ListType(BaseType):
     def validate(self, value):
         """Make sure that a list of valid fields is being used.
         """
-        if not isinstance(value, (list, tuple)):
+        value = self.Proxy(self.fields, value)
+        if not isinstance(value, (list, tuple, self.Proxy)):
             error_msg = 'Only lists and tuples may be used in a list field'
             raise ValidationError(error_msg)
 
@@ -181,7 +192,135 @@ class ListType(BaseType):
 
     owner_model = property(_get_owner_model, _set_owner_model)
 
+    class Proxy(list):
 
+        def __init__(self, fields, list):
+            self.list = list
+            self.fields = fields
+
+        def first_acceptable_field_for_value(self, value):
+            for field in self.fields:
+                try:
+                    val = field.for_python(value)
+                    return field
+                except ValueError:
+                    continue
+            raise ValueError
+
+        def __lt__(self, other):
+            return self.list < other
+
+        def __le__(self, other):
+            return self.list <= other
+
+        def __eq__(self, other):
+            return self.list == other
+
+        def __ne__(self, other):
+            return self.list != other
+
+        def __gt__(self, other):
+            return self.list > other
+
+        def __ge__(self, other):
+            return self.list >= other
+
+        def __repr__(self):
+            return repr(self.list)
+
+        def __str__(self):
+            return str(self.list)
+
+        def __unicode__(self):
+            return unicode(self.list)
+
+        def __delitem__(self, index):
+            del self.list[index]
+
+        def __getitem__(self, index):
+            value = self.list[index]
+            try:
+                field = self.first_acceptable_field_for_value(value)
+                # TODO TEST
+                if isinstance(field, ModelType):
+                   return field.model_type_obj(**value)
+                return field.for_python(value)
+            except:
+                return value
+
+        def __setitem__(self, index, value):
+            try:
+                field = self.first_acceptable_field_for_value(value)
+                self.list[index] = field.for_json(value)
+            except:
+                self.list[index] = value
+
+        def __delslice__(self, i, j):
+            del self.list[i:j]
+
+        def __getslice__(self, i, j):
+            return ListType.Proxy(self.fields, self.list[i:j])
+
+        def __setslice__(self, i, j, seq):
+            self.list[i:j] = (self.first_acceptable_field_for_value(v).for_json(v) for v in seq)
+
+        def __contains__(self, value):
+            field = self.first_acceptable_field_for_value(value)
+            for item in self.list:
+                if field.for_python(item) == value:
+                   return True
+            return False
+
+        def __iter__(self):
+            for index in range(len(self)):
+                yield self[index]
+
+        def __len__(self):
+            return len(self.list)
+
+        def __nonzero__(self):
+            return bool(self.list)
+
+        def append(self, *args, **kwargs):
+#           if args or not isinstance(self.fields[0], dict):
+            if len(args) != 1:
+                raise TypeError('append() takes exactly one argument '
+                             '(%s given)' % len(args))
+            value = args[0]
+            field = self.first_acceptable_field_for_value(value)
+            self.list.append(field.for_json(value))
+
+        def count(self, value):
+            return [i for i in self].count(value)
+
+        def extend(self, list):
+            for item in list:
+                self.append(item)
+
+        def index(self, value):
+            field = self.first_acceptable_field_for_value(value)
+            return self.list.index(field.for_json(value))
+
+        def insert(self, idx, *args, **kwargs):
+            if args or not isinstance(self.field, DictField):
+                if len(args) != 1:
+                    raise TypeError('insert() takes exactly 2 arguments '
+                                    '(%s given)' % len(args))
+                value = args[0]
+            else:
+                value = kwargs
+            self.list.insert(idx, self.field._to_json(value))
+
+        def remove(self, value):
+            field = self.first_acceptable_field_for_value(value)
+            return self.list.remove(field.for_json(value))
+
+        def pop(self, *args):
+            value = self.list.pop(*args)
+            field = self.first_acceptable_field_for_value(value)
+            return field.for_python(value)
+
+@public
 class SortedListType(ListType):
     """A ListType that sorts the contents of its list before writing to
     the database in order to ensure that a sorted list is always
@@ -220,6 +359,7 @@ class SortedListType(ListType):
 ### Sub schematics
 ###
 
+@public
 class ModelType(BaseType):
     """A model field. Only valid values are subclasses of `schematics.Model`.
     """
@@ -263,7 +403,7 @@ class ModelType(BaseType):
         return for_jsonschema(self.model_type)
 
     def for_python(self, value):
-        return to_python(value)
+        return value
 
     def for_json(self, value):
         return to_json(value, encode=False)
@@ -282,6 +422,7 @@ class ModelType(BaseType):
         return self.model_type._fields.get(member_name)
 
 
+@public
 class MultiValueDictType(DictType):
     def __init__(self, basecls=None, *args, **kwargs):
         self.basecls = basecls or BaseType

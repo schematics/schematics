@@ -69,8 +69,7 @@ That looks like this in code:
 """
 
 import copy
-import collections
-
+from schematics import public
 from schematics.types import schematic_types
 from schematics.base import json
 from schematics.models import Model
@@ -143,6 +142,7 @@ def apply_shape(model, instance_or_dict, field_converter, model_converter,
 ### Field Access Functions 
 ###
 
+@public
 def wholelist(*field_list):
     """Returns a function that evicts nothing. Exists mainly to be an explicit
     allowance of all fields instead of a using an empty blacklist.
@@ -152,6 +152,7 @@ def wholelist(*field_list):
     return _wholelist
 
     
+@public
 def whitelist(*field_list):
     """Returns a function that operates as a whitelist for the provided list of
     fields.
@@ -168,6 +169,7 @@ def whitelist(*field_list):
     return _whitelist
 
 
+@public
 def blacklist(*field_list):
     """Returns a function that operates as a blacklist for the provided list of
     fields.
@@ -188,6 +190,7 @@ def blacklist(*field_list):
 ### Data Serialization
 ###
 
+@public
 def to_python(model, gottago=wholelist(), **kw):
     field_converter = lambda f, v: f.for_python(v)
     model_converter = lambda m: to_python(m)
@@ -196,6 +199,7 @@ def to_python(model, gottago=wholelist(), **kw):
                        model_converter, gottago, **kw)
 
 
+@public
 def to_json(model, gottago=wholelist(), encode=True, sort_keys=False, **kw):
     field_converter = lambda f, v: f.for_json(v)
     model_converter = lambda m: to_json(m, encode=False, sort_keys=sort_keys)
@@ -208,7 +212,15 @@ def to_json(model, gottago=wholelist(), encode=True, sort_keys=False, **kw):
     else:
         return data
 
+@public
+def to_dict(model, gottago=wholelist(), sort_keys=False, **kw):
+    return to_json(model, gottago, encode=False, sort_keys=sort_keys, **kw)
 
+@public
+def to_safe_dict(model, role, sort_keys=False, **kw):
+    return make_safe_json(model.__class__, model, role, encode=False, sort_keys=sort_keys, **kw)
+
+@public
 def make_safe_python(model, instance_or_dict, role, **kw):
     field_converter = lambda f, v: f.for_python(v)
     model_converter = lambda m: make_safe_python(m.__class__, m, role, **kw)
@@ -221,6 +233,7 @@ def make_safe_python(model, instance_or_dict, role, **kw):
                        gottago, **kw)
     
 
+@public
 def make_safe_json(model, instance_or_dict, role, encode=True, sort_keys=False,
                    **kw):
     field_converter = lambda f, v: f.for_json(v)
@@ -240,6 +253,9 @@ def make_safe_json(model, instance_or_dict, role, encode=True, sort_keys=False,
     else:
         return data
 
+@public
+def make_safe_dict(model, instance_or_dict, role, sort_keys=False, **kw):
+    return make_safe_json(model, instance_or_dict, role, encode=False, sort_keys=sort_keys, **kw)
 
 ###
 ### Schema Serialization

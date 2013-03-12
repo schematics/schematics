@@ -1,8 +1,10 @@
 import uuid
 import re
+import time
 import datetime
 import decimal
 
+from schematics import public
 
 from schematics.exceptions import ValidationError
 from schematics.types import schematic_types
@@ -21,6 +23,7 @@ class BaseTypeMetaClass(type):
 ### Base Type
 ###
 
+@public
 class BaseType(object):
     """A base class for Types in a Structures model. Instances of this
     class may be added to subclasses of `Model` to define a model schema.
@@ -30,7 +33,7 @@ class BaseType(object):
 
     def __init__(self, required=False, default=None, field_name=None,
                  print_name=None, choices=None, validation=None, description=None,
-                 minimized_field_name=None):
+                 minimized_field_name=None,form_name=None):
 
         self.required = required
         self.default = default
@@ -40,6 +43,11 @@ class BaseType(object):
         self.validation = validation
         self.description = description
         self.minimized_field_name = minimized_field_name
+        self.form_name = form_name
+
+    @property
+    def name(self):
+        return self.field_name
 
     def __get__(self, instance, owner):
         """Descriptor for retrieving a value from a field in a model. Do
@@ -60,12 +68,19 @@ class BaseType(object):
             if callable(value):
                 value = value()
 
+        if value:
+#          try:
+              val = self.for_python(value)
+              value = val
+#          except:
+#             raise Exception
+
         return value
 
     def __set__(self, instance, value):
         """Descriptor for assigning a value to a field in a model.
         """
-        instance._data[self.field_name] = value
+        instance._data[self.field_name] = self.for_json(value)
 
     def __delete__(self, instance):
         if self.name not in instance._fields:
@@ -158,6 +173,7 @@ class BaseType(object):
 ### Standard Types
 ###
 
+@public
 class UUIDType(BaseType):
     """A field that stores a valid UUID value and optionally auto-populates
     empty values with new UUIDs.
@@ -202,7 +218,7 @@ class UUIDType(BaseType):
         """
         return str(value)
 
-
+@public
 class IPv4Type(BaseType):
     """ A field that stores a valid IPv4 address """
 
@@ -244,7 +260,28 @@ class IPv4Type(BaseType):
     def _from_jsonschema_types(self):
         return ['string']
 
+    def validate(self, value):
+        """
+          Make sure the value is a IPv4 address:
+          http://stackoverflow.com/questions/9948833/validate-ip-address-from-list
+        """
+        if not IPv4Type.valid_ip(value):
+            error_msg = 'Invalid IPv4 address'
+            raise ValidationError('error_message')
+        return True
 
+    def _jsonschema_format(self):
+        return 'ip-address'
+
+    @classmethod
+    def _from_jsonschema_formats(self):
+        return ['ip-address']
+
+    @classmethod
+    def _from_jsonschema_types(self):
+        return ['string']
+
+@public
 class StringType(BaseType):
     """A unicode string field.
     """
@@ -304,6 +341,7 @@ class StringType(BaseType):
 ### Web fields
 ###
 
+@public
 class URLType(StringType):
     """A field that validates input as an URL.
 
@@ -345,6 +383,7 @@ class URLType(StringType):
         return True
 
 
+@public
 class EmailType(StringType):
     """A field that validates input as an E-Mail-Address.
     """
@@ -393,6 +432,7 @@ class JsonNumberMixin(object):
         return self.min_value
 
 
+@public
 class NumberType(JsonNumberMixin, BaseType):
     """A number field.
     """
@@ -433,6 +473,7 @@ class NumberType(JsonNumberMixin, BaseType):
         return True
 
 
+@public
 class IntType(NumberType):
     """A field that validates input as an Integer
     """
@@ -454,6 +495,7 @@ class IntType(NumberType):
         return [None]
 
 
+@public
 class LongType(NumberType):
     """A field that validates input as a Long
     """
@@ -463,6 +505,7 @@ class LongType(NumberType):
                                         *args, **kwargs)
 
 
+@public
 class FloatType(NumberType):
     """A field that validates input as a Float
     """
@@ -472,6 +515,7 @@ class FloatType(NumberType):
                                          *args, **kwargs)
 
 
+@public
 class DecimalType(BaseType, JsonNumberMixin):
     """A fixed-point decimal number field.
     """
@@ -526,10 +570,16 @@ class JsonHashMixin:
         return self.hash_length
 
 
+@public
 class MD5Type(BaseType, JsonHashMixin):
     """A field that validates input as resembling an MD5 hash.
     """
     hash_length = 32
+
+    @classmethod
+    def generate(self, string):
+        import hashlib
+        return hashlib.md5(string).hexdigest()
 
     def validate(self, value):
         if len(value) != MD5Type.hash_length:
@@ -541,6 +591,7 @@ class MD5Type(BaseType, JsonHashMixin):
         return True
 
 
+@public
 class SHA1Type(BaseType, JsonHashMixin):
     """A field that validates input as resembling an SHA1 hash.
     """
@@ -560,6 +611,7 @@ class SHA1Type(BaseType, JsonHashMixin):
 ### Native type'ish fields
 ###
 
+@public
 class BooleanType(BaseType):
     """A boolean field type.
     """
@@ -599,6 +651,7 @@ class BooleanType(BaseType):
         return True
 
 
+@public
 class DateTimeType(BaseType):
     """A datetime field.
     """
@@ -698,7 +751,57 @@ class DateTimeType(BaseType):
     def for_json(self, value):
         return DateTimeType.date_to_iso8601(value, self.format)
 
+@public
+class DateType(BaseType):
 
+    def __init__(self, format=None, **kwargs):
+        self.format = format or "%Y-%m-%d"
+        super(DateType,self).__init__(**kwargs)
+
+    @classmethod
+    def now(self):
+        return datetime.datetime.utcnow().date()
+
+    def __set__(self, instance, value):
+        if isinstance(value, basestring):
+           value = time.strptime(value, self.format)[:3]
+           value = datetime.date(*value)
+        instance._data[self.field_name] = value
+
+    def for_json(self, value):
+        return value.strftime(self.format)
+
+    def validate(self, value):
+        if not isinstance(value, datetime.date):
+           raise ValidationError('Not a datetime.date')
+        return True
+
+@public
+class TimeType(BaseType):
+   
+    def __init__(self, format=None, **kwargs):
+        self.format = format or "%I:%M %p"
+        super(TimeType,self).__init__(**kwargs)
+ 
+    @classmethod
+    def now(self):
+        return datetime.datetime.utcnow().time()
+
+    def __set__(self, instance, value):
+        if isinstance(value, basestring):
+           value = time.strptime(value, self.format)[3:5]
+           value = datetime.time(*value)
+        instance._data[self.field_name] = value
+
+    def for_json(self, value):
+        return value.strftime(self.format)
+
+    def validate(self, value):
+        if not isinstance(value, datetime.time):
+           raise ValidationError('Not a datetime.time')
+        return True
+
+@public
 class DictType(BaseType):
     """A dictionary field that wraps a standard Python dictionary. This is
     similar to an `ModelType`, but the schematic is not defined.
@@ -734,6 +837,7 @@ class DictType(BaseType):
         return self.basecls(field_name=member_name)
 
 
+@public
 class GeoPointType(BaseType):
     """A list storing a latitude and longitude.
     """

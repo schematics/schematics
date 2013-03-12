@@ -16,7 +16,20 @@ def _is_empty(field_value):
 
 
 def _validate(cls, needs_check, values, report_rogues=False):
-    """TODO
+    """Loops across the fields in a Model definition, `cls`, and attempts
+    validation on any fields that require a check, as signalled by the
+    `needs_check` function.
+
+    The basis for validation is `cls`, so fields are located in `cls` and
+    mapped to an entry in `values`.  This entry is then validated against the
+    field's validation function.
+
+    If errors are found they are accumulated in `errors` and return with a tag
+    signalling an error.
+
+    If validation passes, the values are returned with all the values coerced
+    to their appropriate type, as specificed in the field's `validate`
+    function.
     """
     ### Reject model if _fields isn't present
     if not hasattr(cls, '_fields'):
@@ -81,10 +94,15 @@ def validate_values(cls, values):
 def validate_instance(model):
     """Extracts the values from the model and validates them via a call to
     `validate_values`.
+
+    TODO - Check to see that model is a validatable instance.
     """
     values = model._data if hasattr(model, '_data') else {}
     needs_check = lambda k, v: v.required or k in values
     return _validate(model, needs_check, values)
+
+    # perhaps have a fall back if a non-schematics Model is passed to validate_instance
+    # return ModelResult(OK, 'No Model to Validate Against', None, None)
 
 
 def validate_partial(cls, values):

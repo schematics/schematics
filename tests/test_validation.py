@@ -62,6 +62,9 @@ class TestChoices(unittest.TestCase):
         fun = lambda: validate_instance(self.doc_embedded_invalid)
         self.assertRaises(ValidationError, fun)
 
+def suite():
+    suite = unittest.TestSuite()
+    return suite
 
 class TestRequired(unittest.TestCase):
     def setUp(self):

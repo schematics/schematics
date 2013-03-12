@@ -10,4 +10,5 @@ class DictFieldNotFound(Exception):
     pass
 
 
+# this loads all the public types
 from schematics.types.base import *

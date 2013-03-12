@@ -193,3 +193,6 @@ class TestAltFieldNames(unittest.TestCase):
         x = to_python(self.instance)
         self.assertEqual(x['something_else'], 'whatever')
         self.assertEqual(self.instance.title, 'whatever')
+
+if __name__ == '__main__':
+   unittest.main()
