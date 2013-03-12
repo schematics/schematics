@@ -182,17 +182,17 @@ class TestEmbeddedDocs(ModelSerializer, unittest.TestCase):
     }
 
 
-#-class TestAltFieldNames(unittest.TestCase):
-#-    klass = fixtures.AltNames
-#-
-#-    def setUp(self):
-#-        description = {'something_else': 'whatever'}
-#-        self.instance = self.klass(**description)
-#-
-#-    def test_serialize_print_names(self):
-#-        x = to_python(self.instance)
-#-        self.assertEqual(x['something_else'], 'whatever')
-#-        self.assertEqual(self.instance.title, 'whatever')
+class TestAltFieldNames(unittest.TestCase):
+    klass = fixtures.AltNames
+
+    def setUp(self):
+        description = {'something_else': 'whatever'}
+        self.instance = self.klass(**description)
+
+    def test_serialize_print_names(self):
+        x = to_python(self.instance)
+        self.assertEqual(x['something_else'], 'whatever')
+        self.assertEqual(self.instance.title, 'whatever')
 
 if __name__ == '__main__':
    unittest.main()
