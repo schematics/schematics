@@ -103,6 +103,23 @@ class TestSerializable(unittest.TestCase):
         d = player.serialize()
         self.assertEqual(d, {"total_points": 2, "xp_level": {"level": 4, "title": "Best"}})
 
+    def test_serializable_with_model_when_None(self):
+        class ExperienceLevel(Model):
+            level = IntType()
+            title = StringType()
+
+        class Player(Model):
+            total_points = IntType()
+
+            xp_level = ModelType(ExperienceLevel)
+
+        player = Player({"total_points": 2})
+
+        self.assertIsNone(player.xp_level)
+
+        d = player.serialize()
+        self.assertEqual(d, {"total_points": 2, "xp_level": None})
+
     def test_serializable_with_embedded_models_and_list(self):
         class Question(Model):
             id = LongType()
@@ -228,6 +245,43 @@ class TestSerializable(unittest.TestCase):
             "city_code": "OK",
             "city_name": "Oklahoma"
         })
+
+    def test_serialize_with_complex_types(self):
+        class QuestionResource(Model):
+            url = StringType()
+
+        class Question(Model):
+            question_id = StringType(required=True)
+            resources = DictType(ListType(ModelType(QuestionResource)))
+
+        q = Question(dict(
+            question_id="1",
+            resources={
+                "pictures": [{
+                    "url": "http://www.mbl.is"
+                }]
+            }
+        ))
+
+        d = q.serialize()
+        self.assertEqual(d, dict(
+            question_id="1",
+            resources={
+                "pictures": [{
+                    "url": "http://www.mbl.is"
+                }]
+            }
+        ))
+
+        q_with_no_resources = Question(dict(
+            question_id="1"
+        ))
+
+        d = q_with_no_resources.serialize()
+        self.assertEqual(d, dict(
+            question_id="1",
+            resources=None
+        ))
 
 
 class TestRoles(unittest.TestCase):

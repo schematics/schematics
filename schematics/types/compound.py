@@ -100,6 +100,9 @@ class ModelType(MultiType):
         return primitive_data
 
     def filter_by_role(self, model_instance, primitive_data, role, raise_error_on_role=False):
+        if model_instance is None:
+            return primitive_data
+
         gottago = lambda k, v: False
         if role in self.model_class._options.roles:
             gottago = self.model_class._options.roles[role]
@@ -243,6 +246,9 @@ class DictType(MultiType):
         return dict((unicode(k), self.field.to_primitive(v)) for k, v in value.iteritems())
 
     def filter_by_role(self, clean_data, primitive_data, role, raise_error_on_role=False):
+        if clean_data is None:
+            return primitive_data
+
         if isinstance(self.field, MultiType):
             for key, clean_value in clean_data.iteritems():
                 primitive_value = primitive_data[unicode(key)]
