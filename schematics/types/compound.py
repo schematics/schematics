@@ -36,7 +36,7 @@ class MultiType(BaseType):
             except ValidationError, e:
                 aggregate_from_exception_errors(e)
                 if isinstance(e, StopValidation):
-                    return False #TODO: Shouldn't this rather be break so we raise the ValidationError?
+                    break
 
         if errors:
             raise ValidationError(errors)

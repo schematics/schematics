@@ -233,9 +233,9 @@ class Model(object):
                         context = dict(self._data, **data)
                         value = self._validator_functions[field_name](self, context, value)
 
-                    data[field_name] = value #TODO: Should errors be reported with field_name or serialized_name?
+                    data[field_name] = value
                 except ValidationError, e:
-                    errors[field_name] = e.messages
+                    errors[serialized_field_name] = e.messages
 
         # Report rogue fields as errors if `strict`
         if strict:
