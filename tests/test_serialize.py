@@ -199,6 +199,36 @@ class TestSerializable(unittest.TestCase):
 
         })
 
+    def test_serializable_works_with_inheritance(self):
+        class Location(Model):
+            country_code = StringType()
+
+            @serializable
+            def country_name(self):
+                return "United States" if self.country_code == "US" else "Unknown"
+
+        class LocationWithCity(Location):
+            city_code = StringType()
+
+            @serializable
+            def city_name(self):
+                return "Oklahoma" if self.city_code == "OK" else "Unknown"
+
+        location = LocationWithCity(dict(country_code="US", city_code="OK"))
+
+        self.assertEqual(location.country_code, "US")
+        self.assertEqual(location.country_name, "United States")
+        self.assertEqual(location.city_code, "OK")
+        self.assertEqual(location.city_name, "Oklahoma")
+
+        d = location.serialize()
+        self.assertEqual(d, {
+            "country_code": "US",
+            "country_name": "United States",
+            "city_code": "OK",
+            "city_name": "Oklahoma"
+        })
+
 
 class TestRoles(unittest.TestCase):
 

@@ -60,8 +60,8 @@ class ModelMeta(type):
         for base in reversed(bases):
             if hasattr(base, 'fields'):
                 fields.update(base.fields)
-            if hasattr(base, '_serializables'):
-                serializables.update(base._serializables)
+            if hasattr(base, '_unbound_serializables'):
+                serializables.update(base._unbound_serializables)
             if hasattr(base, '_validator_functions'):
                 validator_functions.update(base._validator_functions)
 
