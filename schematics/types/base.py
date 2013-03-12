@@ -120,7 +120,7 @@ class BaseType(object):
 
     def required_validation(self, value):
         if self.required and value is None:
-            raise StopValidation(u'Field must have a significant value')
+            raise StopValidation(u'This field is required.')
         return value
 
     def choices_validation(self, value):

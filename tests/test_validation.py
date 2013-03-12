@@ -214,6 +214,18 @@ class TestModelLevelValidators(unittest.TestCase):
 
 class TestErrors(unittest.TestCase):
 
+    def test_basic_error(self):
+        class School(Model):
+            name = StringType(required=True)
+
+        school = School()
+        is_valid = school.validate({}, raises=False)
+
+        self.assertFalse(is_valid)
+
+        self.assertIn("name", school.errors)
+        self.assertEqual(school.errors["name"], ["This field is required."])
+
     def test_deep_errors(self):
         class Person(Model):
             name = StringType(required=True)
@@ -232,6 +244,7 @@ class TestErrors(unittest.TestCase):
 
         self.assertIn("headmaster", school.errors)
         self.assertIn("name", school.errors["headmaster"])
+        self.assertEqual(school.errors["headmaster"]["name"], ["This field is required."])
 
     def test_deep_errors_with_lists(self):
         class Person(Model):

@@ -205,9 +205,9 @@ class Model(object):
             input_data = {}
 
         if partial:
-            needs_check = lambda k, v: k in input_data
+            needs_check = lambda field_name, field: field_name in input_data
         else:
-            needs_check = lambda k, v: v.required or k in input_data
+            needs_check = lambda field_name, field: field.required or field_name in input_data
 
         # Validate data based on cls's structure
         for field_name, field in self._fields.iteritems():
@@ -226,16 +226,14 @@ class Model(object):
                 else:
                     field_value = self._data.get(serialized_field_name)
 
-                if field.required and field_value is None:
-                    errors[field_name] = [u"This field is required."]
-                    continue
-
                 try:
                     value = field.validate(field_value)
+
                     if field_name in self._validator_functions:
                         context = dict(self._data, **data)
                         value = self._validator_functions[field_name](self, context, value)
-                    data[field_name] = value
+
+                    data[field_name] = value #TODO: Should errors be reported with field_name or serialized_name?
                 except ValidationError, e:
                     errors[field_name] = e.messages
 

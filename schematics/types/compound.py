@@ -36,7 +36,7 @@ class MultiType(BaseType):
             except ValidationError, e:
                 aggregate_from_exception_errors(e)
                 if isinstance(e, StopValidation):
-                    return False
+                    return False #TODO: Shouldn't this rather be break so we raise the ValidationError?
 
         if errors:
             raise ValidationError(errors)
@@ -45,13 +45,6 @@ class MultiType(BaseType):
 
     def filter_by_role(self, clean_value, primitive_value, role, raise_error_on_role=False):
         raise NotImplemented()
-
-
-def get_serialized_name(field_name, field):
-    serialized_name = field_name
-    if field.serialized_name:
-        serialized_name = field.serialized_name
-    return serialized_name
 
 
 class ModelType(MultiType):
@@ -94,12 +87,14 @@ class ModelType(MultiType):
     def to_primitive(self, model_instance, include_serializables=True):
         primitive_data = {}
         for field_name, field, value in model_instance.iter(include_serializables):
+            serialized_name = field.serialized_name or field_name
+
             if value is None:
                 primitive_value = None
             else:
                 primitive_value = field.to_primitive(value)
 
-            primitive_data[get_serialized_name(field_name, field)] = primitive_value
+            primitive_data[serialized_name] = primitive_value
 
         return primitive_data
 
@@ -112,7 +107,7 @@ class ModelType(MultiType):
                 self.model_class.__name__, role))
 
         for field_name, field, value in model_instance:
-            serialized_name = get_serialized_name(field_name, field)
+            serialized_name = field.serialized_name or field_name
 
             if gottago(field_name, value):
                 primitive_data.pop(serialized_name)
@@ -195,8 +190,10 @@ class ListType(MultiType):
                 result.append(self.field(item))
             except ValidationError, e:
                 errors['index_%s' % idx] = e
+
         if errors:
             raise ValidationError(sorted(errors.items()))
+
         return result
 
     def to_primitive(self, value):

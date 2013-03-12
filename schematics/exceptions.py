@@ -1,12 +1,32 @@
+
+
 class ValidationError(ValueError):
     """Exception raised when invalid data is encountered."""
 
     def __init__(self, messages):
         if not isinstance(messages, (list, tuple, dict)):
             messages = [messages]
-        # make all items in the list unicode
-        Exception.__init__(self, messages)
-        self.messages = messages
+
+        clean_messages = self.clean_messages(messages)
+
+        Exception.__init__(self, clean_messages)
+        self.messages = clean_messages
+
+    def clean_messages(self, messages):
+        if isinstance(messages, dict):
+            clean_messages = {}
+            for k, v in messages.iteritems():
+                if isinstance(v, ValidationError):
+                    v = v.messages
+                clean_messages[k] = v
+        else:
+            clean_messages = []
+            for v in messages:
+                if isinstance(v, ValidationError):
+                    v = v.messages
+                clean_messages.append(v)
+
+        return clean_messages
 
     def to_primary(self, messages):
         if isinstance(messages, dict):
