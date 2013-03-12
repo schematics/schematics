@@ -1,4 +1,3 @@
-from __future__ import absolute_import 
 import functools
 
 
@@ -19,6 +18,7 @@ try:
 except ImportError:
     import json
     json_is_ujson = False
+
 
 json_dumps = json.dumps
 @functools.wraps(json.dumps)
