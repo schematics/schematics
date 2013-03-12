@@ -267,10 +267,16 @@ class Model(object):
         return True
 
     def __iter__(self):
-        all_fields = itertools.chain(
-            self._fields.iteritems(),
-            self._serializables.iteritems()
-        )
+        return self.iter()
+
+    def iter(self, include_serializables=True):
+        if include_serializables:
+            all_fields = itertools.chain(
+                self._fields.iteritems(),
+                self._serializables.iteritems()
+            )
+        else:
+            all_fields = self._fields.iteritems()
 
         return ((field_name, field, self[field_name]) for field_name, field in all_fields)
 

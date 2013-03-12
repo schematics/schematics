@@ -50,7 +50,12 @@ def blacklist(*field_list):
 
 def serialize(instance, role, raise_error_on_role=True):
     model_field = ModelType(instance.__class__)
-    return model_field.serialize(instance, role, raise_error_on_role)
+
+    primitive_data = model_field.to_primitive(instance)
+
+    model_field.filter_by_role(instance, primitive_data, role, raise_error_on_role)
+
+    return primitive_data
 
 
 def expand(data, context=None):
@@ -70,77 +75,39 @@ def expand(data, context=None):
     return expanded_dict
 
 
-# TODO: Support lists within dicts and vice versa
-
-def flatten_list_to_dict(l, role, prefix=None):
-    flat_dict = {}
-    for i, v in enumerate(l):
-        key = ".".join((prefix, str(i)))
-
-        if hasattr(v.__class__, "_options"):
-            flat_dict.update(flatten(v, role, prefix=key))
-        else:
-            flat_dict[key] = v
-
-    return flat_dict
-
-
-def flatten_dict_to_dict(d, role, prefix=None):
-    flat_dict = {}
-    for k, v in d.iteritems():
-        key = ".".join(map(unicode, (prefix, k)))
-
-        if hasattr(v.__class__, "_options"):
-            flat_dict.update(flatten(v, role, prefix=key))
-        elif isinstance(v, dict):
-            flat_dict.update(flatten_dict_to_dict(v, role, prefix=key))
-        else:
-            flat_dict[key] = v
-
-    return flat_dict
-
-
-def flatten(instance, role, ignore_none=True, prefix="", **kwargs):
-    model = instance.__class__
-
-    gottago = lambda k, v: False
-    if role in model._options.roles:
-        gottago = model._options.roles[role]
-    elif role:
-        raise ValueError(u'Model %s has no role "%s"' % (
-            instance.__class__.__name__, role))
+def flatten_to_dict(o, prefix=None, ignore_none=True):
+    if hasattr(o, "iteritems"):
+        iterator = o.iteritems()
+    else:
+        iterator = enumerate(o)
 
     flat_dict = {}
-
-    for field_name, field_instance, field_value in instance:
-        if gottago(field_name, field_value):
-            continue
-
-        serialized_name = field_name
-        if field_instance.serialized_name:
-            serialized_name = field_instance.serialized_name
-
+    for k, v in iterator:
         if prefix:
-            serialized_name = ".".join((prefix, serialized_name))
-
-        if field_value is None:
-            if not ignore_none:
-                flat_dict[serialized_name] = None
-        elif isinstance(field_instance, ModelType):
-            flat_dict.update(flatten(field_value, role, prefix=serialized_name))
-        elif isinstance(field_instance, ListType):
-            if field_value:
-                flat_dict.update(flatten_list_to_dict(field_value, role, prefix=serialized_name))
-            else:
-                flat_dict[serialized_name] = EMPTY_LIST
-        elif isinstance(field_instance, DictType):
-            if field_value:
-                flat_dict.update(flatten_dict_to_dict(field_value, role, prefix=serialized_name))
-            else:
-                flat_dict[serialized_name] = EMPTY_DICT
-        elif hasattr(field_value, "serialize"):
-            continue
+            key = ".".join(map(unicode, (prefix, k)))
         else:
-            flat_dict[serialized_name] = field_instance.to_primitive(field_value)
+            key = k
+
+        if v == []:
+            v = EMPTY_LIST
+        elif v == {}:
+            v = EMPTY_DICT
+
+        if isinstance(v, (dict, list)):
+            flat_dict.update(flatten_to_dict(v, prefix=key))
+        elif v is not None:
+            flat_dict[key] = v
+        elif not ignore_none:
+            flat_dict[key] = None
 
     return flat_dict
+
+
+def flatten(instance, role, raise_error_on_role=True, ignore_none=True, prefix="", **kwargs):
+    model_field = ModelType(instance.__class__)
+
+    primitive_data = model_field.to_primitive(instance, include_serializables=False)
+
+    model_field.filter_by_role(instance, primitive_data, role, raise_error_on_role)
+
+    return flatten_to_dict(primitive_data)

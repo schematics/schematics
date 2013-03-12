@@ -214,8 +214,26 @@ class TestModelLevelValidators(unittest.TestCase):
 
 class TestErrors(unittest.TestCase):
 
-    def setUp(self):
+    def test_deep_errors(self):
+        class Person(Model):
+            name = StringType(required=True)
 
+        class School(Model):
+            name = StringType(required=True)
+            headmaster = ModelType(Person, required=True)
+
+        school = School()
+        is_valid = school.validate({
+            "name": "Hogwarts",
+            "headmaster": {}
+        }, raises=False)
+
+        self.assertFalse(is_valid)
+
+        self.assertIn("headmaster", school.errors)
+        self.assertIn("name", school.errors["headmaster"])
+
+    def test_deep_errors_with_lists(self):
         class Person(Model):
             name = StringType(required=True)
 
@@ -226,45 +244,62 @@ class TestErrors(unittest.TestCase):
         class School(Model):
             courses = ListType(ModelType(Course))
 
-        self.Person = Person
-        self.Course = Course
-        self.School = School
+        valid_data = {
+            'courses': [
+                {'id': 'ENG103', 'attending': [
+                    {'name': u'Danny'},
+                    {'name': u'Sandy'}]},
+                {'id': 'ENG203', 'attending': [
+                    {'name': u'Danny'},
+                    {'name': u'Sandy'}
+                ]}
+            ]
+        }
 
-        self.school = School()
-
-    valid_data = {
-        'courses': [
-            {'id': 'ENG103', 'attending': [
-                {'name': u'Danny'},
-                {'name': u'Sandy'}]},
-            {'id': 'ENG203', 'attending': [
-                {'name': u'Danny'},
-                {'name': u'Sandy'}
-            ]}
-        ]
-    }
-
-    def test_deep_errors(self):
-
-        valid = self.school.validate(self.valid_data)
+        school = School()
+        valid = school.validate(valid_data)
         self.assertTrue(valid)
-        invalid_data = self.school.serialize()
+
+        invalid_data = school.serialize()
         invalid_data['courses'][0]['attending'][0]['name'] = None
-        valid = self.school.validate(invalid_data, raises=False)
+
+        valid = school.validate(invalid_data, raises=False)
         self.assertFalse(valid)
 
     def test_field_binding(self):
+        class Person(Model):
+            name = StringType(required=True)
 
-        new_school = self.School()
-        new_school.validate(self.valid_data)
+        class Course(Model):
+            id = StringType(required=True, validators=[])
+            attending = ListType(ModelType(Person))
 
-        self.school.validate(self.valid_data)
+        class School(Model):
+            courses = ListType(ModelType(Course))
 
-        self.assertNotEqual(id(new_school), id(self.school))
+        valid_data = {
+            'courses': [
+                {'id': 'ENG103', 'attending': [
+                    {'name': u'Danny'},
+                    {'name': u'Sandy'}]},
+                {'id': 'ENG203', 'attending': [
+                    {'name': u'Danny'},
+                    {'name': u'Sandy'}
+                ]}
+            ]
+        }
+
+        new_school = School()
+        new_school.validate(valid_data)
+
+        school = School()
+        school.validate(valid_data)
+
+        self.assertNotEqual(id(new_school), id(school))
 
         self.assertNotEqual(
             id(new_school.courses[0].attending[0]),
-            id(self.school.courses[0].attending[0])
+            id(school.courses[0].attending[0])
         )
 
 

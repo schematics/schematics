@@ -43,9 +43,6 @@ class MultiType(BaseType):
 
         return value
 
-    def serialize(self, value, role, raise_error_on_role=False):
-        raise NotImplemented()
-
     def filter_by_role(self, clean_value, primitive_value, role, raise_error_on_role=False):
         raise NotImplemented()
 
@@ -94,22 +91,15 @@ class ModelType(MultiType):
             raise ValidationError(errors)
         return self.model_class(result)
 
-    def to_primitive(self, model_instance):
+    def to_primitive(self, model_instance, include_serializables=True):
         primitive_data = {}
-        for field_name, field, value in model_instance:
+        for field_name, field, value in model_instance.iter(include_serializables):
             if value is None:
                 primitive_value = None
             else:
                 primitive_value = field.to_primitive(value)
 
             primitive_data[get_serialized_name(field_name, field)] = primitive_value
-
-        return primitive_data
-
-    def serialize(self, model_instance, role, raise_error_on_role=False):
-        primitive_data = self.to_primitive(model_instance)
-
-        self.filter_by_role(model_instance, primitive_data, role, raise_error_on_role)
 
         return primitive_data
 
@@ -262,4 +252,3 @@ class DictType(MultiType):
                 self.field.filter_by_role(clean_value, primitive_value, role)
 
         return primitive_data
-
