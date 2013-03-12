@@ -77,24 +77,12 @@ class ListType(BaseType):
         is_model = lambda tipe: isinstance(tipe, ModelType)
         model_fields = filter(is_model, self.fields)
        
-        is_decimal = lambda tipe: isinstance(tipe, DecimalType)
-        decimal_fields = filter(is_decimal, self.fields)
-
         if self.primary_embedded:
             model_fields.remove(self.primary_embedded)
             model_fields.insert(0, self.primary_embedded)
 
         if value_list is None:
             value_list = []  # have to use a list
-
-#       if decimal_fields:
-#          new_data = list()
-#          for datum in new_value:
-#              datum_instance = datum
-#              if isinstance(datum, Decimal):
-#                 datum_instance = unicode(datum)
-#              new_data.append(datum_instance)
-#          new_value = new_data
 
         errors_found = False
         if model_fields:

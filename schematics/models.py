@@ -3,7 +3,6 @@ import copy
 
 
 from schematics.base import json
-from schematics.types import (DictFieldNotFound, schematic_types)
 from schematics.types.base import BaseType
 
 
