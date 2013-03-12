@@ -83,6 +83,7 @@ class TestSetGetSingleScalarData(unittest.TestCase):
         self.assertRaises(ValidationError, fun)
         
     def test_validation_converts_value(self):
+        # todo - to_python should convert the list to python values
         self.testmodel.the_list = ["2","2","2","2","2","2"]
         validate_instance(self.testmodel)        
         result = to_python(self.testmodel)

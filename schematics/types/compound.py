@@ -26,6 +26,7 @@ class ListType(BaseType):
     """
 
     def __init__(self, fields, **kwargs):
+        kwargs.setdefault('default', list)
         super(ListType, self).__init__(**kwargs)
 
         ### Short hand
@@ -61,8 +62,6 @@ class ListType(BaseType):
                 kwargs.setdefault('primary_embedded', models[0])
 
         self.fields = fields
-        kwargs.setdefault('default', list)
-
         self.primary_embedded = kwargs.pop('primary_embedded', None)
 
     def __get__(self, instance, owner):
@@ -74,6 +73,8 @@ class ListType(BaseType):
     def __set__(self, instance, value_list):
         """Descriptor for assigning a value to a type in a model.
         """
+        new_value = value_list
+
         is_model = lambda tipe: isinstance(tipe, ModelType)
         model_fields = filter(is_model, self.fields)
        
@@ -116,10 +117,10 @@ class ListType(BaseType):
                 except ValidationError, ve:
                     errors_found = True
                     
-            value_list = new_data
+            new_value = new_data
 
         if not errors_found:
-            instance._data[self.field_name] = value_list
+            instance._data[self.field_name] = new_value
 
     def _jsonschema_type(self):
         return 'array'
