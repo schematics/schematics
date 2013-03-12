@@ -1,11 +1,12 @@
 """
 Tools for generating forms based on Schematics Models
 """
+import datetime
 from operator import itemgetter
 from schematics import public
 from schematics.models import Model
 from schematics.serialize import wholelist, whitelist, blacklist
-from wtforms import fields as f, validators, Form
+from wtforms import fields as f, validators, Form, ValidationError
 from wtforms.widgets import HiddenInput, TextInput
 
 def converts(*args):
@@ -13,6 +14,31 @@ def converts(*args):
         func._converter_for = frozenset(args)
         return func
     return _inner
+
+
+def date_format(date_format):
+    message = 'Date string must match {}.'.format(date_format)
+    def _format(form, field):
+        if not isinstance(field.data, basestring):
+           raise ValidationError(message)
+        try:
+            value = time.strptime(field.data, date_format)[:3]
+            value = datetime.date(*value)
+        except:
+            raise ValidationError(message)
+    return _format
+
+def time_format(time_format):
+    message = 'Time string must match {}.'.format(time_format)
+    def _format(form, field):
+        if not isinstance(field.data, basestring):
+           raise ValidationError(message)
+        try:
+            value = time.strptime(field.data, time_format)[3:5]
+            value = datetime.time(*value)
+        except:
+            raise ValidationError(message)
+    return _format
 
 
 class ModelConverter():
@@ -130,6 +156,18 @@ class ModelConverter():
 
     @converts('DateTimeType')
     def conv_DateTime(self, model, field, kwargs):
+        return f.DateTimeField(**kwargs)
+
+    @converts('DateType')
+    def conv_Date(self, model, field, kwargs):
+        kwargs['format'] = field.format
+        kwargs['validators'].append(date_format(field.format))
+        return f.DateField(**kwargs)
+
+    @converts('TimeType')
+    def conv_Time(self, model, field, kwargs):
+        kwargs['format'] = field.format
+        kwargs['validators'].append(time_format(field.format))
         return f.DateTimeField(**kwargs)
 
     @converts('BinaryType')

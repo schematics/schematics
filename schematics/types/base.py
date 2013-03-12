@@ -1,5 +1,6 @@
 import uuid
 import re
+import time
 import datetime
 import decimal
 
@@ -750,6 +751,55 @@ class DateTimeType(BaseType):
     def for_json(self, value):
         return DateTimeType.date_to_iso8601(value, self.format)
 
+@public
+class DateType(BaseType):
+
+    def __init__(self, format=None, **kwargs):
+        self.format = format or "%Y-%m-%d"
+        super(DateType,self).__init__(**kwargs)
+
+    @classmethod
+    def now(self):
+        return datetime.datetime.utcnow().date()
+
+    def __set__(self, instance, value):
+        if isinstance(value, basestring):
+           value = time.strptime(value, self.format)[:3]
+           value = datetime.date(*value)
+        instance._data[self.field_name] = value
+
+    def for_json(self, value):
+        return value.strftime(self.format)
+
+    def validate(self, value):
+        if not isinstance(value, datetime.date):
+           raise ValidationError('Not a datetime.date')
+        return True
+
+@public
+class TimeType(BaseType):
+   
+    def __init__(self, format=None, **kwargs):
+        self.format = format or "%I:%M %p"
+        super(TimeType,self).__init__(**kwargs)
+ 
+    @classmethod
+    def now(self):
+        return datetime.datetime.utcnow().time()
+
+    def __set__(self, instance, value):
+        if isinstance(value, basestring):
+           value = time.strptime(value, self.format)[3:5]
+           value = datetime.time(*value)
+        instance._data[self.field_name] = value
+
+    def for_json(self, value):
+        return value.strftime(self.format)
+
+    def validate(self, value):
+        if not isinstance(value, datetime.time):
+           raise ValidationError('Not a datetime.time')
+        return True
 
 @public
 class DictType(BaseType):
