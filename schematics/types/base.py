@@ -7,7 +7,7 @@ import decimal
 from schematics.validation import (TypeResult, FieldResult,
                                    OK, ERROR_TYPE_COERCION, ERROR_FIELD_CONFIG,
                                    ERROR_FIELD_BAD_CHOICE,
-                                   ERROR_FIELD_TYPE_CHECK)
+                                   ERROR_FIELD_TYPE_CHECK, ERROR)
 from schematics.types import schematic_types
 
 

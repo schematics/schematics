@@ -57,6 +57,8 @@ ERROR_MODEL_INVALID = 'ERROR_MODEL_INVALID'  # data is not a schematics model
 ERROR_MODEL_TYPE_CHECK = 'ERROR_MODEL_TYPE_CHECK'  # model failed type check
 ERROR_MODEL_ROGUE_FIELD = 'ERROR_MODEL_ROGUE_FIELD'  # field not found in model
 
+ERROR = 'ERROR'
+
 
 ###
 ### Validation Functions
