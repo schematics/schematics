@@ -146,25 +146,28 @@ class TestCustomValidators(unittest.TestCase):
 
 class TestModelLevelValidators(unittest.TestCase):
 
-    def setUp(self):
-        self.now = datetime.datetime(2012, 1, 1, 0, 0)
-        self.future = self.now + datetime.timedelta(1)
-
     def test_model_validators(self):
+        now = datetime.datetime(2012, 1, 1, 0, 0)
+        future = now + datetime.timedelta(1)
+
+        self.assertGreater(future, now)
+
         class TestDoc(Model):
             can_future = BooleanType()
             publish = DateTimeType()
 
             def validate_publish(self, data, dt):
-                if dt > self.now and data['can_future']:
+                if dt > datetime.datetime(2012, 1, 1, 0, 0) and not data['can_future']:
                     raise ValidationError(future_error_msg)
 
         with self.assertRaises(ValidationError):
-            TestDoc().validate({'publish': self.future})
+            TestDoc().validate({'publish': future})
 
     def test_position_hint(self):
+        now = datetime.datetime(2012, 1, 1, 0, 0)
+        future = now + datetime.timedelta(1)
 
-        input = str(self.future.isoformat())
+        input = str(future.isoformat())
 
         class BadModel(Model):
             publish = DateTimeType()
@@ -177,8 +180,10 @@ class TestModelLevelValidators(unittest.TestCase):
             BadModel({'publish': input})
 
     def test_multi_key_validation(self):
+        now = datetime.datetime(2012, 1, 1, 0, 0)
+        future = now + datetime.timedelta(1)
 
-        input = str(self.future.isoformat())
+        input = str(future.isoformat())
 
         class GoodModel(Model):
             should_raise = BooleanType(default=True)

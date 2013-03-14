@@ -29,6 +29,13 @@ class TestType(unittest.TestCase):
         self.assertEqual(dt_type(dt.isoformat()), dt)
         self.assertEqual(dt_type.to_primitive(dt), output)
 
+    def test_datetime_accepts_datetime(self):
+        output = '2013.03.07 15:31'
+        dt = datetime.datetime(2013, 3, 7, 15, 31)
+        dt_type = DateTimeType(serialized_format='%Y.%m.%d %H:%M')
+        self.assertEqual(dt_type(dt), dt)
+        self.assertEqual(dt_type.to_primitive(dt), output)
+
     def test_string(self):
         with self.assertRaises(ValidationError):
             StringType(required=True)('')

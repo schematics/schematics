@@ -389,6 +389,9 @@ class DateTimeType(BaseType):
         super(DateTimeType, self).__init__(**kwargs)
 
     def convert(self, value):
+        if isinstance(value, datetime.datetime):
+            return value
+
         for format in self.formats:
             try:
                 return datetime.datetime.strptime(value, format)
