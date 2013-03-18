@@ -95,11 +95,10 @@ class ModelType(MultiType):
             serialized_name = field.serialized_name or field_name
 
             if value is None:
-                primitive_value = None
+                if not field.remove_on_none:
+                    primitive_data[serialized_name] = None
             else:
-                primitive_value = field.to_primitive(value)
-
-            primitive_data[serialized_name] = primitive_value
+                primitive_data[serialized_name] = field.to_primitive(value)
 
         return primitive_data
 
@@ -120,12 +119,13 @@ class ModelType(MultiType):
             if gottago(field_name, value):
                 primitive_data.pop(serialized_name)
             elif isinstance(field, MultiType):
-                primitive_value = primitive_data[serialized_name]
-                field.filter_by_role(
-                    value,
-                    primitive_value,
-                    role
-                )
+                primitive_value = primitive_data.get(serialized_name, None)
+                if primitive_value:
+                    field.filter_by_role(
+                        value,
+                        primitive_value,
+                        role
+                    )
 
         return primitive_data
 

@@ -47,7 +47,7 @@ class BaseType(object):
     """
 
     def __init__(self, required=False, default=None, serialized_name=None,
-                 choices=None, validators=None, description=None):
+                 choices=None, validators=None, description=None, remove_on_none=False):
 
         self.required = required
         self.default = default
@@ -55,6 +55,7 @@ class BaseType(object):
         self.choices = choices
         self.validators = validators or []
         self.description = description
+        self.remove_on_none = remove_on_none
         self._position_hint = _next_position_hint()  # For ordering of fields
 
     def __call__(self, value):
