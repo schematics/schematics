@@ -283,11 +283,11 @@ class TestSerializable(unittest.TestCase):
             resources=None
         ))
 
-    def test_field_with_remove_on_none(self):
+    def test_field_with_serialize_when_none(self):
         class Question(Model):
             id = StringType()
             question = StringType()
-            resources = DictType(StringType, remove_on_none=True)
+            resources = DictType(StringType, serialize_when_none=False)
 
         q = Question(dict(id=1, question="Who's the man?"))
 

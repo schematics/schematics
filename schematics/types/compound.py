@@ -95,7 +95,7 @@ class ModelType(MultiType):
             serialized_name = field.serialized_name or field_name
 
             if value is None:
-                if not field.remove_on_none:
+                if field.serialize_when_none:
                     primitive_data[serialized_name] = None
             else:
                 primitive_data[serialized_name] = field.to_primitive(value)
