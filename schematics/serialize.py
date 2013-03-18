@@ -68,7 +68,8 @@ def expand(data, context=None):
         try:
             key, remaining = k.split(".", 1)
         except ValueError:
-            expanded_dict[k] = v
+            if not (v in (EMPTY_DICT, EMPTY_LIST) and k in expanded_dict):
+                expanded_dict[k] = v
         else:
             current_context = context.setdefault(key, {})
             current_context.update(expand({remaining: v}, current_context))

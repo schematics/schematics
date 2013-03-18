@@ -351,177 +351,38 @@ class FlattenTests(unittest.TestCase):
 
         self.assertEqual(g, g_from_flat)
 
+    def test_expand_with_both_empty_dict_and_values(self):
+        flat_data = {
+            "categories": '{}',
+            "categories.basketball.category_slug": 'basketball',
+            "categories.basketball.total_draws": '0',
+            "categories.basketball.total_losses": '2',
+        }
 
-#     def test_to_flat_dict_ignores_none(self):
-#         class LocationInfo(StructuredObject):
-#             country_code = unicode
-#             region_code = unicode
+        expanded = expand(flat_data)
+        self.assertEqual(expanded, {
+            "categories": {
+                "basketball": {
+                    "category_slug": "basketball",
+                    "total_draws": "0",
+                    "total_losses": "2",
+                }
+            }
+        })
 
-#         info = LocationInfo(country_code="US")
-#         flat_dict = info.to_flat_dict()
+    def test_expand_with_both_empty_list_and_values(self):
+        flat_data = {
+            "categories": '[]',
+            "categories.0": 'basketball',
+            "categories.1": '0',
+            "categories.2": '2',
+        }
 
-#         self.assert_equal(flat_dict, {
-#             "country_code": "US",
-#         })
-
-#         info_from_flat_dict = LocationInfo.from_flat_dict(flat_dict)
-
-#         self.assert_equal(type(info), type(info_from_flat_dict))
-#         self.assert_equal(info, info_from_flat_dict)
-
-#     def test_to_flat_dict_perserves_dicts(self):
-#         class LocationInfo(StructuredObject):
-#             urls = dict
-
-#         info = LocationInfo(urls={"a": True})
-#         flat_dict = info.to_flat_dict()
-
-#         self.assert_equal(flat_dict, {
-#             "urls.a": True,
-#         })
-
-#         info_from_flat_dict = LocationInfo.from_flat_dict(flat_dict)
-
-#         self.assert_equal(info, info_from_flat_dict)
-
-
-
-#     def test_to_flat_dict_if_has_json_dict_as_attribute(self):
-#         class ExperienceLevelInfo(StructuredObject):
-#             level = int
-#             stars = int
-#             title = unicode
-
-#         class CategoryStatsInfo(StructuredObject):
-#             slug = unicode
-
-#             xp_level = ExperienceLevelInfo
-
-#         class PlayerInfo(StructuredObject):
-#             id = (long, unicode)
-
-#         class PlayerCategoryInfo(PlayerInfo):
-#             categories = TypedDict(CategoryStatsInfo)
-
-#         info = PlayerCategoryInfo({
-#             "id": 1,
-#             "categories": {
-#                 "math": {
-#                     "slug": "math",
-#                     "xp_level": {
-#                         "level": 1,
-#                         "stars": 1,
-#                         "title": "Master"
-#                     }
-#                 }
-#             }
-#         })
-
-#         flat_dict = info.to_flat_dict()
-
-#         self.assert_equal(flat_dict, {
-#             "id": "1",
-#             "categories.math.slug": "math",
-#             "categories.math.xp_level.level": 1,
-#             "categories.math.xp_level.stars": 1,
-#             "categories.math.xp_level.title": "Master",
-#         })
-
-#         info_from_flat_dict = PlayerCategoryInfo.from_flat_dict(flat_dict)
-
-#         self.assert_equal(info, info_from_flat_dict)
-
-#     def test_to_flat_dict_if_has_list_as_attribute(self):
-#         class PlayerInfo(StructuredObject):
-#             id = (long, unicode)
-#             followers = list
-
-#         info = PlayerInfo({
-#             "id": "1",
-#             "followers": [1, 2, 3]
-#         })
-
-#         flat_dict = info.to_flat_dict()
-#         self.assert_equal(flat_dict, {
-#             "id": "1",
-#             "followers.0": 1,
-#             "followers.1": 2,
-#             "followers.2": 3,
-#         })
-
-#         info_from_flat_dict = PlayerInfo.from_flat_dict(flat_dict)
-
-#         self.assert_equal(info, info_from_flat_dict)
-
-
-
-#     def test_coerce_to_flat_dict_with_default_type_and_key_coercer(self):
-#         class CategoryStatsInfo(StructuredObject):
-#             slug = unicode
-
-#         class PlayerInfo(StructuredObject):
-#             categories = DictAttribute(CategoryStatsInfo, int, unicode)
-
-#         stats = CategoryStatsInfo(slug="math")
-#         info = PlayerInfo({
-#             "categories": {"1": {"slug": "math"}}
-#         })
-
-#         self.assert_equal(info.categories, {1: stats})
-
-#         flat_dict = info.to_flat_dict()
-#         self.assert_equal(flat_dict, {
-#             "categories.1.slug": "math"
-#         })
-
-#         info_from_flat_dict = PlayerInfo.from_flat_dict(flat_dict)
-
-#         self.assert_equal(info, info_from_flat_dict)
-
-
-# class MultipleInheritanceTests(PEP8TestCase):
-
-#     def test_mixin(self):
-#         class Mixin(object):
-
-#             def to_dict(self):
-#                 d = super(Mixin, self).to_dict()
-#                 d["mango"] = True
-#                 return d
-
-#         class PlayerInfo(Mixin, StructuredObject):
-#             id = int
-
-#         info = PlayerInfo(id=1)
-
-#         self.assert_equal(info.id, 1)
-
-#         self.assert_equal(info.to_dict(), {
-#             "id": 1,
-#             "mango": True
-#         })
-
-#     def test_mixin_with_subclass(self):
-#         class Mixin(object):
-
-#             def to_dict(self):
-#                 d = super(Mixin, self).to_dict()
-#                 d["mango"] = True
-#                 return d
-
-#         class PlayerInfo(StructuredObject):
-#             id = int
-
-#         class PlayerCategoryInfo(Mixin, PlayerInfo):
-#             secret = unicode
-
-#         info = PlayerCategoryInfo(id=1, secret="leyni")
-
-#         self.assert_equal(info.id, 1)
-#         self.assert_equal(info.secret, "leyni")
-
-#         self.assert_equal(info.to_dict(), {
-#             "id": 1,
-#             "secret": "leyni",
-#             "mango": True
-#         })
+        expanded = expand(flat_data)
+        self.assertEqual(expanded, {
+            "categories": {
+                "0": "basketball",
+                "1": "0",
+                "2": "2"
+            }
+        })
