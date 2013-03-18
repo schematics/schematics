@@ -283,6 +283,29 @@ class TestSerializable(unittest.TestCase):
             resources=None
         ))
 
+    def test_field_with_serialize_when_none(self):
+        class Question(Model):
+            id = StringType()
+            question = StringType()
+            resources = DictType(StringType, serialize_when_none=False)
+
+        q = Question(dict(id=1, question="Who's the man?"))
+
+        d = q.serialize()
+        self.assertEqual(d, {
+            "id": "1",
+            "question": "Who's the man?"
+        })
+
+        q = Question(dict(id=1, question="Who's the man?", resources={"A": "B"}))
+
+        d = q.serialize()
+        self.assertEqual(d, {
+            "id": "1",
+            "question": "Who's the man?",
+            "resources": {"A": "B"}
+        })
+
 
 class TestRoles(unittest.TestCase):
 

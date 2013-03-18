@@ -43,11 +43,14 @@ class BaseType(object):
         validator and in turn returns the value, not necessarily unchanged.
         ``ValidationError`` exceptions are caught and aggregated into an errors
         structure. Default: []
+    :param serialize_when_none:
+        Dictates if the field should appear in the serialized data even if the
+        value is None. Default: True
 
     """
 
     def __init__(self, required=False, default=None, serialized_name=None,
-                 choices=None, validators=None, description=None):
+                 choices=None, validators=None, description=None, serialize_when_none=True):
 
         self.required = required
         self.default = default
@@ -55,6 +58,7 @@ class BaseType(object):
         self.choices = choices
         self.validators = validators or []
         self.description = description
+        self.serialize_when_none = serialize_when_none
         self._position_hint = _next_position_hint()  # For ordering of fields
 
     def __call__(self, value):
