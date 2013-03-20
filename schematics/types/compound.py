@@ -145,6 +145,25 @@ class ListType(BaseType):
         """
         return list(self.for_output_format('for_json', value))
 
+    def _get_valid_data(self, model, field_list):
+        """
+        In the case of multiple possible values that something could be, we
+        don't want to record all the errors (because it might be a successful
+        conversion overall). Instead, only return errors if we don't have good_data.
+        """
+        errors = []
+        good_data = []
+        for field in field_list:
+            try:
+                field.validate(model)
+                value = field.for_python(model)
+                good_data.append(value)
+            except ValidationError, ve:
+                errors.append(ve)
+        if len(good_data) == 0:
+            return errors, good_data
+        return [], good_data
+
     def validate(self, value):
         """Make sure that a list of valid fields is being used.
         """
@@ -158,13 +177,9 @@ class ListType(BaseType):
         errors = []
         good_data = []
         for item in value:
-            for field in self.fields:
-                try:
-                    field.validate(item)
-                    value = field.for_python(item)
-                    good_data.append(value)
-                except ValidationError, ve:
-                    errors.append(ve)
+            tmp_errors, tmp_good = self._get_valid_data(item, self.fields)
+            errors.extend(tmp_errors)
+            good_data.extend(tmp_good)
 
         if len(errors) > 0:
             raise ValidationError('Invalid ListType item')
