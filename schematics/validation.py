@@ -15,7 +15,7 @@ def _is_empty(field_value):
     return False
 
 
-def validate(cls, values, partial=False, report_rogues=False):
+def validate(cls, values, partial=False, strict=False):
     ### Reject model if _fields isn't present
     if not hasattr(cls, '_fields'):
         error_msg = 'cls is not a Model instance'
@@ -55,8 +55,8 @@ def validate(cls, values, partial=False, report_rogues=False):
             except ValidationError, ve:
                 errors.append(ve.messages)
 
-    ### Report rogue fields as errors if `report_rogues`
-    if report_rogues:
+    ### Report rogue fields as errors if `strict`
+    if strict:
         class_fields = cls._fields.keys()
         rogues_found = set(values.keys()) - set(class_fields)
         if len(rogues_found) > 0:
