@@ -147,6 +147,17 @@ class TestMultipleEmbeddedData(unittest.TestCase):
         self.assertEqual(actual, expected)
         
 
+
+    def test_validation_on_multitype_list(self):
+        self.testmodel.the_list = [{'bandname': 'fugazi'}]
+
+        try:
+            self.testmodel.validate()
+        except (ValidationError) as e:
+            self.fail("Validation of single type should work, even if its " \
+                      "not valid in the other type.")
+
+
 class TestSetGetSingleScalarDataSorted(unittest.TestCase):
     def setUp(self):
         self.listtype = SortedListType(IntType())
@@ -167,3 +178,6 @@ class TestSetGetSingleScalarDataSorted(unittest.TestCase):
         expected.reverse()
         actual = to_python(self.testmodel)['the_list']
         self.assertEqual(actual, expected)
+
+if __name__ == '__main__':
+    unittest.main()
