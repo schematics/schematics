@@ -9,7 +9,8 @@ from schematics.types import  IntType, StringType
 from schematics.types.compound import SortedListType, ModelType, ListType
 from schematics.serialize import (to_python, wholelist, make_safe_json,
                                   make_safe_python)
-from schematics.validation import validate_instance
+from schematics.validation import validate
+from schematics.exceptions import ValidationError
 
 
 class TestSetGetSingleScalarData(unittest.TestCase):
@@ -69,25 +70,22 @@ class TestSetGetSingleScalarData(unittest.TestCase):
 
     def test_good_value_validates(self):
         self.testmodel.the_list = [2,2,2,2,2,2]
-        result = validate_instance(self.testmodel)
-        self.assertEqual(result.tag, 'OK')
+        self.testmodel.validate()
 
     def test_coerceible_value_passes_validation(self):
         self.testmodel.the_list = ["2","2","2","2","2","2"]
-        result = validate_instance(self.testmodel)
-        self.assertEqual(result.tag, 'OK')
+        self.testmodel.validate()
 
     def test_uncoerceible_value_passes_validation(self):
         self.testmodel.the_list = ["2","2","2","2","horse","2"]
-        result = validate_instance(self.testmodel)
-        self.assertNotEqual(result.tag, 'OK')
+        fun = lambda: self.testmodel.validate()
+        self.assertRaises(ValidationError, fun)
         
     def test_validation_converts_value(self):
         self.testmodel.the_list = ["2","2","2","2","2","2"]
-        result = validate_instance(self.testmodel)
-        self.assertEqual(result.tag, 'OK')
-        converted_data = result.value
-        new_list = converted_data['the_list']
+        self.testmodel.validate()
+        result = to_python(self.testmodel)
+        new_list = result['the_list']
         self.assertEqual(new_list, [2,2,2,2,2,2])
 
         
@@ -115,35 +113,50 @@ class TestGetSingleEmbeddedData(unittest.TestCase):
 
 class TestMultipleEmbeddedData(unittest.TestCase):
     def setUp(self):
-        class EmbeddedTestmodel(Model):
+        class BandModel(Model):
             bandname = StringType()
             
-        class SecondEmbeddedTestmodel(Model):
+        class FoodModel(Model):
             food = StringType()
             
-        self.embedded_test_document = EmbeddedTestmodel
-        self.second_embedded_test_document = EmbeddedTestmodel
+        self.food_model = FoodModel
+        self.band_model = BandModel
+        self.the_list = ListType([ModelType(self.band_model),
+                                  ModelType(self.food_model)])
         
-        self.embedded_type = ModelType(EmbeddedTestmodel)
-        self.second_embedded_type = ModelType(SecondEmbeddedTestmodel)
-
         class Testmodel(Model):
-            the_doc = ListType([self.embedded_type, self.second_embedded_type])
+            the_list = ListType([ModelType(self.band_model),
+                                 ModelType(self.food_model)])
 
         self.Testmodel = Testmodel
         self.testmodel = Testmodel()
 
-    @unittest.expectedFailure #because the set shouldn't upcast until validation
+    #@unittest.expectedFailure #because the set shouldn't upcast until validation
     def test_good_value_for_python_upcasts(self):
-        self.testmodel.the_doc = [{'bandname': 'fugazi'}, {'food':'cake'}]
-        actual = self.testmodel.the_doc
-        embedded_test_one = self.embedded_test_document()
-        embedded_test_one['bandname'] = 'fugazi'
-        embedded_test_two = self.second_embedded_test_document()
-        embedded_test_two['food'] = 'cake'
-        expected = [embedded_test_one, embedded_test_two]
+        self.testmodel.the_list = [{'bandname': 'fugazi'}, {'food':'cake'}]
+        
+        actual = self.testmodel.the_list
+        
+        band = self.band_model()
+        band['bandname'] = 'fugazi'
+        
+        food = self.food_model()
+        food['food'] = 'cake'
+        
+        expected = [band, food]
         self.assertEqual(actual, expected)
         
+
+
+    def test_validation_on_multitype_list(self):
+        self.testmodel.the_list = [{'bandname': 'fugazi'}]
+
+        try:
+            self.testmodel.validate()
+        except (ValidationError) as e:
+            self.fail("Validation of single type should work, even if its " \
+                      "not valid in the other type.")
+
 
 class TestSetGetSingleScalarDataSorted(unittest.TestCase):
     def setUp(self):
@@ -165,3 +178,6 @@ class TestSetGetSingleScalarDataSorted(unittest.TestCase):
         expected.reverse()
         actual = to_python(self.testmodel)['the_list']
         self.assertEqual(actual, expected)
+
+if __name__ == '__main__':
+    unittest.main()

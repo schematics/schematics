@@ -256,3 +256,8 @@ safe_doc = make_safe_json(BasicUser, user_doc, 'owner')
 public_safe_doc = make_safe_json(BasicUser, user_doc, 'public')
 #print 'Public safe doc:\n    %s\n' % (public_safe_doc)
 
+
+### Alternate field names
+
+class AltNames(Model):
+    title = StringType(print_name='something_else')

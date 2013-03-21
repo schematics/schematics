@@ -7,10 +7,10 @@
 import hashlib
 
 from schematics.models import Model
-from schematics.validation import (validate_instance, validate_values, OK,
-                                   TypeResult)
+from schematics.validation import validate
 from schematics.serialize import to_python, whitelist, wholelist
 from schematics.types import MD5Type, StringType
+from schematics.exceptions import ValidationError
 
 
 ###
@@ -40,17 +40,6 @@ class User(Model):
 ###
 
 
-### Helper
-def print_result(result):
-    if result.tag == OK:
-        print '        OK: %s\n' % (result.value)
-    else:
-        print '    ERRORS: %s' % (result.message)
-        for err in result.value:
-            print '    -', err
-        print ''
-
-
 ### Create instance with bogus password
 u = User()
 u.secret = 'whatevz'
@@ -58,8 +47,10 @@ u.name = 'this name is going to be much, much, much too long for this field'
 
 ### Validation will fail
 print 'VALIDATING: %s' % (to_python(u))
-result = validate_instance(u)
-print_result(result)
+try:
+    u.validate()
+except ValidationError, ve:
+    print '    FAILED:', ve
  
 
 ### Set the password *correctly* and validation will pass
@@ -68,8 +59,7 @@ u.set_password('whatevz')
 print 'VALIDATING: %s' % (to_python(u))
 
 ### Validation will pass
-result = validate_instance(u)
-print_result(result)
+u.validate()
 
 
 ###
@@ -86,8 +76,7 @@ total_input = {
 print 'VALIDATING: %s' % (total_input)
 
 ### Validate dict against our model definition
-result = validate_values(User, total_input)
-print_result(result)
+validate(User, total_input)
 
 
 ### Add the rogue type back to `total_input`
@@ -98,4 +87,3 @@ user_doc = User(**total_input)
 
 ### Observe that rogue field was tossed away via instantiation
 print '       PYTHON: %s' % (to_python(user_doc))
-

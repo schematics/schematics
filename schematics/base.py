@@ -1,5 +1,4 @@
 import functools
-from collections import namedtuple
 
 
 ### UltraJSON is really, really fast. It's so fast that we favor it over other

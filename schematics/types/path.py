@@ -2,8 +2,7 @@ import os
 from os import path
 
 from schematics.types import StringType
-from schematics.validation import (TypeResult, FieldResult, OK,
-                                   ERROR_TYPE_COERCION)
+from schematics.exceptions import ValidationError
 
 
 class PathType(StringType):
@@ -32,57 +31,42 @@ class PathType(StringType):
 
     def validate(self, value):
         if not isinstance(value, basestring):
-            error_msg = "value must be a string"
-            return FieldResult(ERROR_TYPE_COERCION, error_msg,
-                               self.field_name, value)
+            raise ValidationError("value must be a string")
 
         realpath = path.realpath(value)
         path_exists = path.exists(realpath)
 
         if self.exists and not path_exists:
-            error_msg = "path does not exist"
-            return FieldResult(ERROR_TYPE_COERCION, error_msg,
-                               self.field_name, value)
+            raise ValidationError("path does not exist")
 
         if self.can_create_or_write:
             if path_exists and not os.access(realpath, os.W_OK):
-                error_msg = "path is not writable"
-                return FieldResult(ERROR_TYPE_COERCION, error_msg,
-                                   self.field_name, value)
+                raise ValidationError("path is not writable")
             else:
                 parent_dir = path.dirname(realpath)
                 if not path.exists(path.dirname(realpath)):
-                    error_msg = "parent directory does not exist"
-                    return FieldResult(ERROR_TYPE_COERCION, error_msg,
-                                       self.field_name, value)
+                    raise ValidationError("parent directory does not exist")
 
                 if not path.isdir(parent_dir):
                     error_msg = "parent directory is not a directory"
-                    return FieldResult(ERROR_TYPE_COERCION, error_msg,
-                                       self.field_name, value)
+                    raise ValidationError(error_msg)
+
                 if not os.access(parent_dir, os.W_OK):
                     error_msg = "parent directory is not writable"
-                    return FieldResult(ERROR_TYPE_COERCION, error_msg,
-                                       self.field_name, value)
+                    raise ValidationError(error_msg)
 
         if path_exists and self.isfile and not path.isfile(realpath):
-            error_msg =  "path is not a file"
-            return FieldResult(ERROR_TYPE_COERCION, error_msg,
-                               self.field_name, value)
+            raise ValidationError("path is not a file")
 
         if path_exists and self.isdir and not path.isdir(realpath):
-            error_msg = "path is not a directory"
-            return FieldResult(ERROR_TYPE_COERCION, error_msg,
-                               self.field_name, value)
+            raise ValidationError("path is not a directory")
 
         if self.access is not None and not os.access(realpath, self.access):
                 permissions = self._access_to_permission_list(self.access)
                 error_msg = "path one or more of the following permissions: {}"
-                return FieldResult(ERROR_TYPE_COERCION,
-                                   error_msg.format(", ".join(permissions)),
-                                   self.field_name, value)
+                raise ValidationError(error_msg.format(", ".join(permissions)))
 
-        return FieldResult(OK, 'success', self.field_name, value)
+        return True
 
     def _access_to_permission_list(self, access):
         permissions = []

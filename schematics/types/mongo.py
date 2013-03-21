@@ -2,8 +2,8 @@
 as part of the pymongo distribution.
 """
 
-from schematics.validation import FieldResult, ERROR_TYPE_COERCION, OK
 from schematics.types import BaseType
+from schematics.exceptions import ValidationError
 
 import bson
 
@@ -39,9 +39,7 @@ class ObjectIdType(BaseType):
         try:
             return bson.objectid.ObjectId(unicode(value))
         except Exception, e:
-            error_msg = 'Invalid ObjectId'
-            return FieldResult(ERROR_TYPE_COERCION, error_msg, self.field_name,
-                               value)
+            raise ValidationError('Invalid ObjectId')
 
     def for_json(self, value):
         return str(value)
@@ -51,7 +49,5 @@ class ObjectIdType(BaseType):
             try:
                 value = bson.objectid.ObjectId(unicode(value))
             except Exception, e:
-                error_msg = 'Invalid ObjectId'
-                return FieldResult(ERROR_TYPE_COERCION, error_msg,
-                                   self.field_name, value)
-        return FieldResult(OK, 'success', self.field_name, value)
+                raise ValidationError('Invalid ObjectId')
+        return True
