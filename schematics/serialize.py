@@ -65,6 +65,7 @@ def expand(data, context=None):
         context = expanded_dict
 
     for k, v in data.iteritems():
+        print k, v
         try:
             key, remaining = k.split(".", 1)
         except ValueError:
@@ -72,6 +73,10 @@ def expand(data, context=None):
                 expanded_dict[k] = v
         else:
             current_context = context.setdefault(key, {})
+            if current_context in (EMPTY_DICT, EMPTY_LIST):
+                current_context = {}
+                context[key] = current_context
+
             current_context.update(expand({remaining: v}, current_context))
     return expanded_dict
 

@@ -1,5 +1,6 @@
 
 import unittest
+from collections import OrderedDict
 
 from schematics.serialize import expand
 from schematics.models import Model
@@ -352,37 +353,70 @@ class FlattenTests(unittest.TestCase):
         self.assertEqual(g, g_from_flat)
 
     def test_expand_with_both_empty_dict_and_values(self):
-        flat_data = {
-            "categories": '{}',
-            "categories.basketball.category_slug": 'basketball',
-            "categories.basketball.total_draws": '0',
-            "categories.basketball.total_losses": '2',
-        }
+        different_orderings = [
+            [
+                ("categories", '{}'),
+                ("categories.basketball.category_slug", 'basketball'),
+                ("categories.basketball.total_draws", '0'),
+                ("categories.basketball.total_losses", '2'),
+            ],
+            [
+                ("categories.basketball.category_slug", 'basketball'),
+                ("categories", '{}'),
+                ("categories.basketball.total_draws", '0'),
+                ("categories.basketball.total_losses", '2'),
+            ],
+            [
+                ("categories.basketball.category_slug", 'basketball'),
+                ("categories.basketball.total_draws", '0'),
+                ("categories.basketball.total_losses", '2'),
+                ("categories", '{}'),
+            ]
+        ]
 
-        expanded = expand(flat_data)
-        self.assertEqual(expanded, {
-            "categories": {
-                "basketball": {
-                    "category_slug": "basketball",
-                    "total_draws": "0",
-                    "total_losses": "2",
+        for ordering in different_orderings:
+            flat_data = OrderedDict(ordering)
+
+            expanded = expand(flat_data)
+            self.assertEqual(expanded, {
+                "categories": {
+                    "basketball": {
+                        "category_slug": "basketball",
+                        "total_draws": "0",
+                        "total_losses": "2",
+                    }
                 }
-            }
-        })
+            })
 
     def test_expand_with_both_empty_list_and_values(self):
-        flat_data = {
-            "categories": '[]',
-            "categories.0": 'basketball',
-            "categories.1": '0',
-            "categories.2": '2',
-        }
+        different_orderings = [
+            [
+                ("categories", '[]'),
+                ("categories.0", 'basketball'),
+                ("categories.1", '0'),
+                ("categories.2", '2'),
+            ],
+            [
+                ("categories.0", 'basketball'),
+                ("categories", '[]'),
+                ("categories.1", '0'),
+                ("categories.2", '2'),
+            ],
+            [
+                ("categories.0", 'basketball'),
+                ("categories.1", '0'),
+                ("categories.2", '2'),
+                ("categories", '[]'),
+            ]
+        ]
+        for ordering in different_orderings:
+            flat_data = OrderedDict(ordering)
 
-        expanded = expand(flat_data)
-        self.assertEqual(expanded, {
-            "categories": {
-                "0": "basketball",
-                "1": "0",
-                "2": "2"
-            }
-        })
+            expanded = expand(flat_data)
+            self.assertEqual(expanded, {
+                "categories": {
+                    "0": "basketball",
+                    "1": "0",
+                    "2": "2"
+                }
+            })
