@@ -78,16 +78,9 @@ class ModelType(MultiType):
                 self.model_class.__name__,
                 type(value).__name__))
 
-        errors = {}
-        result = {}
-        for name, field in self.fields.iteritems():
-            try:
-                result[name] = field.validate(value.get(name))
-            except ValidationError, e:
-                errors[name] = e
-        if errors:
-            raise ValidationError(errors)
-        return self.model_class(result)
+        # We don't allow partial submodels because that is just complex and
+        # not obviously useful
+        return self.model_class(value, partial=False)
 
     def to_primitive(self, model_instance, include_serializables=True):
         primitive_data = {}

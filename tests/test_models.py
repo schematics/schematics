@@ -80,6 +80,37 @@ class TestModels(unittest.TestCase):
         self.assertEqual(True, 'fake_key' not in tm)
 
 
+class TestDefaultValues(unittest.TestCase):
+    def test_default_value(self):
+        class Question(Model):
+            question_id = StringType(required=True)
+
+            type = StringType(default="text")
+
+        q = Question(dict(question_id=1))
+
+        self.assertEqual(q.type, "text")
+
+    def test_default_value_when_embedded_model(self):
+        class Question(Model):
+            question_id = StringType(required=True)
+
+            type = StringType(default="text")
+
+        class QuestionPack(Model):
+
+            question = ModelType(Question)
+
+        pack = QuestionPack({
+            "question": {
+                "question_id": 1
+            }
+        })
+
+        self.assertEqual(pack.question.question_id, "1")
+        self.assertEqual(pack.question.type, "text")
+
+
 class TestOptions(unittest.TestCase):
     """This test collection covers the `ModelOptions` class and related
     functions.
