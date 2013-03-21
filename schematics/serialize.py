@@ -65,7 +65,6 @@ def expand(data, context=None):
         context = expanded_dict
 
     for k, v in data.iteritems():
-        print k, v
         try:
             key, remaining = k.split(".", 1)
         except ValueError:
