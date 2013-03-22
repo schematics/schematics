@@ -79,14 +79,7 @@ class ModelMeta(type):
             # For accessing internal data by field name attributes
             attrs[key] = FieldDescriptor(key)
 
-        # Create a valid ModelOptions instance in `_options`
-        _options_class = getattr(attrs, '__classoptions__', ModelOptions)
-        _options_members = {}
-        if 'Options' in attrs:
-            for k, v in inspect.getmembers(attrs['Options']):
-                if not k.startswith("_"):
-                    _options_members[k] = v
-        attrs['_options'] = _options_class(cls, **_options_members)
+        attrs['_options'] = cls._read_options(name, bases, attrs)
 
         attrs['_validator_functions'] = validator_functions
         attrs['_unbound_serializables'] = serializables
@@ -98,6 +91,36 @@ class ModelMeta(type):
             field.owner_model = klass
 
         return klass
+
+    @classmethod
+    def _read_options(cls, name, bases, attrs):
+        options_members = {}
+
+        for base in reversed(bases):
+            if hasattr(base, "_options"):
+                for k, v in inspect.getmembers(base._options):
+                    if not k.startswith("_") and not k == "klass":
+                        options_members[k] = v
+
+        options_class = getattr(attrs, '__classoptions__', ModelOptions)
+        if 'Options' in attrs:
+            for k, v in inspect.getmembers(attrs['Options']):
+                if not k.startswith("_"):
+                    if k == "roles":
+                        roles = options_members.get("roles", {}).copy()
+                        for role_name, role_filter in v.iteritems():
+                            filter_from_base = roles.get(role_name, None)
+
+                            if filter_from_base:
+                                roles[role_name] = filter_from_base + role_filter
+                            else:
+                                roles[role_name] = role_filter
+
+                        options_members["roles"] = roles
+                    else:
+                        options_members[k] = v
+
+        return options_class(cls, **options_members)
 
     @property
     def fields(cls):

@@ -182,8 +182,31 @@ or serialization of nested fields. With these you can express deep structures.
   >>> actor.name
   u'Tom Cruise'
 
+It is also possible to define roles that filter which attributes appear in the
+serialized output
+
+.. testcode:: detailed
+
+  from schematics.models import Model
+  from schematics.types import StringType, IntType, BooleanType
+  from schematics.types.compound import ListType, ModelType
+  from schematics.serialize import blacklist
+
+  class Movie(Model):
+      name = StringType(required=True)
+      year = IntType(required=True)
+      credits = ListType(StringType())
+
+      class Options:
+          roles = {
+            "public": blacklist("credits")
+          }
+
+These roles behave pretty much as you expect with respect to subclassing and
+embedded objects using one of the compound types `ModelType`, `ListType`, `DictType`.
+
 You can patch the object by assigning attributes to fields with raw data too
-(which  fails if the field doesn’t validate).
+(which fails if the field doesn’t validate).
 
 .. doctest:: detailed
 

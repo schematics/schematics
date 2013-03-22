@@ -1,7 +1,7 @@
 # encoding=utf-8
 
 from .types.compound import (
-    ModelType, ListType, EMPTY_LIST, DictType, EMPTY_DICT
+    ModelType, EMPTY_LIST, EMPTY_DICT
 )
 
 #
@@ -9,11 +9,55 @@ from .types.compound import (
 #
 
 
+class RoleFilter(object):
+
+    def __init__(self, whitelist=None, blacklist=None):
+        if whitelist and blacklist:
+            raise ValueError("Can't combine whitelists and blacklists for the same role.")
+
+        self.whitelist = whitelist
+        self.blacklist = blacklist or {}
+
+    def __eq__(self, other):
+        return self.whitelist == other.whitelist and self.blacklist == other.blacklist
+
+    def __neq__(self, other):
+        return not self == other
+
+    def __unicode__(self):
+        if self.whitelist:
+            return "whitelist({})".format(",".join("'{}'".format(k) for k in self.whitelist.keys()))
+        else:
+            return "blacklist({})".format(",".join("'{}'".format(k) for k in self.blacklist.keys()))
+
+    def __repr__(self):
+        return "<RoleFilter {}>".format(unicode(self))
+
+    def __call__(self, k, v):
+        if self.whitelist:
+            return k not in self.whitelist
+        else:
+            return k in self.blacklist
+        return False
+
+    def __add__(self, other_role_filter):
+        if not isinstance(other_role_filter, RoleFilter):
+            raise ValueError("Invalid type {} for operator '+'. Must be a subclass of RoleFilter".format(type(other_role_filter)))
+
+        if (self.whitelist and other_role_filter.blacklist) or (self.blacklist and other_role_filter.whitelist):
+            raise ValueError("Can't combine whitelists and blacklists for the same role.")
+
+        if self.whitelist:
+            return RoleFilter(whitelist=dict(self.whitelist, **other_role_filter.whitelist))
+        else:
+            return RoleFilter(blacklist=dict(self.blacklist, **other_role_filter.blacklist))
+
+
 def wholelist(*field_list):
     """Returns a function that evicts nothing. Exists mainly to be an explicit
     allowance of all fields instead of a using an empty blacklist.
     """
-    return lambda k, v: False
+    return RoleFilter()
 
 
 def whitelist(*field_list):
@@ -22,14 +66,7 @@ def whitelist(*field_list):
 
     A whitelist is a list of fields explicitly named that are allowed.
     """
-    # Default to rejecting the value
-    _whitelist = lambda k, v: True
-
-    if field_list is not None and len(field_list) > 0:
-        def _whitelist(k, v):
-            return k not in field_list
-
-    return _whitelist
+    return RoleFilter(whitelist=dict((f, True) for f in field_list))
 
 
 def blacklist(*field_list):
@@ -38,14 +75,7 @@ def blacklist(*field_list):
 
     A blacklist is a list of fields explicitly named that are not allowed.
     """
-    # Default to not rejecting the value
-    _blacklist = lambda k, v: False
-
-    if field_list is not None and len(field_list) > 0:
-        def _blacklist(k, v):
-            return k in field_list
-
-    return _blacklist
+    return RoleFilter(blacklist=dict((f, True) for f in field_list))
 
 
 def serialize(instance, role, raise_error_on_role=True):

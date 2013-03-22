@@ -3,7 +3,7 @@ import unittest
 import datetime
 
 from schematics.models import Model
-from schematics.serialize import whitelist
+from schematics.serialize import whitelist, blacklist
 from schematics.models import ModelOptions
 
 from schematics.types.base import StringType, IntType, DateTimeType
@@ -115,22 +115,11 @@ class TestOptions(unittest.TestCase):
     """This test collection covers the `ModelOptions` class and related
     functions.
     """
-    def setUp(self):
-        self._class = ModelOptions
-
-    def tearDown(self):
-        pass
 
     def test_good_options_args(self):
-        args = {
-            'klass': None,
-            'roles': None,
-        }
-
-        mo = self._class(**args)
+        mo = ModelOptions(klass=None, roles=None)
         self.assertNotEqual(mo, None)
 
-        # Test that a value for roles was generated
         self.assertEqual(mo.roles, {})
 
     def test_bad_options_args(self):
@@ -139,12 +128,13 @@ class TestOptions(unittest.TestCase):
             'roles': None,
             'badkw': None,
         }
+
         with self.assertRaises(TypeError):
-            c = self._class(**args)
+            ModelOptions(**args)
 
     def test_no_options_args(self):
         args = {}
-        mo = self._class(None, **args)
+        mo = ModelOptions(None, **args)
         self.assertNotEqual(mo, None)
 
     def test_options_parsing_from_model(self):
@@ -159,6 +149,120 @@ class TestOptions(unittest.TestCase):
         self.assertEqual(fo.__class__, ModelOptions)
         self.assertEqual(fo.namespace, 'foo')
         self.assertEqual(fo.roles, {})
+
+    def test_subclassing_preservers_roles(self):
+        class Parent(Model):
+            id = StringType()
+            name = StringType()
+
+            class Options:
+                roles = {'public': blacklist("id")}
+
+        class GrandParent(Parent):
+            age = IntType()
+
+        gramps = GrandParent({
+            "id": "1",
+            "name": "Edward",
+            "age": 87
+        })
+
+        options = gramps._options
+
+        self.assertEqual(options.roles, {
+            "public": blacklist("id")
+        })
+
+    def test_subclassing_joins_roles(self):
+        class Parent(Model):
+            id = StringType()
+            name = StringType()
+
+            class Options:
+                roles = {'public': blacklist("id")}
+
+        class GrandParent(Parent):
+            age = IntType()
+            family_secret = StringType()
+
+            class Options:
+                roles = {
+                    'grandchildren': whitelist("age"),
+                    'public': blacklist("family_secret")
+                }
+
+        gramps = GrandParent({
+            "id": "1",
+            "name": "Edward",
+            "age": 87,
+            "family_secret": "Secretly Canadian"
+        })
+
+        options = gramps._options
+
+        self.assertEqual(options.roles, {
+            "grandchildren": whitelist("age"),
+            "public": blacklist("id", "family_secret")
+        })
+
+    def test_subclassing_joins_roles_whitelist(self):
+        class Parent(Model):
+            id = StringType()
+            name = StringType()
+
+            class Options:
+                roles = {'private': whitelist("id")}
+
+        class GrandParent(Parent):
+            age = IntType()
+            family_secret = StringType()
+
+            class Options:
+                roles = {
+                    'grandchildren': whitelist("age"),
+                    'private': whitelist("family_secret")
+                }
+
+        gramps = GrandParent({
+            "id": "1",
+            "name": "Edward",
+            "age": 87,
+            "family_secret": "Secretly Canadian"
+        })
+
+        options = gramps._options
+
+        self.assertEqual(options.roles, {
+            "grandchildren": whitelist("age"),
+            "private": whitelist("id", "family_secret")
+        })
+
+        d = gramps.serialize(role="private")
+
+        self.assertEqual(d, {
+            "id": "1",
+            "family_secret": "Secretly Canadian"
+        })
+
+    def test_subclassing_fails_to_join_roles_if_they_dont_make_sense(self):
+        class Parent(Model):
+            id = StringType()
+            name = StringType()
+            gender = StringType()
+
+            class Options:
+                roles = {'private': whitelist("id", "gender")}
+
+        with self.assertRaises(ValueError):
+            class GrandParent(Parent):
+                age = IntType()
+                family_secret = StringType()
+
+                class Options:
+                    roles = {
+                        'grandchildren': whitelist("age"),
+                        'private': blacklist("gender")
+                    }
 
 
 class TestModelInterface(unittest.TestCase):

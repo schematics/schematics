@@ -309,6 +309,29 @@ class TestSerializable(unittest.TestCase):
 
 class TestRoles(unittest.TestCase):
 
+    def test_roles_work_with_subclassing(self):
+        class Address(Model):
+            private_key = StringType()
+            city = StringType()
+
+            class Options:
+                roles = {'public': blacklist('private_key')}
+
+        class AddressWithPostalCode(Address):
+            postal_code = IntType()
+
+        a = AddressWithPostalCode(dict(
+            postal_code=101,
+            city=u"Reykjavík",
+            private_key="secret"
+        ))
+
+        d = a.serialize(role="public")
+        self.assertEqual(d, {
+            "city": u"Reykjavík",
+            "postal_code": 101
+        })
+
     def test_role_propagate(self):
         class Address(Model):
             city = StringType()
