@@ -267,6 +267,16 @@ class TestOptions(unittest.TestCase):
 
 class TestModelInterface(unittest.TestCase):
 
+    def test_init_model_from_another_model(self):
+        class User(Model):
+            name = StringType(required=True)
+            bio = StringType(required=True)
+
+        u = User(dict(name="A", bio="Asshole"))
+
+        u2 = User(u)
+        self.assertEqual(u, u2)
+
     def test_raises_validation_error_on_init(self):
         class User(Model):
             name = StringType(required=True)

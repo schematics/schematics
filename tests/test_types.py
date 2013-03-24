@@ -2,7 +2,7 @@
 import unittest
 import datetime
 
-from schematics.types import StringType, DateTimeType, IntType
+from schematics.types import StringType, DateTimeType, DateType, IntType
 from schematics.exceptions import ValidationError
 
 
@@ -12,6 +12,14 @@ class TestType(unittest.TestCase):
         with self.assertRaises(ValidationError):
             StringType(required=True)(None)
         self.assertEqual(StringType()(None), None)
+
+    def test_date(self):
+        today = datetime.date(2013, 3, 1)
+
+        date_type = DateType()
+        self.assertEqual(date_type("2013-03-01"), today)
+
+        self.assertEqual(date_type.to_primitive(today), "2013-03-01")
 
     def test_datetime(self):
         dt = datetime.datetime.now()

@@ -363,6 +363,28 @@ class BooleanType(BaseType):
                 raise ValueError(u'Invalid boolean value')
         return value
 
+class DateType(BaseType):
+    """Defaults to converting to and from ISO8601 date values.
+    """
+
+    SERIALIZED_FORMAT = '%Y-%m-%d'
+
+    def __init__(self, **kwargs):
+        self.serialized_format = self.SERIALIZED_FORMAT
+        super(DateType, self).__init__(**kwargs)
+
+    def convert(self, value):
+        if isinstance(value, datetime.date):
+            return value
+
+        try:
+            return datetime.datetime.strptime(value, self.serialized_format).date()
+        except (ValueError, TypeError):
+            raise ValidationError(u'Could not parse {}. Should be ISO8601.'.format(value))
+
+    def to_primitive(self, value):
+        return value.strftime(self.serialized_format)
+
 
 class DateTimeType(BaseType):
     """Defaults to converting to and from ISO8601 datetime values.
