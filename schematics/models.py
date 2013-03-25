@@ -108,13 +108,7 @@ class ModelMeta(type):
                 if not k.startswith("_"):
                     if k == "roles":
                         roles = options_members.get("roles", {}).copy()
-                        for role_name, role_filter in v.iteritems():
-                            filter_from_base = roles.get(role_name, None)
-
-                            if filter_from_base:
-                                roles[role_name] = filter_from_base + role_filter
-                            else:
-                                roles[role_name] = role_filter
+                        roles.update(v)
 
                         options_members["roles"] = roles
                     else:

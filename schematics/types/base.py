@@ -363,6 +363,7 @@ class BooleanType(BaseType):
                 raise ValueError(u'Invalid boolean value')
         return value
 
+
 class DateType(BaseType):
     """Defaults to converting to and from ISO8601 date values.
     """

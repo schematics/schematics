@@ -173,96 +173,43 @@ class TestOptions(unittest.TestCase):
             "public": blacklist("id")
         })
 
-    def test_subclassing_joins_roles(self):
+    def test_subclassing_overides_roles(self):
         class Parent(Model):
             id = StringType()
-            name = StringType()
-
-            class Options:
-                roles = {'public': blacklist("id")}
-
-        class GrandParent(Parent):
-            age = IntType()
-            family_secret = StringType()
-
-            class Options:
-                roles = {
-                    'grandchildren': whitelist("age"),
-                    'public': blacklist("family_secret")
-                }
-
-        gramps = GrandParent({
-            "id": "1",
-            "name": "Edward",
-            "age": 87,
-            "family_secret": "Secretly Canadian"
-        })
-
-        options = gramps._options
-
-        self.assertEqual(options.roles, {
-            "grandchildren": whitelist("age"),
-            "public": blacklist("id", "family_secret")
-        })
-
-    def test_subclassing_joins_roles_whitelist(self):
-        class Parent(Model):
-            id = StringType()
-            name = StringType()
-
-            class Options:
-                roles = {'private': whitelist("id")}
-
-        class GrandParent(Parent):
-            age = IntType()
-            family_secret = StringType()
-
-            class Options:
-                roles = {
-                    'grandchildren': whitelist("age"),
-                    'private': whitelist("family_secret")
-                }
-
-        gramps = GrandParent({
-            "id": "1",
-            "name": "Edward",
-            "age": 87,
-            "family_secret": "Secretly Canadian"
-        })
-
-        options = gramps._options
-
-        self.assertEqual(options.roles, {
-            "grandchildren": whitelist("age"),
-            "private": whitelist("id", "family_secret")
-        })
-
-        d = gramps.serialize(role="private")
-
-        self.assertEqual(d, {
-            "id": "1",
-            "family_secret": "Secretly Canadian"
-        })
-
-    def test_subclassing_fails_to_join_roles_if_they_dont_make_sense(self):
-        class Parent(Model):
-            id = StringType()
-            name = StringType()
             gender = StringType()
+            name = StringType()
 
             class Options:
-                roles = {'private': whitelist("id", "gender")}
+                roles = {
+                    'public': blacklist("id", "gender"),
+                    'gender': blacklist("gender")
+                }
 
-        with self.assertRaises(ValueError):
-            class GrandParent(Parent):
-                age = IntType()
-                family_secret = StringType()
+        class GrandParent(Parent):
+            age = IntType()
+            family_secret = StringType()
 
-                class Options:
-                    roles = {
-                        'grandchildren': whitelist("age"),
-                        'private': blacklist("gender")
-                    }
+            class Options:
+                roles = {
+                    'grandchildren': whitelist("age"),
+                    'public': blacklist("id", "family_secret")
+                }
+
+        gramps = GrandParent({
+            "id": "1",
+            "name": "Edward",
+            "gender": "Male",
+            "age": 87,
+            "family_secret": "Secretly Canadian"
+        })
+
+        options = gramps._options
+
+        self.assertEqual(options.roles, {
+            "grandchildren": whitelist("age"),
+            "public": blacklist("id", "family_secret"),
+            "gender": blacklist("gender")
+        })
 
 
 class TestModelInterface(unittest.TestCase):
