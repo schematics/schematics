@@ -54,7 +54,7 @@ class BaseType(object):
     
         value = instance._data.get(self.field_name)
 
-        if value is None and self.default:
+        if value is None and self.default is not None:
             value = self.default
             # Callable values are best for mutable defaults
             if callable(value):
