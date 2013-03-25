@@ -3,61 +3,67 @@
 from .types.compound import (
     ModelType, EMPTY_LIST, EMPTY_DICT
 )
+import collections
 
 #
 # Field Access Functions
 #
 
 
-class RoleFilter(object):
+class Role(collections.Set):
+    """A Role object can be used to filter specific fields against a sequence.
 
-    def __init__(self, whitelist=None, blacklist=None):
-        if whitelist and blacklist:
-            raise ValueError("Can't combine whitelists and blacklists for the same role.")
+    The Role has a set of names and one function that the specific field is
+    filtered with.
 
-        self.whitelist = whitelist
-        self.blacklist = blacklist or {}
+    A Role can be operated on as a Set object representing its fields. You
+    shouldn't combine roles that have different functions, to avoid confusion.
 
-    def __eq__(self, other):
-        return self.whitelist == other.whitelist and self.blacklist == other.blacklist
+    """
+    def __init__(self, function, fields):
+        self.function = function
+        self.fields = set(fields)
 
-    def __neq__(self, other):
-        return not self == other
+    def __contains__(self, value):
+        return value in self.fields
 
-    def __unicode__(self):
-        if self.whitelist:
-            return "whitelist({})".format(",".join("'{}'".format(k) for k in self.whitelist.keys()))
-        else:
-            return "blacklist({})".format(",".join("'{}'".format(k) for k in self.blacklist.keys()))
+    def __iter__(self):
+        return iter(self.fields)
+
+    def __len__(self):
+        return len(self.fields)
+
+    def _from_iterable(self, iterable):
+        return Role(self.function, iterable)
+
+    # edit role fields
+    def __add__(self, other):
+        fields = self.fields.union(other)
+        return self._from_iterable(fields)
+
+    def __sub__(self, other):
+        fields = self.fields.difference(other)
+        return self._from_iterable(fields)
+
+    # apply role to field
+    def __call__(self, k, v):
+        return self.function(k, v, self.fields)
+
+    def __str__(self):
+        return '%s(%s)' % (self.function.func_name,
+            ', '.join("'%s'" % f for f in self.fields))
 
     def __repr__(self):
-        return "<RoleFilter {}>".format(unicode(self))
-
-    def __call__(self, k, v):
-        if self.whitelist:
-            return k not in self.whitelist
-        else:
-            return k in self.blacklist
-        return False
-
-    def __add__(self, other_role_filter):
-        if not isinstance(other_role_filter, RoleFilter):
-            raise ValueError("Invalid type {} for operator '+'. Must be a subclass of RoleFilter".format(type(other_role_filter)))
-
-        if (self.whitelist and other_role_filter.blacklist) or (self.blacklist and other_role_filter.whitelist):
-            raise ValueError("Can't combine whitelists and blacklists for the same role.")
-
-        if self.whitelist:
-            return RoleFilter(whitelist=dict(self.whitelist, **other_role_filter.whitelist))
-        else:
-            return RoleFilter(blacklist=dict(self.blacklist, **other_role_filter.blacklist))
+        return '<Role %s>' % str(self)
 
 
 def wholelist(*field_list):
     """Returns a function that evicts nothing. Exists mainly to be an explicit
     allowance of all fields instead of a using an empty blacklist.
     """
-    return RoleFilter()
+    def wholelist(k, v, seq):
+        return False
+    return Role(wholelist, field_list)
 
 
 def whitelist(*field_list):
@@ -66,7 +72,12 @@ def whitelist(*field_list):
 
     A whitelist is a list of fields explicitly named that are allowed.
     """
-    return RoleFilter(whitelist=dict((f, True) for f in field_list))
+    def whitelist(k, v, seq):
+        if seq is not None and len(seq) > 0:
+            return k not in seq
+        # Default to rejecting the value
+        return True
+    return Role(whitelist, field_list)
 
 
 def blacklist(*field_list):
@@ -75,7 +86,12 @@ def blacklist(*field_list):
 
     A blacklist is a list of fields explicitly named that are not allowed.
     """
-    return RoleFilter(blacklist=dict((f, True) for f in field_list))
+    def blacklist(k, v, seq):
+        if seq is not None and len(seq) > 0:
+            return k in seq
+        # Default to not rejecting the value
+        return False
+    return Role(blacklist, field_list)
 
 
 def serialize(instance, role, raise_error_on_role=True):
