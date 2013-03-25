@@ -36,6 +36,10 @@ class Role(collections.Set):
     def _from_iterable(self, iterable):
         return Role(self.function, iterable)
 
+    def __eq__(self, other):
+        return (self.function.func_name == other.function.func_name and
+            self.fields == other.fields)
+
     # edit role fields
     def __add__(self, other):
         fields = self.fields.union(other)
