@@ -29,10 +29,23 @@ class TestIPv4Type(unittest.TestCase):
         fun = lambda: self.Test(ip='1.1.1111.1').validate()
         self.assertNotEqual(ValidationError, fun)
 
+class TestDefaults(unittest.TestCase):
+    class ExampleModel(Model):
+        name = StringType(default='test type')
+        on = BooleanType(default=False)
+
+    def test_truthy_type(self):
+        mod = self.ExampleModel()
+        self.assertEquals('test type', mod.name)
+
+    def test_falsey_type(self):
+        mod = self.ExampleModel()
+        self.assertEquals(False, mod.on)
 
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestIPv4Type, 'test'))
+    suite.addTest(unittest.makeSuite(TestDefaults, 'test'))
     return suite
 
 
