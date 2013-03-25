@@ -60,14 +60,31 @@ class Role(collections.Set):
     def __repr__(self):
         return '<Role %s>' % str(self)
 
+    # static filter functions
+    @staticmethod
+    def wholelist(k, v, seq):
+        return False
+
+    @staticmethod
+    def whitelist(k, v, seq):
+        if seq is not None and len(seq) > 0:
+            return k not in seq
+        # Default to rejecting the value
+        return True
+
+    @staticmethod
+    def blacklist(k, v, seq):
+        if seq is not None and len(seq) > 0:
+            return k in seq
+        # Default to not rejecting the value
+        return False
+
 
 def wholelist(*field_list):
     """Returns a function that evicts nothing. Exists mainly to be an explicit
     allowance of all fields instead of a using an empty blacklist.
     """
-    def wholelist(k, v, seq):
-        return False
-    return Role(wholelist, field_list)
+    return Role(Role.wholelist, field_list)
 
 
 def whitelist(*field_list):
@@ -76,12 +93,7 @@ def whitelist(*field_list):
 
     A whitelist is a list of fields explicitly named that are allowed.
     """
-    def whitelist(k, v, seq):
-        if seq is not None and len(seq) > 0:
-            return k not in seq
-        # Default to rejecting the value
-        return True
-    return Role(whitelist, field_list)
+    return Role(Role.whitelist, field_list)
 
 
 def blacklist(*field_list):
@@ -90,12 +102,7 @@ def blacklist(*field_list):
 
     A blacklist is a list of fields explicitly named that are not allowed.
     """
-    def blacklist(k, v, seq):
-        if seq is not None and len(seq) > 0:
-            return k in seq
-        # Default to not rejecting the value
-        return False
-    return Role(blacklist, field_list)
+    return Role(Role.blacklist, field_list)
 
 
 def serialize(instance, role, raise_error_on_role=True):
