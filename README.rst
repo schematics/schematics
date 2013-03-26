@@ -7,8 +7,8 @@ There are big API changes in this fork. However it **is** documented and tested.
 Join #schematics on Freenode if you are interested in this project. This fork is
 in the process of being merged into the original.
 
-.. image:: https://secure.travis-ci.org/jokull/schematics.png?branch=master
-  :target: https://secure.travis-ci.org/jokull/schematics
+.. image:: https://secure.travis-ci.org/plain-vanilla-games/schematics.png?branch=master
+  :target: https://secure.travis-ci.org/plain-vanilla-games/schematics
   :alt: Build Status
 
 Show me the Code!
