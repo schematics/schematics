@@ -24,6 +24,9 @@ class Role(collections.Set):
         self.function = function
         self.fields = set(fields)
 
+    def _from_iterable(self, iterable):
+        return Role(self.function, iterable)
+
     def __contains__(self, value):
         return value in self.fields
 
@@ -33,12 +36,16 @@ class Role(collections.Set):
     def __len__(self):
         return len(self.fields)
 
-    def _from_iterable(self, iterable):
-        return Role(self.function, iterable)
-
     def __eq__(self, other):
         return (self.function.func_name == other.function.func_name and
             self.fields == other.fields)
+
+    def __str__(self):
+        return '%s(%s)' % (self.function.func_name,
+            ', '.join("'%s'" % f for f in self.fields))
+
+    def __repr__(self):
+        return '<Role %s>' % str(self)
 
     # edit role fields
     def __add__(self, other):
@@ -52,13 +59,6 @@ class Role(collections.Set):
     # apply role to field
     def __call__(self, k, v):
         return self.function(k, v, self.fields)
-
-    def __str__(self):
-        return '%s(%s)' % (self.function.func_name,
-            ', '.join("'%s'" % f for f in self.fields))
-
-    def __repr__(self):
-        return '<Role %s>' % str(self)
 
     # static filter functions
     @staticmethod
