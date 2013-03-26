@@ -39,7 +39,7 @@ Installation
 This is currently an unstable, unofficial fork of Schematics. To install this
 fork::
 
-  $ pip install git+git@github.com:jokull/schematics.git#egg=schematics
+  $ pip install git+git@github.com:plain-vanilla-games/schematics.git#egg=schematics
 
 Python 2.7 is supported. 2.6 support is close but test suite needs to be
 updated.
