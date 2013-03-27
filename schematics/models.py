@@ -297,8 +297,7 @@ class Model(object):
 
     def __getitem__(self, name):
         try:
-            if name in self:
-                return getattr(self, name)
+            return getattr(self, name)
         except AttributeError:
             pass
         raise KeyError(name)
@@ -329,9 +328,10 @@ class Model(object):
         return not self == other
 
     def get(self, key, default=None):
-        if key in self:
+        try:
             return self[key]
-        return default
+        except KeyError:
+            return default
 
     def __repr__(self):
         try:

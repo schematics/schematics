@@ -90,6 +90,8 @@ class TestDefaultValues(unittest.TestCase):
         q = Question(dict(question_id=1))
 
         self.assertEqual(q.type, "text")
+        self.assertTrue("type" in q)
+        self.assertEqual(q.get("type"), "text")
 
     def test_default_value_when_embedded_model(self):
         class Question(Model):
