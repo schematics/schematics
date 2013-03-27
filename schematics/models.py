@@ -270,6 +270,7 @@ class Model(object):
 
         # Set internal data and touch the TypeDescriptors by setattr
         self._data.update(**data)
+        data.update(**self._data)
 
         for field_name, field in self._fields.iteritems():
             default = field.default
