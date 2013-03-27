@@ -110,6 +110,16 @@ class TestDefaultValues(unittest.TestCase):
         self.assertEqual(pack.question.question_id, "1")
         self.assertEqual(pack.question.type, "text")
 
+    def test_default_value_when_updating_model(self):
+        class Question(Model):
+            question_id = StringType(required=True)
+
+            type = StringType(default="text")
+        q = Question(dict(question_id=1, type="not default"))
+        self.assertEqual(q.type, "not default")
+        q.validate(dict(question_id=2))
+        self.assertEqual(q.type, "not default")
+
 
 class TestOptions(unittest.TestCase):
     """This test collection covers the `ModelOptions` class and related
