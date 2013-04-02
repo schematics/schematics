@@ -3,10 +3,12 @@
 
 from setuptools import setup
 
+from schematics import __version__
+
 setup(
     name='schematics',
     license='BSD',
-    version='0.2-alpha',
+    version=__version__,
     description='Structured Data for Humans',
     author=u'James Dennis, Jökull Sólberg, Jóhann Þorvaldur Bergþórsson',
     author_email='jdennis@gmail.com, jokull@plainvanillagames.com, johann@plainvanillagames.com',

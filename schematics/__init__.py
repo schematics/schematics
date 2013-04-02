@@ -1,4 +1,4 @@
 
-version_info = ('0', '0', 'alpha')
+version_info = ('0', '1', 'alpha')
 
-__version__ = '0.0-alpha'
+__version__ = '{}.{}-{}'.format(*version_info)
