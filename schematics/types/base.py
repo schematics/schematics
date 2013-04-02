@@ -219,7 +219,7 @@ class EmailType(StringType):
 
     def convert(self, value):
         if not EmailType.EMAIL_REGEX.match(value):
-            raise ValidationError('Invalid email address')
+            raise StopValidation('Invalid email address')
         return value
 
 

@@ -2,8 +2,10 @@
 import unittest
 import datetime
 
-from schematics.types import StringType, DateTimeType, DateType, IntType
-from schematics.exceptions import ValidationError
+from schematics.types import (
+    StringType, DateTimeType, DateType, IntType, EmailType
+)
+from schematics.exceptions import ValidationError, StopValidation
 
 
 class TestType(unittest.TestCase):
@@ -59,3 +61,10 @@ class TestType(unittest.TestCase):
         with self.assertRaises(ValidationError):
             IntType()('a')
         self.assertEqual(IntType()(1), 1)
+
+    def test_email_type_with_invalid_email(self):
+        with self.assertRaises(StopValidation):
+            EmailType().convert(u'sdfg\U0001f636\U0001f46e')
+
+        with self.assertRaises(ValidationError):
+            EmailType()(u'sdfg\U0001f636\U0001f46e')
