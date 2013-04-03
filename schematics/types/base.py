@@ -21,6 +21,26 @@ _last_position_hint = -1
 _next_position_hint = itertools.count().next
 
 
+class TypeMeta(type):
+    """Meta class for BaseType. Merges `MESSAGES` dict.
+    """
+
+    def __new__(cls, name, bases, attrs):
+
+        messages = {}
+
+        for base in reversed(bases):
+            if hasattr(base, 'MESSAGES'):
+                messages.update(base.MESSAGES)
+
+        if 'MESSAGES' in attrs:
+            messages.update(attrs['MESSAGES'])
+
+        attrs['MESSAGES'] = messages
+
+        return type.__new__(cls, name, bases, attrs)
+
+
 class BaseType(object):
     """A base class for Types in a Schematics model. Instances of this
     class may be added to subclasses of ``Model`` to define a model schema.
@@ -46,11 +66,25 @@ class BaseType(object):
     :param serialize_when_none:
         Dictates if the field should appear in the serialized data even if the
         value is None. Default: True
+    :param messages:
+        Override the error messages with a dict. You can also do this by
+        subclassing the Type and defining a `MESSAGES` dict attribute on the
+        class. A metaclass will merge all the `MESSAGES` and override the
+        resulting dict with instance level `messages` and assign to
+        `self.messages`.
 
     """
 
+    __metaclass__ = TypeMeta
+
+    MESSAGES = {
+        'required': u"This field is required.",
+        'choices': u"Value must be one of {}.",
+    }
+
     def __init__(self, required=False, default=None, serialized_name=None,
-                 choices=None, validators=None, description=None, serialize_when_none=True):
+                 choices=None, validators=None, description=None,
+                 serialize_when_none=True, messages=None):
 
         self.required = required
         self.default = default
@@ -59,6 +93,7 @@ class BaseType(object):
         self.validators = validators or []
         self.description = description
         self.serialize_when_none = serialize_when_none
+        self.messages = dict(self.MESSAGES, **(messages or {}))
         self._position_hint = _next_position_hint()  # For ordering of fields
 
     def __call__(self, value):
@@ -124,14 +159,15 @@ class BaseType(object):
 
     def required_validation(self, value):
         if self.required and value is None:
-            raise StopValidation(u'This field is required.')
+            raise StopValidation(self.messages['required'])
         return value
 
     def choices_validation(self, value):
         # `choices`
         if self.choices is not None:
             if value not in self.choices:
-                raise ValidationError(u'Value must be one of %s.' % unicode(self.choices))
+                raise ValidationError(self.messages['choices']
+                    .format(unicode(self.choices)))
         return value
 
     def _bind(self, model, memo):
@@ -175,6 +211,13 @@ class StringType(BaseType):
 
     allow_casts = (int, str)
 
+    MESSAGES = {
+        'convert': u"Illegal data value",
+        'max_length': u"String value is too long",
+        'min_length': u"String value is too short",
+        'regex': u"String value did not match validation regex",
+    }
+
     def __init__(self, regex=None, max_length=None, min_length=1, **kwargs):
         self.regex = re.compile(regex) if regex else None
         super(StringType, self).__init__(**kwargs)
@@ -188,16 +231,16 @@ class StringType(BaseType):
                     value = str(value)
                 value = unicode(value, 'utf-8')
             else:
-                raise ValidationError(u'Illegal data value')
+                raise ValidationError(self.messages['convert'])
 
         if self.max_length is not None and len(value) > self.max_length:
-            raise ValidationError(u'String value is too long')
+            raise ValidationError(self.messages['max_length'])
 
         if self.min_length is not None and len(value) < self.min_length:
-            raise ValidationError(u'String value is too short')
+            raise ValidationError(self.messages['min_length'])
 
         if self.regex is not None and self.regex.match(value) is None:
-            raise ValidationError(u'String value did not match validation regex')
+            raise ValidationError(self.messages['regex'])
 
         return value
 
@@ -205,6 +248,10 @@ class StringType(BaseType):
 class EmailType(StringType):
     """A field that validates input as an E-Mail-Address.
     """
+
+    MESSAGES = {
+        'email': u"Not a well formed email address."
+    }
 
     EMAIL_REGEX = re.compile(
         # dot-atom
@@ -219,13 +266,19 @@ class EmailType(StringType):
 
     def convert(self, value):
         if not EmailType.EMAIL_REGEX.match(value):
-            raise StopValidation('Invalid email address')
+            raise StopValidation(self.messages['email'])
         return value
 
 
 class NumberType(BaseType):
     """A number field.
     """
+
+    MESSAGES = {
+        'number_coerce': u"Not {}",
+        'number_min': u"{} value should be greater than {}",
+        'number_max': u"{} value should be less than {}",
+    }
 
     def __init__(self, number_class, number_type,
                  min_value=None, max_value=None, **kwargs):
@@ -239,15 +292,16 @@ class NumberType(BaseType):
         try:
             value = self.number_class(value)
         except ValueError, e:
-            raise ValidationError('Not %s' % self.number_type)
+            raise ValidationError(self.messages['number_coerce']
+                .format(self.number_type))
 
         if self.min_value is not None and value < self.min_value:
-            raise ValidationError('%s value below min_value: %s' % (
-                self.number_type, self.min_value))
+            raise ValidationError(self.messages['number_min']
+                .format(self.number_type, self.min_value))
 
         if self.max_value is not None and value > self.max_value:
-            raise ValidationError('%s value above max_value: %s' % (
-                self.number_type, self.max_value))
+            raise ValidationError(self.messages['number_max']
+                .format(self.number_type, self.max_value))
 
         return value
 
@@ -297,48 +351,50 @@ class DecimalType(BaseType):
                 value = str(value)
             try:
                 value = decimal.Decimal(value)
-            except Exception:
-                raise ValidationError('Could not convert to decimal')
+            except (TypeError, decimal.InvalidOperation):
+                raise ValidationError(self.messages['number_coerce']
+                    .format(self.number_type))
 
         if self.min_value is not None and value < self.min_value:
-            raise ValidationError('Decimal value below min_value: %s' % self.min_value)
+            raise ValidationError(self.messages['number_min']
+                .format(self.number_type, self.min_value))
 
         if self.max_value is not None and value > self.max_value:
-            raise ValidationError('Decimal value above max_value: %s' % self.max_value)
+            raise ValidationError(self.messages['number_max']
+                .format(self.number_type, self.max_value))
 
         return value
 
 
-class MD5Type(BaseType):
+class HashType(BaseType):
+
+    MESSAGES = {
+        'hash_length': u"Hash value is wrong length.",
+        'hash_hex': u"Hash value is not hexadecimal.",
+    }
+
+    def convert(self, value):
+        if len(value) != self.LENGTH:
+            raise ValidationError(self.messages['hash_length'])
+        try:
+            value = int(value, 16)
+        except ValueError:
+            raise ValidationError(self.messages['hash_hex'])
+        return value
+
+
+class MD5Type(HashType):
     """A field that validates input as resembling an MD5 hash.
     """
-    hash_length = 32
 
-    def convert(self, value):
-        if len(value) != MD5Type.hash_length:
-            raise ValidationError('MD5 value is wrong length')
-        try:
-            value = int(value, 16)
-        except:
-            raise ValidationError('MD5 value is not hex')
-
-        return value
+    LENGTH = 32
 
 
-class SHA1Type(BaseType):
+class SHA1Type(HashType):
     """A field that validates input as resembling an SHA1 hash.
     """
-    hash_length = 40
 
-    def convert(self, value):
-        if len(value) != SHA1Type.hash_length:
-            raise ValidationError('SHA1 value is wrong length')
-        try:
-            value = int(value, 16)
-        except:
-            raise ValidationError('SHA1 value is not hex')
-
-        return value
+    LENGTH = 40
 
 
 class BooleanType(BaseType):
@@ -350,17 +406,17 @@ class BooleanType(BaseType):
 
     """
 
-    TRUE = ('True', 'true', '1')
-    FALSE = ('False', 'false', '0')
+    TRUE_VALUES = ('True', 'true', '1')
+    FALSE_VALUES = ('False', 'false', '0')
 
     def convert(self, value):
         if isinstance(value, basestring):
-            if value in BooleanType.TRUE:
+            if value in self.TRUE_VALUES:
                 value = True
-            elif value in BooleanType.FALSE:
+            elif value in self.FALSE_VALUES:
                 value = False
-            else:
-                raise ValueError(u'Invalid boolean value')
+        if not isinstance(value, bool):
+            raise ValueError(u'Must be either true or false.')
         return value
 
 
@@ -369,6 +425,9 @@ class DateType(BaseType):
     """
 
     SERIALIZED_FORMAT = '%Y-%m-%d'
+    MESSAGES = {
+        'parse': u'Could not parse {}. Should be ISO8601 (YYYY-MM-DD).',
+    }
 
     def __init__(self, **kwargs):
         self.serialized_format = self.SERIALIZED_FORMAT
@@ -381,7 +440,7 @@ class DateType(BaseType):
         try:
             return datetime.datetime.strptime(value, self.serialized_format).date()
         except (ValueError, TypeError):
-            raise ValidationError(u'Could not parse {}. Should be ISO8601.'.format(value))
+            raise ValidationError(self.messages['parse'].format(value))
 
     def to_primitive(self, value):
         return value.strftime(self.serialized_format)
@@ -400,6 +459,10 @@ class DateTimeType(BaseType):
 
     DEFAULT_FORMATS = ('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S')
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
+
+    MESSAGES = {
+        'parse': u'Could not parse {}. Should be ISO8601.',
+    }
 
     def __init__(self, formats=None, serialized_format=None, **kwargs):
         """
@@ -424,7 +487,7 @@ class DateTimeType(BaseType):
                 return datetime.datetime.strptime(value, format)
             except (ValueError, TypeError):
                 continue
-        raise ValidationError(u'Could not parse {}. Should be ISO8601.'.format(value))
+        raise ValidationError(self.messages['parse'].format(value))
 
     def to_primitive(self, value):
         if callable(self.serialized_format):
@@ -440,16 +503,16 @@ class GeoPointType(BaseType):
         """Make sure that a geo-value is of type (x, y)
         """
         if not len(value) == 2:
-            raise ValidationError('Value must be a two-dimensional point')
+            raise ValueError('Value must be a two-dimensional point')
         if isinstance(value, dict):
             for v in value.values():
                 if not isinstance(v, (float, int)):
-                    raise ValidationError('Both values in point must be float or int')
+                    raise ValueError('Both values in point must be float or int')
         elif isinstance(value, (list, tuple)):
-            if (not isinstance(value[0], (float, int)) and
-                not isinstance(value[1], (float, int))):
-                raise ValidationError('Both values in point must be float or int')
+            if (not isinstance(value[0], (float, int)) or
+                    not isinstance(value[1], (float, int))):
+                raise ValueError('Both values in point must be float or int')
         else:
-            raise ValidationError('GeoPointType can only accept tuples, lists, or dicts')
+            raise ValueError('GeoPointType can only accept tuples, lists, or dicts')
 
         return value

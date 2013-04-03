@@ -143,6 +143,25 @@ class TestCustomValidators(unittest.TestCase):
 
         self.assertIn(future_error_msg, exception.messages['publish'])
 
+    def test_messages_subclassing(self):
+        class MyStringType(StringType):
+            MESSAGES = {'required': u'Never forget'}
+
+        class TestDoc(Model):
+            title = MyStringType(required=True)
+
+        with self.assertRaises(ValidationError) as context:
+            TestDoc({'title': None})
+        self.assertIn(u'Never forget', context.exception.messages['title'])
+
+    def test_messages_instance_level(self):
+        class TestDoc(Model):
+            title = StringType(required=True, messages={'required': u'Never forget'})
+
+        with self.assertRaises(ValidationError) as context:
+            TestDoc({'title': None})
+        self.assertIn(u'Never forget', context.exception.messages['title'])
+
 
 class TestModelLevelValidators(unittest.TestCase):
 
