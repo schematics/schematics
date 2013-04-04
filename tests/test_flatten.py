@@ -2,7 +2,7 @@
 import unittest
 from collections import OrderedDict
 
-from schematics.serialize import expand
+from schematics.serialize import expand, whitelist
 from schematics.models import Model
 from schematics.types.serializable import serializable
 from schematics.types import StringType, IntType
@@ -319,6 +319,33 @@ class FlattenTests(unittest.TestCase):
 
         player_from_flat = Player.from_flat(flat)
         self.assertEqual(player, player_from_flat)
+
+    def test_flatten_with_whitelist(self):
+        class TopicStats(Model):
+            total_points = IntType()
+            total_wins = IntType()
+            total_losses = IntType()
+
+            class Options:
+                roles = {
+                    "public": whitelist("total_wins", "total_losses")
+                }
+
+            @serializable
+            def games_played(self):
+                return self.total_wins + self.total_losses
+
+        topic_stats = TopicStats(dict(
+            total_points=2,
+            total_wins=3,
+            total_losses=4
+        ))
+
+        flat = topic_stats.flatten(role="public")
+        self.assertEqual(flat, {
+            "total_wins": 3,
+            "total_losses": 4
+        })
 
     def test_flatten_dicts_coercers_keys_to_strings(self):
 

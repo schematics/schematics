@@ -95,7 +95,7 @@ class ModelType(MultiType):
 
         return primitive_data
 
-    def filter_by_role(self, model_instance, primitive_data, role, raise_error_on_role=False):
+    def filter_by_role(self, model_instance, primitive_data, role, raise_error_on_role=False, include_serializables=True):
         if model_instance is None:
             return primitive_data
 
@@ -106,7 +106,7 @@ class ModelType(MultiType):
             raise ValueError(u'%s Model has no role "%s"' % (
                 self.model_class.__name__, role))
 
-        for field_name, field, value in model_instance:
+        for field_name, field, value in model_instance.iter(include_serializables):
             serialized_name = field.serialized_name or field_name
 
             if gottago(field_name, value):
