@@ -27,7 +27,9 @@ def serializable(*args, **kwargs):
     def wrapper(f):
         serialized_type = kwargs.pop("type", BaseType())
         serialized_name = kwargs.pop("serialized_name", None)
-        return Serializable(f, type=serialized_type, serialized_name=serialized_name)
+        serialize_when_none = kwargs.pop("serialize_when_none", True)
+        return Serializable(f, type=serialized_type, serialized_name=serialized_name,
+            serialize_when_none=serialize_when_none)
 
     if len(args) == 1 and callable(args[0]):
         # No arguments, this is the decorator
@@ -39,10 +41,11 @@ def serializable(*args, **kwargs):
 
 class Serializable(object):
 
-    def __init__(self, f, type=None, serialized_name=None):
+    def __init__(self, f, type=None, serialized_name=None, serialize_when_none=True):
         self.f = f
         self.type = type
         self.serialized_name = serialized_name
+        self.serialize_when_none = serialize_when_none
 
     def __get__(self, object, owner):
         return self.f(object)
