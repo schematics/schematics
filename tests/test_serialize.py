@@ -124,6 +124,25 @@ class TestSerializable(unittest.TestCase):
         d = player.serialize()
         self.assertEqual(d, {"total_points": 0, "xp_level": None})
 
+    def test_serializable_with_model_hide_None(self):
+        class ExperienceLevel(Model):
+            level = IntType()
+            title = StringType()
+
+        class Player(Model):
+            total_points = IntType()
+
+            @serializable(type=ModelType(ExperienceLevel), serialize_when_none=False)
+            def xp_level(self):
+                return None if not self.total_points else ExperienceLevel()
+
+        player = Player({"total_points": 0})
+
+        self.assertIsNone(player.xp_level)
+
+        d = player.serialize()
+        self.assertEqual(d, {"total_points": 0})
+
     def test_serializable_with_embedded_models_and_list(self):
         class Question(Model):
             id = LongType()
