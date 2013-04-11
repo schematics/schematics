@@ -551,3 +551,54 @@ class TestRoles(unittest.TestCase):
                 },
             ]
         })
+
+    def test_role_set_operations(self):
+
+        protected = whitelist('email', 'password')
+        all_fields = whitelist('id', 'name') + protected
+
+        def count(n):
+            while True:
+                yield n
+                n += 1
+
+        class User(Model):
+            id = IntType(default=count(42).next)
+            name = StringType()
+            email = StringType()
+            password = StringType()
+
+            class Options:
+                roles = {
+                    'create': all_fields - ['id'],
+                    'public': all_fields - ['password'],
+                    'nospam': blacklist('password') + blacklist('email'),
+                }
+
+        data = {
+            'id': 'NaN',
+            'name': 'Arthur',
+            'email': 'adent@hitchhiker.gal',
+            'password': 'dolphins',
+        }
+
+        user = User({
+            k: v for k, v in data.iteritems()
+            if k in User._options.roles['create']  # filter by 'create' role
+        })
+
+        d = user.serialize(role='public')
+
+        self.assertEqual(d, {
+            'id': 42,
+            'name': 'Arthur',
+            'email': 'adent@hitchhiker.gal',
+        })
+
+        d = user.serialize(role='nospam')
+
+        self.assertEqual(d, {
+            'id': 42,
+            'name': 'Arthur',
+        })
+

@@ -16,8 +16,9 @@ class Role(collections.Set):
     The Role has a set of names and one function that the specific field is
     filtered with.
 
-    A Role can be operated on as a Set object representing its fields. You
-    shouldn't combine roles that have different functions, to avoid confusion.
+    A Role can be operated on as a Set object representing its fields. It's
+    important to note that when combining multiple roles using these operations
+    only the function of the first role is kept on the resulting role.
 
     """
     def __init__(self, function, fields):
