@@ -84,7 +84,7 @@ class BaseType(object):
 
     def __init__(self, required=False, default=None, serialized_name=None,
                  choices=None, validators=None, description=None,
-                 serialize_when_none=True, messages=None):
+                 serialize_when_none=None, messages=None):
 
         self.required = required
         self.default = default
