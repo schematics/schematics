@@ -329,6 +329,54 @@ class TestSerializable(unittest.TestCase):
             "resources": {"A": "B"}
         })
 
+    def test_set_serialize_when_none_on_whole_model(self):
+        class Question(Model):
+            id = StringType(required=True)
+            question = StringType()
+            resources = DictType(StringType)
+
+            class Options:
+                serialize_when_none = False
+
+        q = Question(dict(id=1))
+
+        d = q.serialize()
+        self.assertEqual(d, {"id": "1"})
+
+    def test_possible_to_override_model_wide_serialize_when_none(self):
+        class Question(Model):
+            id = StringType(required=True)
+            question = StringType()
+            resources = DictType(StringType)
+
+            class Options:
+                serialize_when_none = False
+
+        class StrictQuestion(Question):
+            strictness = IntType()
+
+            class Options:
+                serialize_when_none = True
+
+        q = StrictQuestion(dict(id=1))
+
+        d = q.serialize()
+        self.assertEqual(d, {"id": "1", "question": None, "resources": None, "strictness": None})
+
+    def test_possible_to_override_model_wide_settings_per_field(self):
+        class Question(Model):
+            id = StringType(required=True)
+            question = StringType()
+            resources = DictType(StringType, serialize_when_none=True)
+
+            class Options:
+                serialize_when_none = False
+
+        q = Question(dict(id=1))
+
+        d = q.serialize()
+        self.assertEqual(d, {"id": "1", "resources": None})
+
 
 class TestRoles(unittest.TestCase):
 

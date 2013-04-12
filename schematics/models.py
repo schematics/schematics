@@ -41,11 +41,18 @@ class ModelOptions(object):
     instance of a model.
 
     It also creates errors in cases where unknown options parameters are found.
+
+    :param roles:
+        Allows to specify certain subsets of the model's fields for
+        serialization.
+    :param serialize_when_none:
+        When ``False``, serialization skips fields that are None. Default: ``True``
     """
-    def __init__(self, klass, namespace=None, roles=None):
+    def __init__(self, klass, namespace=None, roles=None, serialize_when_none=True):
         self.klass = klass
         self.namespace = namespace
         self.roles = roles or {}
+        self.serialize_when_none = serialize_when_none
 
 
 class ModelMeta(type):
