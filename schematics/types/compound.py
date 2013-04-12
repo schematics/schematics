@@ -233,9 +233,7 @@ class ModelType(BaseType):
         super(ModelType, self).__init__(**kwargs)
 
     def __set__(self, instance, value):
-        if value is None:
-            instance._data[self.field_name] = None
-        elif not isinstance(value, self.model_type):
+        if value != None and not isinstance(value, self.model_type):
             value = self.model_type(**value)
         instance._data[self.field_name] = value
 
