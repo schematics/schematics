@@ -108,11 +108,13 @@ class ModelType(MultiType):
 
         for field_name, field, value in model_instance.iter(include_serializables):
             serialized_name = field.serialized_name or field_name
+            if not serialized_name in primitive_data:
+                continue
 
             if gottago(field_name, value):
                 primitive_data.pop(serialized_name)
             elif isinstance(field, MultiType):
-                primitive_value = primitive_data.get(serialized_name, None)
+                primitive_value = primitive_data.get(serialized_name)
                 if primitive_value:
                     field.filter_by_role(
                         value,

@@ -469,6 +469,23 @@ class TestRoles(unittest.TestCase):
             }
         })
 
+    def test_doesnt_fail_serialize_when_none_on_whole_model_with_roles(self):
+        class Question(Model):
+            id = StringType(required=True)
+            question = StringType()
+            resources = DictType(StringType)
+
+            class Options:
+                serialize_when_none = False
+                roles = {
+                    "public": whitelist("id"),
+                }
+
+        q = Question({"id": "1"})
+
+        d = q.serialize(role="public")
+        self.assertEqual(d, {"id": "1"})
+
     def test_uses_roles_on_embedded_models_if_found(self):
         class ExperienceLevel(Model):
             level = IntType()
