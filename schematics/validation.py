@@ -23,7 +23,7 @@ def validate(cls, values, partial=False, strict=False):
 
     ### Containers for results
     new_data = {}
-    errors = []
+    errors = {}
 
     if partial:
         needs_check = lambda k, v: k in values
@@ -40,21 +40,22 @@ def validate(cls, values, partial=False, strict=False):
                 field_value = None
 
             ### TODO - this will be the new validation system soon
-            if _is_empty(field_value):
-                if field.required:
-                    error_msg = "Required field (%s) not found" % field_name
-                    errors.append(error_msg)
+            if _is_empty(field_value) and field.required:
+                errors[field_name] = [u"This field is required"]
                 continue
 
             ### Validate field value via call to BaseType._validate
-            try:
-                field._validate(field_value)
-                ### TODO clean this
-                result = field.for_python(field_value)
-                new_data[field_name] = result
-            except ValidationError, ve:
-                errors.append(ve.messages)
-
+            elif not _is_empty(field_value):
+                try:
+                    ### TODO incorrectly handling None ModelType values
+                    field._validate(field_value)
+                    ### TODO clean this
+                    result = field.for_python(field_value)
+                    new_data[field_name] = result
+                except ValidationError, ve:
+                    errors[field_name] = ve.messages
+                    raise ve
+    
     ### Report rogue fields as errors if `strict`
     if strict:
         class_fields = cls._fields.keys()
@@ -63,11 +64,10 @@ def validate(cls, values, partial=False, strict=False):
             for field_name in rogues_found:
                 error_msg = 'Unknown field found'
                 field_value = values[field_name]
-                errors.append(error_msg)
+                errors[field_name] = error_msg
 
     ### Return on if errors were found
     if len(errors) > 0:
-        #error_msg = 'Model validation errors'
         raise ValidationError(errors)
 
     return new_data
