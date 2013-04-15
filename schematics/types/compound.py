@@ -121,6 +121,10 @@ class ModelType(MultiType):
                         primitive_value,
                         role
                     )
+                if not primitive_value:
+                    if not (field.serialize_when_none or
+                        (field.serialize_when_none is None and self.model_class._options.serialize_when_none)):
+                        primitive_data.pop(serialized_name)
 
         return primitive_data
 
@@ -206,6 +210,10 @@ class ListType(MultiType):
         if isinstance(self.field, MultiType):
             for clean_value, primitive_value in zip(clean_list, primitive_list):
                 self.field.filter_by_role(clean_value, primitive_value, role)
+                if not primitive_value:
+                    if not (self.field.serialize_when_none or
+                        (self.field.serialize_when_none is None and self.model_class._options.serialize_when_none)):
+                        primitive_list.remove(primitive_value)
 
         return primitive_list
 
@@ -228,6 +236,10 @@ class DictType(MultiType):
         rv = BaseType._bind(self, model, memo)
         rv.field = _bind(self.field, model, memo)
         return rv
+
+    @property
+    def model_class(self):
+        return self.field.model_class
 
     def convert(self, value):
         if value == EMPTY_DICT:
@@ -253,5 +265,10 @@ class DictType(MultiType):
                 primitive_value = primitive_data[unicode(key)]
 
                 self.field.filter_by_role(clean_value, primitive_value, role)
+
+                if not primitive_value:
+                    if not (self.field.serialize_when_none or
+                        (self.field.serialize_when_none is None and self.model_class._options.serialize_when_none)):
+                        primitive_data.pop(unicode(key))
 
         return primitive_data
