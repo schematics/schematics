@@ -247,6 +247,25 @@ class TestModelInterface(unittest.TestCase):
         with self.assertRaises(ValidationError):
             User({'name': u'Jimi Hendrix'}).validate()
 
+    def test_raises_validation_error_on_init_with_partial_submodel(self):
+        class User(Model):
+            name = StringType(required=True)
+            age = IntType(required=True)
+
+        class Card(Model):
+            user = ModelType(User)
+
+        u = User({'name': 'Arthur'}, partial=True)
+
+        with self.assertRaises(ValidationError):
+            Card({'user': u}, partial=False)
+
+        with self.assertRaises(ValidationError):
+            Card().user = u
+
+        with self.assertRaises(ValidationError):
+            Card({'user': {'name': 'Arthur'}}).validate()
+
     def test_model_inheritance(self):
         class Parent(Model):
             name = StringType(required=True)
