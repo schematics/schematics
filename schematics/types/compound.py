@@ -71,6 +71,7 @@ class ModelType(MultiType):
             if value.errors:
                 raise ValidationError(u'Please supply a clean model instance.')
             else:
+                value.validate()
                 return value
 
         if not isinstance(value, dict):
