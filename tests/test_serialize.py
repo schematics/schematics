@@ -377,6 +377,35 @@ class TestSerializable(unittest.TestCase):
         d = q.serialize()
         self.assertEqual(d, {"id": "1", "resources": None})
 
+    def test_complex_types_hiding_after_apply_role_leaves_it_empty(self):
+        class QuestionResource(Model):
+            name = StringType()
+            url = StringType()
+
+            class Options:
+                serialize_when_none = False
+                roles = {'public': whitelist('name')}
+
+        class Question(Model):
+            question_id = StringType(required=True)
+            resources = DictType(ListType(ModelType(QuestionResource)))
+
+            class Options:
+                serialize_when_none = False
+                roles = {'public': whitelist('question_id', 'resources')}
+
+        q = Question(dict(
+            question_id="1",
+            resources={
+                "pictures": [{
+                    "url": "http://www.mbl.is"
+                }]
+            }
+        ))
+
+        d = q.serialize('public')
+        self.assertEqual(d, {'question_id': '1'})
+
 
 class TestRoles(unittest.TestCase):
 
