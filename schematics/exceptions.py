@@ -29,6 +29,10 @@ class ValidationError(ValueError):
         return clean_messages
 
 
+class ModelValidationError(ValidationError):
+    pass
+
+
 class StopValidation(ValidationError):
     """Exception raised when no more validation need occur."""
     pass

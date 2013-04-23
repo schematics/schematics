@@ -1,5 +1,4 @@
 
-from schematics.types.bind import _bind
 from schematics.types.base import BaseType
 
 
@@ -52,9 +51,3 @@ class Serializable(object):
 
     def to_primitive(self, value):
         return self.type.to_primitive(value)
-
-    def _bind(self, model, memo):
-        rv = object.__new__(self.__class__)
-        rv.__dict__.update(self.__dict__)
-        rv.type = _bind(self.type, model, memo)
-        return rv

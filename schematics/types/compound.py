@@ -1,6 +1,6 @@
 import itertools
 
-from ..exceptions import ValidationError, StopValidation
+from ..exceptions import ValidationError, ModelValidationError, StopValidation
 from .base import BaseType
 
 
@@ -14,26 +14,12 @@ class MultiType(BaseType):
 
         errors = {}
 
-        def aggregate_from_exception_errors(e):
-            if e.args and e.args[0]:
-                if not isinstance(e.args[0], dict):
-                    # We have a field level error, not for the instances
-                    raise e
-                errors.update(e.args[0])
-
-        validator_chain = itertools.chain(
-            [
-                self.required_validation,
-                self.convert,
-            ],
-            self.validators or []
-        )
-
-        for validator in validator_chain:
+        for validator in self.validators:
             try:
                 value = validator(value)
-            except ValidationError, e:
-                aggregate_from_exception_errors(e)
+            except ModelValidationError, e:
+                errors.update(e.messages)
+
                 if isinstance(e, StopValidation):
                     break
 

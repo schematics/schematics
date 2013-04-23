@@ -101,7 +101,11 @@ class BaseType(object):
         self.default = default
         self.serialized_name = serialized_name
         self.choices = choices
-        self.validators = validators or []
+
+        self.validators = [self.required_validation, self.convert, self.choices_validation]
+        if validators:
+            self.validators += validators
+
         self.description = description
         self.serialize_when_none = serialize_when_none
         self.messages = dict(self.MESSAGES, **(messages or {}))
@@ -129,25 +133,12 @@ class BaseType(object):
 
         """
 
-        validator_chain = itertools.chain(
-            [
-                self.required_validation,
-                self.convert,
-                self.choices_validation
-            ],
-            self.validators
-        )
-
         errors = []
-        for validator in validator_chain:
+        for validator in self.validators:
             try:
                 value = validator(value)
             except ValidationError, e:
-                if e.args and e.args[0]:
-                    if isinstance(e.args, (tuple, list)):
-                        errors.extend(e.args[0])
-                    elif isinstance(e.args[0], basestring):
-                        errors.append(e.args[0])
+                errors.extend(e.messages)
 
                 if isinstance(e, StopValidation):
                     break
@@ -218,11 +209,14 @@ class StringType(BaseType):
             else:
                 raise ValidationError(self.messages['convert'])
 
-        if self.max_length is not None and len(value) > self.max_length:
-            raise ValidationError(self.messages['max_length'])
+        if self.min_length is not None or self.max_length is not None:
+            len_of_value = len(value)
 
-        if self.min_length is not None and len(value) < self.min_length:
-            raise ValidationError(self.messages['min_length'])
+            if self.max_length is not None and len_of_value > self.max_length:
+                raise ValidationError(self.messages['max_length'])
+
+            if self.min_length is not None and len_of_value < self.min_length:
+                raise ValidationError(self.messages['min_length'])
 
         if self.regex is not None and self.regex.match(value) is None:
             raise ValidationError(self.messages['regex'])

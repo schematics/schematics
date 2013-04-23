@@ -302,3 +302,27 @@ class TestErrors(unittest.TestCase):
 
         valid = school.validate(invalid_data, raises=False)
         self.assertFalse(valid)
+
+
+class TestValidationError(unittest.TestCase):
+
+    def test_clean_validation_message(self):
+        error = ValidationError("A")
+
+        self.assertEqual(error.messages, ["A"])
+
+    def test_clean_validation_messages(self):
+        error = ValidationError(["A"])
+
+        self.assertEqual(error.messages, ["A"])
+
+    def test_clean_validation_messages_list(self):
+        error = ValidationError(["A", "B", "C"])
+
+        self.assertEqual(error.messages, ["A", "B", "C"])
+
+    def test_clean_validation_messages_dict(self):
+        error = ValidationError({"A": "B"})
+
+        self.assertEqual(error.messages, {"A": "B"})
+

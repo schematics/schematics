@@ -4,9 +4,8 @@ import inspect
 import itertools
 
 from .types import BaseType
-from .types.bind import _bind
 from .types.serializable import Serializable
-from .exceptions import ValidationError
+from .exceptions import ValidationError, ModelValidationError
 from .serialize import serialize, flatten, expand
 from .datastructures import OrderedDict as OrderedDictWithSort
 
@@ -258,7 +257,7 @@ class Model(object):
         if errors:
             self.errors = errors
             if raises:
-                raise ValidationError(errors)
+                raise ModelValidationError(errors)
             return False
 
         # Set internal data and touch the TypeDescriptors by setattr
