@@ -2,7 +2,6 @@ import itertools
 
 from ..exceptions import ValidationError, StopValidation
 from .base import BaseType
-from .bind import _bind
 
 
 class MultiType(BaseType):
@@ -52,13 +51,6 @@ class ModelType(MultiType):
         self.model_class = model_class
         self.fields = self.model_class.fields
         super(ModelType, self).__init__(**kwargs)
-
-    def _bind(self, model, memo):
-        rv = BaseType._bind(self, model, memo)
-        rv.fields = {}
-        for key, field in self.model_class.fields.iteritems():
-            rv.fields[key] = _bind(field, model, memo)
-        return rv
 
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
@@ -150,11 +142,6 @@ class ListType(MultiType):
         if min_size is not None:
             self.required = True
 
-    def _bind(self, model, memo):
-        rv = BaseType._bind(self, model, memo)
-        rv.field = _bind(self.field, model, memo)
-        return rv
-
     @property
     def model_class(self):
         return self.field.model_class
@@ -232,11 +219,6 @@ class DictType(MultiType):
         self.field = field
 
         super(DictType, self).__init__(**kwargs)
-
-    def _bind(self, model, memo):
-        rv = BaseType._bind(self, model, memo)
-        rv.field = _bind(self.field, model, memo)
-        return rv
 
     @property
     def model_class(self):

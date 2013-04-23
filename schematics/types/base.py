@@ -26,7 +26,6 @@ class TypeMeta(type):
     """
 
     def __new__(cls, name, bases, attrs):
-
         messages = {}
 
         for base in reversed(bases):
@@ -39,6 +38,18 @@ class TypeMeta(type):
         attrs['MESSAGES'] = messages
 
         return type.__new__(cls, name, bases, attrs)
+
+
+def aggregate_from_exception_errors(errors, e):
+    if e.args and e.args[0]:
+        if isinstance(e.args, (tuple, list)):
+            _errors = e.args[0]
+        elif isinstance(e.args[0], basestring):
+            _errors = [e.args[0]]
+        else:
+            _errors = []
+
+        errors.extend(_errors)
 
 
 class BaseType(object):
@@ -118,32 +129,26 @@ class BaseType(object):
 
         """
 
-        errors = []
-
-        def aggregate_from_exception_errors(e):
-            if e.args and e.args[0]:
-                if isinstance(e.args, (tuple, list)):
-                    _errors = e.args[0]
-                elif isinstance(e.args[0], basestring):
-                    _errors = [e.args[0]]
-                else:
-                    _errors = []
-                return errors.extend(_errors)
-
         validator_chain = itertools.chain(
             [
                 self.required_validation,
                 self.convert,
                 self.choices_validation
             ],
-            self.validators or []
+            self.validators
         )
 
+        errors = []
         for validator in validator_chain:
             try:
                 value = validator(value)
             except ValidationError, e:
-                aggregate_from_exception_errors(e)
+                if e.args and e.args[0]:
+                    if isinstance(e.args, (tuple, list)):
+                        errors.extend(e.args[0])
+                    elif isinstance(e.args[0], basestring):
+                        errors.append(e.args[0])
+
                 if isinstance(e, StopValidation):
                     break
             else:
@@ -163,31 +168,11 @@ class BaseType(object):
         return value
 
     def choices_validation(self, value):
-        # `choices`
         if self.choices is not None:
             if value not in self.choices:
                 raise ValidationError(self.messages['choices']
                     .format(unicode(self.choices)))
         return value
-
-    def _bind(self, model, memo):
-        """Method that binds a field to a model. If ``model`` is None, a copy of
-        the field is returned."""
-        if model is not None and self.bound:
-            raise TypeError('%r already bound' % type(model).__name__)
-
-        rv = object.__new__(self.__class__)
-        rv.__dict__.update(self.__dict__)
-        rv.validators = self.validators[:]
-
-        if model is not None:
-            rv.model = model
-        return rv
-
-    @property
-    def bound(self):
-        """True if the form is bound."""
-        return 'model' in self.__dict__
 
 
 class UUIDType(BaseType):
@@ -291,7 +276,7 @@ class NumberType(BaseType):
     def convert(self, value):
         try:
             value = self.number_class(value)
-        except ValueError, e:
+        except ValueError:
             raise ValidationError(self.messages['number_coerce']
                 .format(self.number_type))
 

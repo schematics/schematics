@@ -8,7 +8,7 @@ from .types.bind import _bind
 from .types.serializable import Serializable
 from .exceptions import ValidationError
 from .serialize import serialize, flatten, expand
-from .datastructures import OrderedDict
+from .datastructures import OrderedDict as OrderedDictWithSort
 
 
 class FieldDescriptor(object):
@@ -60,15 +60,15 @@ class ModelMeta(type):
     """
 
     def __new__(cls, name, bases, attrs):
-        fields = OrderedDict()
+        fields = OrderedDictWithSort()
         serializables = {}
         validator_functions = {}  # Model level
 
         for base in reversed(bases):
-            if hasattr(base, 'fields'):
-                fields.update(base.fields)
-            if hasattr(base, '_unbound_serializables'):
-                serializables.update(base._unbound_serializables)
+            if hasattr(base, '_fields'):
+                fields.update(base._fields)
+            if hasattr(base, '_serializables'):
+                serializables.update(base._serializables)
             if hasattr(base, '_validator_functions'):
                 validator_functions.update(base._validator_functions)
 
@@ -89,8 +89,8 @@ class ModelMeta(type):
         attrs['_options'] = cls._read_options(name, bases, attrs)
 
         attrs['_validator_functions'] = validator_functions
-        attrs['_unbound_serializables'] = serializables
-        attrs['_unbound_fields'] = fields
+        attrs['_serializables'] = serializables
+        attrs['_fields'] = fields
 
         klass = type.__new__(cls, name, bases, attrs)
 
@@ -125,7 +125,7 @@ class ModelMeta(type):
 
     @property
     def fields(cls):
-        return cls._unbound_fields
+        return cls._fields
 
     def __iter__(self):
         return itertools.chain(
@@ -158,15 +158,6 @@ class Model(object):
             data = {}
 
         self._initial = data
-
-        self._fields = OrderedDict()
-        self._serializables = {}
-        self._memo = {}
-        for name, field in self._unbound_fields.iteritems():
-            self._fields[name] = _bind(field, self, self._memo)
-
-        for name, field in self._unbound_serializables.iteritems():
-            self._serializables[name] = _bind(field, self, self._memo)
 
         self.reset()
         self.validate(data, partial=partial, raises=raises)
@@ -221,10 +212,6 @@ class Model(object):
             found. Default: True
 
         """
-
-        errors = {}
-        data = {}
-
         if input_data is None:
             input_data = {}
 
@@ -233,6 +220,8 @@ class Model(object):
         else:
             needs_check = lambda field_name, field: field.required or field_name in input_data
 
+        errors = {}
+        data = {}
         # Validate data based on cls's structure
         for field_name, field in self._fields.iteritems():
             # Rely on parameter for whether or not we should check value
@@ -263,11 +252,8 @@ class Model(object):
 
         # Report rogue fields as errors if `strict`
         if strict:
-            # set takes iterables, iterating over keys in this instance
-            rogues_found = set(data) - set(self._fields)
-            if len(rogues_found) > 0:
-                for field_name in rogues_found:
-                    errors[field_name] = [u'%s is an illegal field.' % field_name]
+            rogue_field_errors = self._check_for_unknown_fields(data)
+            errors.update(rogue_field_errors)
 
         if errors:
             self.errors = errors
@@ -283,11 +269,22 @@ class Model(object):
             default = field.default
             if callable(field.default):
                 default = field.default()
+
             data.setdefault(field_name, default)
 
             self._data[field_name] = data.get(field_name)
 
         return True
+
+    def _check_for_unknown_fields(self, data):
+        # set takes iterables, iterating over keys in this instance
+        errors = []
+        rogues_found = set(data) - set(self._fields)
+        if len(rogues_found) > 0:
+            for field_name in rogues_found:
+                errors[field_name] = [u'%s is an illegal field.' % field_name]
+
+        return errors
 
     def __iter__(self):
         return self.iter()

@@ -34,22 +34,6 @@ class TestSerializable(unittest.TestCase):
         d = location_IS.serialize()
         self.assertEqual(d, {"country_code": "IS", "country_name": "Unknown"})
 
-    def test_serializable_doesnt_keep_global_state(self):
-        class Location(Model):
-            country_code = StringType()
-
-            @serializable
-            def country_name(self):
-                return "United States" if self.country_code == "US" else "Unknown"
-
-        location_US = Location({"country_code": "US"})
-        location_IS = Location({"country_code": "IS"})
-
-        self.assertNotEqual(
-            id(location_US._serializables["country_name"]),
-            id(location_IS._serializables["country_name"])
-        )
-
     def test_serializable_with_serializable_name(self):
         class Location(Model):
             country_code = StringType(serialized_name="cc")
