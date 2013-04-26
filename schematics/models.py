@@ -5,7 +5,7 @@ import itertools
 
 from .types import BaseType
 from .types.serializable import Serializable
-from .exceptions import ValidationError, ModelValidationError
+from .exceptions import BaseError, ValidationError, ModelValidationError
 from .serialize import serialize, flatten, expand
 from .datastructures import OrderedDict as OrderedDictWithSort
 
@@ -35,7 +35,8 @@ class FieldDescriptor(object):
 
 
 class ModelOptions(object):
-    """This class is a container for all metaclass configuration options. It's
+    """
+    This class is a container for all metaclass configuration options. Its
     primary purpose is to create an instance of a model's options for every
     instance of a model.
 
@@ -138,36 +139,83 @@ class Model(object):
     models, SQLAlchemy declarative extension and other developer friendly
     libraries.
 
-    :param data:
-        Data to validate and apply to the object.
-    :param partial:
-        Allow partial data; useful for PATCH requests. Essentilly drops the
-        ``required=True`` arguments from field definitions. Default: ``True``
-    :param raises:
-        When ``True``, raise ``ValidationError`` at the end if errors were
-        found. Default: ``True``
+    :param raw_data:
+        Raw data to initialize the object with. Can raise ``ConversionError`` if
+        it is not possible to convert the raw data into richer Python constructs.
 
     """
 
     __metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
-    def __init__(self, data=None, partial=True, raises=True):
-        if data is None:
-            data = {}
-
-        self._initial = data
-
-        self.reset()
-        self.validate(data, partial=partial, raises=raises)
-
-    def reset(self):
-        self._data = {}
-        self.errors = {}
-
     @classmethod
     def from_flat(cls, data):
         return cls(expand(data))
+
+    def __init__(self, raw_data=None):
+        if raw_data is None:
+            raw_data = {}
+
+        self._initial = raw_data
+
+        self._data = self.convert(raw_data)
+
+    def validate(self, partial=False, strict=False):
+        """
+        Validates the state of the model and adding additional untrusted data
+        as well. If the models is invalid, raises ValidationError with error messages.
+
+        :param raw_data:
+            A ``dict`` or ``dict``-like structure for incoming data.
+        :param partial:
+            Allow partial data to validate; useful for PATCH requests.
+            Essentially drops the ``required=True`` arguments from field
+            definitions. Default: True
+        :param strict:
+            Complain about unrecognized keys. Default: False
+        """
+        raw_data = self._data
+
+        errors = {}
+        data = {}
+
+        for field_name, field in self._fields.iteritems():
+            # Rely on parameter for whether or not we should check value
+            serialized_field_name = field.serialized_name or field_name
+
+            # print field_name, data, raw_data, self._data
+            # if needs_check(serialized_field_name, field):
+            try:
+                value = raw_data[serialized_field_name]
+            except KeyError:
+                value = field.default
+
+            if field.required and value is None:
+                if not partial:
+                    errors[serialized_field_name] = [field.messages["required"], ]
+            elif value is None:  # The field isn't required so the value can be None
+                data[field_name] = None
+            else:
+                try:
+                    field.validate(value)
+
+                    if field_name in self._validator_functions:
+                        context = dict(self._data, **data)
+                        self._validator_functions[field_name](self, context, value)
+                except BaseError, e:
+                    errors[serialized_field_name] = e.messages
+                else:
+                    data[field_name] = value
+
+        if strict:
+            rogue_field_errors = self._check_for_unknown_fields(data)
+            errors.update(rogue_field_errors)
+
+        if errors:
+            raise ModelValidationError(errors)
+
+        # Set internal data and touch the TypeDescriptors by setattr
+        self._data.update(**data)
 
     def serialize(self, role=None):
         """Return data as it would be validated. No filtering of output unless
@@ -190,90 +238,25 @@ class Model(object):
         """
         return flatten(self, role, prefix=prefix)
 
-    def validate(self, input_data=None, partial=False, strict=False, raises=True):
-        """Validates incoming untrusted data. If ``partial`` is set it will. If
-        data is valid, update the object state and return ``True``, else set
-        ``self.errors`` and return ``False``.
-
-        The internal state of data and errors are kept in ``self._data`` and
-        ``self.errors``, respectively.
-
-        :param input_data:
-            A ``dict`` or ``dict``-like structure for incoming data.
-        :param partial:
-            Allow partial data to validate; useful for PATCH requests.
-            Essentilly drops the ``required=True`` arguments from field
-            definitions. Default: False
-        :param strict:
-            Complain about unrecognized keys. Default: False
-        :param raises:
-            When ``True``, raise ``ValidationError`` at the end if errors were
-            found. Default: True
-
+    def convert(self, raw_data):
         """
-        if input_data is None:
-            input_data = {}
-
-        if partial:
-            needs_check = lambda field_name, field: field_name in input_data
-        else:
-            needs_check = lambda field_name, field: field.required or field_name in input_data
-
-        errors = {}
+        Converts the raw data into richer Python constructs according to the
+        fields on the model
+        """
         data = {}
-        # Validate data based on cls's structure
+
         for field_name, field in self._fields.iteritems():
-            # Rely on parameter for whether or not we should check value
             serialized_field_name = field.serialized_name or field_name
-            if needs_check(serialized_field_name, field):
-                # What does `Field.required` mean? Does it merely
-                # require presence or the value not be None? Here it means the
-                # value must not be None. However! We require the presence even
-                # though required is set to None if this is not a partial update.
-                # For this to validate the user should pick a partial validate.
 
-                # Fallback to the internal value
-                if serialized_field_name in input_data:
-                    field_value = input_data.get(serialized_field_name)
-                else:
-                    field_value = self._data.get(serialized_field_name)
+            try:
+                raw_value = raw_data[serialized_field_name]
+                value = None if raw_value is None else field.convert(raw_value)
+            except KeyError:
+                value = field.default
 
-                try:
-                    value = field.validate(field_value)
+            data[field_name] = value
 
-                    if field_name in self._validator_functions:
-                        context = dict(self._data, **data)
-                        value = self._validator_functions[field_name](self, context, value)
-
-                    data[field_name] = value
-                except ValidationError, e:
-                    errors[serialized_field_name] = e.messages
-
-        # Report rogue fields as errors if `strict`
-        if strict:
-            rogue_field_errors = self._check_for_unknown_fields(data)
-            errors.update(rogue_field_errors)
-
-        if errors:
-            self.errors = errors
-            if raises:
-                raise ModelValidationError(errors)
-            return False
-
-        # Set internal data and touch the TypeDescriptors by setattr
-        self._data.update(**data)
-        data.update(**self._data)
-
-        for field_name, field in self._fields.iteritems():
-            default = field.default
-            if callable(field.default):
-                default = field.default()
-
-            data.setdefault(field_name, default)
-
-            self._data[field_name] = data.get(field_name)
-
-        return True
+        return data
 
     def _check_for_unknown_fields(self, data):
         # set takes iterables, iterating over keys in this instance

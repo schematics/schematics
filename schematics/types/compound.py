@@ -1,6 +1,8 @@
-import itertools
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-from ..exceptions import ValidationError, ModelValidationError, StopValidation
+from __future__ import division
+from ..exceptions import ValidationError, ConversionError, ModelValidationError, StopValidation
 from .base import BaseType
 
 
@@ -11,12 +13,11 @@ class MultiType(BaseType):
         key. Used by ModelType and ListType.
 
         """
-
         errors = {}
 
         for validator in self.validators:
             try:
-                value = validator(value)
+                validator(value)
             except ModelValidationError, e:
                 errors.update(e.messages)
 
@@ -36,7 +37,14 @@ class ModelType(MultiType):
     def __init__(self, model_class, **kwargs):
         self.model_class = model_class
         self.fields = self.model_class.fields
-        super(ModelType, self).__init__(**kwargs)
+
+        validators = kwargs.pop("validators", [])
+
+        def validate_model(model_instance):
+            model_instance.validate()
+            return model_instance
+
+        super(ModelType, self).__init__(validators=[validate_model] + validators,  **kwargs)
 
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
@@ -46,20 +54,16 @@ class ModelType(MultiType):
             return None
 
         if isinstance(value, self.model_class):
-            if value.errors:
-                raise ValidationError(u'Please supply a clean model instance.')
-            else:
-                value.validate()
-                return value
+            return value
 
         if not isinstance(value, dict):
-            raise ValidationError(u'Please use a mapping for this field or {} instance instead of {}.'.format(
+            raise ConversionError(u'Please use a mapping for this field or {} instance instead of {}.'.format(
                 self.model_class.__name__,
                 type(value).__name__))
 
         # We don't allow partial submodels because that is just complex and
         # not obviously useful
-        return self.model_class(value, partial=False)
+        return self.model_class(value)
 
     def to_primitive(self, model_instance, include_serializables=True):
         primitive_data = {}
@@ -123,7 +127,10 @@ class ListType(MultiType):
         self.field = field
         self.min_size = min_size
         self.max_size = max_size
-        super(ListType, self).__init__(**kwargs)
+
+        validators = [self.check_length, self.validate_items] + kwargs.pop("validators", [])
+
+        super(ListType, self).__init__(validators=validators, **kwargs)
 
         if min_size is not None:
             self.required = True
@@ -135,6 +142,7 @@ class ListType(MultiType):
     def _force_list(self, value):
         if value is None or value == EMPTY_LIST:
             return []
+
         try:
             if isinstance(value, basestring):
                 raise TypeError()
@@ -147,35 +155,37 @@ class ListType(MultiType):
             return [value]
 
     def convert(self, value):
-        value = self._force_list(value)
+        items = self._force_list(value)
 
-        if self.min_size is not None and len(value) < self.min_size:
+        return map(self.field.convert, items)
+
+    def check_length(self, value):
+        list_length = len(value) if value else 0
+
+        if self.min_size is not None and list_length < self.min_size:
             message = ({
                 True: u'Please provide at least %d item.',
                 False: u'Please provide at least %d items.'}[self.min_size == 1]
             ) % self.min_size
             raise ValidationError(message)
 
-        if self.max_size is not None and len(value) > self.max_size:
+        if self.max_size is not None and list_length > self.max_size:
             message = ({
                 True: u'Please provide no more than %d item.',
                 False: u'Please provide no more than %d items.'}[self.max_size == 1]
             ) % self.max_size
             raise ValidationError(message)
 
-        result = []
-        errors = {}
-        # Aggregate errors
-        for idx, item in enumerate(value, 1):
+    def validate_items(self, items):
+        errors = []
+        for idx, item in enumerate(items, 1):
             try:
-                result.append(self.field(item))
+                self.field.validate(item)
             except ValidationError, e:
-                errors['index_%s' % idx] = e
+                errors.append(e.message)
 
         if errors:
-            raise ValidationError(sorted(errors.items()))
-
-        return result
+            raise ValidationError(errors)
 
     def to_primitive(self, value):
         return map(self.field.to_primitive, value)
@@ -204,13 +214,15 @@ class DictType(MultiType):
         self.coerce_key = coerce_key or str
         self.field = field
 
-        super(DictType, self).__init__(**kwargs)
+        validators = [self.validate_items] + kwargs.pop("validators", [])
+
+        super(DictType, self).__init__(validators=validators, **kwargs)
 
     @property
     def model_class(self):
         return self.field.model_class
 
-    def convert(self, value):
+    def convert(self, value, safe=False):
         if value == EMPTY_DICT:
             value = {}
 
@@ -219,8 +231,19 @@ class DictType(MultiType):
         if not isinstance(value, dict):
             raise ValidationError(u'Only dictionaries may be used in a DictType')
 
-        return dict((self.coerce_key(k), self.field(v))
+        return dict((self.coerce_key(k), self.field.convert(v))
                     for k, v in value.iteritems())
+
+    def validate_items(self, items):
+        errors = {}
+        for key, value in items.iteritems():
+            try:
+                self.field.validate(value)
+            except ValidationError, e:
+                errors[key] = e
+
+        if errors:
+            raise ValidationError(errors)
 
     def to_primitive(self, value):
         return dict((unicode(k), self.field.to_primitive(v)) for k, v in value.iteritems())

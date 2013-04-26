@@ -44,7 +44,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Schematics'
-copyright = u'2013, j2labs & jokull'
+copyright = u'2013, j2labs & Plain Vanilla Games'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -188,7 +188,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'Schematics.tex', u'Schematics Documentation',
-   u'j2labs \\& jokull', 'manual'),
+   u'j2labs \\& Plain Vanilla Games', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -218,7 +218,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'schematics', u'Schematics Documentation',
-     [u'j2labs & jokull'], 1)
+     [u'j2labs & Plain Vanilla Games'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -232,7 +232,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
   ('index', 'Schematics', u'Schematics Documentation',
-   u'j2labs & jokull', 'Schematics', 'One line description of project.',
+   u'j2labs & Plain Vanilla Games', 'Schematics', 'One line description of project.',
    'Miscellaneous'),
 ]
 

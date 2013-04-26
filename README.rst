@@ -4,8 +4,6 @@ This is a fork of the `original project <https://github.com/j2labs/schematics>`_
 by @j2labs
 
 There are big API changes in this fork. However it **is** documented and tested.
-Join #schematics on Freenode if you are interested in this project. This fork is
-in the process of being merged into the original.
 
 .. image:: https://secure.travis-ci.org/plain-vanilla-games/schematics.png?branch=master
   :target: https://secure.travis-ci.org/plain-vanilla-games/schematics
@@ -22,16 +20,19 @@ Show me the Code!
   ...     name = StringType(required=True)
   ...
   >>> person = Person({'name': u'Joey Bada$$'})
-  >>>
+  >>> person.name
+  u'Joey Bada$$'
 
 Let’s see some validation
 
 .. code-block:: python
 
-  >>> person = Person(raises=False)
-  >>> person.errors
+  >>> person = Person()
+  >>> try:
+  ...     person.validate()
+  ... except ValidationError, e:
+  ...     print e.messages
   {'name': [u'This field is required.']}
-  >>>
 
 Installation
 ~~~~~~~~~~~~

@@ -3,8 +3,9 @@ import re
 import datetime
 import decimal
 import itertools
+import functools
 
-from ..exceptions import StopValidation, ValidationError
+from ..exceptions import StopValidation, ValidationError, ConversionError
 
 
 def force_unicode(obj, encoding='utf-8'):
@@ -22,39 +23,44 @@ _next_position_hint = itertools.count().next
 
 
 class TypeMeta(type):
-    """Meta class for BaseType. Merges `MESSAGES` dict.
+    """
+    Meta class for BaseType. Merges `MESSAGES` dict and accumulates
+    validator methods.
     """
 
     def __new__(cls, name, bases, attrs):
         messages = {}
+        validators = []
 
         for base in reversed(bases):
             if hasattr(base, 'MESSAGES'):
                 messages.update(base.MESSAGES)
+
+            if hasattr(base, "_validators"):
+                validators.extend(base._validators)
 
         if 'MESSAGES' in attrs:
             messages.update(attrs['MESSAGES'])
 
         attrs['MESSAGES'] = messages
 
+        for attr_name, attr in attrs.iteritems():
+            if attr_name.startswith("validate_"):
+                validators.append(attr)
+
+        attrs["_validators"] = validators
+
         return type.__new__(cls, name, bases, attrs)
 
 
-def aggregate_from_exception_errors(errors, e):
-    if e.args and e.args[0]:
-        if isinstance(e.args, (tuple, list)):
-            _errors = e.args[0]
-        elif isinstance(e.args[0], basestring):
-            _errors = [e.args[0]]
-        else:
-            _errors = []
-
-        errors.extend(_errors)
-
-
 class BaseType(object):
-    """A base class for Types in a Schematics model. Instances of this
+    """
+    A base class for Types in a Schematics model. Instances of this
     class may be added to subclasses of ``Model`` to define a model schema.
+
+    Validators that need to access variables on the instance
+    can be defined be implementing methods whose names start with ``validate_``
+    and accept one parameter (in addition to ``self``)
 
     :param required:
         Invalidate field when value is None or is not supplied. Default:
@@ -70,10 +76,8 @@ class BaseType(object):
         An iterable of valid choices. This is the last step of the validator
         chain.
     :param validators:
-        A list of callables. Each callable receives the value of the previous
-        validator and in turn returns the value, not necessarily unchanged.
-        ``ValidationError`` exceptions are caught and aggregated into an errors
-        structure. Default: []
+        A list of callables. Each callable receives the value after it has been
+        converted into a rich python type. Default: []
     :param serialize_when_none:
         Dictates if the field should appear in the serialized data even if the
         value is None. Default: True
@@ -94,25 +98,30 @@ class BaseType(object):
     }
 
     def __init__(self, required=False, default=None, serialized_name=None,
-                 choices=None, validators=None, description=None,
+                 choices=None, validators=None,
                  serialize_when_none=None, messages=None):
-
         self.required = required
-        self.default = default
+        self._default = default
         self.serialized_name = serialized_name
         self.choices = choices
 
-        self.validators = [self.required_validation, self.convert, self.choices_validation]
+        self.validators = [functools.partial(v, self) for v in self._validators]
         if validators:
             self.validators += validators
 
-        self.description = description
         self.serialize_when_none = serialize_when_none
         self.messages = dict(self.MESSAGES, **(messages or {}))
         self._position_hint = _next_position_hint()  # For ordering of fields
 
     def __call__(self, value):
-        return self.validate(value)
+        return self.convert(value)
+
+    @property
+    def default(self):
+        default = self._default
+        if callable(self._default):
+            default = self._default()
+        return default
 
     def to_primitive(self, value):
         """Convert internal data to a value safe to serialize.
@@ -120,7 +129,8 @@ class BaseType(object):
         return value
 
     def convert(self, value):
-        """Convert untrusted data to a richer Python construct.
+        """
+        Convert untrusted data to a richer Python construct.
         """
         return value
 
@@ -134,36 +144,28 @@ class BaseType(object):
         """
 
         errors = []
+
         for validator in self.validators:
             try:
-                value = validator(value)
+                validator(value)
             except ValidationError, e:
                 errors.extend(e.messages)
 
                 if isinstance(e, StopValidation):
                     break
-            else:
-                # Break validation chain if any of the
-                # validators legally returns None
-                if not self.required and value is None:
-                    break
 
         if errors:
             raise ValidationError(errors)
 
-        return value
-
-    def required_validation(self, value):
+    def check_if_required(self, value):
         if self.required and value is None:
-            raise StopValidation(self.messages['required'])
-        return value
+            raise ValidationError(self.messages['required'])
 
-    def choices_validation(self, value):
+    def validate_choices(self, value):
         if self.choices is not None:
             if value not in self.choices:
                 raise ValidationError(self.messages['choices']
                     .format(unicode(self.choices)))
-        return value
 
 
 class UUIDType(BaseType):
@@ -171,7 +173,7 @@ class UUIDType(BaseType):
     """
 
     def convert(self, value):
-        if not isinstance(value, (uuid.UUID,)):
+        if not isinstance(value, uuid.UUID):
             value = uuid.UUID(value)
         return value
 
@@ -182,46 +184,50 @@ class UUIDType(BaseType):
 class StringType(BaseType):
     """A unicode string field. Default minimum length is one. If you want to
     accept empty strings, init with ``min_length`` 0.
-
     """
 
     allow_casts = (int, str)
 
     MESSAGES = {
-        'convert': u"Illegal data value",
-        'max_length': u"String value is too long",
-        'min_length': u"String value is too short",
-        'regex': u"String value did not match validation regex",
+        'convert': u"Couldn't interpret value as string.",
+        'max_length': u"String value is too long.",
+        'min_length': u"String value is too short.",
+        'regex': u"String value did not match validation regex.",
     }
 
     def __init__(self, regex=None, max_length=None, min_length=1, **kwargs):
         self.regex = re.compile(regex) if regex else None
-        super(StringType, self).__init__(**kwargs)
         self.max_length = max_length
         self.min_length = min_length
 
+        super(StringType, self).__init__(**kwargs)
+
     def convert(self, value):
+        if value is None:
+            return None
+
         if not isinstance(value, unicode):
             if isinstance(value, self.allow_casts):
                 if not isinstance(value, str):
                     value = str(value)
                 value = unicode(value, 'utf-8')
             else:
-                raise ValidationError(self.messages['convert'])
-
-        if self.min_length is not None or self.max_length is not None:
-            len_of_value = len(value)
-
-            if self.max_length is not None and len_of_value > self.max_length:
-                raise ValidationError(self.messages['max_length'])
-
-            if self.min_length is not None and len_of_value < self.min_length:
-                raise ValidationError(self.messages['min_length'])
-
-        if self.regex is not None and self.regex.match(value) is None:
-            raise ValidationError(self.messages['regex'])
+                raise ConversionError(self.messages['convert'])
 
         return value
+
+    def validate_length(self, value):
+        len_of_value = len(value) if value else 0
+
+        if self.max_length is not None and len_of_value > self.max_length:
+            raise ValidationError(self.messages['max_length'])
+
+        if self.min_length is not None and len_of_value < self.min_length:
+            raise ValidationError(self.messages['min_length'])
+
+    def validate_regex(self, value):
+        if self.regex is not None and self.regex.match(value) is None:
+            raise ValidationError(self.messages['regex'])
 
 
 class EmailType(StringType):
@@ -243,10 +249,9 @@ class EmailType(StringType):
         re.IGNORECASE
     )
 
-    def convert(self, value):
+    def validate_email(self, value):
         if not EmailType.EMAIL_REGEX.match(value):
             raise StopValidation(self.messages['email'])
-        return value
 
 
 class NumberType(BaseType):
@@ -254,7 +259,7 @@ class NumberType(BaseType):
     """
 
     MESSAGES = {
-        'number_coerce': u"Not {}",
+        'number_coerce': u"Value is not {}",
         'number_min': u"{} value should be greater than {}",
         'number_max': u"{} value should be less than {}",
     }
@@ -265,15 +270,19 @@ class NumberType(BaseType):
         self.number_type = number_type
         self.min_value = min_value
         self.max_value = max_value
+
         super(NumberType, self).__init__(**kwargs)
 
     def convert(self, value):
         try:
             value = self.number_class(value)
-        except ValueError:
-            raise ValidationError(self.messages['number_coerce']
-                .format(self.number_type))
+        except (TypeError, ValueError):
+            raise ConversionError(self.messages['number_coerce']
+                .format(self.number_type.lower()))
 
+        return value
+
+    def check_value(self, value):
         if self.min_value is not None and value < self.min_value:
             raise ValidationError(self.messages['number_min']
                 .format(self.number_type, self.min_value))
@@ -319,6 +328,7 @@ class DecimalType(BaseType):
 
     def __init__(self, min_value=None, max_value=None, **kwargs):
         self.min_value, self.max_value = min_value, max_value
+
         super(DecimalType, self).__init__(**kwargs)
 
     def to_primitive(self, value):
@@ -331,9 +341,12 @@ class DecimalType(BaseType):
             try:
                 value = decimal.Decimal(value)
             except (TypeError, decimal.InvalidOperation):
-                raise ValidationError(self.messages['number_coerce']
+                raise ConversionError(self.messages['number_coerce']
                     .format(self.number_type))
 
+        return value
+
+    def validate_range(self, value):
         if self.min_value is not None and value < self.min_value:
             raise ValidationError(self.messages['number_min']
                 .format(self.number_type, self.min_value))
@@ -358,7 +371,7 @@ class HashType(BaseType):
         try:
             value = int(value, 16)
         except ValueError:
-            raise ValidationError(self.messages['hash_hex'])
+            raise ConversionError(self.messages['hash_hex'])
         return value
 
 
@@ -395,7 +408,7 @@ class BooleanType(BaseType):
             elif value in self.FALSE_VALUES:
                 value = False
         if not isinstance(value, bool):
-            raise ValueError(u'Must be either true or false.')
+            raise ConversionError(u'Must be either true or false.')
         return value
 
 
@@ -419,7 +432,7 @@ class DateType(BaseType):
         try:
             return datetime.datetime.strptime(value, self.serialized_format).date()
         except (ValueError, TypeError):
-            raise ValidationError(self.messages['parse'].format(value))
+            raise ConversionError(self.messages['parse'].format(value))
 
     def to_primitive(self, value):
         return value.strftime(self.serialized_format)
@@ -466,7 +479,7 @@ class DateTimeType(BaseType):
                 return datetime.datetime.strptime(value, format)
             except (ValueError, TypeError):
                 continue
-        raise ValidationError(self.messages['parse'].format(value))
+        raise ConversionError(self.messages['parse'].format(value))
 
     def to_primitive(self, value):
         if callable(self.serialized_format):

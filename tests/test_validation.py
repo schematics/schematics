@@ -4,115 +4,67 @@ import unittest
 import datetime
 
 from schematics.models import Model
-from schematics.exceptions import ValidationError
+from schematics.exceptions import BaseError, ValidationError
 from schematics.types import StringType, DateTimeType, BooleanType
-from schematics.types.compound import ModelType, ListType
+from schematics.types.compound import ModelType, ListType, DictType
 
 
 class TestChoices(unittest.TestCase):
-    def setUp(self):
-        class Other(Model):
-            info = ListType(StringType())
-
-        class TestDoc(Model):
-            language = StringType(choices=['en', 'de'])
-            other = ModelType(Other)
-
-        self.TestDoc = TestDoc
 
     def test_choices_validates(self):
-        data_simple_valid = {'language': 'de'}
-        doc = self.TestDoc(data_simple_valid)
+        class Document(Model):
+            language = StringType(choices=['en', 'de'])
 
-        valid = doc.validate(data_simple_valid)
-        self.assertEqual(valid, True)
+        doc = Document({'language': 'de'})
+        doc.validate()
 
     def test_validation_fails(self):
-        data_simple_invalid = {'language': 'fr'}
+        class Document(Model):
+            language = StringType(choices=['en', 'de'])
 
+        doc = Document({'language': 'fr'})
         with self.assertRaises(ValidationError):
-            self.TestDoc(data_simple_invalid)
+            doc.validate()
 
     def test_choices_validates_with_embedded(self):
-        data_embedded_valid = {
+        class Document(Model):
+            language = StringType(choices=['en', 'de'])
+            other = ListType(StringType())
+
+        doc = Document({
             'language': 'de',
-            'other': {
-                'info': ['somevalue', 'other']
-            }
-        }
+            'other': ['somevalue', 'other']
+        })
 
-        doc = self.TestDoc(data_embedded_valid)
-
-        valid = doc.validate(data_embedded_valid)
-        self.assertEqual(valid, True)
+        doc.validate()
 
     def test_validation_failes_with_embedded(self):
-        data_embedded_invalid = {
+        class Document(Model):
+            language = StringType(choices=['en', 'de'])
+            other = ListType(StringType())
+
+        doc = Document({
             'language': 'fr',
-            'other': {
-                'info': ['somevalue', 'other']
-            }
-        }
+            'other': ['somevalue', 'other']
+        })
 
         with self.assertRaises(ValidationError):
-            self.TestDoc(data_embedded_invalid)
+            doc.validate()
 
 
 class TestRequired(unittest.TestCase):
 
-    def test_non_partial_init_fails(self):
-        class TestDoc(Model):
-            first_name = StringType(required=True)
-
-        with self.assertRaises(ValidationError) as context:
-            TestDoc(partial=False)
-
-        exception = context.exception
-
-        self.assertEqual(len(exception.messages), 1)  # Only one failure
-        self.assertIn(u'This field is required', exception.messages["first_name"][0])
-
     def test_validation_none_fails(self):
-        class TestDoc(Model):
+        class Player(Model):
             first_name = StringType(required=True)
 
         with self.assertRaises(ValidationError) as context:
-            TestDoc().validate({"first_name": None})
+            Player({"first_name": None}).validate()
 
         exception = context.exception
 
-        self.assertNotEqual(exception.messages, {})
         self.assertEqual(len(exception.messages), 1)  # Only one failure
         self.assertIn(u'This field is required', exception.messages["first_name"][0])
-
-    def test_validation_empty_string_not_pass(self):
-        class TestDoc(Model):
-            first_name = StringType(required=True)
-
-        with self.assertRaises(ValidationError):
-            TestDoc().validate({"first_name": ''})
-
-    def test_validation_empty_string_length_fail(self):
-        class TestDoc(Model):
-            first_name = StringType(required=True, min_length=2)
-
-        with self.assertRaises(ValidationError) as context:
-            TestDoc().validate({"first_name": "A"})
-
-        exception = context.exception
-
-        self.assertEqual(len(exception.messages), 1)  # Only one failure
-        # Length failure, not *FIELD_REQUIRED*
-        self.assertIn('first_name', exception.messages)
-        self.assertEqual(len(exception.messages['first_name']), 1)
-
-    def test_validation_none_string_length_pass(self):
-        class TestDoc(Model):
-            first_name = StringType(min_length=1)
-
-        t = TestDoc()
-        valid = t.validate({'first_name': None})
-        self.assertEqual(valid, True)
 
 
 future_error_msg = u'Future dates are not valid'
@@ -137,7 +89,7 @@ class TestCustomValidators(unittest.TestCase):
                 "publish": datetime.datetime(2012, 2, 1, 0, 0),
                 "author": "Hemingway",
                 "title": "Old Man"
-            })
+            }).validate()
 
         exception = context.exception
 
@@ -151,7 +103,8 @@ class TestCustomValidators(unittest.TestCase):
             title = MyStringType(required=True)
 
         with self.assertRaises(ValidationError) as context:
-            TestDoc({'title': None})
+            TestDoc({'title': None}).validate()
+
         self.assertIn(u'Never forget', context.exception.messages['title'])
 
     def test_messages_instance_level(self):
@@ -159,7 +112,7 @@ class TestCustomValidators(unittest.TestCase):
             title = StringType(required=True, messages={'required': u'Never forget'})
 
         with self.assertRaises(ValidationError) as context:
-            TestDoc({'title': None})
+            TestDoc({'title': None}).validate()
         self.assertIn(u'Never forget', context.exception.messages['title'])
 
 
@@ -180,23 +133,7 @@ class TestModelLevelValidators(unittest.TestCase):
                     raise ValidationError(future_error_msg)
 
         with self.assertRaises(ValidationError):
-            TestDoc().validate({'publish': future})
-
-    def test_position_hint(self):
-        now = datetime.datetime(2012, 1, 1, 0, 0)
-        future = now + datetime.timedelta(1)
-
-        input = str(future.isoformat())
-
-        class BadModel(Model):
-            publish = DateTimeType()
-            can_future = BooleanType(default=False)
-
-            def validate_publish(self, data, dt):
-                data['can_future']
-
-        with self.assertRaises(KeyError):
-            BadModel({'publish': input})
+            TestDoc({'publish': future}).validate()
 
     def test_multi_key_validation(self):
         now = datetime.datetime(2012, 1, 1, 0, 0)
@@ -214,12 +151,12 @@ class TestModelLevelValidators(unittest.TestCase):
                 return dt
 
         with self.assertRaises(ValidationError):
-            GoodModel().validate({'publish': input})
+            GoodModel({'publish': input}).validate()
 
-        self.assertTrue(GoodModel().validate({'publish': input, 'should_raise': False}))
+        GoodModel({'publish': input, 'should_raise': False}).validate()
 
         with self.assertRaises(ValidationError):
-            GoodModel().validate({'publish': input, 'should_raise': True})
+            GoodModel({'publish': input, 'should_raise': True}).validate()
 
     def test_multi_key_validation_part_two(self):
         class Signup(Model):
@@ -231,9 +168,11 @@ class TestModelLevelValidators(unittest.TestCase):
                     raise ValidationError(u'I\'m sorry I never call people who\'s name is Brad')
                 return value
 
-        assert Signup().validate({'name': u'Brad'}) is True
-        assert Signup().validate({'name': u'Brad', 'call_me': False}, raises=False) is True
-        assert Signup().validate({'name': u'Brad', 'call_me': True}, raises=False) is False
+        Signup({'name': u'Brad'}).validate()
+        Signup({'name': u'Brad', 'call_me': False}).validate()
+
+        with self.assertRaises(ValidationError):
+            Signup({'name': u'Brad', 'call_me': True}).validate()
 
 
 class TestErrors(unittest.TestCase):
@@ -243,12 +182,14 @@ class TestErrors(unittest.TestCase):
             name = StringType(required=True)
 
         school = School()
-        is_valid = school.validate({}, raises=False)
 
-        self.assertFalse(is_valid)
+        with self.assertRaises(ValidationError) as context:
+            school.validate()
 
-        self.assertIn("name", school.errors)
-        self.assertEqual(school.errors["name"], ["This field is required."])
+        errors = context.exception.messages
+
+        self.assertIn("name", errors)
+        self.assertEqual(errors["name"], ["This field is required."])
 
     def test_deep_errors(self):
         class Person(Model):
@@ -259,16 +200,17 @@ class TestErrors(unittest.TestCase):
             headmaster = ModelType(Person, required=True)
 
         school = School()
-        is_valid = school.validate({
-            "name": "Hogwarts",
-            "headmaster": {}
-        }, raises=False)
+        school.name = "Hogwarts"
+        school.headmaster = {}
 
-        self.assertFalse(is_valid)
+        with self.assertRaises(ValidationError) as context:
+            school.validate()
 
-        self.assertIn("headmaster", school.errors)
-        self.assertIn("name", school.errors["headmaster"])
-        self.assertEqual(school.errors["headmaster"]["name"], ["This field is required."])
+        errors = context.exception.messages
+
+        self.assertIn("headmaster", errors)
+        self.assertIn("name", errors["headmaster"])
+        self.assertEqual(errors["headmaster"]["name"], ["This field is required."])
 
     def test_deep_errors_with_lists(self):
         class Person(Model):
@@ -293,36 +235,103 @@ class TestErrors(unittest.TestCase):
             ]
         }
 
-        school = School()
-        valid = school.validate(valid_data)
-        self.assertTrue(valid)
+        school = School(valid_data)
+        school.validate()
 
         invalid_data = school.serialize()
         invalid_data['courses'][0]['attending'][0]['name'] = None
 
-        valid = school.validate(invalid_data, raises=False)
-        self.assertFalse(valid)
+        school = School(invalid_data)
+        with self.assertRaises(ValidationError) as context:
+            school.validate()
+
+        exception = context.exception
+        messages = exception.messages
+
+        self.assertEqual(messages, {
+            'courses': [
+                {
+                    'attending': [
+                        {
+                            'name': [u'This field is required.']
+                        }
+                    ]
+                }
+            ]
+        })
+
+    def test_deep_errors_with_dicts(self):
+        class Person(Model):
+            name = StringType(required=True)
+
+        class Course(Model):
+            id = StringType(required=True, validators=[])
+            attending = ListType(ModelType(Person))
+
+        class School(Model):
+            courses = DictType(ModelType(Course))
+
+        valid_data = {
+            'courses': {
+                "ENG103":
+                    {'id': 'ENG103', 'attending': [
+                        {'name': u'Danny'},
+                        {'name': u'Sandy'}]},
+                "ENG203":
+                    {'id': 'ENG203', 'attending': [
+                        {'name': u'Danny'},
+                        {'name': u'Sandy'}
+                    ]}
+            }
+        }
+
+        school = School(valid_data)
+        school.validate()
+
+        invalid_data = school.serialize()
+        invalid_data['courses']["ENG103"]['attending'][0]['name'] = None
+
+        school = School(invalid_data)
+        with self.assertRaises(ValidationError) as context:
+            school.validate()
+
+        exception = context.exception
+        messages = exception.messages
+
+        self.assertEqual(messages, {
+            'courses': {
+                "ENG103":
+                {
+                    'attending': [
+                        {
+                            'name': [u'This field is required.']
+                        }
+                    ]
+                }
+            }
+        })
 
 
 class TestValidationError(unittest.TestCase):
 
     def test_clean_validation_message(self):
-        error = ValidationError("A")
+        error = BaseError("A")
 
         self.assertEqual(error.messages, ["A"])
 
     def test_clean_validation_messages(self):
-        error = ValidationError(["A"])
+        error = BaseError(["A"])
 
         self.assertEqual(error.messages, ["A"])
 
     def test_clean_validation_messages_list(self):
-        error = ValidationError(["A", "B", "C"])
+        error = BaseError(["A", "B", "C"])
 
         self.assertEqual(error.messages, ["A", "B", "C"])
 
     def test_clean_validation_messages_dict(self):
-        error = ValidationError({"A": "B"})
+        error = BaseError({"A": "B"})
 
         self.assertEqual(error.messages, {"A": "B"})
+
 
