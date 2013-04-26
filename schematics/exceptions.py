@@ -1,7 +1,6 @@
 
 
-class ValidationError(ValueError):
-    """Exception raised when invalid data is encountered."""
+class BaseError(Exception):
 
     def __init__(self, messages):
         if not isinstance(messages, (list, tuple, dict)):
@@ -27,6 +26,16 @@ class ValidationError(ValueError):
                 clean_messages.append(v)
 
         return clean_messages
+
+
+class ConversionError(BaseError):
+    """ Exception raised when data cannot be converted to the correct python type """
+    pass
+
+
+class ValidationError(BaseError):
+    """Exception raised when invalid data is encountered."""
+    pass
 
 
 class ModelValidationError(ValidationError):

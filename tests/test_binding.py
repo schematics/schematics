@@ -6,6 +6,7 @@ from schematics.models import Model
 from schematics.types.base import StringType
 from schematics.types.compound import ListType, ModelType
 from schematics.types.serializable import serializable
+from schematics.exceptions import ValidationError
 
 
 class TestFieldBinding(unittest.TestCase):
@@ -23,8 +24,10 @@ class TestFieldBinding(unittest.TestCase):
         self.assertEqual(p1.name, p2.name)
         self.assertEqual(id(p1.name), id(p2.name))
 
-        p1.validate({"name": u"Jóhann"}, raises=False)
-        p2.validate(raises=False)
+        p1.name = "Jóhann"
+        p1.validate()
+        with self.assertRaises(ValidationError):
+            p2.validate()
 
         self.assertNotEqual(p1, p2)
         self.assertNotEqual(id(p1), id(p2))
@@ -32,9 +35,6 @@ class TestFieldBinding(unittest.TestCase):
         self.assertNotEqual(id(p1.name), id(p2.name))
 
         self.assertEqual(id(p1._fields["name"]), id(p2._fields["name"]))
-
-        self.assertFalse(p1.errors)
-        self.assertTrue(p2.errors)
 
     def test_reason_why_we_must_bind_fields_model_field(self):
         class Location(Model):
@@ -52,8 +52,13 @@ class TestFieldBinding(unittest.TestCase):
         self.assertEqual(p1.location, p2.location)
         self.assertEqual(id(p1.location), id(p2.location))
 
-        p1.validate({"location": {"country_code": "us"}}, raises=False)
-        p2.validate({"location": {}}, raises=False)
+        p1.location = {"country_code": "us"}
+        self.assertEqual(p1.location.country_code, "us")
+
+        p2.location = {}
+
+        with self.assertRaises(ValidationError):
+            p2.validate()
 
         self.assertNotEqual(p1, p2)
         self.assertNotEqual(id(p1), id(p2))
@@ -61,9 +66,6 @@ class TestFieldBinding(unittest.TestCase):
         self.assertNotEqual(id(p1.location), id(p2.location))
 
         self.assertEqual(id(p1._fields["location"]), id(p2._fields["location"]))
-
-        self.assertFalse(p1.errors)
-        self.assertTrue(p2.errors)
 
     def test_field_binding(self):
         class Person(Model):
@@ -88,11 +90,11 @@ class TestFieldBinding(unittest.TestCase):
             ]
         }
 
-        new_school = School()
-        new_school.validate(valid_data)
+        new_school = School(valid_data)
+        new_school.validate()
 
-        school = School()
-        school.validate(valid_data)
+        school = School(valid_data)
+        school.validate()
 
         self.assertNotEqual(id(new_school), id(school))
 
