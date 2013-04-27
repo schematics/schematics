@@ -1,15 +1,14 @@
 # encoding=utf-8
 
 import unittest
-import datetime
 
 from schematics.models import Model
 from schematics.serialize import whitelist, blacklist
 from schematics.models import ModelOptions
 
-from schematics.types.base import StringType, IntType, DateTimeType
-from schematics.types.compound import ListType, ModelType
-from schematics.exceptions import ValidationError, ConversionError
+from schematics.types.base import StringType, IntType
+from schematics.types.compound import ModelType
+from schematics.exceptions import ValidationError, ConversionError, ModelConversionError
 
 
 class TestModels(unittest.TestCase):
@@ -131,6 +130,20 @@ class TestModels(unittest.TestCase):
 
         self.assertIsNone(u.name)
         self.assertIsNone(u.age)
+
+    def test_returns_nice_conversion_errors(self):
+        class User(Model):
+            name = StringType(required=True)
+            age = IntType(required=True)
+
+        with self.assertRaises(ModelConversionError) as context:
+            User({"name": "Jóhann", "age": "100 years"})
+
+        errors = context.exception.messages
+
+        self.assertEqual(errors, {
+            "age": [u'Value is not int']
+        })
 
 
 class TestDefaultValues(unittest.TestCase):

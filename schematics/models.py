@@ -5,7 +5,7 @@ import itertools
 
 from .types import BaseType
 from .types.serializable import Serializable
-from .exceptions import BaseError, ValidationError, ModelValidationError
+from .exceptions import BaseError, ValidationError, ModelValidationError, ConversionError, ModelConversionError
 from .serialize import serialize, flatten, expand
 from .datastructures import OrderedDict as OrderedDictWithSort
 
@@ -244,17 +244,21 @@ class Model(object):
         fields on the model
         """
         data = {}
+        errors = {}
 
         for field_name, field in self._fields.iteritems():
             serialized_field_name = field.serialized_name or field_name
 
             try:
                 raw_value = raw_data[serialized_field_name]
-                value = None if raw_value is None else field.convert(raw_value)
+                data[field_name] = None if raw_value is None else field.convert(raw_value)
             except KeyError:
-                value = field.default
+                data[field_name] = field.default
+            except ConversionError, e:
+                errors[serialized_field_name] = e.messages
 
-            data[field_name] = value
+        if errors:
+            raise ModelConversionError(errors)
 
         return data
 

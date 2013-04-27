@@ -33,6 +33,10 @@ class ConversionError(BaseError):
     pass
 
 
+class ModelConversionError(ConversionError):
+    pass
+
+
 class ValidationError(BaseError):
     """Exception raised when invalid data is encountered."""
     pass
