@@ -3,7 +3,8 @@ import unittest
 import datetime
 
 from schematics.types import (
-    BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType
+    BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
+    URLType,
 )
 from schematics.exceptions import ValidationError, StopValidation, ConversionError
 
@@ -94,6 +95,12 @@ class TestEmailType(unittest.TestCase):
     def test_email_type_with_invalid_email(self):
         with self.assertRaises(ValidationError):
             EmailType().validate(u'sdfg\U0001f636\U0001f46e')
+
+
+class TestURLType(unittest.TestCase):
+    def test_url_type_with_invalid_url(self):
+        with self.assertRaises(ValidationError):
+            URLType().validate(u'http:example.com')
 
 
 class TestLongType(unittest.TestCase):
