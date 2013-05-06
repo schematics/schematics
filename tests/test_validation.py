@@ -4,7 +4,10 @@ import unittest
 import datetime
 
 from schematics.models import Model
-from schematics.exceptions import BaseError, ValidationError
+from schematics.exceptions import (
+    BaseError, ValidationError, ConversionError,
+    ModelValidationError, ModelConversionError,
+)
 from schematics.types import StringType, DateTimeType, BooleanType
 from schematics.types.compound import ModelType, ListType, DictType
 
@@ -335,3 +338,16 @@ class TestValidationError(unittest.TestCase):
         self.assertEqual(error.messages, {"A": "B"})
 
 
+class TestBuiltinExceptions(unittest.TestCase):
+
+    def test_builtin_conversion_exception(self):
+        with self.assertRaises(TypeError):
+            raise ConversionError('TypeError')
+        with self.assertRaises(TypeError):
+            raise ModelConversionError('TypeError')
+
+    def test_builtin_validation_exception(self):
+        with self.assertRaises(ValueError):
+            raise ValidationError('ValueError')
+        with self.assertRaises(ValueError):
+            raise ModelValidationError('ValueError')
