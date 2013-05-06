@@ -3,7 +3,25 @@ from .exceptions import BaseError
 
 
 def validate(model, raw_data, partial=False, strict=False, context=None):
-    # context may contain data already validated
+    """
+    Validate some untrusted data using a model. Trusted data can be passed in
+    the `context` parameter.
+
+    :param raw_data:
+        A ``dict`` or ``dict``-like structure for incoming data.
+    :param partial:
+        Allow partial data to validate; useful for PATCH requests.
+        Essentially drops the ``required=True`` arguments from field
+        definitions. Default: False
+    :param strict:
+        Complain about unrecognized keys. Default: False
+    :param context:
+        A ``dict``-like structure that may contain already validated data.
+
+    :returns: tuple(data, errors)
+        data dict contains the valid raw_data plus the context data.
+        errors dict contains all ValidationErrors found.
+    """
     data = dict(context) if context is not None else {}
     errors = {}
 
