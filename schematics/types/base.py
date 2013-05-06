@@ -230,6 +230,43 @@ class StringType(BaseType):
             raise ValidationError(self.messages['regex'])
 
 
+class URLType(StringType):
+    """A field that validates input as an URL.
+
+    If verify_exists=True is passed the validate function will make sure
+    the URL makes a valid connection.
+    """
+
+    MESSAGES = {
+        'invalid_url': u"Not a well formed URL.",
+        'not_found': u"URL does not exist.",
+    }
+
+    URL_REGEX = re.compile(
+        r'^https?://'
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'
+        r'localhost|'
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+        r'(?::\d+)?'
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE
+    )
+
+    def __init__(self, verify_exists=False, **kwargs):
+        self.verify_exists = verify_exists
+        super(URLType, self).__init__(**kwargs)
+
+    def validate_url(self, value):
+        if not URLType.URL_REGEX.match(value):
+            raise StopValidation(self.messages['invalid_url'])
+        if self.verify_exists:
+            import urllib2
+            try:
+                request = urllib2.Request(value)
+                urllib2.urlopen(request)
+            except Exception:
+                raise StopValidation(self.messages['not_found'])
+
+
 class EmailType(StringType):
     """A field that validates input as an E-Mail-Address.
     """
