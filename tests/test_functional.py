@@ -54,3 +54,13 @@ class TestFunctionalInterface(unittest.TestCase):
 
         self.assertIn('name', errors)
         self.assertEqual(data, {'id': 4, 'name': 'Arthur'})
+
+    def test_validate_partial_with_context_data(self):
+        class Player(Model):
+            id = IntType()
+            name = StringType(required=True)
+
+        data, errors = validate(Player, {'id': 4}, partial=False, context={'name': 'Arthur'})
+
+        self.assertFalse(errors)
+        self.assertEqual(data, {'id': 4, 'name': 'Arthur'})
