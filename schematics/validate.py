@@ -38,7 +38,7 @@ def validate(model, raw_data, partial=False, strict=False, context=None):
 
 
 def _check_for_unknown_fields(model, data):
-    errors = []
+    errors = {}
     rogues_found = set(data) - set(model._fields)
     if len(rogues_found) > 0:
         for field_name in rogues_found:

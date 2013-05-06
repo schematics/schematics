@@ -45,3 +45,12 @@ class TestFunctionalInterface(unittest.TestCase):
 
         self.assertFalse(errors)
         self.assertEqual(data, {'id': 4, 'name': 'Arthur'})
+
+    def test_validate_strict_with_context_data(self):
+        class Player(Model):
+            id = IntType()
+
+        data, errors = validate(Player, {'id': 4}, strict=True, context={'name': 'Arthur'})
+
+        self.assertIn('name', errors)
+        self.assertEqual(data, {'id': 4, 'name': 'Arthur'})
