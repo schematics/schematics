@@ -7,6 +7,9 @@ def validate(model, raw_data, partial=False, strict=False, context=None):
     Validate some untrusted data using a model. Trusted data can be passed in
     the `context` parameter.
 
+    :param model:
+        The model to use as source for validation. If given an instance,
+        will also run instance-level validators on the data.
     :param raw_data:
         A ``dict`` or ``dict``-like structure for incoming data.
     :param partial:
@@ -52,7 +55,36 @@ def validate(model, raw_data, partial=False, strict=False, context=None):
         rogue_field_errors = _check_for_unknown_fields(model, data)
         errors.update(rogue_field_errors)
 
+    # validate an instance with its own validators
+    if hasattr(model, '_data'):
+        instance_errors = _validate_instance(model, data)
+        errors.update(instance_errors)
+
     return data, errors
+
+
+def _validate_instance(instance, data):
+    """
+    Validate data using instance level methods.
+
+    :param data:
+        A dict with data to validate. Invalid items are removed from it.
+
+    :returns:
+        Errors of the fields that did not pass validation.
+    """
+    errors = {}
+    for field_name, value in data.items():
+        if field_name in instance._validator_functions:
+            try:
+                context = dict(instance._data, **data)
+                instance._validator_functions[field_name](instance, context, value)
+            except BaseError as e:
+                field = instance._fields[field_name]
+                serialized_field_name = field.serialized_name or field_name
+                errors[serialized_field_name] = e.messages
+                data.pop(field_name, None)  # get rid of the invalid field
+    return errors
 
 
 def _check_for_unknown_fields(model, data):

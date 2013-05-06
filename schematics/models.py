@@ -166,32 +166,16 @@ class Model(object):
         Validates the state of the model and adding additional untrusted data
         as well. If the models is invalid, raises ValidationError with error messages.
 
-        :param raw_data:
-            A ``dict`` or ``dict``-like structure for incoming data.
         :param partial:
             Allow partial data to validate; useful for PATCH requests.
             Essentially drops the ``required=True`` arguments from field
-            definitions. Default: True
+            definitions. Default: False
         :param strict:
             Complain about unrecognized keys. Default: False
         """
         data, errors = validate(self, self._data, partial=partial, strict=strict)
-
-        # validate with instance level functions
-        for field_name, value in data.items():
-            if field_name in self._validator_functions:
-                field = self._fields[field_name]
-                serialized_field_name = field.serialized_name or field_name
-                try:
-                    context = dict(self._data, **data)
-                    self._validator_functions[field_name](self, context, value)
-                except BaseError as e:
-                    errors[serialized_field_name] = e.messages
-                    data.pop(field_name)  # get rid of the field if invalid
-
         if errors:
             raise ModelValidationError(errors)
-
         # Set internal data and touch the TypeDescriptors by setattr
         self._data.update(**data)
 

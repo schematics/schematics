@@ -4,6 +4,7 @@ import unittest
 from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.validate import validate
+from schematics.exceptions import ValidationError
 
 
 class TestFunctionalInterface(unittest.TestCase):
@@ -21,7 +22,7 @@ class TestFunctionalInterface(unittest.TestCase):
             name = StringType()
 
         p1 = Player({'id': 4})
-        data, errors = validate(p1, {'name': 'Arthur'}, context=p1._data)
+        data, errors = validate(Player, {'name': 'Arthur'}, context=p1._data)
 
         self.assertFalse(errors)
         self.assertEqual(data, {'id': 4, 'name': 'Arthur'})
@@ -32,7 +33,7 @@ class TestFunctionalInterface(unittest.TestCase):
             id = IntType()
 
         p1 = Player({'id': 4})
-        data, errors = validate(p1, {'id': 3}, context=p1._data)
+        data, errors = validate(Player, {'id': 3}, context=p1._data)
 
         self.assertFalse(errors)
         self.assertEqual(data, {'id': 3})
@@ -64,3 +65,19 @@ class TestFunctionalInterface(unittest.TestCase):
 
         self.assertFalse(errors)
         self.assertEqual(data, {'id': 4, 'name': 'Arthur'})
+
+    def test_validate_with_instance_level_validators(self):
+        class Player(Model):
+            id = IntType()
+
+            def validate_id(self, context, value):
+                if self.id:
+                    raise ValidationError('Cannot change id')
+
+        p1 = Player({'id': 4})
+        data, errors = validate(p1, {'id': 3})
+
+        self.assertIn('id', errors)
+        self.assertIn('Cannot change id', errors['id'])
+        self.assertEqual(p1.id, 4)
+        self.assertFalse(data)
