@@ -28,7 +28,7 @@ class BaseError(Exception):
         return clean_messages
 
 
-class ConversionError(BaseError):
+class ConversionError(BaseError, TypeError):
     """ Exception raised when data cannot be converted to the correct python type """
     pass
 
@@ -37,7 +37,7 @@ class ModelConversionError(ConversionError):
     pass
 
 
-class ValidationError(BaseError):
+class ValidationError(BaseError, ValueError):
     """Exception raised when invalid data is encountered."""
     pass
 
