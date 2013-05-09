@@ -208,7 +208,7 @@ class UUIDType(BaseType):
                 error_msg = 'Not a valid UUID value'
                 raise ValidationError(error_msg)
 
-        return True
+        return new_value
 
     def for_json(self, value):
         """Return a JSON safe version of the UUID object.
