@@ -62,11 +62,11 @@ class PathType(StringType):
             raise ValidationError("path is not a directory")
 
         if self.access is not None and not os.access(realpath, self.access):
-                permissions = self._access_to_permission_list(self.access)
-                error_msg = "path one or more of the following permissions: {}"
-                raise ValidationError(error_msg.format(", ".join(permissions)))
+            permissions = self._access_to_permission_list(self.access)
+            error_msg = "path one or more of the following permissions: {}"
+            raise ValidationError(error_msg.format(", ".join(permissions)))
 
-        return True
+        return realpath
 
     def _access_to_permission_list(self, access):
         permissions = []

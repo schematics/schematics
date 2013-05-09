@@ -2,6 +2,7 @@ import uuid
 import re
 import datetime
 import decimal
+import itertools
 
 
 from schematics.exceptions import ValidationError
@@ -29,17 +30,17 @@ class BaseType(object):
     __metaclass__ = BaseTypeMetaClass
 
     def __init__(self, required=False, default=None, field_name=None,
-                 print_name=None, choices=None, validation=None, description=None,
+                 print_name=None, choices=None, validators=None, description=None,
                  minimized_field_name=None):
 
+        self.minimized_field_name = minimized_field_name
+        self.field_name = field_name
+        self.print_name = print_name  ### TODO this name sucks
         self.required = required
         self.default = default
-        self.field_name = field_name
-        self.print_name = print_name
         self.choices = choices
-        self.validation = validation
+        self.validators = validators
         self.description = description
-        self.minimized_field_name = minimized_field_name
 
     def __get__(self, instance, owner):
         """Descriptor for retrieving a value from a field in a model. Do
@@ -74,15 +75,32 @@ class BaseType(object):
             raise AttributeError(error_msg)
         del instance._fields[self.name]
 
+    ### TODO rename. `to_python`?
     def for_python(self, value):
         """Convert a Structures type into native Python value
         """
         return value
 
+    ### TODO rename. `to_unicode`?
     def for_json(self, value):
         """Convert a Structures type into a value safe for JSON encoding
         """
         return self.for_python(value)
+
+    ###
+    ### Validation
+    ###
+
+    def validate_choices(self, value):
+        if self.choices is not None and value not in self.choices:
+            error_msg = 'Value must be one of %s.' % unicode(self.choices)
+            raise ValidationError(error_msg)
+        return value
+
+    def validate_required(self, value):
+        if self.required and value is None:
+            raise StopValidation(u'Field must have a significant value')
+        return value
 
     def validate(self, value):
         """Function that is overridden by subclasses for their validation logic
@@ -90,26 +108,21 @@ class BaseType(object):
         pass
 
     def _validate(self, value):
-        """This function runs before `validate()` and handles applying the
-        global environment parameters.
-        """
-        # `choices`
-        if self.choices is not None:
-            if value not in self.choices:
-                error_msg = 'Value must be one of %s.' % unicode(self.choices)
-                raise ValidationError(error_msg)
+        validator_chain = itertools.chain(
+            [
+                self.validate_required,
+                self.validate,
+                self.validate_choices,
+            ],
+            self.validators or []
+        )
 
-        # `validation` function
-        if self.validation is not None:
-            if callable(self.validation):
-                if not self.validation(value):
-                    error_msg = 'Value failed custom validation.'
-                    raise ValidationError(error_msg)
-            else:
-                error_msg = 'Validation argument must be a callable.'
-                raise ValidationError(error_msg)
+        for validator in validator_chain:
+            validator(value)
 
-        return self.validate(value)
+    ###
+    ### jsonschema
+    ###
 
     def _jsonschema_default(self):
         if callable(self.default):
@@ -275,12 +288,9 @@ class StringType(BaseType):
     def _jsonschema_pattern(self):
         return self.regex
 
-    def for_python(self, value):
-        if value is None:
-            return None
-        return unicode(value)
-
     def validate(self, value):
+        value = unicode(value)
+        
         if not isinstance(value, (str, unicode)):
             raise ValidationError('Not a boolean')
 
@@ -293,7 +303,8 @@ class StringType(BaseType):
         if self.regex is not None and self.regex.match(value) is None:
             error_msg = 'String value did not match validation regex'
             raise ValidationError(error_msg)
-        return True
+
+        return value
     
 
     def lookup_member(self, member_name):
@@ -342,7 +353,8 @@ class URLType(StringType):
                 urllib2.urlopen(request)
             except Exception:
                 raise ValidationError('URL does not exist')
-        return True
+
+        return value
 
 
 class EmailType(StringType):
@@ -363,7 +375,7 @@ class EmailType(StringType):
     def validate(self, value):
         if not EmailType.EMAIL_REGEX.match(value):
             raise ValidationError('Invalid email address')
-        return True
+        return value
 
     def _jsonschema_format(self):
         return 'email'
@@ -411,9 +423,6 @@ class NumberType(JsonNumberMixin, BaseType):
                 value = self.number_class(value)
         instance._data[self.field_name] = value    
 
-    def for_python(self, value):
-        return self.number_class(value)
-
     def validate(self, value):
         try:
             value = self.number_class(value)
@@ -430,7 +439,7 @@ class NumberType(JsonNumberMixin, BaseType):
                                                           self.max_value)
             raise ValidationError(error_msg)
 
-        return True
+        return value
 
 
 class IntType(NumberType):
@@ -439,8 +448,8 @@ class IntType(NumberType):
 
     def __init__(self, *args, **kwargs):
         super(IntType, self).__init__(number_class=int,
-                                       number_type='Int',
-                                       *args, **kwargs)
+                                      number_type='Int',
+                                      *args, **kwargs)
 
     def _jsonschema_type(self):
         return 'number'
@@ -459,8 +468,8 @@ class LongType(NumberType):
     """
     def __init__(self, *args, **kwargs):
         super(LongType, self).__init__(number_class=long,
-                                        number_type='Long',
-                                        *args, **kwargs)
+                                       number_type='Long',
+                                       *args, **kwargs)
 
 
 class FloatType(NumberType):
@@ -468,8 +477,8 @@ class FloatType(NumberType):
     """
     def __init__(self, *args, **kwargs):
         super(FloatType, self).__init__(number_class=float,
-                                         number_type='Float',
-                                         *args, **kwargs)
+                                        number_type='Float',
+                                        *args, **kwargs)
 
 
 class DecimalType(BaseType, JsonNumberMixin):
@@ -480,18 +489,10 @@ class DecimalType(BaseType, JsonNumberMixin):
         self.min_value, self.max_value = min_value, max_value
         super(DecimalType, self).__init__(**kwargs)
 
-    def for_python(self, value):
-        if not isinstance(value, basestring):
-            value = unicode(value)
-        return decimal.Decimal(value)
-
-    def for_json(self, value):
-        return unicode(value)
-
     def validate(self, value):
         if not isinstance(value, decimal.Decimal):
             if not isinstance(value, basestring):
-                value = str(value)
+                value = unicode(value)
             try:
                 value = decimal.Decimal(value)
             except Exception:
@@ -505,7 +506,7 @@ class DecimalType(BaseType, JsonNumberMixin):
             error_msg = 'Decimal value above max_value: %s' % self.max_value
             raise ValidationError(error_msg)
 
-        return True
+        return value
 
 
 ###
@@ -538,7 +539,7 @@ class MD5Type(BaseType, JsonHashMixin):
             value = int(value, 16)
         except:
             raise ValidationError('MD5 value is not hex')
-        return True
+        return value
 
 
 class SHA1Type(BaseType, JsonHashMixin):
@@ -553,7 +554,7 @@ class SHA1Type(BaseType, JsonHashMixin):
             value = int(value, 16)
         except:
             raise ValidationError('SHA1 value is not hex')
-        return True
+        return value
 
 
 ###
@@ -590,13 +591,10 @@ class BooleanType(BaseType):
 
         instance._data[self.field_name] = value
 
-    def for_python(self, value):
-        return bool(value)
-
     def validate(self, value):
         if not isinstance(value, bool):
             raise ValidationError('Not a boolean')
-        return True
+        return value
 
 
 class DateTimeType(BaseType):
@@ -690,9 +688,6 @@ class DateTimeType(BaseType):
     def validate(self, value):
         if not isinstance(value, datetime.datetime):
             raise ValidationError('Not a datetime')
-        return True
-
-    def for_python(self, value):
         return value
 
     def for_json(self, value):
@@ -728,7 +723,7 @@ class DictType(BaseType):
         if any(('.' in k or '$' in k) for k in value):
             error_msg = 'Invalid dictionary key - may not contain "." or "$"'
             raise ValidationError(error_msg)
-        return True
+        return value
 
     def lookup_member(self, member_name):
         return self.basecls(field_name=member_name)
@@ -769,4 +764,5 @@ class GeoPointType(BaseType):
         else:
             error_msg = 'GeoPointType can only accept tuples, lists, or dicts'
             raise ValidationError(error_msg)
-        return True
+        
+        return value

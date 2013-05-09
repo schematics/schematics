@@ -50,4 +50,4 @@ class ObjectIdType(BaseType):
                 value = bson.objectid.ObjectId(unicode(value))
             except Exception, e:
                 raise ValidationError('Invalid ObjectId')
-        return True
+        return value

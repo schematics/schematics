@@ -67,7 +67,7 @@ class ListType(BaseType):
 
         is_model = lambda tipe: isinstance(tipe, ModelType)
         model_fields = filter(is_model, self.fields)
-        
+
         if self.primary_embedded:
             model_fields.remove(self.primary_embedded)
             model_fields.insert(0, self.primary_embedded)
@@ -76,6 +76,7 @@ class ListType(BaseType):
             value_list = []  # have to use a list
 
         errors_found = False
+
         if model_fields:
             new_data = list()
             for datum in value_list:
@@ -100,12 +101,12 @@ class ListType(BaseType):
                             datum = datum._data
                         datum_instance = model_field.model_type_obj(**datum)
 
-                ### Validate model
-                try:
-                    result = datum_instance.validate()
-                    new_data.append(datum_instance)
-                except ValidationError, ve:
-                    errors_found = True
+            ### Validate model
+            try:
+                result = datum_instance.validate()
+                new_data.append(datum_instance)
+            except ValidationError, ve:
+                errors_found = True
                     
             new_value = new_data
 
@@ -153,7 +154,7 @@ class ListType(BaseType):
             raise ValidationError(error_msg)
 
         if not self.fields:
-            return True
+            return value
 
         errors = []
         good_data = []
@@ -169,7 +170,7 @@ class ListType(BaseType):
         if len(errors) > 0:
             raise ValidationError('Invalid ListType item')
         
-        return True
+        return good_data
 
     def _set_owner_model(self, owner_model):
         for field in self.fields:
@@ -310,7 +311,7 @@ class MultiValueDictType(DictType):
             error_msg = 'Invalid dictionary key name - keys may not contain '
             error_msg = error_msg + '"." or "$" characters'
             raise ValidationError(error_msg)
-        return True
+        return value
 
     def for_json(self, value):
         output = {}

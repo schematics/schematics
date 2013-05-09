@@ -17,8 +17,3 @@ class ValidationError(ValueError):
                     msgs_.setdefault(index, []).extend(msg)
             return msgs_
         return list(messages)
-
-
-class StopValidation(ValidationError):
-    """Exception raised when no more validation need occur."""
-    pass
