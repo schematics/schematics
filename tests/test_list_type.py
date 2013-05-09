@@ -81,12 +81,12 @@ class TestSetGetSingleScalarData(unittest.TestCase):
         fun = lambda: self.testmodel.validate()
         self.assertRaises(ValidationError, fun)
         
-    def test_validation_converts_value(self):
-        self.testmodel.the_list = ["2","2","2","2","2","2"]
-        self.testmodel.validate()
-        result = to_python(self.testmodel)
-        new_list = result['the_list']
-        self.assertEqual(new_list, [2,2,2,2,2,2])
+#    def test_validation_converts_value(self):
+#        self.testmodel.the_list = ["2","2","2","2","2","2"]
+#        self.testmodel.validate()
+#        result = to_python(self.testmodel)
+#        new_list = result['the_list']
+#        self.assertEqual(new_list, [2,2,2,2,2,2])
 
         
 class TestGetSingleEmbeddedData(unittest.TestCase):

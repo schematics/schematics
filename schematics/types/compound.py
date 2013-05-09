@@ -101,12 +101,12 @@ class ListType(BaseType):
                             datum = datum._data
                         datum_instance = model_field.model_type_obj(**datum)
 
-            ### Validate model
-            try:
-                result = datum_instance.validate()
-                new_data.append(datum_instance)
-            except ValidationError, ve:
-                errors_found = True
+                ### Validate model
+                try:
+                    result = datum_instance.validate()
+                    new_data.append(datum_instance)
+                except ValidationError, ve:
+                    errors_found = True
                     
             new_value = new_data
 
