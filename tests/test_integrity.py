@@ -31,10 +31,11 @@ class TestDataIntegrity(unittest.TestCase):
             id = IntType()
 
             def validate_id(self, context, value):
-                if self.id:
+                if self._data.get('id'):
                     raise ValidationError('Cannot change id')
 
         p1 = Player({'id': 4})
+        p1.validate()
         p1.id = 3
         self.assertRaises(ModelValidationError, p1.validate)
         self.assertEqual(p1.id, 4)
