@@ -13,25 +13,25 @@ class TestFunctionalInterface(unittest.TestCase):
         class Player(Model):
             id = IntType()
 
-        validate(Player, {'id': 4})            
+        validate(Player, {'id': 4})
 
     def test_validate_keep_context_data(self):
         class Player(Model):
             id = IntType()
             name = StringType()
 
-        p1 = Player({'id': 4})
-        data = validate(Player, {'name': 'Arthur'}, context=p1._data)
+        ctx = {'id': 4}
+        data = validate(Player, {'name': 'Arthur'}, context=ctx)
 
         self.assertEqual(data, {'id': 4, 'name': 'Arthur'})
-        self.assertNotEqual(data, p1._data)
+        self.assertNotEqual(data, ctx)
 
     def test_validate_override_context_data(self):
         class Player(Model):
             id = IntType()
 
-        p1 = Player({'id': 4})
-        data = validate(Player, {'id': 3}, context=p1._data)
+        ctx = {'id': 4}
+        data = validate(Player, {'id': 3}, context=ctx)
 
         self.assertEqual(data, {'id': 3})
 
