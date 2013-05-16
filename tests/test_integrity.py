@@ -3,7 +3,7 @@ import unittest
 
 from schematics.models import Model
 from schematics.types import IntType, StringType
-from schematics.exceptions import ValidationError
+from schematics.exceptions import ModelValidationError, ValidationError
 
 
 class TestDataIntegrity(unittest.TestCase):
@@ -18,7 +18,7 @@ class TestDataIntegrity(unittest.TestCase):
             code = StringType(max_length=4)
 
         p1 = Player({'code': 'invalid1'})
-        self.assertRaises(ValidationError, p1.validate)
+        self.assertRaises(ModelValidationError, p1.validate)
         self.assertEqual(p1.serialize(), {'code': None})
 
     def test_dont_overwrite_with_invalid_data(self):
@@ -36,5 +36,5 @@ class TestDataIntegrity(unittest.TestCase):
 
         p1 = Player({'id': 4})
         p1.id = 3
-        self.assertRaises(ValidationError, p1.validate)
+        self.assertRaises(ModelValidationError, p1.validate)
         self.assertEqual(p1.id, 4)
