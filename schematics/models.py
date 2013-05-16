@@ -21,17 +21,22 @@ class FieldDescriptor(object):
         try:
             if model is None:
                 return type.fields[self.name]
-            return model._data[self.name]
+            if self.name in model._raw_data:
+                return model._raw_data[self.name]
+            elif self.name in model._data:
+                return model._data[self.name]
+            else:
+                return model._fields[self.name].default
         except KeyError:
             raise AttributeError(self.name)
 
     def __set__(self, model, value):
         field = model._fields[self.name]
         # TODO: read Options class for strict type checking flag
-        #model._data[self.name] = field(value)
+        #model._raw_data[self.name] = field(value)
         if not isinstance(value, Model) and isinstance(field, ModelType):
             value = field.model_class(value)
-        model._data[self.name] = value
+        model._raw_data[self.name] = value
 
     def __delete__(self, model):
         if self.name not in model._fields:
@@ -162,7 +167,8 @@ class Model(object):
         if raw_data is None:
             raw_data = {}
         self._initial = raw_data
-        self._data = self.convert(raw_data)
+        self._raw_data = self.convert(raw_data)
+        self._data = {}
 
     def validate(self, partial=False, strict=False):
         """
@@ -176,12 +182,17 @@ class Model(object):
         :param strict:
             Complain about unrecognized keys. Default: False
         """
+        if not self._raw_data:
+            return  # no input data to validate
         try:
-            data = validate(self, self._data, partial=partial, strict=strict)
+            data = validate(self, self._raw_data, partial=partial, strict=strict)
             # Set internal data and touch the TypeDescriptors by setattr
             self._data.update(**data)
         except BaseError as e:
             raise ModelValidationError(e.messages)
+        finally:
+            # input data was processed, clear it
+            self._raw_data = {}
 
     def serialize(self, role=None):
         """Return data as it would be validated. No filtering of output unless
@@ -247,7 +258,7 @@ class Model(object):
 
     def iter(self):
         return iter(self._fields)
-    
+
     def atoms(self, include_serializables=True):
         return atoms(self.__class__, self, include_serializables)
 
@@ -260,24 +271,19 @@ class Model(object):
 
     def __setitem__(self, name, value):
         # Ensure that the field exists before settings its value
-        if name not in self._data:
+        if not self.__contains__(name):
             raise KeyError(name)
         return setattr(self, name, value)
 
     def __contains__(self, name):
-        return name in self._data or name in self._serializables
+        return name in self._fields or name in self._serializables
 
     def __len__(self):
         return len(self._data)
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            keys = self._fields
-
-            for key in keys:
-                if self[key] != other[key]:
-                    return False
-            return True
+            return self._data == other._data and self._raw_data == other._raw_data
         return False
 
     def __ne__(self, other):
