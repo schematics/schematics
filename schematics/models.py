@@ -185,7 +185,7 @@ class Model(object):
         if not self._raw_data:
             return  # no input data to validate
         try:
-            data = validate(self, self._raw_data, partial=partial, strict=strict)
+            data = validate(self, self._raw_data, partial=partial, strict=strict, context=self._data)
             # Set internal data and touch the TypeDescriptors by setattr
             self._data.update(**data)
         except BaseError as e:

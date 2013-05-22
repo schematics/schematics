@@ -39,3 +39,27 @@ class TestDataIntegrity(unittest.TestCase):
         p1.id = 3
         self.assertRaises(ModelValidationError, p1.validate)
         self.assertEqual(p1.id, 4)
+
+    def test_model_state_after_multiple_validation(self):
+        """
+        Validation must maintain a sane state after multiple operations.
+
+        """
+        class Player(Model):
+            id = IntType()
+            code = StringType(max_length=4)
+
+        p1 = Player({'id': 4})
+        p1.validate()
+        self.assertEqual(p1.serialize(), {'id': 4, 'code': None})
+        p1.code = 'AAA'
+        p1.validate()
+        self.assertEqual(p1.serialize(), {'id': 4, 'code': 'AAA'})
+        p1.code = 'BBB'
+        p1.validate()
+        self.assertEqual(p1.serialize(), {'id': 4, 'code': 'BBB'})
+        p1.code = 'CCCERR'
+        self.assertRaises(ValidationError, p1.validate)
+        self.assertEqual(p1.serialize(), {'id': 4, 'code': 'BBB'})
+        p1.validate()
+        self.assertEqual(p1.serialize(), {'id': 4, 'code': 'BBB'})
