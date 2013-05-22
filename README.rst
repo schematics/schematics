@@ -1,5 +1,5 @@
 Schematics
-~~~~~~~~~~
+==========
 
 **Python Data Structures for Humans™.**
 
