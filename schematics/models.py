@@ -7,6 +7,7 @@ from .types import BaseType
 from .types.serializable import Serializable
 from .exceptions import BaseError, ValidationError, ModelValidationError, ConversionError, ModelConversionError
 from .serialize import serialize, flatten, expand
+from .validate import validate
 from .datastructures import OrderedDict as OrderedDictWithSort
 
 
@@ -165,55 +166,16 @@ class Model(object):
         Validates the state of the model and adding additional untrusted data
         as well. If the models is invalid, raises ValidationError with error messages.
 
-        :param raw_data:
-            A ``dict`` or ``dict``-like structure for incoming data.
         :param partial:
             Allow partial data to validate; useful for PATCH requests.
             Essentially drops the ``required=True`` arguments from field
-            definitions. Default: True
+            definitions. Default: False
         :param strict:
             Complain about unrecognized keys. Default: False
         """
-        raw_data = self._data
-
-        errors = {}
-        data = {}
-
-        for field_name, field in self._fields.iteritems():
-            # Rely on parameter for whether or not we should check value
-            serialized_field_name = field.serialized_name or field_name
-
-            # print field_name, data, raw_data, self._data
-            # if needs_check(serialized_field_name, field):
-            try:
-                value = raw_data[serialized_field_name]
-            except KeyError:
-                value = field.default
-
-            if field.required and value is None:
-                if not partial:
-                    errors[serialized_field_name] = [field.messages["required"], ]
-            elif value is None:  # The field isn't required so the value can be None
-                data[field_name] = None
-            else:
-                try:
-                    field.validate(value)
-
-                    if field_name in self._validator_functions:
-                        context = dict(self._data, **data)
-                        self._validator_functions[field_name](self, context, value)
-                except BaseError, e:
-                    errors[serialized_field_name] = e.messages
-                else:
-                    data[field_name] = value
-
-        if strict:
-            rogue_field_errors = self._check_for_unknown_fields(data)
-            errors.update(rogue_field_errors)
-
+        data, errors = validate(self, self._data, partial=partial, strict=strict)
         if errors:
             raise ModelValidationError(errors)
-
         # Set internal data and touch the TypeDescriptors by setattr
         self._data.update(**data)
 
@@ -261,16 +223,6 @@ class Model(object):
             raise ModelConversionError(errors)
 
         return data
-
-    def _check_for_unknown_fields(self, data):
-        # set takes iterables, iterating over keys in this instance
-        errors = []
-        rogues_found = set(data) - set(self._fields)
-        if len(rogues_found) > 0:
-            for field_name in rogues_found:
-                errors[field_name] = [u'%s is an illegal field.' % field_name]
-
-        return errors
 
     def __iter__(self):
         return self.iter()
