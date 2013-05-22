@@ -3,216 +3,181 @@ import re
 import datetime
 import decimal
 import itertools
+import functools
+
+from ..exceptions import StopValidation, ValidationError, ConversionError
 
 
-from schematics.exceptions import ValidationError
-from schematics.types import schematic_types
+def force_unicode(obj, encoding='utf-8'):
+    if isinstance(obj, basestring):
+        if not isinstance(obj, unicode):
+            obj = unicode(obj, encoding)
+    elif not obj is None:
+        obj = unicode(obj)
+
+    return obj
 
 
-class BaseTypeMetaClass(type):
-    def __init__(cls, name, bases, dct):
-        if hasattr(cls, '_from_jsonschema_formats'):
-            for fmt in cls._from_jsonschema_formats():
-                for tipe in cls._from_jsonschema_types():
-                    schematic_types[(tipe, fmt)] = cls
-        super(BaseTypeMetaClass, cls).__init__(name, bases, dct)
+_last_position_hint = -1
+_next_position_hint = itertools.count().next
 
 
-###
-### Base Type
-###
+class TypeMeta(type):
+    """
+    Meta class for BaseType. Merges `MESSAGES` dict and accumulates
+    validator methods.
+    """
+
+    def __new__(cls, name, bases, attrs):
+        messages = {}
+        validators = []
+
+        for base in reversed(bases):
+            if hasattr(base, 'MESSAGES'):
+                messages.update(base.MESSAGES)
+
+            if hasattr(base, "_validators"):
+                validators.extend(base._validators)
+
+        if 'MESSAGES' in attrs:
+            messages.update(attrs['MESSAGES'])
+
+        attrs['MESSAGES'] = messages
+
+        for attr_name, attr in attrs.iteritems():
+            if attr_name.startswith("validate_"):
+                validators.append(attr)
+
+        attrs["_validators"] = validators
+
+        return type.__new__(cls, name, bases, attrs)
+
 
 class BaseType(object):
-    """A base class for Types in a Schematics model. Instances of this
-    class may be added to subclasses of `Model` to define a model schema.
+    """
+    A base class for Types in a Schematics model. Instances of this
+    class may be added to subclasses of ``Model`` to define a model schema.
+
+    Validators that need to access variables on the instance
+    can be defined be implementing methods whose names start with ``validate_``
+    and accept one parameter (in addition to ``self``)
+
+    :param required:
+        Invalidate field when value is None or is not supplied. Default:
+        False.
+    :param default:
+        When no data is provided default to this value. May be a callable.
+        Default: None.
+    :param serialized_name:
+        The name of this field defaults to the class attribute used in the
+        model. However if the field has another name in foreign data set this
+        argument. Serialized data will use this value for the key name too.
+    :param choices:
+        An iterable of valid choices. This is the last step of the validator
+        chain.
+    :param validators:
+        A list of callables. Each callable receives the value after it has been
+        converted into a rich python type. Default: []
+    :param serialize_when_none:
+        Dictates if the field should appear in the serialized data even if the
+        value is None. Default: True
+    :param messages:
+        Override the error messages with a dict. You can also do this by
+        subclassing the Type and defining a `MESSAGES` dict attribute on the
+        class. A metaclass will merge all the `MESSAGES` and override the
+        resulting dict with instance level `messages` and assign to
+        `self.messages`.
+
     """
 
-    __metaclass__ = BaseTypeMetaClass
+    __metaclass__ = TypeMeta
 
-    def __init__(self, required=False, default=None, field_name=None,
-                 print_name=None, choices=None, validators=None, description=None,
-                 minimized_field_name=None):
+    MESSAGES = {
+        'required': u"This field is required.",
+        'choices': u"Value must be one of {}.",
+    }
 
-        self.minimized_field_name = minimized_field_name
-        self.field_name = field_name
-        self.print_name = print_name  ### TODO this name sucks
+    def __init__(self, required=False, default=None, serialized_name=None,
+                 choices=None, validators=None,
+                 serialize_when_none=None, messages=None):
         self.required = required
-        self.default = default
+        self._default = default
+        self.serialized_name = serialized_name
         self.choices = choices
-        self.validators = validators
-        self.description = description
 
-    def __get__(self, instance, owner):
-        """Descriptor for retrieving a value from a field in a model. Do
-        any necessary conversion between Python and `Schematics` types.
-        """
-        if instance is None:
-            # Model class being used rather than a model object
-            return self
+        self.validators = [functools.partial(v, self) for v in self._validators]
+        if validators:
+            self.validators += validators
 
-        if self.field_name not in instance._data:
-            raise AttributeError(self.field_name)
-    
-        value = instance._data.get(self.field_name)
+        self.serialize_when_none = serialize_when_none
+        self.messages = dict(self.MESSAGES, **(messages or {}))
+        self._position_hint = _next_position_hint()  # For ordering of fields
 
-        if value is None and self.default is not None:
-            value = self.default
-            # Callable values are best for mutable defaults
-            if callable(value):
-                value = value()
+    def __call__(self, value):
+        return self.convert(value)
 
-        return value
+    @property
+    def default(self):
+        default = self._default
+        if callable(self._default):
+            default = self._default()
+        return default
 
-    def __set__(self, instance, value):
-        """Descriptor for assigning a value to a field in a model.
-        """
-        instance._data[self.field_name] = value
-
-    def __delete__(self, instance):
-        if self.name not in instance._fields:
-            instance_name = type(instance).__name__
-            error_msg = '%r has no attribute %r' % (instance_name, self.name)
-            raise AttributeError(error_msg)
-        del instance._fields[self.name]
-
-    ### TODO rename. `to_python`?
-    def for_python(self, value):
-        """Convert a Schematics type into native Python value
+    def to_primitive(self, value):
+        """Convert internal data to a value safe to serialize.
         """
         return value
 
-    ### TODO rename. `to_unicode`?
-    def for_json(self, value):
-        """Convert a Schematics type into a value safe for JSON encoding
+    def convert(self, value):
         """
-        return self.for_python(value)
+        Convert untrusted data to a richer Python construct.
+        """
+        return value
 
-    ###
-    ### Validation
-    ###
+    def validate(self, value):
+        """
+        Validate the field and return a clean value or raise a
+        ``ValidationError`` with a list of errors raised by the validation
+        chain. Stop the validation process from continuing through the
+        validators by raising ``StopValidation`` instead of ``ValidationError``.
+
+        """
+
+        errors = []
+
+        for validator in self.validators:
+            try:
+                validator(value)
+            except ValidationError, e:
+                errors.extend(e.messages)
+
+                if isinstance(e, StopValidation):
+                    break
+
+        if errors:
+            raise ValidationError(errors)
+
+    def check_if_required(self, value):
+        if self.required and value is None:
+            raise ValidationError(self.messages['required'])
 
     def validate_choices(self, value):
-        if self.choices is not None and value not in self.choices:
-            error_msg = 'Value must be one of %s.' % unicode(self.choices)
-            raise ValidationError(error_msg)
-        return value
+        if self.choices is not None:
+            if value not in self.choices:
+                raise ValidationError(self.messages['choices']
+                    .format(unicode(self.choices)))
 
-    def validate_required(self, value):
-        if self.required and value is None:
-            raise StopValidation(u'Field must have a significant value')
-        return value
-
-    def validate(self, value):
-        """Function that is overridden by subclasses for their validation logic
-        """
-        pass
-
-    def _validate(self, value):
-        validator_chain = itertools.chain(
-            [
-                self.validate_required,
-                self.validate,
-                self.validate_choices,
-            ],
-            self.validators or []
-        )
-
-        for validator in validator_chain:
-            validator(value)
-
-    ###
-    ### jsonschema
-    ###
-
-    def _jsonschema_default(self):
-        if callable(self.default):
-            # jsonschema doesn't support procedural defaults
-            return None
-        else:
-            return self.default
-
-    def _jsonschema_description(self):
-        return self.description
-
-    def _jsonschema_title(self):
-        if self.field_name:
-            return self.field_name
-        else:
-            return None
-
-    def _jsonschema_type(self):
-        return 'any'
-
-    def _jsonschema_required(self):
-        if self.required is True:
-            return self.required
-        else:
-            return None
-
-    def for_jsonschema(self):
-        """Generate the jsonschema by mapping the value of all methods
-        beginning `_jsonschema_' to a key that is the name of the method after
-        `_jsonschema_'.
-
-        For example, `_jsonschema_type' will populate the schema key 'type'.
-        """
-
-        schema = {}
-        get_name = lambda x: x.startswith('_jsonschema')
-        for func_name in filter(get_name, dir(self)):
-            attr_name = func_name.split('_')[-1]
-            attr_value = getattr(self, func_name)()
-            if attr_value is not None:
-                schema[attr_name] = attr_value
-        return schema
-
-
-###
-### Standard Types
-###
 
 class UUIDType(BaseType):
-    """A field that stores a valid UUID value and optionally auto-populates
-    empty values with new UUIDs.
+    """A field that stores a valid UUID value.
     """
 
-    def __init__(self, auto_fill=False, **kwargs):
-        super(UUIDType, self).__init__(**kwargs)
-        self.auto_fill = auto_fill
-
-    def __set__(self, instance, value):
-        """Convert any text values provided into Python UUID objects and
-        auto-populate any empty values should auto_fill be set to True.
-        """
-        if not value and self.auto_fill is True:
-            value = uuid.uuid4()
-
-        if value and not isinstance(value, uuid.UUID):
+    def convert(self, value):
+        if not isinstance(value, uuid.UUID):
             value = uuid.UUID(value)
+        return value
 
-        instance._data[self.field_name] = value
-
-    def _jsonschema_type(self):
-        return 'string'
-
-    def validate(self, value):
-        """Make sure the value is a valid uuid representation.  See
-        http://docs.python.org/library/uuid.html for accepted formats.
-        """
-        new_value = value
-        
-        if not isinstance(value, (uuid.UUID,)):
-            try:
-                new_value = uuid.UUID(value)
-            except ValueError:
-                error_msg = 'Not a valid UUID value'
-                raise ValidationError(error_msg)
-
-        return new_value
-
-    def for_json(self, value):
-        """Return a JSON safe version of the UUID object.
-        """
+    def to_primitive(self, value):
         return str(value)
 
 
@@ -259,61 +224,53 @@ class IPv4Type(BaseType):
 
 
 class StringType(BaseType):
-    """A unicode string field.
+    """A unicode string field. Default minimum length is one. If you want to
+    accept empty strings, init with ``min_length`` 0.
     """
 
-    def __init__(self, regex=None, max_length=None, min_length=None, **kwargs):
+    allow_casts = (int, str)
+
+    MESSAGES = {
+        'convert': u"Couldn't interpret value as string.",
+        'max_length': u"String value is too long.",
+        'min_length': u"String value is too short.",
+        'regex': u"String value did not match validation regex.",
+    }
+
+    def __init__(self, regex=None, max_length=None, min_length=1, **kwargs):
         self.regex = re.compile(regex) if regex else None
         self.max_length = max_length
         self.min_length = min_length
+
         super(StringType, self).__init__(**kwargs)
 
-    def _jsonschema_type(self):
-        return 'string'
+    def convert(self, value):
+        if value is None:
+            return None
 
-    @classmethod
-    def _from_jsonschema_types(self):
-        return ['string']
-
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return [None, 'phone']
-
-    def _jsonschema_maxLength(self):
-        return self.max_length
-
-    def _jsonschema_minLength(self):
-        return self.min_length
-
-    def _jsonschema_pattern(self):
-        return self.regex
-
-    def validate(self, value):
-        value = unicode(value)
-        
-        if not isinstance(value, (str, unicode)):
-            raise ValidationError('Not a boolean')
-
-        if self.max_length is not None and len(value) > self.max_length:
-            raise ValidationError('String value is too long')
-
-        if self.min_length is not None and len(value) < self.min_length:
-            raise ValidationError('String value is too short')
-
-        if self.regex is not None and self.regex.match(value) is None:
-            error_msg = 'String value did not match validation regex'
-            raise ValidationError(error_msg)
+        if not isinstance(value, unicode):
+            if isinstance(value, self.allow_casts):
+                if not isinstance(value, str):
+                    value = str(value)
+                value = unicode(value, 'utf-8')
+            else:
+                raise ConversionError(self.messages['convert'])
 
         return value
-    
 
-    def lookup_member(self, member_name):
-        return None
+    def validate_length(self, value):
+        len_of_value = len(value) if value else 0
 
+        if self.max_length is not None and len_of_value > self.max_length:
+            raise ValidationError(self.messages['max_length'])
 
-###
-### Web fields
-###
+        if self.min_length is not None and len_of_value < self.min_length:
+            raise ValidationError(self.messages['min_length'])
+
+    def validate_regex(self, value):
+        if self.regex is not None and self.regex.match(value) is None:
+            raise ValidationError(self.messages['regex'])
+
 
 class URLType(StringType):
     """A field that validates input as an URL.
@@ -321,6 +278,11 @@ class URLType(StringType):
     If verify_exists=True is passed the validate function will make sure
     the URL makes a valid connection.
     """
+
+    MESSAGES = {
+        'invalid_url': u"Not a well formed URL.",
+        'not_found': u"URL does not exist.",
+    }
 
     URL_REGEX = re.compile(
         r'^https?://'
@@ -335,31 +297,25 @@ class URLType(StringType):
         self.verify_exists = verify_exists
         super(URLType, self).__init__(**kwargs)
 
-    def _jsonschema_format(self):
-        return 'url'
-
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return ['url']
-
-    def validate(self, value):
+    def validate_url(self, value):
         if not URLType.URL_REGEX.match(value):
-            raise ValidationError('Invalid URL')
-
+            raise StopValidation(self.messages['invalid_url'])
         if self.verify_exists:
             import urllib2
             try:
                 request = urllib2.Request(value)
                 urllib2.urlopen(request)
             except Exception:
-                raise ValidationError('URL does not exist')
-
-        return value
+                raise StopValidation(self.messages['not_found'])
 
 
 class EmailType(StringType):
     """A field that validates input as an E-Mail-Address.
     """
+
+    MESSAGES = {
+        'email': u"Not a well formed email address."
+    }
 
     EMAIL_REGEX = re.compile(
         # dot-atom
@@ -372,42 +328,20 @@ class EmailType(StringType):
         re.IGNORECASE
     )
 
-    def validate(self, value):
+    def validate_email(self, value):
         if not EmailType.EMAIL_REGEX.match(value):
-            raise ValidationError('Invalid email address')
-        return value
-
-    def _jsonschema_format(self):
-        return 'email'
-
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return ['email']
+            raise StopValidation(self.messages['email'])
 
 
-###
-### Numbers
-###
-
-class JsonNumberMixin(object):
-    """A mixin to support json schema validation for max, min, and type for all
-    number fields, including DecimalType, which does not inherit from
-    NumberType.
-    """
-
-    def _jsonschema_type(self):
-        return 'number'
-
-    def _jsonschema_maximum(self):
-        return self.max_value
-
-    def _jsonschema_minimum(self):
-        return self.min_value
-
-
-class NumberType(JsonNumberMixin, BaseType):
+class NumberType(BaseType):
     """A number field.
     """
+
+    MESSAGES = {
+        'number_coerce': u"Value is not {}",
+        'number_min': u"{} value should be greater than {}",
+        'number_max': u"{} value should be less than {}",
+    }
 
     def __init__(self, number_class, number_type,
                  min_value=None, max_value=None, **kwargs):
@@ -415,29 +349,26 @@ class NumberType(JsonNumberMixin, BaseType):
         self.number_type = number_type
         self.min_value = min_value
         self.max_value = max_value
+
         super(NumberType, self).__init__(**kwargs)
 
-    def __set__(self, instance, value):
-        if value != None and not isinstance(value, self.number_class):
-            if self.number_class:
-                value = self.number_class(value)
-        instance._data[self.field_name] = value    
-
-    def validate(self, value):
+    def convert(self, value):
         try:
             value = self.number_class(value)
-        except:
-            raise ValidationError('Not %s' % self.number_type)
+        except (TypeError, ValueError):
+            raise ConversionError(self.messages['number_coerce']
+                .format(self.number_type.lower()))
 
+        return value
+
+    def check_value(self, value):
         if self.min_value is not None and value < self.min_value:
-            error_msg = '%s value below min_value: %s' % (self.number_type,
-                                                          self.min_value)
-            raise ValidationError(error_msg)
-        
+            raise ValidationError(self.messages['number_min']
+                .format(self.number_type, self.min_value))
+
         if self.max_value is not None and value > self.max_value:
-            error_msg = '%s value above max_value: %s' % (self.number_type,
-                                                          self.max_value)
-            raise ValidationError(error_msg)
+            raise ValidationError(self.messages['number_max']
+                .format(self.number_type, self.max_value))
 
         return value
 
@@ -450,17 +381,6 @@ class IntType(NumberType):
         super(IntType, self).__init__(number_class=int,
                                       number_type='Int',
                                       *args, **kwargs)
-
-    def _jsonschema_type(self):
-        return 'number'
-
-    @classmethod
-    def _from_jsonschema_types(self):
-        return ['number', 'integer']
-
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return [None]
 
 
 class LongType(NumberType):
@@ -481,288 +401,192 @@ class FloatType(NumberType):
                                         *args, **kwargs)
 
 
-class DecimalType(BaseType, JsonNumberMixin):
+class DecimalType(BaseType):
     """A fixed-point decimal number field.
     """
 
     def __init__(self, min_value=None, max_value=None, **kwargs):
         self.min_value, self.max_value = min_value, max_value
+
         super(DecimalType, self).__init__(**kwargs)
 
-    def validate(self, value):
+    def to_primitive(self, value):
+        return unicode(value)
+
+    def convert(self, value):
         if not isinstance(value, decimal.Decimal):
             if not isinstance(value, basestring):
                 value = unicode(value)
             try:
                 value = decimal.Decimal(value)
-            except Exception:
-                raise ValidationError('Could not convert to decimal')
 
+            except (TypeError, decimal.InvalidOperation):
+                raise ConversionError(self.messages['number_coerce']
+                    .format(self.number_type))
+
+        return value
+
+    def validate_range(self, value):
         if self.min_value is not None and value < self.min_value:
-            error_msg ='Decimal value below min_value: %s' % self.min_value
-            raise ValidationError(error_msg)
+            raise ValidationError(self.messages['number_min']
+                .format(self.number_type, self.min_value))
 
         if self.max_value is not None and value > self.max_value:
-            error_msg = 'Decimal value above max_value: %s' % self.max_value
-            raise ValidationError(error_msg)
+            raise ValidationError(self.messages['number_max']
+                .format(self.number_type, self.max_value))
 
         return value
 
 
-###
-### Hashing fields
-###
+class HashType(BaseType):
 
-class JsonHashMixin:
-    """A mixin to support jsonschema validation for hashes
-    """
+    MESSAGES = {
+        'hash_length': u"Hash value is wrong length.",
+        'hash_hex': u"Hash value is not hexadecimal.",
+    }
 
-    def _jsonschema_type(self):
-        return 'string'
+    def convert(self, value):
+        if len(value) != self.LENGTH:
+            raise ValidationError(self.messages['hash_length'])
+        try:
+            value = int(value, 16)
+        except ValueError:
+            raise ConversionError(self.messages['hash_hex'])
+        return value
 
-    def _jsonschema_maxLength(self):
-        return self.hash_length
 
-    def _jsonschema_minLength(self):
-        return self.hash_length
-
-
-class MD5Type(BaseType, JsonHashMixin):
+class MD5Type(HashType):
     """A field that validates input as resembling an MD5 hash.
     """
-    hash_length = 32
 
-    def validate(self, value):
-        if len(value) != MD5Type.hash_length:
-            raise ValidationError('MD5 value is wrong length')
-        try:
-            value = int(value, 16)
-        except:
-            raise ValidationError('MD5 value is not hex')
-        return value
+    LENGTH = 32
 
 
-class SHA1Type(BaseType, JsonHashMixin):
+class SHA1Type(HashType):
     """A field that validates input as resembling an SHA1 hash.
     """
-    hash_length = 40
 
-    def validate(self, value):
-        if len(value) != SHA1Type.hash_length:
-            raise ValidationError('SHA1 value is wrong length')
-        try:
-            value = int(value, 16)
-        except:
-            raise ValidationError('SHA1 value is not hex')
-        return value
+    LENGTH = 40
 
-
-###
-### Native type'ish fields
-###
 
 class BooleanType(BaseType):
-    """A boolean field type.
+    """A boolean field type. In addition to ``True`` and ``False``, coerces these
+    values:
+
+    + For ``True``: "True", "true", "1"
+    + For ``False``: "False", "false", "0"
+
     """
 
-    TRUE = ('True', 'true', '1')
-    FALSE = ('False', 'false', '0')
+    TRUE_VALUES = ('True', 'true', '1')
+    FALSE_VALUES = ('False', 'false', '0')
 
-    def _jsonschema_type(self):
-        return 'boolean'
-
-    @classmethod
-    def _from_jsonschema_types(self):
-        return ['boolean']
-
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return [None]
-
-    def __set__(self, instance, value):
-        """
-        Accept some form of True/False as string
-        """
-        if isinstance(value, (str, unicode)):
-            if value in BooleanType.TRUE:
+    def convert(self, value):
+        if isinstance(value, basestring):
+            if value in self.TRUE_VALUES:
                 value = True
-            elif value in BooleanType.FALSE:
+            elif value in self.FALSE_VALUES:
                 value = False
 
-        instance._data[self.field_name] = value
-
-    def validate(self, value):
         if not isinstance(value, bool):
-            raise ValidationError('Not a boolean')
+            raise ConversionError(u'Must be either true or false.')
+
         return value
+
+
+class DateType(BaseType):
+    """Defaults to converting to and from ISO8601 date values.
+    """
+
+    SERIALIZED_FORMAT = '%Y-%m-%d'
+    MESSAGES = {
+        'parse': u'Could not parse {}. Should be ISO8601 (YYYY-MM-DD).',
+    }
+
+    def __init__(self, **kwargs):
+        self.serialized_format = self.SERIALIZED_FORMAT
+        super(DateType, self).__init__(**kwargs)
+
+    def convert(self, value):
+        if isinstance(value, datetime.date):
+            return value
+
+        try:
+            return datetime.datetime.strptime(value, self.serialized_format).date()
+        except (ValueError, TypeError):
+            raise ConversionError(self.messages['parse'].format(value))
+
+    def to_primitive(self, value):
+        return value.strftime(self.serialized_format)
 
 
 class DateTimeType(BaseType):
-    """A datetime field.
+    """Defaults to converting to and from ISO8601 datetime values.
+
+    :param formats:
+        A value or list of values suitable for ``datetime.datetime.strptime``
+        parsing. Default: `('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S')`
+    :param serialized_format:
+        The output format suitable for Python ``strftime``. Default: ``'%Y-%m-%dT%H:%M:%S.%f'``
+
     """
 
-    def _jsonschema_type(self):
-        return 'string'
+    DEFAULT_FORMATS = ('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S')
+    SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 
-    def __init__(self, format=None, **kwargs):
-        if format is None:
-            def formatter(dt):
-                if dt is None:
-                    return None
-                else:
-                    return dt.isoformat()
-            self.format = formatter
-        else:
-            self.format = format
+    MESSAGES = {
+        'parse': u'Could not parse {}. Should be ISO8601.',
+    }
+
+    def __init__(self, formats=None, serialized_format=None, **kwargs):
+        """
+
+        """
+        if isinstance(format, basestring):
+            formats = [formats]
+        if formats is None:
+            formats = self.DEFAULT_FORMATS
+        if serialized_format is None:
+            serialized_format = self.SERIALIZED_FORMAT
+        self.formats = formats
+        self.serialized_format = serialized_format
         super(DateTimeType, self).__init__(**kwargs)
 
-    def _jsonschema_format(self):
-        return 'date-time'
+    def convert(self, value):
+        if isinstance(value, datetime.datetime):
+            return value
 
-    @classmethod
-    def _from_jsonschema_types(self):
-        return ['string']
+        for format in self.formats:
+            try:
+                return datetime.datetime.strptime(value, format)
+            except (ValueError, TypeError):
+                continue
+        raise ConversionError(self.messages['parse'].format(value))
 
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return ['date-time', 'date', 'time']
-
-    def __set__(self, instance, value):
-        """If `value` is a string, the string should match iso8601 format.
-        `iso8601_to_date` is called for conversion.
-
-        A datetime may be used (and is encouraged).
-        """
-        if isinstance(value, (str, unicode)):
-            value = DateTimeType.iso8601_to_date(value)
-
-        instance._data[self.field_name] = value
-
-    @classmethod
-    def iso8601_to_date(cls, datestring):
-        """Takes a string in ISO8601 format and converts it to a Python
-        datetime.  This is not present in the standard library, as far as I can
-        tell.
-
-        Example: 'YYYY-MM-DDTHH:MM:SS.mmmmmm'
-
-        ISO8601's elements come in the same order as the inputs to creating
-        a datetime.datetime.  I pass the patterns directly into the datetime
-        constructor.
-
-        The ISO8601 spec is rather complex and allows for many variations in
-        formatting values.  Currently the format expected is strict, with the
-        only optional component being the six-digit microsecond field.
-
-        http://www.w3.org/TR/NOTE-datetime
-        """
-        iso8601 = '(\d\d\d\d)-(\d\d)-(\d\d)' \
-                  'T(\d\d):(\d\d):(\d\d)(?:\.(\d\d\d\d\d\d))?'
-        elements = re.findall(iso8601, datestring)
-        
-        if len(elements) < 1:
-            error_msg = 'Date string could not transform to datetime'
-            raise ValidationError(error_msg)
-        
-        date_info = elements[0]
-        date_digits = [int(d) for d in date_info if d]
-        value = datetime.datetime(*date_digits)
-        return value
-
-    @classmethod
-    def date_to_iso8601(cls, dt, format):
-        """Classmethod that goes the opposite direction of iso8601_to_date.
-           Defaults to using isoformat(), but can use the optional format
-           argument either as a strftime format string or as a custom
-           date formatting function or lambda.
-        """
-        if isinstance(format, str):
-            iso_dt = dt.strftime(format)
-        elif hasattr(format, '__call__'):
-            iso_dt = format(dt)
-        else:
-            error_msg = 'DateTimeType format must be a string or callable'
-            raise ValidationError(error_msg)
-        return iso_dt
-
-    def validate(self, value):
-        if not isinstance(value, datetime.datetime):
-            raise ValidationError('Not a datetime')
-        return value
-
-    def for_json(self, value):
-        return DateTimeType.date_to_iso8601(value, self.format)
-
-
-class DictType(BaseType):
-    """A dictionary field that wraps a standard Python dictionary. This is
-    similar to an `ModelType`, but the schematic is not defined.
-    """
-
-    def _jsonschema_type(self):
-        return 'object'
-
-    def __init__(self, basecls=None, *args, **kwargs):
-        self.basecls = basecls or BaseType
-        
-        if not issubclass(self.basecls, BaseType):
-            error_msg = 'basecls is not subclass of BaseType'
-            return ValidationError(error_msg)
-
-        kwargs.setdefault('default', lambda: {})
-        super(DictType, self).__init__(*args, **kwargs)
-
-    def validate(self, value):
-        """Make sure that a list of valid fields is being used.
-        """
-        if not isinstance(value, dict):
-            error_msg = 'Only dictionaries may be used in a DictType'
-            raise ValidationError(error_msg)
-
-        ### TODO this can probably be removed
-        if any(('.' in k or '$' in k) for k in value):
-            error_msg = 'Invalid dictionary key - may not contain "." or "$"'
-            raise ValidationError(error_msg)
-        return value
-
-    def lookup_member(self, member_name):
-        return self.basecls(field_name=member_name)
+    def to_primitive(self, value):
+        if callable(self.serialized_format):
+            return self.serialized_format(value)
+        return value.strftime(self.serialized_format)
 
 
 class GeoPointType(BaseType):
     """A list storing a latitude and longitude.
     """
 
-    def _jsonschema_type(self):
-        return 'array'
-
-    def _jsonschema_items(self):
-        return NumberType().for_jsonschema()
-
-    def _jsonschema_maxLength(self):
-        return 2
-
-    def _jsonschema_minLength(self):
-        return 2
-
-    def validate(self, value):
+    def convert(self, value):
         """Make sure that a geo-value is of type (x, y)
         """
         if not len(value) == 2:
-            error_msg = 'Value must be a two-dimensional point'
-            raise ValidationError(error_msg)
+            raise ValueError('Value must be a two-dimensional point')
         if isinstance(value, dict):
             for v in value.values():
                 if not isinstance(v, (float, int)):
-                    error_msg = 'Both values in point must be float or int'
-                    raise ValidationError(error_msg)
+                    raise ValueError('Both values in point must be float or int')
         elif isinstance(value, (list, tuple)):
-            if (not isinstance(value[0], (float, int)) and
-                not isinstance(value[1], (float, int))):
-                error_msg = 'Both values in point must be float or int'
-                raise ValidationError(error_msg)
+            if (not isinstance(value[0], (float, int)) or
+                    not isinstance(value[1], (float, int))):
+                raise ValueError('Both values in point must be float or int')
         else:
-            error_msg = 'GeoPointType can only accept tuples, lists, or dicts'
-            raise ValidationError(error_msg)
-        
+            raise ValueError('GeoPointType can only accept tuples, lists, or dicts')
+
         return value

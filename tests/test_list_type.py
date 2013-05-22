@@ -1,169 +1,177 @@
 #!/usr/bin/env python
 
-import copy
 import unittest
-import json
 
 from schematics.models import Model
-from schematics.types import  IntType, StringType
-from schematics.types.compound import SortedListType, ModelType, ListType
-from schematics.serialize import (to_python, wholelist, make_safe_json,
-                                  make_safe_python)
-from schematics.validation import validate
+from schematics.types import IntType, StringType
+from schematics.types.compound import ModelType, ListType
+from schematics.serialize import wholelist
 from schematics.exceptions import ValidationError
 
 
-class TestSetGetSingleScalarData(unittest.TestCase):
-    def setUp(self):
-        self.listtype = ListType(IntType())
-        
-        class TestModel(Model):
-            the_list = self.listtype
-            class Options:
-                roles = {
-                    'owner': wholelist(),
-                }
-            
-        self.Testmodel = TestModel
-        self.testmodel = TestModel()
+class TestListTypeWithModelType(unittest.TestCase):
 
-    def test_good_value_for_python(self):
-        self.testmodel.the_list = [2]
-        self.assertEqual(self.testmodel.the_list, [2])
+    def test_list_field(self):
+        class User(Model):
+            ids = ListType(StringType, required=True)
 
-    def test_single_bad_value_for_python(self):
-        self.testmodel.the_list = 2
-        # since no validation happens, nothing should yell at us        
-        self.assertEqual(self.testmodel.the_list, 2) 
+        c = User({
+            "ids": []
+        })
 
-    def test_collection_good_values_for_python(self):
-        self.testmodel.the_list = [2,2,2,2,2,2]
-        self.assertEqual(self.testmodel.the_list, [2,2,2,2,2,2])
+        c.validate({'ids': []})
 
-    def test_collection_bad_values_for_python(self):
-        expected = self.testmodel.the_list = ["2","2","2","2","2","2"]
-        actual = self.testmodel.the_list
-        # since no validation happens, nothing should yell at us        
-        self.assertEqual(actual, expected)  
+        self.assertEqual(c.ids, [])
 
-    def test_good_value_for_json(self):
-        expected = self.testmodel.the_list = [2]
-        actual = self.listtype.for_json(self.testmodel.the_list)
-        self.assertEqual(actual, expected)
+    def test_list_with_default_type(self):
+        class CategoryStatsInfo(Model):
+            slug = StringType()
 
-    def test_good_values_for_json(self):
-        expected = self.testmodel.the_list = [2,2,2,2,2,2]
-        actual = self.listtype.for_json(self.testmodel.the_list)
-        self.assertEqual(actual, expected)
+        class PlayerInfo(Model):
+            categories = ListType(ModelType(CategoryStatsInfo))
 
-    def test_good_values_into_json(self):
-        self.testmodel.the_list = [2,2,2,2,2,2]
-        actual = make_safe_json(self.Testmodel, self.testmodel, 'owner')
-        expected = json.dumps({"the_list":[2,2,2,2,2,2]})
-        self.assertEqual(actual, expected)
+        math_stats = CategoryStatsInfo(dict(slug="math"))
+        twilight_stats = CategoryStatsInfo(dict(slug="twilight"))
+        info = PlayerInfo({
+            "categories": [{"slug": "math"}, {"slug": "twilight"}]
+        })
 
-    def test_good_value_into_json(self):
-        self.testmodel.the_list = [2]
-        actual = make_safe_json(self.Testmodel, self.testmodel, 'owner')
-        expected = json.dumps({"the_list":[2]})
-        self.assertEqual(actual, expected)
+        self.assertEqual(info.categories, [math_stats, twilight_stats])
 
-    def test_good_value_validates(self):
-        self.testmodel.the_list = [2,2,2,2,2,2]
-        self.testmodel.validate()
+        d = info.serialize()
+        self.assertEqual(d, {
+            "categories": [{"slug": "math"}, {"slug": "twilight"}]
+        })
 
-    def test_coerceible_value_passes_validation(self):
-        self.testmodel.the_list = ["2","2","2","2","2","2"]
-        self.testmodel.validate()
+    def test_set_default(self):
+        class CategoryStatsInfo(Model):
+            slug = StringType()
 
-    def test_uncoerceible_value_passes_validation(self):
-        self.testmodel.the_list = ["2","2","2","2","horse","2"]
-        fun = lambda: self.testmodel.validate()
-        self.assertRaises(ValidationError, fun)
-        
-#    def test_validation_converts_value(self):
-#        self.testmodel.the_list = ["2","2","2","2","2","2"]
-#        self.testmodel.validate()
-#        result = to_python(self.testmodel)
-#        new_list = result['the_list']
-#        self.assertEqual(new_list, [2,2,2,2,2,2])
+        class PlayerInfo(Model):
+            categories = ListType(ModelType(CategoryStatsInfo), default=lambda: [])
 
-        
-class TestGetSingleEmbeddedData(unittest.TestCase):
-    def setUp(self):
-        class EmbeddedTestmodel(Model):
-            bandname = StringType()
-            
-        self.embedded_test_model = EmbeddedTestmodel
-        self.embedded_type = ModelType(EmbeddedTestmodel)
-        
-        class Testmodel(Model):
-            the_list = ListType(self.embedded_type)
-            
-        self.Testmodel = Testmodel
-        self.testmodel = Testmodel()
+        info = PlayerInfo()
+        self.assertEqual(info.categories, [])
 
-    def test_good_value_for_python_upcasts(self):
-        self.testmodel.the_list = [{'bandname': 'fugazi'}]
-        from_testmodel = self.testmodel.the_list[0]
-        new_embedded_test = self.embedded_test_model()
-        new_embedded_test['bandname'] = 'fugazi'
-        self.assertEqual(from_testmodel, new_embedded_test)
+        d = info.serialize()
+        self.assertEqual(d, {
+            "categories": []
+        })
 
+    def test_list_defaults_to_none(self):
+        class PlayerInfo(Model):
+            following = ListType(StringType)
 
-class TestMultipleEmbeddedData(unittest.TestCase):
-    def setUp(self):
-        class BandModel(Model):
-            bandname = StringType()
-            
-        class FoodModel(Model):
-            food = StringType()
-            
-        self.food_model = FoodModel
-        self.band_model = BandModel
-        self.the_list = ListType([ModelType(self.band_model),
-                                  ModelType(self.food_model)])
-        
-        class Testmodel(Model):
-            the_list = ListType([ModelType(self.band_model),
-                                 ModelType(self.food_model)])
+        info = PlayerInfo()
 
-        self.Testmodel = Testmodel
-        self.testmodel = Testmodel()
+        self.assertIsNone(info.following)
 
-    #@unittest.expectedFailure #because the set shouldn't upcast until validation
-    def test_good_value_for_python_upcasts(self):
-        self.testmodel.the_list = [{'bandname': 'fugazi'}, {'food':'cake'}]
-        
-        actual = self.testmodel.the_list
-        
-        band = self.band_model()
-        band['bandname'] = 'fugazi'
-        
-        food = self.food_model()
-        food['food'] = 'cake'
-        
-        expected = [band, food]
-        self.assertEqual(actual, expected)
-        
+        self.assertEqual(info.serialize(), {
+            "following": None
+        })
 
-class TestSetGetSingleScalarDataSorted(unittest.TestCase):
-    def setUp(self):
-        self.listtype = SortedListType(IntType())
-        
-        class Testmodel(Model):
-            the_list = self.listtype
-            
-        self.Testmodel = Testmodel
-        self.testmodel = Testmodel()
+    def test_list_default_to_none_embedded_model(self):
+        class QuestionResource(Model):
+            url = StringType()
 
-    def test_collection_good_values_for_python(self):
-        expected = self.testmodel.the_list = [1,2,3,4,5,6]
-        self.assertEqual(self.testmodel.the_list, expected)
+        class QuestionResources(Model):
+            pictures = ListType(ModelType(QuestionResource))
 
-    def test_collection_good_values_for_python_gets_sorted(self):
-        expected = self.testmodel.the_list = [6,5,4,3,2,1]
-        expected = copy.copy(expected)
-        expected.reverse()
-        actual = to_python(self.testmodel)['the_list']
-        self.assertEqual(actual, expected)
+        class Question(Model):
+            id = StringType()
+            resources = ModelType(QuestionResources)
+
+        class QuestionPack(Model):
+            id = StringType()
+            questions = ListType(ModelType(Question))
+
+        question_pack = QuestionPack({
+            "id": "1",
+            "questions": [
+                {
+                    "id": "1"
+                },
+                {
+                    "id": "2",
+                    "resources": {
+                        "pictures": []
+                    }
+                },
+                {
+                    "id": "3",
+                    "resources": {
+                        "pictures": [{
+                            "url": "http://www.mbl.is/djok"
+                        }]
+                    }
+                },
+            ]
+        })
+
+        self.assertIsNone(question_pack.questions[0].resources)
+        self.assertEqual(question_pack.questions[1].resources["pictures"], [])
+
+        resource = QuestionResource({"url": "http://www.mbl.is/djok"})
+        self.assertEqual(question_pack.questions[2].resources["pictures"][0], resource)
+
+    def test_validation_with_min_size(self):
+        class User(Model):
+            name = StringType()
+
+        class Card(Model):
+            users = ListType(ModelType(User), min_size=1)
+
+        with self.assertRaises(ValidationError) as cm:
+            c = Card({"users": None})
+            c.validate()
+
+        exception = cm.exception
+        self.assertEqual(exception.messages['users'], [u'This field is required.'])
+
+        with self.assertRaises(ValidationError) as cm:
+            c = Card({"users": []})
+            c.validate()
+
+        exception = cm.exception
+        self.assertEqual(exception.messages['users'], [u'Please provide at least 1 item.'])
+
+    def test_list_field_required(self):
+        class User(Model):
+            ids = ListType(StringType(required=True))
+
+        c = User({
+            "ids": []
+        })
+
+        c.ids = [1]
+        c.validate()
+
+        c.ids = [None]
+        with self.assertRaises(ValidationError):
+            c.validate()
+
+    def test_list_field_convert(self):
+        class User(Model):
+            ids = ListType(IntType)
+
+        c = User({'ids': ["1", "2"]})
+
+        self.assertEqual(c.ids, [1, 2])
+
+    def test_list_model_field(self):
+        class User(Model):
+            name = StringType()
+
+        class Card(Model):
+            users = ListType(ModelType(User), min_size=1)
+
+        data = {'users': [{'name': u'Doggy'}]}
+        c = Card(data)
+
+        c.users = None
+        with self.assertRaises(ValidationError) as context:
+            c.validate()
+
+        errors = context.exception.messages
+
+        self.assertEqual(errors['users'], [u'Please provide at least 1 item.'])

@@ -1,12 +1,24 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-from distutils.core import setup
+from setuptools import setup
 
-setup(name='schematics',
-      license='BSD',
-      version='0.6',
-      description='Structured Data for Humans',
-      author='James Dennis',
-      author_email='jdennis@gmail.com',
-      url='http://github.com/j2labs/schematics',
-      packages=['schematics', 'schematics.types'])
+from schematics import __version__
+
+setup(
+    name='schematics',
+    license='BSD',
+    version=__version__,
+    description='Structured Data for Humans',
+    author=u'James Dennis, Jökull Sólberg, Jóhann Þorvaldur Bergþórsson',
+    author_email='jdennis@gmail.com, jokull@plainvanillagames.com, johann@plainvanillagames.com',
+    url='http://github.com/j2labs/schematics',
+    packages=['schematics', 'schematics.types'],
+    classifiers=[
+        'Environment :: Other Environment',
+        'Intended Audience :: Developers',
+        'License :: Other/Proprietary License',
+        'Operating System :: POSIX',
+        'Programming Language :: Python',
+    ],
+)

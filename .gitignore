@@ -10,3 +10,5 @@ build
 dist
 PLANS.md
 *.egg-info
+venv
+docs/_build

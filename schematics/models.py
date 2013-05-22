@@ -1,172 +1,306 @@
+# encoding=utf-8
+
 import inspect
-import copy
+import itertools
+
+from .types import BaseType
+from .types.serializable import Serializable
+from .exceptions import BaseError, ValidationError, ModelValidationError, ConversionError, ModelConversionError
+from .serialize import serialize, flatten, expand
+from .datastructures import OrderedDict as OrderedDictWithSort
 
 
-from schematics.base import json
-from schematics.types import (DictFieldNotFound, schematic_types, BaseType,
-                              UUIDType)
-from schematics.validation import validate
+class FieldDescriptor(object):
 
+    def __init__(self, name):
+        self.name = name
 
-###
-### Model Configuration
-###
+    def __get__(self, model, type=None):
+        try:
+            if model is None:
+                return type.fields[self.name]
+            return model._data[self.name]
+        except KeyError:
+            raise AttributeError(self.name)
+
+    def __set__(self, model, value):
+        field = model._fields[self.name]
+        model._data[self.name] = field(value)
+
+    def __delete__(self, model):
+        if self.name not in model._fields:
+            raise AttributeError('%r has no attribute %r' %
+                                 (type(model).__name__, self.name))
+        del model._fields[self.name]
+
 
 class ModelOptions(object):
-    """This class is a container for all metaclass configuration options. It's
+    """
+    This class is a container for all metaclass configuration options. Its
     primary purpose is to create an instance of a model's options for every
     instance of a model.
 
     It also creates errors in cases where unknown options parameters are found.
+
+    :param roles:
+        Allows to specify certain subsets of the model's fields for
+        serialization.
+    :param serialize_when_none:
+        When ``False``, serialization skips fields that are None. Default: ``True``
     """
-    def __init__(self, klass, db_namespace=None, roles=None):
+    def __init__(self, klass, namespace=None, roles=None, serialize_when_none=True):
         self.klass = klass
-        self.db_namespace = db_namespace
-
-        ### Default roles to an empty dict
-        self.roles = {}
-        if roles is not None:
-            self.roles = roles
+        self.namespace = namespace
+        self.roles = roles or {}
+        self.serialize_when_none = serialize_when_none
 
 
-def _parse_options_config(klass, attrs, options_class):
-    """Parses the Options object on the class and translates it into an Option
-    instance.
+class ModelMeta(type):
+    """Meta class for Models. Handles model inheritance and Options.
     """
-    valid_attrs = dict()
-    if 'Options' in attrs:
-        options = attrs['Options']
-        for attr_name, attr_value in inspect.getmembers(options):
-            if not attr_name.startswith('_'):
-                valid_attrs[attr_name] = attr_value
-    oc = options_class(klass, **valid_attrs)
-    return oc
 
-
-def _gen_options(klass, attrs):
-    """Processes the attributes and class parameters to generate the correct
-    options schematic.
-
-    Defaults to `ModelOptions` but it's ideal to define `__optionsclass_`
-    on the Model's metaclass.
-    """
-    ### Parse Options
-    options_class = ModelOptions
-    if hasattr(klass, '__optionsclass__'):
-        options_class = klass.__optionsclass__
-    options = _parse_options_config(klass, attrs, options_class)
-    return options
-
-
-###
-### Metaclass Design
-###
-
-def _extract_fields(bases, attrs):
-    ### Collect all fields in here
-    model_fields = {}
-
-    for base in bases:
-        if hasattr(base, '_fields'):
-            model_fields.update(base._fields)
-
-    for field_name, field_value in attrs.items():
-        if isinstance(field_value, BaseType):
-            field_value.field_name = field_name
-            model_fields[field_name] = field_value
-            
-    return model_fields
-
-
-class ModelMetaclass(type):
     def __new__(cls, name, bases, attrs):
-        """Processes a configuration of a Model type into a class.
-        """
-        ### Parse metaclass config into options class
-        options = _gen_options(cls, attrs)
+        fields = OrderedDictWithSort()
+        serializables = {}
+        validator_functions = {}  # Model level
 
-        ### Extract fields and wrap in FieldDescriptors
-        fields =  _extract_fields(bases, attrs)
+        for base in reversed(bases):
+            if hasattr(base, '_fields'):
+                fields.update(base._fields)
+            if hasattr(base, '_serializables'):
+                serializables.update(base._serializables)
+            if hasattr(base, '_validator_functions'):
+                validator_functions.update(base._validator_functions)
 
-        ### Put generates attributes in attrs dict
-        attrs['_options'] = options
+        for key, value in attrs.iteritems():
+            if key.startswith('validate_') and callable(value):
+                validator_functions[key[9:]] = value
+            if isinstance(value, BaseType):
+                fields[key] = value
+            if isinstance(value, Serializable):
+                serializables[key] = value
+
+        fields.sort(key=lambda i: i[1]._position_hint)
+
+        for key, field in fields.iteritems():
+            # For accessing internal data by field name attributes
+            attrs[key] = FieldDescriptor(key)
+
+        attrs['_options'] = cls._read_options(name, bases, attrs)
+
+        attrs['_validator_functions'] = validator_functions
+        attrs['_serializables'] = serializables
         attrs['_fields'] = fields
-        attrs['_model_name'] = name
 
-        ### Gen a class instance
-        klass = super(ModelMetaclass, cls).__new__(cls, name, bases, attrs)
+        klass = type.__new__(cls, name, bases, attrs)
 
-        ### Each field has access to it's containing class
         for field in fields.values():
             field.owner_model = klass
 
-        ### Fin.
         return klass
 
-    def __str__(self):
-        if hasattr(self, '__unicode__'):
-            return unicode(self).encode('utf-8')
-        return '%s object' % self.__class__.__name__
+    @classmethod
+    def _read_options(cls, name, bases, attrs):
+        options_members = {}
 
+        for base in reversed(bases):
+            if hasattr(base, "_options"):
+                for k, v in inspect.getmembers(base._options):
+                    if not k.startswith("_") and not k == "klass":
+                        options_members[k] = v
 
-###
-### Model schematics
-###
+        options_class = getattr(attrs, '__classoptions__', ModelOptions)
+        if 'Options' in attrs:
+            for k, v in inspect.getmembers(attrs['Options']):
+                if not k.startswith("_"):
+                    if k == "roles":
+                        roles = options_members.get("roles", {}).copy()
+                        roles.update(v)
 
-class Model(object):
-    __metaclass__ = ModelMetaclass
-    __optionsclass__ = ModelOptions
+                        options_members["roles"] = roles
+                    else:
+                        options_members[k] = v
 
-    def __init__(self, **values):
-        self._data = {}
-        minimized_field_map = {}
+        return options_class(cls, **options_members)
 
-        ### Loop over fields in model
-        for attr_name, attr_value in self._fields.items():
-            # Use default value if present
-            value = getattr(self, attr_name, None)
-            setattr(self, attr_name, value)
-
-            field_name = attr_name
-            if attr_value.minimized_field_name \
-                   and attr_value.minimized_field_name in values:
-                field_name = attr_value.minimized_field_name
-            elif attr_value.print_name \
-                     and attr_value.print_name in values:
-                field_name = attr_value.print_name
-
-            if field_name in values:
-                field_value = values[field_name]
-                setattr(self, attr_name, field_value)
-
-    def validate(self, values=None, **kwargs):
-        if values is None:
-            values = self._data if hasattr(self, '_data') else {}
-        return validate(self.__class__, values, **kwargs)
+    @property
+    def fields(cls):
+        return cls._fields
 
     def __iter__(self):
-        return iter(self._fields)
+        return itertools.chain(
+            self._unbound_fields.iteritems(),
+            self._unbound_serializables.iteritems()
+        )
+
+
+class Model(object):
+    """Enclosure for fields and validation. Same pattern deployed by Django
+    models, SQLAlchemy declarative extension and other developer friendly
+    libraries.
+
+    :param raw_data:
+        Raw data to initialize the object with. Can raise ``ConversionError`` if
+        it is not possible to convert the raw data into richer Python constructs.
+
+    """
+
+    __metaclass__ = ModelMeta
+    __optionsclass__ = ModelOptions
+
+    @classmethod
+    def from_flat(cls, data):
+        return cls(expand(data))
+
+    def __init__(self, raw_data=None):
+        if raw_data is None:
+            raw_data = {}
+
+        self._initial = raw_data
+
+        self._data = self.convert(raw_data)
+
+    def validate(self, partial=False, strict=False):
+        """
+        Validates the state of the model and adding additional untrusted data
+        as well. If the models is invalid, raises ValidationError with error messages.
+
+        :param raw_data:
+            A ``dict`` or ``dict``-like structure for incoming data.
+        :param partial:
+            Allow partial data to validate; useful for PATCH requests.
+            Essentially drops the ``required=True`` arguments from field
+            definitions. Default: True
+        :param strict:
+            Complain about unrecognized keys. Default: False
+        """
+        raw_data = self._data
+
+        errors = {}
+        data = {}
+
+        for field_name, field in self._fields.iteritems():
+            # Rely on parameter for whether or not we should check value
+            serialized_field_name = field.serialized_name or field_name
+
+            # print field_name, data, raw_data, self._data
+            # if needs_check(serialized_field_name, field):
+            try:
+                value = raw_data[serialized_field_name]
+            except KeyError:
+                value = field.default
+
+            if field.required and value is None:
+                if not partial:
+                    errors[serialized_field_name] = [field.messages["required"], ]
+            elif value is None:  # The field isn't required so the value can be None
+                data[field_name] = None
+            else:
+                try:
+                    field.validate(value)
+
+                    if field_name in self._validator_functions:
+                        context = dict(self._data, **data)
+                        self._validator_functions[field_name](self, context, value)
+                except BaseError, e:
+                    errors[serialized_field_name] = e.messages
+                else:
+                    data[field_name] = value
+
+        if strict:
+            rogue_field_errors = self._check_for_unknown_fields(data)
+            errors.update(rogue_field_errors)
+
+        if errors:
+            raise ModelValidationError(errors)
+
+        # Set internal data and touch the TypeDescriptors by setattr
+        self._data.update(**data)
+
+    def serialize(self, role=None):
+        """Return data as it would be validated. No filtering of output unless
+        role is defined.
+
+        :param role:
+            Filter output by a specific role
+
+        """
+        return serialize(self, role)
+
+    def flatten(self, role=None, prefix=""):
+        """
+        Return data as a pure key-value dictionary, where the values are
+        primitive types (string, bool, int, long).
+
+        :param role:
+            Filter output by a specific role
+
+        """
+        return flatten(self, role, prefix=prefix)
+
+    def convert(self, raw_data):
+        """
+        Converts the raw data into richer Python constructs according to the
+        fields on the model
+        """
+        data = {}
+        errors = {}
+
+        for field_name, field in self._fields.iteritems():
+            serialized_field_name = field.serialized_name or field_name
+
+            try:
+                raw_value = raw_data[serialized_field_name]
+                data[field_name] = None if raw_value is None else field.convert(raw_value)
+            except KeyError:
+                data[field_name] = field.default
+            except ConversionError, e:
+                errors[serialized_field_name] = e.messages
+
+        if errors:
+            raise ModelConversionError(errors)
+
+        return data
+
+    def _check_for_unknown_fields(self, data):
+        # set takes iterables, iterating over keys in this instance
+        errors = []
+        rogues_found = set(data) - set(self._fields)
+        if len(rogues_found) > 0:
+            for field_name in rogues_found:
+                errors[field_name] = [u'%s is an illegal field.' % field_name]
+
+        return errors
+
+    def __iter__(self):
+        return self.iter()
+
+    def iter(self, include_serializables=True):
+        if include_serializables:
+            all_fields = itertools.chain(
+                self._fields.iteritems(),
+                self._serializables.iteritems()
+            )
+        else:
+            all_fields = self._fields.iteritems()
+
+        return ((field_name, field, self[field_name]) for field_name, field in all_fields)
 
     def __getitem__(self, name):
         try:
-            if name in self._fields:
-                return getattr(self, name)
+            return getattr(self, name)
         except AttributeError:
             pass
         raise KeyError(name)
 
     def __setitem__(self, name, value):
         # Ensure that the field exists before settings its value
-        if name not in self._fields:
+        if name not in self._data:
             raise KeyError(name)
         return setattr(self, name, value)
 
     def __contains__(self, name):
-        try:
-            val = getattr(self, name)
-            return val is not None
-        except AttributeError:
-            return False
+        return name in self._data or name in self._serializables
 
     def __len__(self):
         return len(self._data)
@@ -174,16 +308,21 @@ class Model(object):
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             keys = self._fields
+
             for key in keys:
                 if self[key] != other[key]:
                     return False
             return True
         return False
 
+    def __ne__(self, other):
+        return not self == other
+
     def get(self, key, default=None):
-        if key in self:
+        try:
             return self[key]
-        return default
+        except KeyError:
+            return default
 
     def __repr__(self):
         try:
@@ -192,7 +331,5 @@ class Model(object):
             u = '[Bad Unicode data]'
         return u"<%s: %s>" % (self.__class__.__name__, u)
 
-    def __str__(self):
-        if hasattr(self, '__unicode__'):
-            return unicode(self).encode('utf-8')
+    def __unicode__(self):
         return '%s object' % self.__class__.__name__
