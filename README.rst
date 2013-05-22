@@ -1,9 +1,7 @@
+Schematics
+~~~~~~~~~~
+
 **Python Data Structures for Humans™.**
-
-This is a fork of the `original project <https://github.com/j2labs/schematics>`_
-by @j2labs
-
-There are big API changes in this fork. However it **is** documented and tested.
 
 .. image:: https://secure.travis-ci.org/plain-vanilla-games/schematics.png?branch=master
   :target: https://secure.travis-ci.org/plain-vanilla-games/schematics
@@ -37,10 +35,7 @@ Let’s see some validation
 Installation
 ~~~~~~~~~~~~
 
-This is currently an unstable, unofficial fork of Schematics. To install this
-fork::
-
-  $ pip install git+git@github.com:plain-vanilla-games/schematics.git#egg=schematics
+  $ pip install schematics
 
 Python 2.7 is supported. 2.6 support is close but test suite needs to be
 updated.
@@ -57,10 +52,24 @@ Using py.test::
 
   $ py.test tests/
 
-Fork Authors
+Authors
 ~~~~~~~~~~~~
 
++ `James Dennis <https://github.com/j2labs>`_
 + `Jökull Sólberg Auðunsson <https://github.com/jokull>`_
 + `Jóhann Þorvaldur Bergþórsson <https://github.com/johannth>`_
++ `James Dennis <https://github.com/j2labs>`_
++ `Andrew Gwozdziewycz <https://github.com/apgwoz>`_
++ `Dion Paragas <https://github.com/d1on>`_
++ `Tom Waits <https://github.com/tomwaits>`_
++ `Chris McCulloh <https://github.com/st0w>`_
++ `Sean O'Connor <https://github.com/SeanOC>`_
++ `Alexander Dean <https://github.com/alexanderdean>`_
++ `Rob Spychala <https://github.com/robspychala>`_
++ `Ben Beecher <https://github.com/gone>`_
++ `John Krauss <https://github.com/talos>`_
++ `Titusz <https://github.com/titusz>`_
++ `Nicola Iarocci <https://github.com/nicolaiarocci>`_
++ `Justin Lilly <http://github.com/justinlilly>`_
++ `Jonathan Halcrow <https://github.com/jhalcrow>`_
 
-We’re developers at `Plain Vanilla Games <http://plainvanilla.is/>`_.
