@@ -13,8 +13,7 @@ class TestFunctionalInterface(unittest.TestCase):
         class Player(Model):
             id = IntType()
 
-        _, errors = validate(Player, {'id': 4})
-        self.assertFalse(errors)
+        validate(Player, {'id': 4})            
 
     def test_validate_keep_context_data(self):
         class Player(Model):
@@ -22,9 +21,8 @@ class TestFunctionalInterface(unittest.TestCase):
             name = StringType()
 
         p1 = Player({'id': 4})
-        data, errors = validate(Player, {'name': 'Arthur'}, context=p1._data)
+        data = validate(Player, {'name': 'Arthur'}, context=p1._data)
 
-        self.assertFalse(errors)
         self.assertEqual(data, {'id': 4, 'name': 'Arthur'})
         self.assertNotEqual(data, p1._data)
 
@@ -33,37 +31,34 @@ class TestFunctionalInterface(unittest.TestCase):
             id = IntType()
 
         p1 = Player({'id': 4})
-        data, errors = validate(Player, {'id': 3}, context=p1._data)
+        data = validate(Player, {'id': 3}, context=p1._data)
 
-        self.assertFalse(errors)
         self.assertEqual(data, {'id': 3})
 
     def test_validate_ignore_extra_context_data(self):
         class Player(Model):
             id = IntType()
 
-        data, errors = validate(Player, {'id': 4}, context={'name': 'Arthur'})
+        data = validate(Player, {'id': 4}, context={'name': 'Arthur'})
 
-        self.assertFalse(errors)
         self.assertEqual(data, {'id': 4, 'name': 'Arthur'})
 
     def test_validate_strict_with_context_data(self):
         class Player(Model):
             id = IntType()
 
-        data, errors = validate(Player, {'id': 4}, strict=True, context={'name': 'Arthur'})
-
-        self.assertIn('name', errors)
-        self.assertEqual(data, {'id': 4, 'name': 'Arthur'})
+        try:
+            data = validate(Player, {'id': 4}, strict=True, context={'name': 'Arthur'})
+        except ValidationError as e:
+            self.assertIn('name', e.messages)
 
     def test_validate_partial_with_context_data(self):
         class Player(Model):
             id = IntType()
             name = StringType(required=True)
 
-        data, errors = validate(Player, {'id': 4}, partial=False, context={'name': 'Arthur'})
+        data = validate(Player, {'id': 4}, partial=False, context={'name': 'Arthur'})
 
-        self.assertFalse(errors)
         self.assertEqual(data, {'id': 4, 'name': 'Arthur'})
 
     def test_validate_with_instance_level_validators(self):
@@ -75,9 +70,10 @@ class TestFunctionalInterface(unittest.TestCase):
                     raise ValidationError('Cannot change id')
 
         p1 = Player({'id': 4})
-        data, errors = validate(p1, {'id': 3})
 
-        self.assertIn('id', errors)
-        self.assertIn('Cannot change id', errors['id'])
-        self.assertEqual(p1.id, 4)
-        self.assertFalse(data)
+        try:
+            data = validate(p1, {'id': 3})
+        except ValidationError as e:
+            self.assertIn('id', e.messages)
+            self.assertIn('Cannot change id', e.messages['id'])
+            self.assertEqual(p1.id, 4)
