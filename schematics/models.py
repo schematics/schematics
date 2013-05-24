@@ -175,11 +175,12 @@ class Model(object):
         :param strict:
             Complain about unrecognized keys. Default: False
         """
-        data, errors = validate(self, self._data, partial=partial, strict=strict)
-        if errors:
-            raise ModelValidationError(errors)
-        # Set internal data and touch the TypeDescriptors by setattr
-        self._data.update(**data)
+        try:
+            data = validate(self, self._data, partial=partial, strict=strict)
+            # Set internal data and touch the TypeDescriptors by setattr
+            self._data.update(**data)
+        except BaseError as e:
+            raise ModelValidationError(e.messages)
 
     def serialize(self, role=None):
         """Return data as it would be validated. No filtering of output unless
