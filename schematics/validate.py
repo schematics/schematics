@@ -1,5 +1,5 @@
 
-from .exceptions import BaseError
+from .exceptions import BaseError, ValidationError
 
 
 def validate(model, raw_data, partial=False, strict=False, context=None):
@@ -61,7 +61,10 @@ def validate(model, raw_data, partial=False, strict=False, context=None):
         instance_errors = _validate_instance(model, data)
         errors.update(instance_errors)
 
-    return data, errors
+    if len(errors) > 0:
+        raise ValidationError(errors)
+
+    return data
 
 
 def _validate_instance(instance, data):
