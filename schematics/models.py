@@ -223,10 +223,10 @@ class Model(object):
             serialized_field_name = field.serialized_name or field_name
 
             try:
-                raw_value = raw_data[serialized_field_name]
-                data[field_name] = None if raw_value is None else field.convert(raw_value)
+                raw_value = raw_data[field_name]
+                data[serialized_field_name] = None if raw_value is None else field.convert(raw_value)
             except KeyError:
-                data[field_name] = field.default
+                data[serialized_field_name] = field.default
             except ConversionError, e:
                 errors[serialized_field_name] = e.messages
 

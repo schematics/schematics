@@ -32,7 +32,10 @@ def validate(model, raw_data, partial=False, strict=False, context=None):
     for field_name, field in model._fields.iteritems():
         serialized_field_name = field.serialized_name or field_name
         try:
-            value = raw_data[serialized_field_name]
+            if serialized_field_name in raw_data:
+                value = raw_data[serialized_field_name]
+            elif field_name in raw_data:
+                value = raw_data[field_name]
         except KeyError:
             if data.get(field_name):
                 # skip already validated data
