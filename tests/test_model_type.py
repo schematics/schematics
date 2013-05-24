@@ -23,7 +23,7 @@ class TestModelType(unittest.TestCase):
         self.assertEqual(p.id, 1)
         self.assertEqual(p.location.country_code, "US")
 
-        p.location = {"country_code": "IS"}
+        p.location = Location({"country_code": "IS"})
 
         self.assertIsInstance(p.location, Location)
         self.assertEqual(p.location.country_code, "IS")

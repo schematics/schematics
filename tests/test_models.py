@@ -314,6 +314,7 @@ class TestCompoundTypes(unittest.TestCase):
 
         with self.assertRaises(ConversionError):
             c.user = [1]
+            c.validate()
 
         self.assertEqual(c.user.name, u'Doggy', u'Validation should not remove or modify existing data')
 
