@@ -25,8 +25,10 @@ class FieldDescriptor(object):
             raise AttributeError(self.name)
 
     def __set__(self, model, value):
-        field = model._fields[self.name]
-        model._data[self.name] = field(value)
+        # TODO: read Options class for strict type checking flag
+        #field = model._fields[self.name]
+        #model._data[self.name] = field(value)
+        model._data[self.name] = value
 
     def __delete__(self, model):
         if self.name not in model._fields:
