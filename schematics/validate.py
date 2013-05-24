@@ -42,8 +42,6 @@ def validate(model, raw_data, partial=False, strict=False, context=None):
         if field.required and value is None:
             if not partial:
                 errors[serialized_field_name] = [field.messages['required'], ]
-        elif value is None:  # the field isn't required so the value can be None
-            data[field_name] = None
         else:
             try:
                 value = field.convert(value)

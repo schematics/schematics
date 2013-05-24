@@ -157,7 +157,7 @@ class BaseType(object):
         if errors:
             raise ValidationError(errors)
 
-    def check_if_required(self, value):
+    def validate_required(self, value):
         if self.required and value is None:
             raise ValidationError(self.messages['required'])
 
