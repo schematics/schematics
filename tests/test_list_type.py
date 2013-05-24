@@ -126,7 +126,7 @@ class TestListTypeWithModelType(unittest.TestCase):
             c.validate()
 
         exception = cm.exception
-        self.assertEqual(exception.messages['users'], [u'This field is required.'])
+        self.assertEqual(exception.messages['users'], [u'Please provide at least 1 item.'])
 
         with self.assertRaises(ValidationError) as cm:
             c = Card({"users": []})

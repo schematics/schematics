@@ -132,9 +132,6 @@ class ListType(MultiType):
 
         super(ListType, self).__init__(validators=validators, **kwargs)
 
-        if min_size is not None:
-            self.required = True
-
     @property
     def model_class(self):
         return self.field.model_class
