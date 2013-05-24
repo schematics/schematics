@@ -4,6 +4,7 @@ import inspect
 import itertools
 
 from .types import BaseType
+from .types.compound import ModelType
 from .types.serializable import Serializable
 from .exceptions import BaseError, ValidationError, ModelValidationError, ConversionError, ModelConversionError
 from .serialize import serialize, flatten, expand
@@ -25,9 +26,11 @@ class FieldDescriptor(object):
             raise AttributeError(self.name)
 
     def __set__(self, model, value):
+        field = model._fields[self.name]
         # TODO: read Options class for strict type checking flag
-        #field = model._fields[self.name]
         #model._data[self.name] = field(value)
+        if not isinstance(value, Model) and isinstance(field, ModelType):
+            value = field.model_class(value)
         model._data[self.name] = value
 
     def __delete__(self, model):
@@ -158,9 +161,7 @@ class Model(object):
     def __init__(self, raw_data=None):
         if raw_data is None:
             raw_data = {}
-
         self._initial = raw_data
-
         self._data = self.convert(raw_data)
 
     def validate(self, partial=False, strict=False):
