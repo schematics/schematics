@@ -260,15 +260,11 @@ class StringType(BaseType):
 
     def validate_length(self, value):
         len_of_value = len(value) if value else 0
-        print "LOV:", len_of_value
 
         if self.max_length is not None and len_of_value > self.max_length:
-            print 'MAX:', self.max_length
             raise ValidationError(self.messages['max_length'])
 
         if self.min_length is not None and len_of_value < self.min_length:
-            print 'MIN:', self.min_length
-            print 'SN:', self.__dict__
             raise ValidationError(self.messages['min_length'])
 
     def validate_regex(self, value):
