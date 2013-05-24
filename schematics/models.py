@@ -212,6 +212,13 @@ class Model(object):
         data = {}
         errors = {}
 
+        is_class = isinstance(raw_data, self.__class__)
+        is_dict = isinstance(raw_data, dict)
+
+        if not is_class and not is_dict:
+            error_msg = 'Model conversion requires a model or dict'
+            raise ModelConversionError(error_msg)
+
         for field_name, field in self._fields.iteritems():
             serialized_field_name = field.serialized_name or field_name
 
