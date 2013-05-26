@@ -4,6 +4,7 @@ import datetime
 import decimal
 import itertools
 import functools
+import types
 
 from ..exceptions import StopValidation, ValidationError, ConversionError
 
@@ -508,7 +509,7 @@ class DateType(BaseType):
         super(DateType, self).__init__(**kwargs)
 
     def convert(self, value):
-        if isinstance(value, datetime.date):
+        if isinstance(value, (datetime.date, types.NoneType)):
             return value
 
         try:
@@ -517,6 +518,8 @@ class DateType(BaseType):
             raise ConversionError(self.messages['parse'].format(value))
 
     def to_primitive(self, value):
+        if value is None:
+            return None
         return value.strftime(self.serialized_format)
 
 
@@ -553,7 +556,7 @@ class DateTimeType(BaseType):
         super(DateTimeType, self).__init__(**kwargs)
 
     def convert(self, value):
-        if isinstance(value, datetime.datetime):
+        if isinstance(value, (datetime.date, types.NoneType)):
             return value
 
         for format in self.formats:
@@ -564,6 +567,8 @@ class DateTimeType(BaseType):
         raise ConversionError(self.messages['parse'].format(value))
 
     def to_primitive(self, value):
+        if value is None:
+            return None
         if callable(self.serialized_format):
             return self.serialized_format(value)
         return value.strftime(self.serialized_format)
