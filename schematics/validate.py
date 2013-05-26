@@ -34,7 +34,7 @@ def validate(model, raw_data, partial=False, strict=False, context=None):
         try:
             if serialized_field_name in raw_data:
                 value = raw_data[serialized_field_name]
-            elif field_name in raw_data:
+            else:
                 value = raw_data[field_name]
         except KeyError:
             if data.get(field_name):
@@ -49,10 +49,10 @@ def validate(model, raw_data, partial=False, strict=False, context=None):
             try:
                 value = field.convert(value)
                 field.validate(value)
+                data[field_name] = value
             except BaseError as e:
                 errors[serialized_field_name] = e.messages
-            else:
-                data[field_name] = value
+
     if strict:
         rogue_field_errors = _check_for_unknown_fields(model, data)
         errors.update(rogue_field_errors)

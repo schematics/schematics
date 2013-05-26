@@ -122,10 +122,9 @@ class TestStringType(unittest.TestCase):
         with self.assertRaises(ValidationError):
             field.validate(None)
 
-    def test_string_required_doesnt_accept_empty_string(self):
+    def test_string_required_accepts_empty_string(self):
         field = StringType(required=True)
-        with self.assertRaises(ValidationError):
-            field.validate('')
+        field.validate('')
 
     def test_string_min_length_doesnt_accept_empty_string(self):
         field = StringType(min_length=1)
