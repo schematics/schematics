@@ -117,10 +117,9 @@ class TestStringType(unittest.TestCase):
         with self.assertRaises(ValidationError):
             field.validate(None)
 
-    def test_string_type_doesnt_accept_none(self):
+    def test_string_type_accepts_none(self):
         field = StringType()
-        with self.assertRaises(ValidationError):
-            field.validate(None)
+        field.validate(None)
 
     def test_string_required_accepts_empty_string(self):
         field = StringType(required=True)
