@@ -128,7 +128,7 @@ class TestModelLevelValidators(unittest.TestCase):
         self.assertGreater(future, now)
 
         class TestDoc(Model):
-            can_future = BooleanType()
+            can_future = BooleanType(default=False)
             publish = DateTimeType()
 
             def validate_publish(self, data, dt):
