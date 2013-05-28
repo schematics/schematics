@@ -1,14 +1,15 @@
 # encoding=utf-8
 
 from .types.compound import (
-    ModelType, EMPTY_LIST, EMPTY_DICT
+    ModelType, EMPTY_LIST, EMPTY_DICT, MultiType
 )
 import collections
+import itertools
 
-#
-# Field Access Functions
-#
 
+###
+### Field ACL's
+###
 
 class Role(collections.Set):
     """A Role object can be used to filter specific fields against a sequence.
@@ -105,14 +106,103 @@ def blacklist(*field_list):
     return Role(Role.blacklist, field_list)
 
 
+###
+### Serialization
+###
+
+def atoms(cls, instance_or_dict, include_serializables=True):
+    """
+    Iterator for the atomic components of a model definition and relevant data
+    that creates a threeple of the field's name, the instance of it's type, and
+    it's value.
+    """
+    if include_serializables:
+        all_fields = itertools.chain(cls._fields.iteritems(),
+                                     cls._serializables.iteritems())
+    else:
+        all_fields = cls._fields.iteritems()
+
+    return ((field_name, field, instance_or_dict[field_name])
+            for field_name, field in all_fields)
+
+
+def allow_none(cls, field):
+    """
+    Inspects a field and class for ``serialize_when_none`` setting.
+
+    The setting defaults to the value of the class.  A field can override the
+    class setting with it's own ``serialize_when_none`` setting.
+    """
+    allowed = cls._options.serialize_when_none
+    if field.serialize_when_none != None:
+        allowed = field.serialize_when_none
+    return allowed
+
+
+def apply_shape(cls, instance_or_dict, role, field_converter, model_converter,
+                raise_error_on_role=False, include_serializables=True):
+    """
+    The apply shape function is intended to be a general loop definition that
+    can be used for any form of data shaping, such as application of roles or
+    how a field is transformed.
+    """
+
+    data = {}
+
+    ### Translate `role` into `gottago` function
+    gottago = wholelist()
+    if role in cls._options.roles:
+        gottago = cls._options.roles[role]
+    elif role and raise_error_on_role:
+        error_msg = u'%s Model has no role "%s"'
+        raise ValueError(error_msg % (cls.__name__, role))
+
+    ### Transformation loop
+    attr_gen = atoms(cls, instance_or_dict, include_serializables)
+    for field_name, field, value in attr_gen:
+        serialized_name = field.serialized_name or field_name
+
+        ### Skipping this field was requested
+        if gottago(field_name, value):
+            continue
+
+        ### Value found, convert and store it.
+        elif value:  ### TODO make value check for not None
+            if isinstance(field, MultiType):
+                if isinstance(field, ModelType):
+                    primitive_value = model_converter(field, value)
+                else:
+                    primitive_value = field_converter(field, value)
+                primitive_value = field.filter_by_role(value, primitive_value, role)
+            else:
+                primitive_value = field_converter(field, value)
+
+            if primitive_value is not None or allow_none(cls, field):
+                data[serialized_name] = primitive_value
+
+        ### Store None if reqeusted
+        elif allow_none(cls, field):
+            data[serialized_name] = value
+
+    return data
+
+
 def serialize(instance, role, raise_error_on_role=True):
-    model_field = ModelType(instance.__class__)
+    """
+    Implements serialization as a mechanism to convert ``Model`` instances into
+    dictionaries that represent the field_names => converted data.
 
-    primitive_data = model_field.to_primitive(instance)
+    The conversion is done by calling ``to_primitive`` on both model and field
+    instances.
+    """
+    field_converter = lambda field, value: field.to_primitive(value)
+    model_converter = lambda field, value: field.to_primitive(value,
+                                                              raise_error_on_role)
+    
+    data = apply_shape(instance.__class__, instance, role, field_converter,
+                       model_converter, raise_error_on_role)
+    return data
 
-    model_field.filter_by_role(instance, primitive_data, role, raise_error_on_role)
-
-    return primitive_data
 
 
 def expand(data, context=None):
