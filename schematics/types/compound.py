@@ -109,8 +109,8 @@ class ModelType(MultiType):
                         (field.serialize_when_none is None and self.model_class._options.serialize_when_none)):
                         primitive_data.pop(serialized_name)
 
-        return primitive_data
-
+        return primitive_data if len(primitive_data) > 0 else None
+        
 
 EMPTY_LIST = "[]"
 # Serializing to flat dict needs to output purely primitive key value types that
@@ -196,8 +196,7 @@ class ListType(MultiType):
                         (self.field.serialize_when_none is None and self.model_class._options.serialize_when_none)):
                         primitive_list.remove(primitive_value)
 
-        return primitive_list
-
+        return primitive_list if len(primitive_list) > 0 else None
 
 EMPTY_DICT = "{}"
 
@@ -260,4 +259,4 @@ class DictType(MultiType):
                         (self.field.serialize_when_none is None and self.model_class._options.serialize_when_none)):
                         primitive_data.pop(unicode(key))
 
-        return primitive_data
+        return primitive_data if len(primitive_data) > 0 else None
