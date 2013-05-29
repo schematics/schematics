@@ -245,7 +245,10 @@ class Model(object):
     def __iter__(self):
         return self.iter()
 
-    def iter(self, include_serializables=True):
+    def iter(self):
+        return iter(self._fields)
+    
+    def atoms(self, include_serializables=True):
         return atoms(self.__class__, self, include_serializables)
 
     def __getitem__(self, name):

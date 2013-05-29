@@ -67,7 +67,7 @@ class ModelType(MultiType):
 
     def to_primitive(self, model_instance, include_serializables=True):
         primitive_data = {}
-        for field_name, field, value in model_instance.iter(include_serializables):
+        for field_name, field, value in model_instance.atoms(include_serializables):
             serialized_name = field.serialized_name or field_name
 
             if value is None:
@@ -89,7 +89,7 @@ class ModelType(MultiType):
             raise ValueError(u'%s Model has no role "%s"' % (
                 self.model_class.__name__, role))
 
-        for field_name, field, value in model_instance.iter(include_serializables):
+        for field_name, field, value in model_instance.atoms(include_serializables):
             serialized_name = field.serialized_name or field_name
             if not serialized_name in primitive_data:
                 continue
