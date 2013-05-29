@@ -171,9 +171,15 @@ def apply_shape(cls, instance_or_dict, role, field_converter, model_converter,
             if isinstance(field, MultiType):
                 if isinstance(field, ModelType):
                     primitive_value = model_converter(field, value)
+                    primitive_value = field.filter_by_role(value, primitive_value,
+                                                           role,
+                                                           include_serializables=include_serializables)
+
                 else:
                     primitive_value = field_converter(field, value)
-                primitive_value = field.filter_by_role(value, primitive_value, role)
+                    primitive_value = field.filter_by_role(value, primitive_value,
+                                                           role,
+                                                           raise_error_on_role=raise_error_on_role)
             else:
                 primitive_value = field_converter(field, value)
 
