@@ -202,8 +202,7 @@ def serialize(instance, role, raise_error_on_role=True):
     instances.
     """
     field_converter = lambda field, value: field.to_primitive(value)
-    model_converter = lambda field, value: field.to_primitive(value,
-                                                              raise_error_on_role)
+    model_converter = lambda f, v: f.to_primitive(v, raise_error_on_role)
     
     data = apply_shape(instance.__class__, instance, role, field_converter,
                        model_converter, raise_error_on_role)
@@ -261,11 +260,14 @@ def flatten_to_dict(o, prefix=None, ignore_none=True):
     return flat_dict
 
 
-def flatten(instance, role, raise_error_on_role=True, ignore_none=True, prefix=None, include_serializables=False, **kwargs):
-    model_field = ModelType(instance.__class__)
+def flatten(instance, role, raise_error_on_role=True, ignore_none=True,
+            prefix=None, include_serializables=False, **kwargs):
+    i = include_serializables
+    field_converter = lambda field, value: field.to_primitive(value)
+    model_converter = lambda f, v: f.to_primitive(v, include_serializables=i)
+    
+    data = apply_shape(instance.__class__, instance, role, field_converter,
+                       model_converter,
+                       include_serializables=include_serializables)
 
-    primitive_data = model_field.to_primitive(instance, include_serializables=include_serializables)
-
-    model_field.filter_by_role(instance, primitive_data, role, raise_error_on_role, include_serializables=include_serializables)
-
-    return flatten_to_dict(primitive_data, prefix=prefix, ignore_none=ignore_none)
+    return flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
