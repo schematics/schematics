@@ -48,7 +48,7 @@ class TestListTypeWithModelType(unittest.TestCase):
             slug = StringType()
 
         class PlayerInfo(Model):
-            categories = ListType(ModelType(CategoryStatsInfo), default=lambda: [])
+            categories = ListType(ModelType(CategoryStatsInfo), default=list)
 
         info = PlayerInfo()
         self.assertEqual(info.categories, [])

@@ -196,7 +196,7 @@ class ListType(MultiType):
                         (self.field.serialize_when_none is None and self.model_class._options.serialize_when_none)):
                         primitive_list.remove(primitive_value)
 
-        return primitive_list if len(primitive_list) > 0 else None
+        return primitive_list
 
 EMPTY_DICT = "{}"
 
@@ -248,15 +248,20 @@ class DictType(MultiType):
         if clean_data is None:
             return primitive_data
 
+        serialize_when_none = True
+
         if isinstance(self.field, MultiType):
+            serialize_when_none = (self.field.serialize_when_none or
+                (self.field.serialize_when_none is None and self.model_class._options.serialize_when_none))
+
             for key, clean_value in clean_data.iteritems():
                 primitive_value = primitive_data[unicode(key)]
 
                 self.field.filter_by_role(clean_value, primitive_value, role)
 
-                if not primitive_value:
-                    if not (self.field.serialize_when_none or
-                        (self.field.serialize_when_none is None and self.model_class._options.serialize_when_none)):
+                if not primitive_value and not serialize_when_none:
                         primitive_data.pop(unicode(key))
 
-        return primitive_data if len(primitive_data) > 0 else None
+        if not primitive_data and not serialize_when_none:
+            return None
+        return primitive_data

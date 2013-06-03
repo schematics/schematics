@@ -134,7 +134,7 @@ def allow_none(cls, field):
     class setting with it's own ``serialize_when_none`` setting.
     """
     allowed = cls._options.serialize_when_none
-    if field.serialize_when_none != None:
+    if field.serialize_when_none is not None:
         allowed = field.serialize_when_none
     return allowed
 
@@ -167,7 +167,7 @@ def apply_shape(cls, instance_or_dict, role, field_converter, model_converter,
             continue
 
         ### Value found, convert and store it.
-        elif value:  ### TODO make value check for not None
+        elif value is not None:
             if isinstance(field, MultiType):
                 if isinstance(field, ModelType):
                     primitive_value = model_converter(field, value)
@@ -203,11 +203,10 @@ def serialize(instance, role, raise_error_on_role=True):
     """
     field_converter = lambda field, value: field.to_primitive(value)
     model_converter = lambda f, v: f.to_primitive(v, raise_error_on_role)
-    
+
     data = apply_shape(instance.__class__, instance, role, field_converter,
                        model_converter, raise_error_on_role)
     return data
-
 
 
 def expand(data, context=None):
@@ -265,7 +264,7 @@ def flatten(instance, role, raise_error_on_role=True, ignore_none=True,
     i = include_serializables
     field_converter = lambda field, value: field.to_primitive(value)
     model_converter = lambda f, v: f.to_primitive(v, include_serializables=i)
-    
+
     data = apply_shape(instance.__class__, instance, role, field_converter,
                        model_converter,
                        include_serializables=include_serializables)
