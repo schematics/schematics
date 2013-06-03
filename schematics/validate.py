@@ -40,8 +40,8 @@ def validate(model, raw_data, partial=False, strict=False, context=None):
         else:
             value = field.default
 
-        if field.required and value is None:
-            if not partial:
+        if value is None:
+            if field.required and not partial:
                 errors[serialized_field_name] = [field.messages['required'], ]
         else:
             try:
