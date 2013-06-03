@@ -202,7 +202,14 @@ class Model(object):
             Filter output by a specific role
 
         """
-        return serialize(self, role)
+        try:
+            raw_data = self._raw_data
+            self.validate()
+        except ModelValidationError:
+            pass
+        data = serialize(self, role)
+        self._raw_data = raw_data
+        return data
 
     def flatten(self, role=None, prefix=""):
         """
