@@ -18,6 +18,7 @@ class TestDataIntegrity(unittest.TestCase):
             code = StringType(max_length=4)
 
         p1 = Player({'code': 'invalid1'})
+        self.assertEqual(p1.serialize(), {'code': None})
         self.assertRaises(ModelValidationError, p1.validate)
         self.assertEqual(p1.serialize(), {'code': None})
 
