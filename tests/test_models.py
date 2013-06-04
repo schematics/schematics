@@ -340,12 +340,29 @@ class TestAppendFields(unittest.TestCase):
         u = User({'name': 'Marvin'})
         self.assertEqual(u.name, 'Marvin')
 
+    def test_append_same_field(self):
+        shared_type = StringType(required=True)
+
+        class User(Model):
+            name = shared_type
+
+        User.append_field('location', shared_type)
+
+        u = User()
+        self.assertRaises(ValidationError, u.validate)
+        shared_type.required = False
+        u.validate()
+        shared_type.required = True
+        self.assertRaises(ValidationError, u.validate)
+
     def test_append_field_copy(self):
         class User(Model):
-            name = StringType(default='N/A')
+            name = StringType(required=True)
 
-        User.append_field('gender', User.name)
+        User.append_field('gender', User.name.copy())
+        User.gender.required = False
 
-        u = User({'name': 'Marvin'})
-        self.assertEqual(u.name, 'Marvin')
-        self.assertEqual(u.gender, 'N/A')
+        u = User()
+        self.assertEqual(u.name, None)
+        self.assertEqual(u.gender, None)
+        self.assertRaises(ValidationError, u.validate)
