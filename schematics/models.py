@@ -179,6 +179,14 @@ class ModelMeta(type):
 
         return options_class(cls, **options_members)
 
+    def append_field(cls, name, field):
+        if isinstance(field, BaseType):
+            new_field = field.copy()
+            cls._fields[name] = new_field
+            setattr(cls, name, FieldDescriptor(name))
+        else:
+            raise TypeError('field must be of type %s' % BaseType)
+
     @property
     def fields(cls):
         return cls._fields
