@@ -327,3 +327,25 @@ class TestCompoundTypes(unittest.TestCase):
 
         with self.assertRaises(ConversionError):
             Card({'user': [1, 2]})
+
+
+class TestAppendFields(unittest.TestCase):
+
+    def test_append_new_field(self):
+        class User(Model):
+            pass
+
+        User.append_field('name', StringType())
+
+        u = User({'name': 'Marvin'})
+        self.assertEqual(u.name, 'Marvin')
+
+    def test_append_field_copy(self):
+        class User(Model):
+            name = StringType(default='N/A')
+
+        User.append_field('gender', User.name)
+
+        u = User({'name': 'Marvin'})
+        self.assertEqual(u.name, 'Marvin')
+        self.assertEqual(u.gender, 'N/A')
