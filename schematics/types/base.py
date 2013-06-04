@@ -116,6 +116,12 @@ class BaseType(object):
     def __call__(self, value):
         return self.to_native(value)
 
+    def copy(self):
+        copy = object.__new__(self.__class__)
+        copy.__dict__.update(self.__dict__)
+        copy.validators = self.validators[:]
+        return copy
+
     @property
     def default(self):
         default = self._default
