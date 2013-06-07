@@ -183,6 +183,14 @@ class Model(object):
             Complain about unrecognized keys. Default: False
         """
         if not self._raw_data:
+            if not partial:
+                # check for empty required fields
+                required = {
+                    field.serialized_name or field_name: [field.messages['required'], ] for
+                    field_name, field, in self._fields.iteritems() if
+                    field.required and self[field_name] is None}
+                if required:
+                    raise ModelValidationError(required)
             return  # no input data to validate
         try:
             data = validate(self, self._raw_data, partial=partial, strict=strict, context=self._data)
