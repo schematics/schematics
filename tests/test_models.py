@@ -350,9 +350,13 @@ class TestAppendFields(unittest.TestCase):
 
         u = User()
         self.assertRaises(ValidationError, u.validate)
-        shared_type.required = False
+
+        shared_type.required = False  # change the field rules
+        u = User()
         u.validate()
-        shared_type.required = True
+
+        shared_type.required = True  # change them back
+        u = User()
         self.assertRaises(ValidationError, u.validate)
 
     def test_append_field_copy(self):
