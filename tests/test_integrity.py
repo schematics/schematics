@@ -64,3 +64,16 @@ class TestDataIntegrity(unittest.TestCase):
         self.assertEqual(p1.serialize(), {'id': 4, 'code': 'BBB'})
         p1.validate()
         self.assertEqual(p1.serialize(), {'id': 4, 'code': 'BBB'})
+
+    def test_dont_forget_required_fields_after_multiple_validation(self):
+        """
+        Validation should not forget about required fields, even if invalid
+        data is cleared from input, since it doesn't rely on actual input.
+
+        """
+        class Player(Model):
+            code = StringType(required=True)
+
+        p1 = Player()
+        self.assertRaises(ModelValidationError, p1.validate)
+        self.assertRaises(ModelValidationError, p1.validate)
