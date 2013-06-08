@@ -134,6 +134,12 @@ class BaseType(object):
         """
         return value
 
+    def allow_none(self, field):
+        if hasattr(self, 'model_class'):
+            return allow_none(self.model_class, field)
+        else:
+            return field.serialize_when_none
+
     def validate(self, value):
         """
         Validate the field and return a clean value or raise a

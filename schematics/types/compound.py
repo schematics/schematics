@@ -5,7 +5,6 @@ from __future__ import division
 from ..exceptions import ValidationError, ConversionError, ModelValidationError, StopValidation
 from .base import BaseType
 
-
 class MultiType(BaseType):
 
     def validate(self, value):
@@ -65,20 +64,19 @@ class ModelType(MultiType):
         # not obviously useful
         return self.model_class(value)
 
-    def to_primitive(self, model_instance, include_serializables=True):
+    def to_primitive(self, model_instance):
         primitive_data = {}
-        for field_name, field, value in model_instance.atoms(include_serializables):
+        for field_name, field, value in model_instance.atoms():
             serialized_name = field.serialized_name or field_name
 
-            if value is None:
-                if field.serialize_when_none or (field.serialize_when_none is None and self.model_class._options.serialize_when_none):
+            if value is None and model_instance.allow_none(field):
                     primitive_data[serialized_name] = None
             else:
                 primitive_data[serialized_name] = field.to_primitive(value)
 
         return primitive_data
 
-    def filter_by_role(self, model_instance, primitive_data, role, raise_error_on_role=False, include_serializables=True):
+    def filter_by_role(self, model_instance, primitive_data, role, raise_error_on_role=False):
         if model_instance is None:
             return primitive_data
 
@@ -89,7 +87,7 @@ class ModelType(MultiType):
             raise ValueError(u'%s Model has no role "%s"' % (
                 self.model_class.__name__, role))
 
-        for field_name, field, value in model_instance.atoms(include_serializables):
+        for field_name, field, value in model_instance.atoms():
             serialized_name = field.serialized_name or field_name
             if not serialized_name in primitive_data:
                 continue

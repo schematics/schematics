@@ -1,5 +1,6 @@
 # encoding=utf-8
 
+from types.serializable import Serializable
 from .types.compound import (
     ModelType, EMPTY_LIST, EMPTY_DICT, MultiType
 )
@@ -110,17 +111,14 @@ def blacklist(*field_list):
 ### Serialization
 ###
 
-def atoms(cls, instance_or_dict, include_serializables=True):
+def atoms(cls, instance_or_dict):
     """
     Iterator for the atomic components of a model definition and relevant data
     that creates a threeple of the field's name, the instance of it's type, and
     it's value.
     """
-    if include_serializables:
-        all_fields = itertools.chain(cls._fields.iteritems(),
-                                     cls._serializables.iteritems())
-    else:
-        all_fields = cls._fields.iteritems()
+    all_fields = itertools.chain(cls._fields.iteritems(),
+                                 cls._serializables.iteritems())
 
     return ((field_name, field, instance_or_dict[field_name])
             for field_name, field in all_fields)
@@ -140,7 +138,7 @@ def allow_none(cls, field):
 
 
 def apply_shape(cls, instance_or_dict, role, field_converter, model_converter,
-                raise_error_on_role=False, include_serializables=True):
+                raise_error_on_role=False):
     """
     The apply shape function is intended to be a general loop definition that
     can be used for any form of data shaping, such as application of roles or
@@ -158,8 +156,7 @@ def apply_shape(cls, instance_or_dict, role, field_converter, model_converter,
         raise ValueError(error_msg % (cls.__name__, role))
 
     ### Transformation loop
-    attr_gen = atoms(cls, instance_or_dict, include_serializables)
-    for field_name, field, value in attr_gen:
+    for field_name, field, value in atoms(cls, instance_or_dict):
         serialized_name = field.serialized_name or field_name
 
         ### Skipping this field was requested
@@ -172,8 +169,7 @@ def apply_shape(cls, instance_or_dict, role, field_converter, model_converter,
                 if isinstance(field, ModelType):
                     primitive_value = model_converter(field, value)
                     primitive_value = field.filter_by_role(value, primitive_value,
-                                                           role,
-                                                           include_serializables=include_serializables)
+                                                           role)
 
                 else:
                     primitive_value = field_converter(field, value)
@@ -202,7 +198,7 @@ def serialize(instance, role, raise_error_on_role=True):
     instances.
     """
     field_converter = lambda field, value: field.to_primitive(value)
-    model_converter = lambda f, v: f.to_primitive(v, raise_error_on_role)
+    model_converter = lambda f, v: f.to_primitive(v)
     
     data = apply_shape(instance.__class__, instance, role, field_converter,
                        model_converter, raise_error_on_role)
@@ -261,13 +257,12 @@ def flatten_to_dict(o, prefix=None, ignore_none=True):
 
 
 def flatten(instance, role, raise_error_on_role=True, ignore_none=True,
-            prefix=None, include_serializables=False, **kwargs):
-    i = include_serializables
+            prefix=None, **kwargs):
+
     field_converter = lambda field, value: field.to_primitive(value)
-    model_converter = lambda f, v: f.to_primitive(v, include_serializables=i)
+    model_converter = lambda f, v: v.flatten()
     
     data = apply_shape(instance.__class__, instance, role, field_converter,
-                       model_converter,
-                       include_serializables=include_serializables)
+                       model_converter)
 
     return flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)

@@ -7,7 +7,7 @@ from .types import BaseType
 from .types.compound import ModelType
 from .types.serializable import Serializable
 from .exceptions import BaseError, ValidationError, ModelValidationError, ConversionError, ModelConversionError
-from .serialize import atoms, serialize, flatten, expand
+from .serialize import allow_none, atoms, serialize, flatten, expand
 from .validate import validate
 from .datastructures import OrderedDict as OrderedDictWithSort
 
@@ -242,14 +242,17 @@ class Model(object):
 
         return data
 
+    def allow_none(self, field):
+        return allow_none(self.__class__, field)
+
     def __iter__(self):
         return self.iter()
 
     def iter(self):
         return iter(self._fields)
     
-    def atoms(self, include_serializables=True):
-        return atoms(self.__class__, self, include_serializables)
+    def atoms(self):
+        return atoms(self.__class__, self)
 
     def __getitem__(self, name):
         try:
