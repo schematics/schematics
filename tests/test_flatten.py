@@ -283,7 +283,7 @@ class FlattenTests(unittest.TestCase):
         p_from_flat = PlayerCategoryInfo.from_flat(flat)
         self.assertEqual(p, p_from_flat)
 
-    def test_flatten_ignores_serializables_by_default(self):
+    def test_flatten_serializables_on_by_default(self):
         class ExperienceLevel(Model):
             level = IntType()
             title = StringType()
@@ -291,16 +291,18 @@ class FlattenTests(unittest.TestCase):
         class Player(Model):
             total_points = IntType()
 
-            @serializable
+            @serializable(type=ModelType(ExperienceLevel))
             def xp_level(self):
                 return ExperienceLevel(dict(level=self.total_points * 2, title="Best"))
 
+        exp_level = ExperienceLevel(dict(level=4, title="Best"))
+        
         player = Player({"total_points": 2})
 
         self.assertEqual(player.xp_level.level, 4)
 
         flat = player.flatten()
-        self.assertEqual(flat, {"total_points": 2})
+        self.assertEqual(flat, {"total_points": 2, "xp_level.level": 4, "xp_level.title": "Best"})
 
         player_from_flat = Player.from_flat(flat)
         self.assertEqual(player, player_from_flat)
