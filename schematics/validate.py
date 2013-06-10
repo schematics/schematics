@@ -31,19 +31,17 @@ def validate(model, raw_data, partial=False, strict=False, context=None):
     # validate raw_data by the model fields
     for field_name, field in model._fields.iteritems():
         serialized_field_name = field.serialized_name or field_name
-        try:
-            if serialized_field_name in raw_data:
-                value = raw_data[serialized_field_name]
-            else:
-                value = raw_data[field_name]
-        except KeyError:
-            if data.get(field_name):
-                # skip already validated data
-                continue
+        if serialized_field_name in raw_data:
+            value = raw_data[serialized_field_name]
+        elif field_name in raw_data:
+            value = raw_data[field_name]
+        elif field_name in data:
+            continue  # skip already validated data
+        else:
             value = field.default
 
-        if field.required and value is None:
-            if not partial:
+        if value is None:
+            if field.required and not partial:
                 errors[serialized_field_name] = [field.messages['required'], ]
         else:
             try:
