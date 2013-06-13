@@ -26,7 +26,9 @@ class FieldDescriptor(object):
             elif self.name in model._data:
                 return model._data[self.name]
             else:
-                return model._fields[self.name].default
+                default = model._fields[self.name].default
+                model._raw_data[self.name] = default
+                return default
         except KeyError:
             raise AttributeError(self.name)
 
@@ -167,7 +169,7 @@ class Model(object):
         if raw_data is None:
             raw_data = {}
         self._initial = raw_data
-        self._raw_data = self.convert(raw_data)
+        self._raw_data = self.convert(raw_data) if raw_data else {}
         self._data = {}
 
     def validate(self, partial=False, strict=False):
@@ -182,19 +184,10 @@ class Model(object):
         :param strict:
             Complain about unrecognized keys. Default: False
         """
-        if not self._raw_data:
-            if not partial:
-                # check for empty required fields
-                required = {
-                    field.serialized_name or field_name: [field.messages['required'], ] for
-                    field_name, field, in self._fields.iteritems() if
-                    field.required and self[field_name] is None}
-                if required:
-                    raise ModelValidationError(required)
+        if not self._raw_data and partial:
             return  # no input data to validate
         try:
             data = validate(self, self._raw_data, partial=partial, strict=strict, context=self._data)
-            # Set internal data and touch the TypeDescriptors by setattr
             self._data.update(**data)
         except BaseError as e:
             raise ModelValidationError(e.messages)
@@ -294,7 +287,7 @@ class Model(object):
         return name in self._fields or name in self._serializables
 
     def __len__(self):
-        return len(self._data)
+        return len(set(itertools.chain(self._data.iterkeys(), self._raw_data.iterkeys())))
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
