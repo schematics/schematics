@@ -172,11 +172,13 @@ class Model(object):
         self._raw_data = self.convert(raw_data) if raw_data else {}
         self._data = {}
 
-    def validate(self, partial=False, strict=False):
+    def validate(self, raw_data=None, partial=False, strict=False):
         """
         Validates the state of the model and adding additional untrusted data
         as well. If the models is invalid, raises ValidationError with error messages.
 
+        :param raw_data:
+            A ``dict`` or ``dict``-like structure for incoming data.
         :param partial:
             Allow partial data to validate; useful for PATCH requests.
             Essentially drops the ``required=True`` arguments from field
@@ -184,6 +186,8 @@ class Model(object):
         :param strict:
             Complain about unrecognized keys. Default: False
         """
+        if raw_data:
+            self._raw_data.update(raw_data)
         if not self._raw_data and partial:
             return  # no input data to validate
         try:
@@ -250,7 +254,7 @@ class Model(object):
                 if raw_value is not None:
                     raw_value = field.convert(raw_value)
                 data[field_name] = raw_value
-                
+
             except KeyError:
                 data[field_name] = field.default
             except ConversionError, e:
