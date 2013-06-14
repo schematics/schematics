@@ -331,10 +331,8 @@ class Model(object):
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            keys = self._fields
-
-            for key in keys:
-                if self[key] != other[key]:
+            for k in self._fields:
+                if self.get(k) != other.get(k):
                     return False
             return True
         return False
