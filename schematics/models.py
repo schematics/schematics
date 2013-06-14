@@ -295,7 +295,16 @@ class Model(object):
 
     def iter(self):
         return iter(self._fields)
-    
+
+    def keys(self):
+        return self._fields.keys()
+
+    def items(self):
+        return [(k, self.get(k)) for k in self._fields.iterkeys()]
+
+    def values(self):
+        return [self.get(k) for k in self._fields.iterkeys()]
+
     def __getitem__(self, name):
         try:
             return getattr(self, name)
