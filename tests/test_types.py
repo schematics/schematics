@@ -4,14 +4,12 @@ import datetime
 
 from schematics.types import (
     BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
-    URLType,
+    URLType, BooleanType,
 )
 from schematics.exceptions import ValidationError, StopValidation, ConversionError
 
 
 class TestType(unittest.TestCase):
-
-
 
     def test_date(self):
         today = datetime.date(2013, 3, 1)
@@ -53,7 +51,7 @@ class TestType(unittest.TestCase):
 class TestTypeValidators(unittest.TestCase):
     def test_custom_validation_functions(self):
         class UppercaseType(BaseType):
-            def validate_uppercase(self, value):
+            def validate_uppercase(self, value, *args):
                 if value.upper() != value:
                     raise ValidationError("Value must be uppercase!")
 
@@ -65,7 +63,7 @@ class TestTypeValidators(unittest.TestCase):
     def test_custom_validation_function_and_inheritance(self):
         class UppercaseType(StringType):
 
-            def validate_uppercase(self, value):
+            def validate_uppercase(self, value, *args):
                 if value.upper() != value:
                     raise ValidationError("Value must be uppercase!")
 
@@ -76,7 +74,7 @@ class TestTypeValidators(unittest.TestCase):
 
                 super(MUppercaseType, self).__init__(**kwargs)
 
-            def validate_contains_m_chars(self, value):
+            def validate_contains_m_chars(self, value, *args):
                 if value.count("M") != self.number_of_m_chars:
                     raise ValidationError("Value must contain {} 'm' characters".format(self.number_of_m_chars))
 
@@ -89,6 +87,25 @@ class TestTypeValidators(unittest.TestCase):
 
         with self.assertRaises(ValidationError):
             field.validate("MM")
+
+    def test_validate_based_on_old_value(self):
+        class SwitchType(BooleanType):
+            def validate_switch(self, value, old_value):
+                if value == old_value:
+                    raise ValidationError("Value must be different from previous value")
+
+        field = SwitchType()
+
+        field.validate(True)
+        field.validate(False)
+        field.validate(True, False)
+        field.validate(False, True)
+
+        with self.assertRaises(ValidationError):
+            field.validate(False, False)
+
+        with self.assertRaises(ValidationError):
+            field.validate(True, True)
 
 
 class TestEmailType(unittest.TestCase):
@@ -135,5 +152,3 @@ class TestStringType(unittest.TestCase):
 
         with self.assertRaises(ValidationError):
             StringType(regex='\d+').validate("a")
-
-
