@@ -8,7 +8,7 @@ from .base import BaseType
 
 class MultiType(BaseType):
 
-    def validate(self, value):
+    def validate(self, value, old_value=None):
         """Report dictionary of errors with lists of errors as values of each
         key. Used by ModelType and ListType.
 
@@ -17,7 +17,7 @@ class MultiType(BaseType):
 
         for validator in self.validators:
             try:
-                validator(value)
+                validator(value, old_value)
             except ModelValidationError, e:
                 errors.update(e.messages)
 
@@ -40,7 +40,7 @@ class ModelType(MultiType):
 
         validators = kwargs.pop("validators", [])
 
-        def validate_model(model_instance):
+        def validate_model(model_instance, *args):
             model_instance.validate()
             return model_instance
 
@@ -156,7 +156,7 @@ class ListType(MultiType):
 
         return map(self.field.convert, items)
 
-    def check_length(self, value):
+    def check_length(self, value, *args):
         list_length = len(value) if value else 0
 
         if self.min_size is not None and list_length < self.min_size:
@@ -173,7 +173,7 @@ class ListType(MultiType):
             ) % self.max_size
             raise ValidationError(message)
 
-    def validate_items(self, items):
+    def validate_items(self, items, *args):
         errors = []
         for idx, item in enumerate(items, 1):
             try:
@@ -230,7 +230,7 @@ class DictType(MultiType):
         return dict((self.coerce_key(k), self.field.convert(v))
                     for k, v in value.iteritems())
 
-    def validate_items(self, items):
+    def validate_items(self, items, *args):
         errors = {}
         for key, value in items.iteritems():
             try:
