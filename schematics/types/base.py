@@ -635,8 +635,12 @@ class DateTimeType(BaseType):
 
         A datetime may be used (and is encouraged).
         """
+
         if isinstance(value, (str, unicode)):
-            value = DateTimeType.iso8601_to_date(value)
+            if not value:
+                value = None
+            else:
+                value = DateTimeType.iso8601_to_date(value)
 
         instance._data[self.field_name] = value
 
