@@ -7,7 +7,7 @@ from .types import BaseType
 from .types.compound import ModelType
 from .types.serializable import Serializable
 from .exceptions import BaseError, ValidationError, ModelValidationError, ConversionError, ModelConversionError
-from .serialize import allow_none, atoms, serialize, flatten, expand
+from .serialize import allow_none, atoms, serialize, flatten, expand, convert
 from .validate import validate
 from .datastructures import OrderedDict as OrderedDictWithSort
 
@@ -209,38 +209,7 @@ class Model(object):
         Converts the raw data into richer Python constructs according to the
         fields on the model
         """
-        data = {}
-        errors = {}
-
-        is_class = isinstance(raw_data, self.__class__)
-        is_dict = isinstance(raw_data, dict)
-
-        if not is_class and not is_dict:
-            error_msg = 'Model conversion requires a model or dict'
-            raise ModelConversionError(error_msg)
-
-        for field_name, field in self._fields.iteritems():
-            serialized_field_name = field.serialized_name or field_name
-
-            try:
-                if serialized_field_name in raw_data:
-                    raw_value = raw_data[serialized_field_name]
-                else:
-                    raw_value = raw_data[field_name]
-
-                if raw_value is not None:
-                    raw_value = field.convert(raw_value)
-                data[field_name] = raw_value
-                
-            except KeyError:
-                data[field_name] = field.default
-            except ConversionError, e:
-                errors[serialized_field_name] = e.messages
-
-        if errors:
-            raise ModelConversionError(errors)
-
-        return data
+        return convert(self.__class__, raw_data)
 
     def allow_none(self, field):
         return allow_none(self.__class__, field)

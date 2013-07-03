@@ -1,11 +1,13 @@
 # encoding=utf-8
 
-from types.serializable import Serializable
+import collections
+import itertools
+
+from .types.serializable import Serializable
 from .types.compound import (
     ModelType, EMPTY_LIST, EMPTY_DICT, MultiType
 )
-import collections
-import itertools
+from .exceptions import ConversionError, ModelConversionError
 
 
 ###
@@ -185,6 +187,45 @@ def apply_shape(cls, instance_or_dict, role, field_converter, model_converter,
         ### Store None if reqeusted
         elif allow_none(cls, field):
             data[serialized_name] = value
+
+    return data
+
+
+def convert(cls, raw_data):
+    """
+    Converts the raw data into richer Python constructs according to the
+    fields on the model
+    """
+    data = {}
+    errors = {}
+
+    is_class = isinstance(raw_data, cls)
+    is_dict = isinstance(raw_data, dict)
+
+    if not is_class and not is_dict:
+        error_msg = 'Model conversion requires a model or dict'
+        raise ModelConversionError(error_msg)
+
+    for field_name, field in cls._fields.iteritems():
+        serialized_field_name = field.serialized_name or field_name
+
+        try:
+            if serialized_field_name in raw_data:
+                raw_value = raw_data[serialized_field_name]
+            else:
+                raw_value = raw_data[field_name]
+
+            if raw_value is not None:
+                raw_value = field.convert(raw_value)
+            data[field_name] = raw_value
+            
+        except KeyError:
+            data[field_name] = field.default
+        except ConversionError, e:
+            errors[serialized_field_name] = e.messages
+
+    if errors:
+        raise ModelConversionError(errors)
 
     return data
 
