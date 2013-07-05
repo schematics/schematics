@@ -119,14 +119,14 @@ class TestListTypeWithModelType(unittest.TestCase):
             name = StringType()
 
         class Card(Model):
-            users = ListType(ModelType(User), min_size=1)
+            users = ListType(ModelType(User), min_size=1, required=True)
 
         with self.assertRaises(ValidationError) as cm:
             c = Card({"users": None})
             c.validate()
 
         exception = cm.exception
-        self.assertEqual(exception.messages['users'], [u'Please provide at least 1 item.'])
+        self.assertEqual(exception.messages['users'], [u'This field is required.'])
 
         with self.assertRaises(ValidationError) as cm:
             c = Card({"users": []})
@@ -163,7 +163,7 @@ class TestListTypeWithModelType(unittest.TestCase):
             name = StringType()
 
         class Card(Model):
-            users = ListType(ModelType(User), min_size=1)
+            users = ListType(ModelType(User), min_size=1, required=True)
 
         data = {'users': [{'name': u'Doggy'}]}
         c = Card(data)
@@ -174,4 +174,4 @@ class TestListTypeWithModelType(unittest.TestCase):
 
         errors = context.exception.messages
 
-        self.assertEqual(errors['users'], [u'Please provide at least 1 item.'])
+        self.assertEqual(errors['users'], [u'This field is required.'])
