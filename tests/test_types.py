@@ -18,8 +18,10 @@ class TestType(unittest.TestCase):
 
         date_type = DateType()
         self.assertEqual(date_type("2013-03-01"), today)
+        self.assertEqual(date_type(None), None)
 
         self.assertEqual(date_type.to_primitive(today), "2013-03-01")
+        self.assertEqual(date_type.to_primitive(None), None)
 
     def test_datetime(self):
         dt = datetime.datetime.now()
