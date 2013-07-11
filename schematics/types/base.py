@@ -455,7 +455,7 @@ class HashType(BaseType):
         if len(value) != self.LENGTH:
             raise ValidationError(self.messages['hash_length'])
         try:
-            value = int(value, 16)
+            int(value, 16)
         except ValueError:
             raise ConversionError(self.messages['hash_hex'])
         return value
