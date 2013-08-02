@@ -209,7 +209,7 @@ class Model(object):
         """
         try:
             raw_data = self._raw_data
-            self.validate()
+            self.validate(partial=True)
         except ModelValidationError:
             pass
         data = serialize(self, role)
