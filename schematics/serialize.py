@@ -4,10 +4,8 @@ import collections
 import itertools
 
 from .types.serializable import Serializable
-from .types.compound import (
-    ModelType, EMPTY_LIST, EMPTY_DICT, MultiType
-)
 from .exceptions import ConversionError, ModelConversionError
+
 
 
 ###
@@ -59,7 +57,7 @@ class Role(collections.Set):
     def __sub__(self, other):
         fields = self.fields.difference(other)
         return self._from_iterable(fields)
-
+ 
     # apply role to field
     def __call__(self, k, v):
         return self.function(k, v, self.fields)
@@ -119,6 +117,7 @@ def atoms(cls, instance_or_dict):
     that creates a threeple of the field's name, the instance of it's type, and
     it's value.
     """
+
     all_fields = itertools.chain(cls._fields.iteritems(),
                                  cls._serializables.iteritems())
 
@@ -139,8 +138,12 @@ def allow_none(cls, field):
     return allowed
 
 
-def apply_shape(cls, instance_or_dict, role, field_converter, model_converter,
-                raise_error_on_role=False):
+###
+### Transform Loop
+###
+
+def apply_shape(cls, instance_or_dict, role, field_converter, shape_converter,
+                raise_error_on_role=False, print_none=False):
     """
     The apply shape function is intended to be a general loop definition that
     can be used for any form of data shaping, such as application of roles or
@@ -151,7 +154,7 @@ def apply_shape(cls, instance_or_dict, role, field_converter, model_converter,
 
     ### Translate `role` into `gottago` function
     gottago = wholelist()
-    if role in cls._options.roles:
+    if hasattr(cls, '_options') and role in cls._options.roles:
         gottago = cls._options.roles[role]
     elif role and raise_error_on_role:
         error_msg = u'%s Model has no role "%s"'
@@ -165,30 +168,23 @@ def apply_shape(cls, instance_or_dict, role, field_converter, model_converter,
         if gottago(field_name, value):
             continue
 
-        ### Value found, convert and store it.
-        elif value:  ### TODO make value check for not None
-            if isinstance(field, MultiType):
-                if isinstance(field, ModelType):
-                    primitive_value = model_converter(field, value)
-                    primitive_value = field.filter_by_role(value, primitive_value,
-                                                           role)
-
-                else:
-                    primitive_value = field_converter(field, value)
-                    primitive_value = field.filter_by_role(value, primitive_value,
-                                                           role,
-                                                           raise_error_on_role=raise_error_on_role)
+        ### Value found, apply transformation and store it
+        elif value is not None:
+            if hasattr(field, 'apply_shape'):  # TODO improve this somehow
+                shaped = field.apply_shape(value, role,
+                                           field_converter, shape_converter)
             else:
-                primitive_value = field_converter(field, value)
+                shaped = field_converter(field, value)
 
-            if primitive_value is not None or allow_none(cls, field):
-                data[serialized_name] = primitive_value
+            if (shaped is None and allow_none(cls, field)) or shaped is not None:
+                data[serialized_name] = shaped
 
         ### Store None if reqeusted
-        elif allow_none(cls, field):
+        elif value is None and allow_none(cls, field):
             data[serialized_name] = value
 
-    return data
+    if len(data) > 0:
+        return data
 
 
 def convert(cls, raw_data):
@@ -230,6 +226,10 @@ def convert(cls, raw_data):
     return data
 
 
+###
+### Serialization
+###
+
 def serialize(instance, role, raise_error_on_role=True):
     """
     Implements serialization as a mechanism to convert ``Model`` instances into
@@ -239,13 +239,19 @@ def serialize(instance, role, raise_error_on_role=True):
     instances.
     """
     field_converter = lambda field, value: field.to_primitive(value)
-    model_converter = lambda f, v: f.to_primitive(v)
+    shape_converter = lambda field, value: True
     
     data = apply_shape(instance.__class__, instance, role, field_converter,
-                       model_converter, raise_error_on_role)
+                       shape_converter, raise_error_on_role)
     return data
 
 
+###
+### Flattening
+###
+
+EMPTY_LIST = "[]"
+EMPTY_DICT = "{}"
 
 def expand(data, context=None):
     expanded_dict = {}
@@ -301,9 +307,9 @@ def flatten(instance, role, raise_error_on_role=True, ignore_none=True,
             prefix=None, **kwargs):
 
     field_converter = lambda field, value: field.to_primitive(value)
-    model_converter = lambda f, v: v.flatten()
+    shape_converter = lambda field, value: value.flatten()
     
     data = apply_shape(instance.__class__, instance, role, field_converter,
-                       model_converter)
+                       shape_converter)
 
     return flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
