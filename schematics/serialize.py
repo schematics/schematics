@@ -141,7 +141,7 @@ def allow_none(cls, field):
 ### Transform Loop
 ###
 
-def apply_shape(cls, instance_or_dict, field_converter, shape_converter,
+def apply_shape(cls, instance_or_dict, field_converter,
                 role=None, raise_error_on_role=False, print_none=False):
     """
     The apply shape function is intended to be a general loop definition that
@@ -171,7 +171,6 @@ def apply_shape(cls, instance_or_dict, field_converter, shape_converter,
         elif value is not None:
             if hasattr(field, 'apply_shape'):
                 shaped = field.apply_shape(value, field_converter,
-                                           shape_converter,
                                            role=role,
                                            print_none=print_none)
             else:
@@ -250,10 +249,9 @@ def serialize(instance, role=None, raise_error_on_role=True):
     instances.
     """
     field_converter = lambda field, value: field.to_primitive(value)
-    shape_converter = lambda field, value: True
     
     data = apply_shape(instance.__class__, instance, field_converter,
-                       shape_converter, role=role,
+                       role=role,
                        raise_error_on_role=raise_error_on_role)
     return data
 
@@ -319,9 +317,8 @@ def flatten(instance, role=None, raise_error_on_role=True, ignore_none=True,
             prefix=None, **kwargs):
 
     field_converter = lambda field, value: field.to_primitive(value)
-    shape_converter = lambda field, value: value.flatten()
     
     data = apply_shape(instance.__class__, instance, field_converter,
-                       shape_converter, role=role, print_none=True)
+                       role=role, print_none=True)
 
     return flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
