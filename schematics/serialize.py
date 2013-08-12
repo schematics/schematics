@@ -117,7 +117,6 @@ def atoms(cls, instance_or_dict):
     that creates a threeple of the field's name, the instance of it's type, and
     it's value.
     """
-
     all_fields = itertools.chain(cls._fields.iteritems(),
                                  cls._serializables.iteritems())
 
@@ -142,8 +141,8 @@ def allow_none(cls, field):
 ### Transform Loop
 ###
 
-def apply_shape(cls, instance_or_dict, role, field_converter, shape_converter,
-                raise_error_on_role=False, print_none=False):
+def apply_shape(cls, instance_or_dict, field_converter, shape_converter,
+                role=None, raise_error_on_role=False, print_none=False):
     """
     The apply shape function is intended to be a general loop definition that
     can be used for any form of data shaping, such as application of roles or
@@ -171,12 +170,14 @@ def apply_shape(cls, instance_or_dict, role, field_converter, shape_converter,
         ### Value found, apply transformation and store it
         elif value is not None:
             if hasattr(field, 'apply_shape'):
-                shaped = field.apply_shape(value, role,
-                                           field_converter, shape_converter,
+                shaped = field.apply_shape(value, field_converter,
+                                           shape_converter,
+                                           role=role,
                                            print_none=print_none)
             else:
                 shaped = field_converter(field, value)
 
+            ### Print if we want none or found a value
             if (shaped is None and allow_none(cls, field)):
                 data[serialized_name] = shaped
             elif shaped is not None:
@@ -190,6 +191,7 @@ def apply_shape(cls, instance_or_dict, role, field_converter, shape_converter,
         elif print_none:
             data[serialized_name] = value
 
+    ### Return data if the list contains anything
     if len(data) > 0:
         return data
     elif print_none:
@@ -236,10 +238,10 @@ def convert(cls, raw_data):
 
 
 ###
-### Serialization
+### Shape that data.
 ###
 
-def serialize(instance, role, raise_error_on_role=True):
+def serialize(instance, role=None, raise_error_on_role=True):
     """
     Implements serialization as a mechanism to convert ``Model`` instances into
     dictionaries that represent the field_names => converted data.
@@ -250,8 +252,9 @@ def serialize(instance, role, raise_error_on_role=True):
     field_converter = lambda field, value: field.to_primitive(value)
     shape_converter = lambda field, value: True
     
-    data = apply_shape(instance.__class__, instance, role, field_converter,
-                       shape_converter, raise_error_on_role)
+    data = apply_shape(instance.__class__, instance, field_converter,
+                       shape_converter, role=role,
+                       raise_error_on_role=raise_error_on_role)
     return data
 
 
@@ -312,13 +315,13 @@ def flatten_to_dict(o, prefix=None, ignore_none=True):
     return flat_dict
 
 
-def flatten(instance, role, raise_error_on_role=True, ignore_none=True,
+def flatten(instance, role=None, raise_error_on_role=True, ignore_none=True,
             prefix=None, **kwargs):
 
     field_converter = lambda field, value: field.to_primitive(value)
     shape_converter = lambda field, value: value.flatten()
     
-    data = apply_shape(instance.__class__, instance, role, field_converter,
-                       shape_converter, print_none=True)
+    data = apply_shape(instance.__class__, instance, field_converter,
+                       shape_converter, role=role, print_none=True)
 
     return flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
