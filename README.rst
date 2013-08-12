@@ -58,7 +58,6 @@ Authors
 + `James Dennis <https://github.com/j2labs>`_
 + `Jökull Sólberg Auðunsson <https://github.com/jokull>`_
 + `Jóhann Þorvaldur Bergþórsson <https://github.com/johannth>`_
-+ `James Dennis <https://github.com/j2labs>`_
 + `Andrew Gwozdziewycz <https://github.com/apgwoz>`_
 + `Dion Paragas <https://github.com/d1on>`_
 + `Tom Waits <https://github.com/tomwaits>`_
