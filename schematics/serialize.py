@@ -170,20 +170,29 @@ def apply_shape(cls, instance_or_dict, role, field_converter, shape_converter,
 
         ### Value found, apply transformation and store it
         elif value is not None:
-            if hasattr(field, 'apply_shape'):  # TODO improve this somehow
+            if hasattr(field, 'apply_shape'):
                 shaped = field.apply_shape(value, role,
-                                           field_converter, shape_converter)
+                                           field_converter, shape_converter,
+                                           print_none=print_none)
             else:
                 shaped = field_converter(field, value)
 
-            if (shaped is None and allow_none(cls, field)) or shaped is not None:
+            if (shaped is None and allow_none(cls, field)):
+                data[serialized_name] = shaped
+            elif shaped is not None:
+                data[serialized_name] = shaped
+            elif print_none:
                 data[serialized_name] = shaped
 
         ### Store None if reqeusted
         elif value is None and allow_none(cls, field):
             data[serialized_name] = value
+        elif print_none:
+            data[serialized_name] = value
 
     if len(data) > 0:
+        return data
+    elif print_none:
         return data
 
 
@@ -310,6 +319,6 @@ def flatten(instance, role, raise_error_on_role=True, ignore_none=True,
     shape_converter = lambda field, value: value.flatten()
     
     data = apply_shape(instance.__class__, instance, role, field_converter,
-                       shape_converter)
+                       shape_converter, print_none=True)
 
     return flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)

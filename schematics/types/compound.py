@@ -30,7 +30,7 @@ class MultiType(BaseType):
         return value
 
     def apply_shape(self, shape_instance, role, field_converter,
-                    shape_converter):
+                    shape_converter, print_none=False):
         raise NotImplemented()
 
 
@@ -81,7 +81,7 @@ class ModelType(MultiType):
         return primitive_data
 
     def apply_shape(self, model_instance, role, field_converter,
-                    shape_converter):
+                    shape_converter, print_none=False):
         """
         Calls the main `apply_shape` implementation because they are both
         supposed to operate on models.
@@ -91,7 +91,9 @@ class ModelType(MultiType):
 
         if shaped and len(shaped) == 0 and self.allow_none():
             return shaped
-        elif shaped is not None:
+        elif shaped:
+            return shaped
+        elif print_none: 
             return shaped
 
 
@@ -165,7 +167,7 @@ class ListType(MultiType):
         return map(self.field.to_primitive, value)
 
     def apply_shape(self, list_instance, role, field_converter,
-                    shape_converter):
+                    shape_converter, print_none=False):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
         as `serialize.apply_shape`.
@@ -180,10 +182,18 @@ class ListType(MultiType):
                 shaped = field_converter(self.field, value)
                 feels_empty = shaped == None
                 
-            if (feels_empty and self.allow_none()) or shaped is not None:
+            if (feels_empty and self.allow_none()):
+                data.append(shaped)
+            elif shaped is not None:
+                data.append(shaped)
+            elif print_none:
                 data.append(shaped)
 
-        if len(data) > 0 or (len(data) == 0 and self.allow_none()):
+        if len(data) > 0:
+            return data
+        elif len(data) == 0 and self.allow_none():
+            return data
+        elif print_none:
             return data
 
 
@@ -231,7 +241,7 @@ class DictType(MultiType):
         return dict((unicode(k), self.field.to_primitive(v)) for k, v in value.iteritems())
 
     def apply_shape(self, dict_instance, role, field_converter,
-                    shape_converter):
+                    shape_converter, print_none=False):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
         as `serialize.apply_shape`.
@@ -247,9 +257,17 @@ class DictType(MultiType):
                 shaped = field_converter(self.field, value)
                 feels_empty = shaped == None
 
-            if (feels_empty and self.allow_none()) or shaped is not None:
+            if feels_empty and self.allow_none():
+                data[key] = shaped
+            elif shaped is not None:
+                data[key] = shaped
+            elif print_none:
                 data[key] = shaped
 
-        if len(data) > 0 or (len(data) == 0 and self.allow_none()):
+        if len(data) > 0:
+            return data
+        elif len(data) == 0 and self.allow_none():
+            return data
+        elif print_none:
             return data
     
