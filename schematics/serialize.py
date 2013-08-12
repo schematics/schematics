@@ -7,7 +7,6 @@ from .types.serializable import Serializable
 from .exceptions import ConversionError, ModelConversionError
 
 
-
 ###
 ### Field ACL's
 ###
@@ -108,6 +107,46 @@ def blacklist(*field_list):
 
 
 ###
+### Type Coercion
+###
+
+def convert(cls, raw_data):
+    """
+    Converts the raw data into richer Python constructs according to the
+    fields on the model
+    """
+    if not isinstance(raw_data, cls) and not isinstance(raw_data, dict):
+        error_msg = 'Model conversion requires a model or dict'
+        raise ModelConversionError(error_msg)
+
+    data = {}
+    errors = {}
+
+    for field_name, field in cls._fields.iteritems():
+        serialized_field_name = field.serialized_name or field_name
+
+        try:
+            if serialized_field_name in raw_data:
+                raw_value = raw_data[serialized_field_name]
+            else:
+                raw_value = raw_data[field_name]
+
+            if raw_value is not None:
+                raw_value = field.convert(raw_value)
+            data[field_name] = raw_value
+            
+        except KeyError:
+            data[field_name] = field.default
+        except ConversionError, e:
+            errors[serialized_field_name] = e.messages
+
+    if errors:
+        raise ModelConversionError(errors)
+
+    return data
+
+
+###
 ### Serialization
 ###
 
@@ -136,10 +175,6 @@ def allow_none(cls, field):
         allowed = field.serialize_when_none
     return allowed
 
-
-###
-### Transform Loop
-###
 
 def apply_shape(cls, instance_or_dict, field_converter,
                 role=None, raise_error_on_role=False, print_none=False):
@@ -197,50 +232,7 @@ def apply_shape(cls, instance_or_dict, field_converter,
         return data
 
 
-def convert(cls, raw_data):
-    """
-    Converts the raw data into richer Python constructs according to the
-    fields on the model
-    """
-    data = {}
-    errors = {}
-
-    is_class = isinstance(raw_data, cls)
-    is_dict = isinstance(raw_data, dict)
-
-    if not is_class and not is_dict:
-        error_msg = 'Model conversion requires a model or dict'
-        raise ModelConversionError(error_msg)
-
-    for field_name, field in cls._fields.iteritems():
-        serialized_field_name = field.serialized_name or field_name
-
-        try:
-            if serialized_field_name in raw_data:
-                raw_value = raw_data[serialized_field_name]
-            else:
-                raw_value = raw_data[field_name]
-
-            if raw_value is not None:
-                raw_value = field.convert(raw_value)
-            data[field_name] = raw_value
-            
-        except KeyError:
-            data[field_name] = field.default
-        except ConversionError, e:
-            errors[serialized_field_name] = e.messages
-
-    if errors:
-        raise ModelConversionError(errors)
-
-    return data
-
-
-###
-### Shape that data.
-###
-
-def serialize(instance, role=None, raise_error_on_role=True):
+def serialize(cls, instance_or_dict, role=None, raise_error_on_role=True):
     """
     Implements serialization as a mechanism to convert ``Model`` instances into
     dictionaries that represent the field_names => converted data.
@@ -250,7 +242,7 @@ def serialize(instance, role=None, raise_error_on_role=True):
     """
     field_converter = lambda field, value: field.to_primitive(value)
     
-    data = apply_shape(instance.__class__, instance, field_converter,
+    data = apply_shape(cls, instance_or_dict, field_converter,
                        role=role,
                        raise_error_on_role=raise_error_on_role)
     return data
@@ -313,12 +305,12 @@ def flatten_to_dict(o, prefix=None, ignore_none=True):
     return flat_dict
 
 
-def flatten(instance, role=None, raise_error_on_role=True, ignore_none=True,
-            prefix=None, **kwargs):
+def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
+            ignore_none=True, prefix=None):
 
     field_converter = lambda field, value: field.to_primitive(value)
     
-    data = apply_shape(instance.__class__, instance, field_converter,
+    data = apply_shape(cls, instance_or_dict, field_converter,
                        role=role, print_none=True)
 
     return flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)

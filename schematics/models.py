@@ -191,7 +191,7 @@ class Model(object):
             Filter output by a specific role
 
         """
-        return serialize(self, role=role)
+        return serialize(self.__class__, self, role=role)
 
     def flatten(self, role=None, prefix=""):
         """
@@ -202,7 +202,7 @@ class Model(object):
             Filter output by a specific role
 
         """
-        return flatten(self, role=role, prefix=prefix)
+        return flatten(self.__class__, self, role=role, prefix=prefix)
 
     def convert(self, raw_data):
         """
