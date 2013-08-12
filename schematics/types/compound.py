@@ -3,6 +3,7 @@
 
 from __future__ import division
 from ..exceptions import ValidationError, ConversionError, ModelValidationError, StopValidation
+from ..serialize import apply_shape, EMPTY_LIST, EMPTY_DICT
 from .base import BaseType
 
 class MultiType(BaseType):
@@ -28,7 +29,8 @@ class MultiType(BaseType):
 
         return value
 
-    def filter_by_role(self, clean_value, primitive_value, role, raise_error_on_role=False):
+    def apply_shape(self, shape_instance, role, field_converter,
+                    shape_converter, print_none=False):
         raise NotImplemented()
 
 
@@ -49,7 +51,9 @@ class ModelType(MultiType):
         return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
 
     def convert(self, value):
-        if value is None:  # We have already checked if the field is required. If it is None it should continue being None
+        # We have already checked if the field is required. If it is None it
+        # should continue being None
+        if value is None:  
             return None
 
         if isinstance(value, self.model_class):
@@ -76,44 +80,21 @@ class ModelType(MultiType):
 
         return primitive_data
 
-    def filter_by_role(self, model_instance, primitive_data, role, raise_error_on_role=False):
-        if model_instance is None:
-            return primitive_data
+    def apply_shape(self, model_instance, role, field_converter,
+                    shape_converter, print_none=False):
+        """
+        Calls the main `apply_shape` implementation because they are both
+        supposed to operate on models.
+        """
+        shaped =  apply_shape(self.model_class, model_instance, role,
+                              field_converter, shape_converter)
 
-        gottago = lambda k, v: False
-        if role in self.model_class._options.roles:
-            gottago = self.model_class._options.roles[role]
-        elif role and raise_error_on_role:
-            raise ValueError(u'%s Model has no role "%s"' % (
-                self.model_class.__name__, role))
-
-        for field_name, field, value in model_instance.atoms():
-            serialized_name = field.serialized_name or field_name
-            if not serialized_name in primitive_data:
-                continue
-
-            if gottago(field_name, value):
-                primitive_data.pop(serialized_name)
-            elif isinstance(field, MultiType):
-                primitive_value = primitive_data.get(serialized_name)
-                if primitive_value:
-                    field.filter_by_role(
-                        value,
-                        primitive_value,
-                        role
-                    )
-                if not primitive_value:
-                    if not (field.serialize_when_none or
-                        (field.serialize_when_none is None and self.model_class._options.serialize_when_none)):
-                        primitive_data.pop(serialized_name)
-
-        return primitive_data if len(primitive_data) > 0 else None
-        
-
-EMPTY_LIST = "[]"
-# Serializing to flat dict needs to output purely primitive key value types that
-# can be safely put into e.g. redis. An empty list poses a problem as we cant
-# set None as the field can be none
+        if shaped and len(shaped) == 0 and self.allow_none():
+            return shaped
+        elif shaped:
+            return shaped
+        elif print_none: 
+            return shaped
 
 
 class ListType(MultiType):
@@ -185,18 +166,35 @@ class ListType(MultiType):
     def to_primitive(self, value):
         return map(self.field.to_primitive, value)
 
-    def filter_by_role(self, clean_list, primitive_list, role, raise_error_on_role=False):
-        if isinstance(self.field, MultiType):
-            for clean_value, primitive_value in zip(clean_list, primitive_list):
-                self.field.filter_by_role(clean_value, primitive_value, role)
-                if not primitive_value:
-                    if not (self.field.serialize_when_none or
-                        (self.field.serialize_when_none is None and self.model_class._options.serialize_when_none)):
-                        primitive_list.remove(primitive_value)
+    def apply_shape(self, list_instance, role, field_converter,
+                    shape_converter, print_none=False):
+        """Loops over each item in the model and applies either the field
+        transform or the multitype transform.  Essentially functions the same
+        as `serialize.apply_shape`.
+        """
+        data = []
+        for value in list_instance:
+            if hasattr(self.field, 'apply_shape'):
+                shaped = self.field.apply_shape(value, role,
+                                                field_converter, shape_converter)
+                feels_empty = shaped and len(shaped) == 0
+            else:
+                shaped = field_converter(self.field, value)
+                feels_empty = shaped == None
+                
+            if (feels_empty and self.allow_none()):
+                data.append(shaped)
+            elif shaped is not None:
+                data.append(shaped)
+            elif print_none:
+                data.append(shaped)
 
-        return primitive_list if len(primitive_list) > 0 else None
-
-EMPTY_DICT = "{}"
+        if len(data) > 0:
+            return data
+        elif len(data) == 0 and self.allow_none():
+            return data
+        elif print_none:
+            return data
 
 
 class DictType(MultiType):
@@ -242,19 +240,34 @@ class DictType(MultiType):
     def to_primitive(self, value):
         return dict((unicode(k), self.field.to_primitive(v)) for k, v in value.iteritems())
 
-    def filter_by_role(self, clean_data, primitive_data, role, raise_error_on_role=False):
-        if clean_data is None:
-            return primitive_data
+    def apply_shape(self, dict_instance, role, field_converter,
+                    shape_converter, print_none=False):
+        """Loops over each item in the model and applies either the field
+        transform or the multitype transform.  Essentially functions the same
+        as `serialize.apply_shape`.
+        """
+        data = {}
+        
+        for key, value in dict_instance.iteritems():
+            if hasattr(self.field, 'apply_shape'):
+                shaped = self.field.apply_shape(value, role,
+                                                field_converter, shape_converter)
+                feels_empty = shaped and len(shaped) == 0
+            else:
+                shaped = field_converter(self.field, value)
+                feels_empty = shaped == None
 
-        if isinstance(self.field, MultiType):
-            for key, clean_value in clean_data.iteritems():
-                primitive_value = primitive_data[unicode(key)]
+            if feels_empty and self.allow_none():
+                data[key] = shaped
+            elif shaped is not None:
+                data[key] = shaped
+            elif print_none:
+                data[key] = shaped
 
-                self.field.filter_by_role(clean_value, primitive_value, role)
-
-                if not primitive_value:
-                    if not (self.field.serialize_when_none or
-                        (self.field.serialize_when_none is None and self.model_class._options.serialize_when_none)):
-                        primitive_data.pop(unicode(key))
-
-        return primitive_data if len(primitive_data) > 0 else None
+        if len(data) > 0:
+            return data
+        elif len(data) == 0 and self.allow_none():
+            return data
+        elif print_none:
+            return data
+    

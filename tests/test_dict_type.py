@@ -117,7 +117,8 @@ class TestDictType(unittest.TestCase):
         class PlayerInfo(Model):
             categories = DictType(
                 ModelType(CategoryStatsInfo),
-                default=lambda: {}
+                default=lambda: {},
+                serialize_when_none=True,
             )
 
         info = PlayerInfo()
@@ -126,7 +127,7 @@ class TestDictType(unittest.TestCase):
 
         d = info.serialize()
         self.assertEqual(d, {
-            "categories": {}
+            "categories": {},
         })
 
     def test_key_type(self):
@@ -144,12 +145,12 @@ class TestDictType(unittest.TestCase):
         })
 
         info = PlayerInfo({
-            "categories": {"1": {"slug": "math"}}
+            "categories": {1L: {"slug": "math"}}
         })
 
         self.assertEqual(info.categories, {1: stats})
 
         d = info.serialize()
         self.assertEqual(d, {
-            "categories": {"1": {"slug": "math"}}
+            "categories": {1L: {"slug": "math"}}
         })
