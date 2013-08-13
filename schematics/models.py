@@ -211,8 +211,9 @@ class Model(object):
         """
         return convert(self.__class__, raw_data)
 
-    def allow_none(self, field):
-        return allow_none(self.__class__, field)
+    @classmethod
+    def allow_none(cls, field):
+        return allow_none(cls, field)
 
     def __iter__(self):
         return self.iter()
