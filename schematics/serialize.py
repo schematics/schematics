@@ -8,7 +8,47 @@ from .exceptions import ConversionError, ModelConversionError
 
 
 ###
-### Field ACL's
+### Type Coercion
+###
+
+def convert(cls, raw_data):
+    """
+    Converts the raw data into richer Python constructs according to the
+    fields on the model
+    """
+    if not isinstance(raw_data, cls) and not isinstance(raw_data, dict):
+        error_msg = 'Model conversion requires a model or dict'
+        raise ModelConversionError(error_msg)
+
+    data = {}
+    errors = {}
+
+    for field_name, field in cls._fields.iteritems():
+        serialized_field_name = field.serialized_name or field_name
+
+        try:
+            if serialized_field_name in raw_data:
+                raw_value = raw_data[serialized_field_name]
+            else:
+                raw_value = raw_data[field_name]
+
+            if raw_value is not None:
+                raw_value = field.convert(raw_value)
+            data[field_name] = raw_value
+            
+        except KeyError:
+            data[field_name] = field.default
+        except ConversionError, e:
+            errors[serialized_field_name] = e.messages
+
+    if errors:
+        raise ModelConversionError(errors)
+
+    return data
+
+
+###
+### Field Filtering
 ###
 
 class Role(collections.Set):
@@ -104,46 +144,6 @@ def blacklist(*field_list):
     A blacklist is a list of fields explicitly named that are not allowed.
     """
     return Role(Role.blacklist, field_list)
-
-
-###
-### Type Coercion
-###
-
-def convert(cls, raw_data):
-    """
-    Converts the raw data into richer Python constructs according to the
-    fields on the model
-    """
-    if not isinstance(raw_data, cls) and not isinstance(raw_data, dict):
-        error_msg = 'Model conversion requires a model or dict'
-        raise ModelConversionError(error_msg)
-
-    data = {}
-    errors = {}
-
-    for field_name, field in cls._fields.iteritems():
-        serialized_field_name = field.serialized_name or field_name
-
-        try:
-            if serialized_field_name in raw_data:
-                raw_value = raw_data[serialized_field_name]
-            else:
-                raw_value = raw_data[field_name]
-
-            if raw_value is not None:
-                raw_value = field.convert(raw_value)
-            data[field_name] = raw_value
-            
-        except KeyError:
-            data[field_name] = field.default
-        except ConversionError, e:
-            errors[serialized_field_name] = e.messages
-
-    if errors:
-        raise ModelConversionError(errors)
-
-    return data
 
 
 ###
