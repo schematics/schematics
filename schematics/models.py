@@ -6,13 +6,18 @@ import itertools
 from .types import BaseType
 from .types.compound import ModelType
 from .types.serializable import Serializable
-from .exceptions import BaseError, ValidationError, ModelValidationError, ConversionError, ModelConversionError
+from .exceptions import (BaseError, ValidationError, ModelValidationError,
+                         ConversionError, ModelConversionError)
 from .serialize import allow_none, atoms, serialize, flatten, expand, convert
 from .validate import validate
 from .datastructures import OrderedDict as OrderedDictWithSort
 
 
 class FieldDescriptor(object):
+    """
+    The FieldDescriptor serves as a wrapper for Types that uses them for the
+    behavior of a field in a class.
+    """
 
     def __init__(self, name):
         self.name = name
@@ -27,8 +32,6 @@ class FieldDescriptor(object):
 
     def __set__(self, model, value):
         field = model._fields[self.name]
-        # TODO: read Options class for strict type checking flag
-        #model._data[self.name] = field(value)
         if not isinstance(value, Model) and isinstance(field, ModelType):
             value = field.model_class(value)
         model._data[self.name] = value
@@ -45,16 +48,19 @@ class ModelOptions(object):
     This class is a container for all metaclass configuration options. Its
     primary purpose is to create an instance of a model's options for every
     instance of a model.
-
-    It also creates errors in cases where unknown options parameters are found.
-
-    :param roles:
-        Allows to specify certain subsets of the model's fields for
-        serialization.
-    :param serialize_when_none:
-        When ``False``, serialization skips fields that are None. Default: ``True``
     """
-    def __init__(self, klass, namespace=None, roles=None, serialize_when_none=True):
+    def __init__(self, klass, namespace=None, roles=None,
+                 serialize_when_none=True):
+        """
+        :param namespace:
+            A namespace identifier that can be used with persistence layers.
+        :param roles:
+            Allows to specify certain subsets of the model's fields for
+            serialization.
+        :param serialize_when_none:
+            When ``False``, serialization skips fields that are None.
+            Default: ``True``
+        """
         self.klass = klass
         self.namespace = namespace
         self.roles = roles or {}
@@ -62,14 +68,30 @@ class ModelOptions(object):
 
 
 class ModelMeta(type):
-    """Meta class for Models. Handles model inheritance and Options.
+    """
+    Meta class for Models. 
     """
 
     def __new__(cls, name, bases, attrs):
+        """
+        This metaclass adds four attributes to host classes: cls._fields,
+        cls._serializables, cls._validator_functions, and cls._options.
+        
+        This function creates those attributes like this:
+        
+        ``cls._fields`` is list of fields that are schematics types
+        ``cls._serializables`` is a list of functions that are used to generate
+        values during serialization
+        ``cls._validator_functions`` are class level validation functions
+        ``cls._options`` is the end result of parsing the ``Options`` class
+        """
+
+        ### Structures used to accumulate meta info
         fields = OrderedDictWithSort()
         serializables = {}
         validator_functions = {}  # Model level
 
+        ### Accumulate metas info from parent classes
         for base in reversed(bases):
             if hasattr(base, '_fields'):
                 fields.update(base._fields)
@@ -78,6 +100,7 @@ class ModelMeta(type):
             if hasattr(base, '_validator_functions'):
                 validator_functions.update(base._validator_functions)
 
+        ### Parse this class's attributes into meta structures
         for key, value in attrs.iteritems():
             if key.startswith('validate_') and callable(value):
                 validator_functions[key[9:]] = value
@@ -86,20 +109,23 @@ class ModelMeta(type):
             if isinstance(value, Serializable):
                 serializables[key] = value
 
+        ### Parse meta options
+        options = cls._read_options(name, bases, attrs)
+            
+        ### Convert list of types into fields for new klass
         fields.sort(key=lambda i: i[1]._position_hint)
-
         for key, field in fields.iteritems():
-            # For accessing internal data by field name attributes
             attrs[key] = FieldDescriptor(key)
 
-        attrs['_options'] = cls._read_options(name, bases, attrs)
-
-        attrs['_validator_functions'] = validator_functions
-        attrs['_serializables'] = serializables
+        ### Ready meta data to be klass attributes
         attrs['_fields'] = fields
+        attrs['_serializables'] = serializables
+        attrs['_validator_functions'] = validator_functions
+        attrs['_options'] = options
 
         klass = type.__new__(cls, name, bases, attrs)
 
+        ### Add reference to klass to each field instance
         for field in fields.values():
             field.owner_model = klass
 
@@ -107,6 +133,10 @@ class ModelMeta(type):
 
     @classmethod
     def _read_options(cls, name, bases, attrs):
+        """
+        Parses `ModelOptions` instance into the options value attached to
+        `Model` instances.
+        """
         options_members = {}
 
         for base in reversed(bases):
@@ -141,22 +171,18 @@ class ModelMeta(type):
 
 
 class Model(object):
-    """Enclosure for fields and validation. Same pattern deployed by Django
+    """
+    Enclosure for fields and validation. Same pattern deployed by Django
     models, SQLAlchemy declarative extension and other developer friendly
     libraries.
 
-    :param raw_data:
-        Raw data to initialize the object with. Can raise ``ConversionError`` if
-        it is not possible to convert the raw data into richer Python constructs.
-
+    Initial field values can be passed in as keyword arguments to ``__init__``
+    to initialize the object with. Can raise ``ConversionError`` if it is not
+    possible to convert the raw data into richer Python constructs.
     """
 
     __metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
-
-    @classmethod
-    def from_flat(cls, data):
-        return cls(expand(data))
 
     def __init__(self, raw_data=None):
         if raw_data is None:
@@ -167,7 +193,8 @@ class Model(object):
     def validate(self, partial=False, strict=False):
         """
         Validates the state of the model and adding additional untrusted data
-        as well. If the models is invalid, raises ValidationError with error messages.
+        as well. If the models is invalid, raises ValidationError with error
+        messages.
 
         :param partial:
             Allow partial data to validate; useful for PATCH requests.
@@ -178,10 +205,19 @@ class Model(object):
         """
         try:
             data = validate(self, self._data, partial=partial, strict=strict)
-            # Set internal data and touch the TypeDescriptors by setattr
             self._data.update(**data)
         except BaseError as e:
             raise ModelValidationError(e.messages)
+
+    def convert(self, raw_data):
+        """
+        Converts the raw data into richer Python constructs according to the
+        fields on the model
+
+        :param raw_data:
+            The data to be converted
+        """
+        return convert(self.__class__, raw_data)
 
     def serialize(self, role=None):
         """Return data as it would be validated. No filtering of output unless
@@ -204,15 +240,26 @@ class Model(object):
         """
         return flatten(self.__class__, self, role=role, prefix=prefix)
 
-    def convert(self, raw_data):
+    @classmethod
+    def from_flat(cls, data):
+        return cls(expand(data))
+
+    def atoms(self):
         """
-        Converts the raw data into richer Python constructs according to the
-        fields on the model
+        Iterator for the atomic components of a model definition and relevant
+        data that creates a threeple of the field's name, the instance of it's
+        type, and it's value.
         """
-        return convert(self.__class__, raw_data)
+        return atoms(self.__class__, self)
 
     @classmethod
     def allow_none(cls, field):
+        """
+        Inspects a field and class for ``serialize_when_none`` setting.
+
+        The setting defaults to the value of the class.  A field can override
+        the class setting with it's own ``serialize_when_none`` setting.
+        """
         return allow_none(cls, field)
 
     def __iter__(self):
@@ -221,9 +268,6 @@ class Model(object):
     def iter(self):
         return iter(self._fields)
     
-    def atoms(self):
-        return atoms(self.__class__, self)
-
     def __getitem__(self, name):
         try:
             return getattr(self, name)
@@ -232,7 +276,6 @@ class Model(object):
         raise KeyError(name)
 
     def __setitem__(self, name, value):
-        # Ensure that the field exists before settings its value
         if name not in self._data:
             raise KeyError(name)
         return setattr(self, name, value)
