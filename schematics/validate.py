@@ -1,4 +1,3 @@
-
 from .exceptions import BaseError, ValidationError
 
 
@@ -21,9 +20,10 @@ def validate(cls, raw_data, partial=False, strict=False, context=None):
     :param context:
         A ``dict``-like structure that may contain already validated data.
 
-    :returns: tuple(data, errors)
+    :returns: data
         data dict contains the valid raw_data plus the context data.
-        errors dict contains all ValidationErrors found.
+        If errors are found, they are raised as a ValidationError with a list
+        of errors attached.
     """
     data = dict(context) if context is not None else {}
     errors = {}
