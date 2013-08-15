@@ -28,7 +28,7 @@ class FieldDescriptor(object):
         """
         self.name = name
 
-    def __get__(self, instance, cls=None):  # TODO remove keyword
+    def __get__(self, instance, cls):
         """
         Checks the field name against the definition of the model and returns
         the corresponding data for valid fields or raises the appropriate error
