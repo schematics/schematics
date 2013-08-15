@@ -15,32 +15,49 @@ from .datastructures import OrderedDict as OrderedDictWithSort
 
 class FieldDescriptor(object):
     """
-    The FieldDescriptor serves as a wrapper for Types that uses them for the
-    behavior of a field in a class.
+    The FieldDescriptor serves as a wrapper for Types that converts them into
+    fields.
+
+    A field is then the merger of a Type and it's Model.
     """
 
     def __init__(self, name):
+        """
+        :param name:
+            The field's name
+        """
         self.name = name
 
-    def __get__(self, model, type=None):
+    def __get__(self, instance, cls=None):  # TODO remove keyword
+        """
+        Checks the field name against the definition of the model and returns
+        the corresponding data for valid fields or raises the appropriate error
+        for fields missing from a class.
+        """
         try:
-            if model is None:
-                return type.fields[self.name]
-            return model._data[self.name]
+            if instance is None:
+                return cls._fields[self.name]
+            return instance._data[self.name]
         except KeyError:
             raise AttributeError(self.name)
 
-    def __set__(self, model, value):
-        field = model._fields[self.name]
+    def __set__(self, instance, value):
+        """
+        Checks the field name against a model and sets the value.
+        """
+        field = instance._fields[self.name]
         if not isinstance(value, Model) and isinstance(field, ModelType):
             value = field.model_class(value)
-        model._data[self.name] = value
+        instance._data[self.name] = value
 
-    def __delete__(self, model):
-        if self.name not in model._fields:
+    def __delete__(self, instance):
+        """
+        Checks the field name against a model and deletes the field.
+        """
+        if self.name not in instance._fields:
             raise AttributeError('%r has no attribute %r' %
-                                 (type(model).__name__, self.name))
-        del model._fields[self.name]
+                                 (type(instance).__name__, self.name))
+        del instance._fields[self.name]
 
 
 class ModelOptions(object):
@@ -52,6 +69,8 @@ class ModelOptions(object):
     def __init__(self, klass, namespace=None, roles=None,
                  serialize_when_none=True):
         """
+        :param klass:
+            The class which this options instance belongs to.
         :param namespace:
             A namespace identifier that can be used with persistence layers.
         :param roles:
@@ -184,7 +203,7 @@ class Model(object):
     __metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
-    def __init__(self, raw_data=None):
+    def __init__(self, raw_data=None):  # TODO change back to keywords
         if raw_data is None:
             raw_data = {}
         self._initial = raw_data
@@ -236,7 +255,8 @@ class Model(object):
 
         :param role:
             Filter output by a specific role
-
+        :param prefix:
+            A prefix to use for keynames during flattening.
         """
         return flatten(self.__class__, self, role=role, prefix=prefix)
 
@@ -275,6 +295,12 @@ class Model(object):
             pass
         raise KeyError(name)
 
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
     def __setitem__(self, name, value):
         if name not in self._data:
             raise KeyError(name)
@@ -298,12 +324,6 @@ class Model(object):
 
     def __ne__(self, other):
         return not self == other
-
-    def get(self, key, default=None):
-        try:
-            return self[key]
-        except KeyError:
-            return default
 
     def __repr__(self):
         try:
