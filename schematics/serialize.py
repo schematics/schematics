@@ -14,7 +14,12 @@ from .exceptions import ConversionError, ModelConversionError
 def convert(cls, raw_data):
     """
     Converts the raw data into richer Python constructs according to the
-    fields on the model
+    fields on the model.
+
+    :param cls:
+        The class for the model.
+    :param raw_data:
+        A dict of data to be converted into types according to ``cls``.
     """
     if not isinstance(raw_data, cls) and not isinstance(raw_data, dict):
         error_msg = 'Model conversion requires a model or dict'
@@ -52,14 +57,17 @@ def convert(cls, raw_data):
 ###
 
 class Role(collections.Set):
-    """A Role object can be used to filter specific fields against a sequence.
+    """
+    A ``Role`` object can be used to filter specific fields against a sequence.
 
-    The Role has a set of names and one function that the specific field is
-    filtered with.
+    The ``Role`` is two things: a set of names and a function.  The function
+    describes how filter taking a field name as input and then returning either
+    ``True`` or ``False``, indicating that field should or should not be
+    skipped.
 
-    A Role can be operated on as a Set object representing its fields. It's
-    important to note that when combining multiple roles using these operations
-    only the function of the first role is kept on the resulting role.
+    A ``Role`` can be operated on as a ``Set`` object representing the fields
+    is has an opinion on.  When Roles are combined with other roles, the
+    filtering behavior of the first role is used.
     """
     def __init__(self, function, fields):
         self.function = function
@@ -104,32 +112,67 @@ class Role(collections.Set):
     # static filter functions
     @staticmethod
     def wholelist(k, v, seq):
+        """
+        Accepts a field name, value, and a field list.  This functions
+        implements acceptance of all fields by never requesting a field be
+        skipped, thus returns False for all input.
+
+        :param k:
+            The field name to inspect.
+        :param v:
+            The field's value.
+        :param seq:
+            The list of fields associated with the ``Role``.
+        """
         return False
 
     @staticmethod
     def whitelist(k, v, seq):
+        """
+        Implements the behavior of a whitelist by requesting a field be skipped
+        whenever it's name is not in the list of fields.
+
+        :param k:
+            The field name to inspect.
+        :param v:
+            The field's value.
+        :param seq:
+            The list of fields associated with the ``Role``.
+        """
+    
         if seq is not None and len(seq) > 0:
             return k not in seq
-        # Default to rejecting the value
         return True
 
     @staticmethod
     def blacklist(k, v, seq):
+        """
+        Implements the behavior of a blacklist by requesting a field be skipped
+        whenever it's name is found in the list of fields.
+        
+        :param k:
+            The field name to inspect.
+        :param v:
+            The field's value.
+        :param seq:
+            The list of fields associated with the ``Role``.
+        """
         if seq is not None and len(seq) > 0:
             return k in seq
-        # Default to not rejecting the value
         return False
 
 
 def wholelist(*field_list):
-    """Returns a function that evicts nothing. Exists mainly to be an explicit
+    """
+    Returns a function that evicts nothing. Exists mainly to be an explicit
     allowance of all fields instead of a using an empty blacklist.
     """
     return Role(Role.wholelist, field_list)
 
 
 def whitelist(*field_list):
-    """Returns a function that operates as a whitelist for the provided list of
+    """
+    Returns a function that operates as a whitelist for the provided list of
     fields.
 
     A whitelist is a list of fields explicitly named that are allowed.
@@ -138,7 +181,8 @@ def whitelist(*field_list):
 
 
 def blacklist(*field_list):
-    """Returns a function that operates as a blacklist for the provided list of
+    """
+    Returns a function that operates as a blacklist for the provided list of
     fields.
 
     A blacklist is a list of fields explicitly named that are not allowed.
@@ -155,6 +199,13 @@ def atoms(cls, instance_or_dict):
     Iterator for the atomic components of a model definition and relevant data
     that creates a threeple of the field's name, the instance of it's type, and
     it's value.
+
+    :param cls:
+        The model definition.
+    :param instance_or_dict:
+        The structure where fields from cls are mapped to values. The only
+        expectionation for this structure is that it implements a ``dict``
+        interface.
     """
     all_fields = itertools.chain(cls._fields.iteritems(),
                                  cls._serializables.iteritems())
@@ -165,10 +216,16 @@ def atoms(cls, instance_or_dict):
 
 def allow_none(cls, field):
     """
-    Inspects a field and class for ``serialize_when_none`` setting.
+    This function inspects a model and a field for a setting either at the
+    model or field level for the ``serialize_when_none`` setting.
 
     The setting defaults to the value of the class.  A field can override the
     class setting with it's own ``serialize_when_none`` setting.
+
+    :param cls:
+        The model definition.
+    :param field:
+        The field in question.
     """
     allowed = cls._options.serialize_when_none
     if field.serialize_when_none != None:
@@ -182,6 +239,24 @@ def apply_shape(cls, instance_or_dict, field_converter,
     The apply shape function is intended to be a general loop definition that
     can be used for any form of data shaping, such as application of roles or
     how a field is transformed.
+
+    :param cls:
+        The model definition.
+    :param instance_or_dict:
+        The structure where fields from cls are mapped to values. The only
+        expectionation for this structure is that it implements a ``dict``
+        interface.
+    :param field_converter:
+        This function is applied to every field found in ``instance_or_dict``.
+    :param role:
+        The role used to determine if fields should be left out of the
+        transformation.
+    :param raise_error_on_role:
+        This parameter enforces strict behavior which requires substructures
+        to have the same role definition as their parent structures.
+    :param print_none:
+        This function overrides ``serialize_when_none`` values found either on
+        ``cls`` or an instance.
     """
 
     data = {}
@@ -235,10 +310,23 @@ def apply_shape(cls, instance_or_dict, field_converter,
 def serialize(cls, instance_or_dict, role=None, raise_error_on_role=True):
     """
     Implements serialization as a mechanism to convert ``Model`` instances into
-    dictionaries that represent the field_names => converted data.
+    dictionaries keyed by field_names with the converted data as the values.
 
     The conversion is done by calling ``to_primitive`` on both model and field
     instances.
+
+    :param cls:
+        The model definition.
+    :param instance_or_dict:
+        The structure where fields from cls are mapped to values. The only
+        expectionation for this structure is that it implements a ``dict``
+        interface.
+    :param role:
+        The role used to determine if fields should be left out of the
+        transformation.
+    :param raise_error_on_role:
+        This parameter enforces strict behavior which requires substructures
+        to have the same role definition as their parent structures.
     """
     field_converter = lambda field, value: field.to_primitive(value)
     
@@ -256,6 +344,15 @@ EMPTY_LIST = "[]"
 EMPTY_DICT = "{}"
 
 def expand(data, context=None):
+    """
+    Expands a flattened structure into it's corresponding layers.  Essentially,
+    it is the counterpart to ``flatten_to_dict``.
+
+    :param data:
+        The data to expand.
+    :param context:
+        Existing expanded data that this function use for output
+    """
     expanded_dict = {}
 
     if context is None:
@@ -277,11 +374,42 @@ def expand(data, context=None):
     return expanded_dict
 
 
-def flatten_to_dict(o, prefix=None, ignore_none=True):
-    if hasattr(o, "iteritems"):
-        iterator = o.iteritems()
+def flatten_to_dict(instance_or_dict, prefix=None, ignore_none=True):
+    """
+    Flattens an iterable structure into a single layer dictionary.
+
+    For example:
+
+        {
+            's': 'jms was hrrr',
+            'l': ['jms was here', 'here', 'and here']
+        }
+
+        becomes
+        
+        {
+            's': 'jms was hrrr',
+            u'l.1': 'here',
+            u'l.0': 'jms was here',
+            u'l.2': 'and here'
+        }
+
+    :param instance_or_dict:
+        The structure where fields from cls are mapped to values. The only
+        expectionation for this structure is that it implements a ``dict``
+        interface.
+    :param ignore_none:
+        This ignores any ``serialize_when_none`` settings and forces the empty
+        fields to be printed as part of the flattening.
+        Default: True
+    :param prefix:
+        This puts a prefix in front of the field names during flattening.
+        Default: None
+    """
+    if hasattr(instance_or_dict, "iteritems"):
+        iterator = instance_or_dict.iteritems()
     else:
-        iterator = enumerate(o)
+        iterator = enumerate(instance_or_dict)
 
     flat_dict = {}
     for k, v in iterator:
@@ -307,10 +435,49 @@ def flatten_to_dict(o, prefix=None, ignore_none=True):
 
 def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
             ignore_none=True, prefix=None):
+    """
+    Produces a flat dictionary representation of the model.  Flat, in this
+    context, means there is only one level to the dictionary.  Multiple layers
+    are represented by the structure of the key.
 
+    Example:
+    
+        >>> class Foo(Model):
+        ...    s = StringType()
+        ...    l = ListType(StringType)
+
+        >>> f = Foo()
+        >>> f.s = 'string'
+        >>> f.l = ['jms', 'was here', 'and here']
+        
+        >>> flatten(Foo, f)
+        {'s': 'string', u'l.1': 'jms', u'l.0': 'was here', u'l.2': 'and here'}
+
+    :param cls:
+        The model definition.
+    :param instance_or_dict:
+        The structure where fields from cls are mapped to values. The only
+        expectionation for this structure is that it implements a ``dict``
+        interface.
+    :param role:
+        The role used to determine if fields should be left out of the
+        transformation.
+    :param raise_error_on_role:
+        This parameter enforces strict behavior which requires substructures
+        to have the same role definition as their parent structures.
+    :param ignore_none:
+        This ignores any ``serialize_when_none`` settings and forces the empty
+        fields to be printed as part of the flattening.
+        Default: True
+    :param prefix:
+        This puts a prefix in front of the field names during flattening.
+        Default: None
+    """
     field_converter = lambda field, value: field.to_primitive(value)
     
     data = apply_shape(cls, instance_or_dict, field_converter,
                        role=role, print_none=True)
 
-    return flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
+    flattened = flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
+
+    return flattened(data, prefix=prefix, ignore_none=ignore_none)
