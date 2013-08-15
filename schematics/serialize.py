@@ -480,4 +480,4 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
 
     flattened = flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
 
-    return flattened(data, prefix=prefix, ignore_none=ignore_none)
+    return flattened
