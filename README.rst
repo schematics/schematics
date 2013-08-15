@@ -17,9 +17,9 @@ Show me the Code!
   >>> class Person(Model):
   ...     name = StringType(required=True)
   ...
-  >>> person = Person({'name': u'Joey Bada$$'})
+  >>> person = Person({'name': u'Joe Strummer'})
   >>> person.name
-  u'Joey Bada$$'
+  u'Joe Strummer'
 
 Let’s see some validation
 
