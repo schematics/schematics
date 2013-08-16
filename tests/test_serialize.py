@@ -7,7 +7,7 @@ from schematics.models import Model
 from schematics.types import StringType, LongType, IntType, MD5Type
 from schematics.types.compound import ModelType, DictType, ListType
 from schematics.types.serializable import serializable
-from schematics.serialize import blacklist, whitelist
+from schematics.serialize import blacklist, whitelist, wholelist
 
 
 class TestSerializable(unittest.TestCase):
@@ -382,7 +382,7 @@ class TestSerializable(unittest.TestCase):
             question_id="1",
             resources={
                 "pictures": [{
-                    "url": "http://www.mbl.is"
+                    "url": "http://www.mbl.is",
                 }]
             }
         ))
@@ -452,6 +452,10 @@ class TestRoles(unittest.TestCase):
         class ExperienceLevel(Model):
             level = IntType()
             title = StringType()
+            class Options:
+                roles = {
+                    "public": wholelist()
+                }
 
         class Player(Model):
             id = StringType()
@@ -557,8 +561,8 @@ class TestRoles(unittest.TestCase):
                     "public": blacklist("result")
                 }
 
-        p1 = Player({"id": 1, "display_name": "A"})
-        p2 = Player({"id": 2, "display_name": "B"})
+        p1 = Player({"id": 1L, "display_name": "A"})
+        p2 = Player({"id": 2L, "display_name": "B"})
 
         game = Game({
             "id": "1",
@@ -576,10 +580,10 @@ class TestRoles(unittest.TestCase):
         self.assertEqual(d, {
             "id": "1",
             "players": {
-                "1": {
+                1L: {
                     "display_name": "A"
                 },
-                "2": {
+                2L: {
                     "display_name": "B"
                 },
             }

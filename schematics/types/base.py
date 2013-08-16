@@ -134,11 +134,11 @@ class BaseType(object):
         """
         return value
 
-    def allow_none(self, field):
+    def allow_none(self):
         if hasattr(self, 'model_class'):
-            return allow_none(self.model_class, field)
+            return self.model_class.allow_none(self)
         else:
-            return field.serialize_when_none
+            return self.serialize_when_none
 
     def validate(self, value):
         """

@@ -3,8 +3,8 @@ Schematics
 
 **Python Data Structures for Humans™.**
 
-.. image:: https://secure.travis-ci.org/plain-vanilla-games/schematics.png?branch=master
-  :target: https://secure.travis-ci.org/plain-vanilla-games/schematics
+.. image:: https://secure.travis-ci.org/j2labs/schematics.png?branch=master
+  :target: https://secure.travis-ci.org/j2labs/schematics
   :alt: Build Status
 
 Show me the Code!
