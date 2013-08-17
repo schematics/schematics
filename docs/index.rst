@@ -102,7 +102,7 @@ display friendly error messages to end users.
   >>> from schematics.exceptions import ValidationError
   >>> try:
   ...     p.validate()
-  ... except ValidationError, e:
+  ... except ValidationError as e:
   ...    print e.messages
   {'bio': [u'This field is required.'], 'name': [u'This field is required.']}
 

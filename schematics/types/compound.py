@@ -1,10 +1,10 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from __future__ import division
 from ..exceptions import ValidationError, ConversionError, ModelValidationError, StopValidation
 from ..serialize import apply_shape, EMPTY_LIST, EMPTY_DICT
 from .base import BaseType
+
 
 class MultiType(BaseType):
 
@@ -18,7 +18,7 @@ class MultiType(BaseType):
         for validator in self.validators:
             try:
                 validator(value)
-            except ModelValidationError, e:
+            except ModelValidationError as e:
                 errors.update(e.messages)
 
                 if isinstance(e, StopValidation):
@@ -53,14 +53,14 @@ class ModelType(MultiType):
     def convert(self, value):
         # We have already checked if the field is required. If it is None it
         # should continue being None
-        if value is None:  
+        if value is None:
             return None
 
         if isinstance(value, self.model_class):
             return value
 
         if not isinstance(value, dict):
-            raise ConversionError(u'Please use a mapping for this field or {} instance instead of {}.'.format(
+            raise ConversionError(u'Please use a mapping for this field or {0} instance instead of {1}.'.format(
                 self.model_class.__name__,
                 type(value).__name__))
 
@@ -80,21 +80,21 @@ class ModelType(MultiType):
 
         return primitive_data
 
-    def apply_shape(self, model_instance, field_converter, 
+    def apply_shape(self, model_instance, field_converter,
                     role=None, print_none=False):
         """
         Calls the main `apply_shape` implementation because they are both
         supposed to operate on models.
         """
         shaped =  apply_shape(self.model_class, model_instance,
-                              field_converter, 
+                              field_converter,
                               role=role, print_none=print_none)
 
         if shaped and len(shaped) == 0 and self.allow_none():
             return shaped
         elif shaped:
             return shaped
-        elif print_none: 
+        elif print_none:
             return shaped
 
 
@@ -158,7 +158,7 @@ class ListType(MultiType):
         for idx, item in enumerate(items, 1):
             try:
                 self.field.validate(item)
-            except ValidationError, e:
+            except ValidationError as e:
                 errors.append(e.message)
 
         if errors:
@@ -167,7 +167,7 @@ class ListType(MultiType):
     def to_primitive(self, value):
         return map(self.field.to_primitive, value)
 
-    def apply_shape(self, list_instance, field_converter, 
+    def apply_shape(self, list_instance, field_converter,
                     role=None, print_none=False):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
@@ -234,7 +234,7 @@ class DictType(MultiType):
         for key, value in items.iteritems():
             try:
                 self.field.validate(value)
-            except ValidationError, e:
+            except ValidationError as e:
                 errors[key] = e
 
         if errors:
@@ -243,14 +243,14 @@ class DictType(MultiType):
     def to_primitive(self, value):
         return dict((unicode(k), self.field.to_primitive(v)) for k, v in value.iteritems())
 
-    def apply_shape(self, dict_instance, field_converter, 
+    def apply_shape(self, dict_instance, field_converter,
                     role=None, print_none=False):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
         as `serialize.apply_shape`.
         """
         data = {}
-        
+
         for key, value in dict_instance.iteritems():
             if hasattr(self.field, 'apply_shape'):
                 shaped = self.field.apply_shape(value, field_converter,
@@ -273,4 +273,4 @@ class DictType(MultiType):
             return data
         elif print_none:
             return data
-    
+

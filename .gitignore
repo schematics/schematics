@@ -9,6 +9,7 @@ MANIFEST
 build
 dist
 PLANS.md
+*.egg
 *.egg-info
 venv
 docs/_build

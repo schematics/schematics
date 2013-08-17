@@ -19,7 +19,7 @@ def force_unicode(obj, encoding='utf-8'):
 
 
 _last_position_hint = -1
-_next_position_hint = itertools.count().next
+_next_position_hint = itertools.count()
 
 
 class TypeMeta(type):
@@ -53,9 +53,8 @@ class TypeMeta(type):
         return type.__new__(cls, name, bases, attrs)
 
 
-class BaseType(object):
-    """
-    A base class for Types in a Schematics model. Instances of this
+class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
+    """A base class for Types in a Schematics model. Instances of this
     class may be added to subclasses of ``Model`` to define a model schema.
 
     Validators that need to access variables on the instance
@@ -90,11 +89,9 @@ class BaseType(object):
 
     """
 
-    __metaclass__ = TypeMeta
-
     MESSAGES = {
         'required': u"This field is required.",
-        'choices': u"Value must be one of {}.",
+        'choices': u"Value must be one of {0}.",
     }
 
     def __init__(self, required=False, default=None, serialized_name=None,
@@ -111,7 +108,7 @@ class BaseType(object):
 
         self.serialize_when_none = serialize_when_none
         self.messages = dict(self.MESSAGES, **(messages or {}))
-        self._position_hint = _next_position_hint()  # For ordering of fields
+        self._position_hint = next(_next_position_hint)  # For ordering of fields
 
     def __call__(self, value):
         return self.convert(value)
@@ -154,7 +151,7 @@ class BaseType(object):
         for validator in self.validators:
             try:
                 validator(value)
-            except ValidationError, e:
+            except ValidationError as e:
                 errors.extend(e.messages)
 
                 if isinstance(e, StopValidation):
@@ -344,9 +341,9 @@ class NumberType(BaseType):
     """
 
     MESSAGES = {
-        'number_coerce': u"Value is not {}",
-        'number_min': u"{} value should be greater than {}",
-        'number_max': u"{} value should be less than {}",
+        'number_coerce': u"Value is not {0}",
+        'number_min': u"{0} value should be greater than {1}",
+        'number_max': u"{0} value should be less than {1}",
     }
 
     def __init__(self, number_class, number_type,
@@ -506,7 +503,7 @@ class DateType(BaseType):
 
     SERIALIZED_FORMAT = '%Y-%m-%d'
     MESSAGES = {
-        'parse': u'Could not parse {}. Should be ISO8601 (YYYY-MM-DD).',
+        'parse': u'Could not parse {0}. Should be ISO8601 (YYYY-MM-DD).',
     }
 
     def __init__(self, **kwargs):
@@ -541,7 +538,7 @@ class DateTimeType(BaseType):
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 
     MESSAGES = {
-        'parse': u'Could not parse {}. Should be ISO8601.',
+        'parse': u'Could not parse {0}. Should be ISO8601.',
     }
 
     def __init__(self, formats=None, serialized_format=None, **kwargs):

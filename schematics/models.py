@@ -6,8 +6,7 @@ import itertools
 from .types import BaseType
 from .types.compound import ModelType
 from .types.serializable import Serializable
-from .exceptions import (BaseError, ValidationError, ModelValidationError,
-                         ConversionError, ModelConversionError)
+from .exceptions import BaseError, ModelValidationError
 from .serialize import allow_none, atoms, serialize, flatten, expand, convert
 from .validate import validate
 from .datastructures import OrderedDict as OrderedDictWithSort
@@ -88,16 +87,16 @@ class ModelOptions(object):
 
 class ModelMeta(type):
     """
-    Meta class for Models. 
+    Meta class for Models.
     """
 
     def __new__(cls, name, bases, attrs):
         """
         This metaclass adds four attributes to host classes: cls._fields,
         cls._serializables, cls._validator_functions, and cls._options.
-        
+
         This function creates those attributes like this:
-        
+
         ``cls._fields`` is list of fields that are schematics types
         ``cls._serializables`` is a list of functions that are used to generate
         values during serialization
@@ -130,7 +129,7 @@ class ModelMeta(type):
 
         ### Parse meta options
         options = cls._read_options(name, bases, attrs)
-            
+
         ### Convert list of types into fields for new klass
         fields.sort(key=lambda i: i[1]._position_hint)
         for key, field in fields.iteritems():
@@ -287,7 +286,7 @@ class Model(object):
 
     def iter(self):
         return iter(self._fields)
-    
+
     def __getitem__(self, name):
         try:
             return getattr(self, name)
