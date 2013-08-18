@@ -135,8 +135,8 @@ class BaseType(object):
         return value
 
     def allow_none(self):
-        if hasattr(self, 'model_class'):
-            return self.model_class.allow_none(self)
+        if hasattr(self, 'owner_model'):
+            return self.owner_model.allow_none(self)
         else:
             return self.serialize_when_none
 
