@@ -411,6 +411,12 @@ class DecimalType(BaseType):
     """A fixed-point decimal number field.
     """
 
+    MESSAGES = {
+        'number_coerce': 'Number failed to convert to a decimal',
+        'number_min': u"Value should be greater than {}",
+        'number_max': u"Value should be less than {}",
+    }
+
     def __init__(self, min_value=None, max_value=None, **kwargs):
         self.min_value, self.max_value = min_value, max_value
 
@@ -427,19 +433,18 @@ class DecimalType(BaseType):
                 value = decimal.Decimal(value)
 
             except (TypeError, decimal.InvalidOperation):
-                raise ConversionError(self.messages['number_coerce']
-                    .format(self.number_type))
+                raise ConversionError(self.messages['number_coerce'])
 
         return value
 
     def validate_range(self, value):
         if self.min_value is not None and value < self.min_value:
-            raise ValidationError(self.messages['number_min']
-                .format(self.number_type, self.min_value))
+            error_msg = self.messages['number_min'].format(self.min_value)
+            raise ValidationError(error_msg)
 
         if self.max_value is not None and value > self.max_value:
-            raise ValidationError(self.messages['number_max']
-                .format(self.number_type, self.max_value))
+            error_msg = self.messages['number_max'].format(self.max_value)
+            raise ValidationError(error_msg)
 
         return value
 
