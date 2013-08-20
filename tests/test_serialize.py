@@ -4,7 +4,7 @@
 import unittest
 
 from schematics.models import Model
-from schematics.types import StringType, LongType, IntType
+from schematics.types import StringType, LongType, IntType, MD5Type
 from schematics.types.compound import ModelType, DictType, ListType
 from schematics.types.serializable import serializable
 from schematics.serialize import blacklist, whitelist, wholelist
@@ -683,4 +683,22 @@ class TestRoles(unittest.TestCase):
             'id': 42,
             'name': 'Arthur',
         })
+
+    def test_md5_type(self):
+        class M(Model):
+            md5 = MD5Type()
+
+        import hashlib
+        myhash = hashlib.md5("hashthis").hexdigest()
+        m = M()
+        m.md5 = myhash
+
+        self.assertEqual(m.md5, myhash)
+        d = m.serialize()
+        self.assertEqual(d, {
+            'md5': myhash
+        })
+        
+        m2 = M(d)
+        self.assertEqual(m2.md5, myhash)
 
