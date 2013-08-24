@@ -1,19 +1,26 @@
+.. _toc:
+
+=================
 Table Of Contents
-~~~~~~~~~~~~~~~~~
+=================
+
 
 User's Guide
-------------
+============
 
 .. toctree::
    :maxdepth: 2
 
    quickstart
-   serialization
+   types
+   models
    validation
+   import
+   export
 
 
 API Reference
--------------
+=============
 .. toctree::
    :maxdepth: 2
 

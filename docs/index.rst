@@ -1,14 +1,18 @@
+.. _index:
+
+==========
 Schematics
 ==========
 
-**Data Structures for Humans™.**
+.. rubric:: Data Structures for Humans™.
 
 Schematics is a Python library to validate, manipulate, and serialize data
 structures. The internals are a lot like form libraries such as WTForms or
 Django forms, but Schematics is geared towards richer data structures like
 JSON.
 
-**Use Cases**
+Use Cases
+~~~~~~~~~
 
 + Create data structures for very specific types of data.
 + Convert structures to and from different formats, like JSON or a simple dict.
