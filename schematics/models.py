@@ -8,7 +8,7 @@ from .types.compound import ModelType
 from .types.serializable import Serializable
 from .exceptions import (BaseError, ValidationError, ModelValidationError,
                          ConversionError, ModelConversionError)
-from .serialize import allow_none, atoms, serialize, flatten, expand, convert
+from .transforms import allow_none, atoms, serialize, flatten, expand, convert
 from .validate import validate
 from .datastructures import OrderedDict as OrderedDictWithSort
 
@@ -223,7 +223,8 @@ class Model(object):
             Complain about unrecognized keys. Default: False
         """
         try:
-            data = validate(self, self._data, partial=partial, strict=strict)
+            data = validate(self.__class__, self._data, partial=partial,
+                            strict=strict)
             self._data.update(**data)
         except BaseError as e:
             raise ModelValidationError(e.messages)

@@ -67,12 +67,14 @@ class TestFunctionalInterface(unittest.TestCase):
 
             def validate_id(self, context, value):
                 if self.id:
+                    if p1._initial['id'] != value
                     raise ValidationError('Cannot change id')
 
         p1 = Player({'id': 4})
+        p1.id = 3
 
         try:
-            data = validate(p1, {'id': 3})
+            data = validate(Player, p1)
         except ValidationError as e:
             self.assertIn('id', e.messages)
             self.assertIn('Cannot change id', e.messages['id'])

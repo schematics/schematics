@@ -1,7 +1,9 @@
-from .exceptions import BaseError, ValidationError
+from .exceptions import BaseError, ValidationError, ModelConversionError
+from .exceptions import ModelValidationError
+from transforms import import_loop
 
 
-def validate(cls, raw_data, partial=False, strict=False, context=None):
+def validate(cls, instance_or_dict, partial=False, strict=False, context=None):
     """
     Validate some untrusted data using a model. Trusted data can be passed in
     the `context` parameter.
@@ -25,45 +27,34 @@ def validate(cls, raw_data, partial=False, strict=False, context=None):
         If errors are found, they are raised as a ValidationError with a list
         of errors attached.
     """
-    data = dict(context) if context is not None else {}
+    data = {}
     errors = {}
 
-    # validate raw_data by the model fields
-    for field_name, field in cls._fields.iteritems():
-        serialized_field_name = field.serialized_name or field_name
-        try:
-            if serialized_field_name in raw_data:
-                value = raw_data[serialized_field_name]
-            else:
-                value = raw_data[field_name]
-        except KeyError:
-            if data.get(field_name):
-                # skip already validated data
-                continue
-            value = field.default
+    ### Function for validating an individual field
+    def field_converter(field, value):
+        value = field.convert(value)
+        field.validate(value)
+        return value
 
-        if value is None:
-            if field.required and not partial:
-                errors[serialized_field_name] = [field.messages['required'], ]
-        else:
-            try:
-                if value is not None:
-                    value = field.convert(value)
-                field.validate(value)
-                data[field_name] = value
-            except BaseError as e:
-                errors[serialized_field_name] = e.messages
+    ### Loop across fields and coerce values
+    try:
+        data = import_loop(cls, instance_or_dict, field_converter,
+                           context=context, partial=partial, strict=strict)
+    except ModelConversionError as mce:
+        errors = mce.messages
 
+    ### Check if unknown fields are present
     if strict:
         rogue_field_errors = _check_for_unknown_fields(cls, data)
         errors.update(rogue_field_errors)
 
-    # validate a model with its own validators
+    ### Model level validation
     instance_errors = _validate_model(cls, data)
     errors.update(instance_errors)
 
     if len(errors) > 0:
-        raise ValidationError(errors)
+        ve = ValidationError(errors)
+        raise ve
 
     return data
 

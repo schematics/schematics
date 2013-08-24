@@ -2,7 +2,7 @@
 import unittest
 from collections import OrderedDict
 
-from schematics.serialize import expand, whitelist
+from schematics.transforms import expand, whitelist
 from schematics.models import Model
 from schematics.types.serializable import serializable
 from schematics.types import StringType, IntType

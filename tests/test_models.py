@@ -3,7 +3,7 @@
 import unittest
 
 from schematics.models import Model
-from schematics.serialize import whitelist, blacklist
+from schematics.transforms import whitelist, blacklist
 from schematics.models import ModelOptions
 
 from schematics.types.base import StringType, IntType

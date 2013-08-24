@@ -4,52 +4,189 @@ import collections
 import itertools
 
 from .types.serializable import Serializable
-from .exceptions import ConversionError, ModelConversionError
+from .exceptions import ConversionError, ModelConversionError, ValidationError
 
 
 ###
-### Type Coercion
+### Transform Loops
 ###
 
-def convert(cls, raw_data):
+def import_loop(cls, instance_or_dict, field_converter, context=None,
+                partial=False, strict=False):
     """
-    Converts the raw data into richer Python constructs according to the
-    fields on the model.
+    The import loop is designed to take untrusted data and convert it into the
+    native types, as described in ``cls``.  It does this by calling
+    ``field_converter`` on every field.
+
+    Errors are aggregated and returned by throwing a ``ModelConversionError``.
 
     :param cls:
         The class for the model.
-    :param raw_data:
+    :param instance_or_dict:
         A dict of data to be converted into types according to ``cls``.
+    :param field_convert:
+        This function is applied to every field found in ``instance_or_dict``.
+    :param context:
+        A ``dict``-like structure that may contain already validated data.        
+    :param partial:
+        Allow partial data to validate; useful for PATCH requests.
+        Essentially drops the ``required=True`` arguments from field
+        definitions. Default: False
+    :param strict:
+        Complain about unrecognized keys. Default: False
     """
-    if not isinstance(raw_data, cls) and not isinstance(raw_data, dict):
+    is_dict = isinstance(instance_or_dict, dict)
+    is_cls = isinstance(instance_or_dict, cls)
+    if not is_cls and not is_dict:
         error_msg = 'Model conversion requires a model or dict'
         raise ModelConversionError(error_msg)
 
-    data = {}
+    data = dict(context) if context is not None else {}
     errors = {}
 
     for field_name, field in cls._fields.iteritems():
         serialized_field_name = field.serialized_name or field_name
-
+        
         try:
-            if serialized_field_name in raw_data:
-                raw_value = raw_data[serialized_field_name]
+            if serialized_field_name in instance_or_dict:
+                raw_value = instance_or_dict[serialized_field_name]
             else:
-                raw_value = raw_data[field_name]
+                print 'IOD:', instance_or_dict
+                print 'IODT:', type(instance_or_dict)
+                raw_value = instance_or_dict[field_name]
 
-            if raw_value is not None:
-                raw_value = field.convert(raw_value)
+            if raw_value is None:
+                if field.required and not partial:
+                    errors[serialized_field_name] = [field.messages['required'],]
+            else:
+                raw_value = field_converter(field, raw_value)
+
             data[field_name] = raw_value
-            
+
         except KeyError:
+            if field_name in data:
+                continue
             data[field_name] = field.default
         except ConversionError, e:
+            errors[serialized_field_name] = e.messages
+        except ValidationError, e:
             errors[serialized_field_name] = e.messages
 
     if errors:
         raise ModelConversionError(errors)
 
     return data
+
+
+def export_loop(cls, instance_or_dict, field_converter,
+                role=None, raise_error_on_role=False, print_none=False):
+    """
+    The apply shape function is intended to be a general loop definition that
+    can be used for any form of data shaping, such as application of roles or
+    how a field is transformed.
+
+    :param cls:
+        The model definition.
+    :param instance_or_dict:
+        The structure where fields from cls are mapped to values. The only
+        expectionation for this structure is that it implements a ``dict``
+        interface.
+    :param field_converter:
+        This function is applied to every field found in ``instance_or_dict``.
+    :param role:
+        The role used to determine if fields should be left out of the
+        transformation.
+    :param raise_error_on_role:
+        This parameter enforces strict behavior which requires substructures
+        to have the same role definition as their parent structures.
+    :param print_none:
+        This function overrides ``serialize_when_none`` values found either on
+        ``cls`` or an instance.
+    """
+    data = {}
+
+    ### Translate `role` into `gottago` function
+    gottago = wholelist()
+    if hasattr(cls, '_options') and role in cls._options.roles:
+        gottago = cls._options.roles[role]
+    elif role and raise_error_on_role:
+        error_msg = u'%s Model has no role "%s"'
+        raise ValueError(error_msg % (cls.__name__, role))
+
+    for field_name, field, value in atoms(cls, instance_or_dict):
+        serialized_name = field.serialized_name or field_name
+
+        ### Skipping this field was requested
+        if gottago(field_name, value):
+            continue
+
+        ### Value found, apply transformation and store it
+        elif value is not None:
+            if hasattr(field, 'export_loop'):
+                shaped = field.export_loop(value, field_converter,
+                                           role=role,
+                                           print_none=print_none)
+            else:
+                shaped = field_converter(field, value)
+
+            ### Print if we want none or found a value
+            if (shaped is None and allow_none(cls, field)):
+                data[serialized_name] = shaped
+            elif shaped is not None:
+                data[serialized_name] = shaped
+            elif print_none:
+                data[serialized_name] = shaped
+
+        ### Store None if reqeusted
+        elif value is None and allow_none(cls, field):
+            data[serialized_name] = value
+        elif print_none:
+            data[serialized_name] = value
+
+    ### Return data if the list contains anything
+    if len(data) > 0:
+        return data
+    elif print_none:
+        return data
+
+
+def atoms(cls, instance_or_dict):
+    """
+    Iterator for the atomic components of a model definition and relevant data
+    that creates a threeple of the field's name, the instance of it's type, and
+    it's value.
+
+    :param cls:
+        The model definition.
+    :param instance_or_dict:
+        The structure where fields from cls are mapped to values. The only
+        expectionation for this structure is that it implements a ``dict``
+        interface.
+    """
+    all_fields = itertools.chain(cls._fields.iteritems(),
+                                 cls._serializables.iteritems())
+
+    return ((field_name, field, instance_or_dict[field_name])
+            for field_name, field in all_fields)
+
+
+def allow_none(cls, field):
+    """
+    This function inspects a model and a field for a setting either at the
+    model or field level for the ``serialize_when_none`` setting.
+
+    The setting defaults to the value of the class.  A field can override the
+    class setting with it's own ``serialize_when_none`` setting.
+
+    :param cls:
+        The model definition.
+    :param field:
+        The field in question.
+    """
+    allowed = cls._options.serialize_when_none
+    if field.serialize_when_none != None:
+        allowed = field.serialize_when_none
+    return allowed
 
 
 ###
@@ -191,123 +328,25 @@ def blacklist(*field_list):
 
 
 ###
-### Serialization
+### Import and export functions
 ###
 
-def atoms(cls, instance_or_dict):
-    """
-    Iterator for the atomic components of a model definition and relevant data
-    that creates a threeple of the field's name, the instance of it's type, and
-    it's value.
 
-    :param cls:
-        The model definition.
-    :param instance_or_dict:
-        The structure where fields from cls are mapped to values. The only
-        expectionation for this structure is that it implements a ``dict``
-        interface.
-    """
-    all_fields = itertools.chain(cls._fields.iteritems(),
-                                 cls._serializables.iteritems())
-
-    return ((field_name, field, instance_or_dict[field_name])
-            for field_name, field in all_fields)
+def convert(cls, instance_or_dict, context=None, partial=True, strict=False):
+    field_converter = lambda field, value: field.convert(value)
+    data = import_loop(cls, instance_or_dict, field_converter, context=context,
+                       partial=partial, strict=strict)
+    return data
 
 
-def allow_none(cls, field):
-    """
-    This function inspects a model and a field for a setting either at the
-    model or field level for the ``serialize_when_none`` setting.
-
-    The setting defaults to the value of the class.  A field can override the
-    class setting with it's own ``serialize_when_none`` setting.
-
-    :param cls:
-        The model definition.
-    :param field:
-        The field in question.
-    """
-    allowed = cls._options.serialize_when_none
-    if field.serialize_when_none != None:
-        allowed = field.serialize_when_none
-    return allowed
+def to_native(cls, instance_or_dict, role=None, raise_error_on_role=True):
+    field_converter = lambda field, value: field.convert(value)
+    data = export_loop(cls, instance_or_dict, field_converter,
+                       role=role, raise_error_on_role=raise_error_on_role)
+    return data
 
 
-def apply_shape(cls, instance_or_dict, field_converter,
-                role=None, raise_error_on_role=False, print_none=False):
-    """
-    The apply shape function is intended to be a general loop definition that
-    can be used for any form of data shaping, such as application of roles or
-    how a field is transformed.
-
-    :param cls:
-        The model definition.
-    :param instance_or_dict:
-        The structure where fields from cls are mapped to values. The only
-        expectionation for this structure is that it implements a ``dict``
-        interface.
-    :param field_converter:
-        This function is applied to every field found in ``instance_or_dict``.
-    :param role:
-        The role used to determine if fields should be left out of the
-        transformation.
-    :param raise_error_on_role:
-        This parameter enforces strict behavior which requires substructures
-        to have the same role definition as their parent structures.
-    :param print_none:
-        This function overrides ``serialize_when_none`` values found either on
-        ``cls`` or an instance.
-    """
-
-    data = {}
-
-    ### Translate `role` into `gottago` function
-    gottago = wholelist()
-    if hasattr(cls, '_options') and role in cls._options.roles:
-        gottago = cls._options.roles[role]
-    elif role and raise_error_on_role:
-        error_msg = u'%s Model has no role "%s"'
-        raise ValueError(error_msg % (cls.__name__, role))
-
-    ### Transformation loop
-    for field_name, field, value in atoms(cls, instance_or_dict):
-        serialized_name = field.serialized_name or field_name
-
-        ### Skipping this field was requested
-        if gottago(field_name, value):
-            continue
-
-        ### Value found, apply transformation and store it
-        elif value is not None:
-            if hasattr(field, 'apply_shape'):
-                shaped = field.apply_shape(value, field_converter,
-                                           role=role,
-                                           print_none=print_none)
-            else:
-                shaped = field_converter(field, value)
-
-            ### Print if we want none or found a value
-            if (shaped is None and allow_none(cls, field)):
-                data[serialized_name] = shaped
-            elif shaped is not None:
-                data[serialized_name] = shaped
-            elif print_none:
-                data[serialized_name] = shaped
-
-        ### Store None if reqeusted
-        elif value is None and allow_none(cls, field):
-            data[serialized_name] = value
-        elif print_none:
-            data[serialized_name] = value
-
-    ### Return data if the list contains anything
-    if len(data) > 0:
-        return data
-    elif print_none:
-        return data
-
-
-def serialize(cls, instance_or_dict, role=None, raise_error_on_role=True):
+def to_primitive(cls, instance_or_dict, role=None, raise_error_on_role=True):
     """
     Implements serialization as a mechanism to convert ``Model`` instances into
     dictionaries keyed by field_names with the converted data as the values.
@@ -329,16 +368,16 @@ def serialize(cls, instance_or_dict, role=None, raise_error_on_role=True):
         to have the same role definition as their parent structures.
     """
     field_converter = lambda field, value: field.to_primitive(value)
-    
-    data = apply_shape(cls, instance_or_dict, field_converter,
-                       role=role,
-                       raise_error_on_role=raise_error_on_role)
+    data = export_loop(cls, instance_or_dict, field_converter,
+                       role=role, raise_error_on_role=raise_error_on_role)
     return data
 
 
-###
-### Flattening
-###
+def serialize(cls, instance_or_dict, role=None, raise_error_on_role=True):
+    return to_primitive(cls, instance_or_dict, role, raise_error_on_role)
+
+
+
 
 EMPTY_LIST = "[]"
 EMPTY_DICT = "{}"
@@ -475,7 +514,7 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
     """
     field_converter = lambda field, value: field.to_primitive(value)
     
-    data = apply_shape(cls, instance_or_dict, field_converter,
+    data = export_loop(cls, instance_or_dict, field_converter,
                        role=role, print_none=True)
 
     flattened = flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)

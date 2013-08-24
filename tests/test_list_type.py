@@ -5,7 +5,7 @@ import unittest
 from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.types.compound import ModelType, ListType
-from schematics.serialize import wholelist
+from schematics.transforms import wholelist
 from schematics.exceptions import ValidationError
 
 
@@ -130,11 +130,14 @@ class TestListTypeWithModelType(unittest.TestCase):
         exception = cm.exception
         self.assertEqual(exception.messages['users'], [u'This field is required.'])
 
+        print 'BEFORE'
         with self.assertRaises(ValidationError) as cm:
             c = Card({"users": []})
             c.validate()
+        print 'AFTER'
 
         exception = cm.exception
+        print 'EXC:', type(exception)
         self.assertEqual(exception.messages['users'], [u'Please provide at least 1 item.'])
 
     def test_list_field_required(self):

@@ -7,7 +7,7 @@ from schematics.models import Model
 from schematics.types import StringType, LongType, IntType, MD5Type
 from schematics.types.compound import ModelType, DictType, ListType
 from schematics.types.serializable import serializable
-from schematics.serialize import blacklist, whitelist, wholelist
+from schematics.transforms import blacklist, whitelist, wholelist
 
 
 class TestSerializable(unittest.TestCase):

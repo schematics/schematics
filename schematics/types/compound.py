@@ -3,7 +3,7 @@
 
 from __future__ import division
 from ..exceptions import ValidationError, ConversionError, ModelValidationError, StopValidation
-from ..serialize import apply_shape, EMPTY_LIST, EMPTY_DICT
+from ..transforms import export_loop, EMPTY_LIST, EMPTY_DICT
 from .base import BaseType
 
 class MultiType(BaseType):
@@ -29,7 +29,7 @@ class MultiType(BaseType):
 
         return value
 
-    def apply_shape(self, shape_instance, field_converter,
+    def export_loop(self, shape_instance, field_converter,
                     role=None, print_none=False):
         raise NotImplemented()
 
@@ -80,13 +80,13 @@ class ModelType(MultiType):
 
         return primitive_data
 
-    def apply_shape(self, model_instance, field_converter, 
+    def export_loop(self, model_instance, field_converter, 
                     role=None, print_none=False):
         """
-        Calls the main `apply_shape` implementation because they are both
+        Calls the main `export_loop` implementation because they are both
         supposed to operate on models.
         """
-        shaped =  apply_shape(self.model_class, model_instance,
+        shaped =  export_loop(self.model_class, model_instance,
                               field_converter, 
                               role=role, print_none=print_none)
 
@@ -167,16 +167,16 @@ class ListType(MultiType):
     def to_primitive(self, value):
         return map(self.field.to_primitive, value)
 
-    def apply_shape(self, list_instance, field_converter, 
+    def export_loop(self, list_instance, field_converter, 
                     role=None, print_none=False):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
-        as `serialize.apply_shape`.
+        as `serialize.export_loop`.
         """
         data = []
         for value in list_instance:
-            if hasattr(self.field, 'apply_shape'):
-                shaped = self.field.apply_shape(value, field_converter,
+            if hasattr(self.field, 'export_loop'):
+                shaped = self.field.export_loop(value, field_converter,
                                                 role=role)
                 feels_empty = shaped and len(shaped) == 0
             else:
@@ -243,17 +243,17 @@ class DictType(MultiType):
     def to_primitive(self, value):
         return dict((unicode(k), self.field.to_primitive(v)) for k, v in value.iteritems())
 
-    def apply_shape(self, dict_instance, field_converter, 
+    def export_loop(self, dict_instance, field_converter, 
                     role=None, print_none=False):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
-        as `serialize.apply_shape`.
+        as `serialize.export_loop`.
         """
         data = {}
         
         for key, value in dict_instance.iteritems():
-            if hasattr(self.field, 'apply_shape'):
-                shaped = self.field.apply_shape(value, field_converter,
+            if hasattr(self.field, 'export_loop'):
+                shaped = self.field.export_loop(value, field_converter,
                                                 role=role)
                 feels_empty = shaped and len(shaped) == 0
             else:
