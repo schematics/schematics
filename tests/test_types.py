@@ -108,7 +108,7 @@ class TestLongType(unittest.TestCase):
     def test_raises_error(self):
         field = LongType(required=True)
         with self.assertRaises(ConversionError):
-            field.convert(None)
+            field.to_native(None)
 
 
 class TestStringType(unittest.TestCase):

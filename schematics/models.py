@@ -8,7 +8,7 @@ from .types.compound import ModelType
 from .types.serializable import Serializable
 from .exceptions import (BaseError, ValidationError, ModelValidationError,
                          ConversionError, ModelConversionError)
-from .transforms import allow_none, atoms, serialize, flatten, expand, convert
+from .transforms import allow_none, atoms, serialize, flatten, expand, to_native, convert
 from .validate import validate
 from .datastructures import OrderedDict as OrderedDictWithSort
 

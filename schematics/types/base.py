@@ -114,7 +114,7 @@ class BaseType(object):
         self._position_hint = _next_position_hint()  # For ordering of fields
 
     def __call__(self, value):
-        return self.convert(value)
+        return self.to_native(value)
 
     @property
     def default(self):
@@ -128,7 +128,7 @@ class BaseType(object):
         """
         return value
 
-    def convert(self, value):
+    def to_native(self, value):
         """
         Convert untrusted data to a richer Python construct.
         """
@@ -178,7 +178,7 @@ class UUIDType(BaseType):
     """A field that stores a valid UUID value.
     """
 
-    def convert(self, value):
+    def to_native(self, value):
         if not isinstance(value, uuid.UUID):
             value = uuid.UUID(value)
         return value
@@ -250,7 +250,7 @@ class StringType(BaseType):
 
         super(StringType, self).__init__(**kwargs)
 
-    def convert(self, value):
+    def to_native(self, value):
         if value is None:
             return None
 
@@ -358,7 +358,7 @@ class NumberType(BaseType):
 
         super(NumberType, self).__init__(**kwargs)
 
-    def convert(self, value):
+    def to_native(self, value):
         try:
             value = self.number_class(value)
         except (TypeError, ValueError):
@@ -425,7 +425,7 @@ class DecimalType(BaseType):
     def to_primitive(self, value):
         return unicode(value)
 
-    def convert(self, value):
+    def to_native(self, value):
         if not isinstance(value, decimal.Decimal):
             if not isinstance(value, basestring):
                 value = unicode(value)
@@ -456,7 +456,7 @@ class HashType(BaseType):
         'hash_hex': u"Hash value is not hexadecimal.",
     }
 
-    def convert(self, value):
+    def to_native(self, value):
         if len(value) != self.LENGTH:
             raise ValidationError(self.messages['hash_length'])
         try:
@@ -492,7 +492,7 @@ class BooleanType(BaseType):
     TRUE_VALUES = ('True', 'true', '1')
     FALSE_VALUES = ('False', 'false', '0')
 
-    def convert(self, value):
+    def to_native(self, value):
         if isinstance(value, basestring):
             if value in self.TRUE_VALUES:
                 value = True
@@ -518,7 +518,7 @@ class DateType(BaseType):
         self.serialized_format = self.SERIALIZED_FORMAT
         super(DateType, self).__init__(**kwargs)
 
-    def convert(self, value):
+    def to_native(self, value):
         if isinstance(value, datetime.date):
             return value
 
@@ -563,7 +563,7 @@ class DateTimeType(BaseType):
         self.serialized_format = serialized_format
         super(DateTimeType, self).__init__(**kwargs)
 
-    def convert(self, value):
+    def to_native(self, value):
         if isinstance(value, datetime.datetime):
             return value
 
@@ -584,7 +584,7 @@ class GeoPointType(BaseType):
     """A list storing a latitude and longitude.
     """
 
-    def convert(self, value):
+    def to_native(self, value):
         """Make sure that a geo-value is of type (x, y)
         """
         if not len(value) == 2:

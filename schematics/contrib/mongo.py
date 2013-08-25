@@ -20,7 +20,7 @@ class ObjectIdType(BaseType):
         self.auto_fill = auto_fill
         super(ObjectIdType, self).__init__(**kwargs)
 
-    def convert(self, value):
+    def to_native(self, value):
         if not isinstance(value, bson.objectid.ObjectId):
             value = bson.objectid.ObjectId(unicode(value))
         return value

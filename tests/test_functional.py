@@ -66,8 +66,8 @@ class TestFunctionalInterface(unittest.TestCase):
             id = IntType()
 
             def validate_id(self, context, value):
-                if self.id:
-                    if p1._initial['id'] != value
+                if p1._initial['id'] != value:
+                    p1._data['id'] = p1._initial['id']
                     raise ValidationError('Cannot change id')
 
         p1 = Player({'id': 4})

@@ -331,14 +331,14 @@ def blacklist(*field_list):
 
 
 def convert(cls, instance_or_dict, context=None, partial=True, strict=False):
-    field_converter = lambda field, value: field.convert(value)
+    field_converter = lambda field, value: field.to_native(value)
     data = import_loop(cls, instance_or_dict, field_converter, context=context,
                        partial=partial, strict=strict)
     return data
 
 
 def to_native(cls, instance_or_dict, role=None, raise_error_on_role=True):
-    field_converter = lambda field, value: field.convert(value)
+    field_converter = lambda field, value: field.to_native(value)
     data = export_loop(cls, instance_or_dict, field_converter,
                        role=role, raise_error_on_role=raise_error_on_role)
     return data

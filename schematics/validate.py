@@ -32,7 +32,7 @@ def validate(cls, instance_or_dict, partial=False, strict=False, context=None):
 
     ### Function for validating an individual field
     def field_converter(field, value):
-        value = field.convert(value)
+        value = field.to_native(value)
         field.validate(value)
         return value
 

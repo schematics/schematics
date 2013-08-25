@@ -50,7 +50,7 @@ class ModelType(MultiType):
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
 
-    def convert(self, value):
+    def to_native(self, value):
         # We have already checked if the field is required. If it is None it
         # should continue being None
         if value is None:  
@@ -131,10 +131,10 @@ class ListType(MultiType):
         except TypeError:
             return [value]
 
-    def convert(self, value):
+    def to_native(self, value):
         items = self._force_list(value)
 
-        return map(self.field.convert, items)
+        return map(self.field.to_native, items)
 
     def check_length(self, value):
         list_length = len(value) if value else 0
@@ -217,7 +217,7 @@ class DictType(MultiType):
     def model_class(self):
         return self.field.model_class
 
-    def convert(self, value, safe=False):
+    def to_native(self, value, safe=False):
         if value == EMPTY_DICT:
             value = {}
 
@@ -226,7 +226,7 @@ class DictType(MultiType):
         if not isinstance(value, dict):
             raise ValidationError(u'Only dictionaries may be used in a DictType')
 
-        return dict((self.coerce_key(k), self.field.convert(v))
+        return dict((self.coerce_key(k), self.field.to_native(v))
                     for k, v in value.iteritems())
 
     def validate_items(self, items):
