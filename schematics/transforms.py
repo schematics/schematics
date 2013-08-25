@@ -51,8 +51,6 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
             if serialized_field_name in instance_or_dict:
                 raw_value = instance_or_dict[serialized_field_name]
             else:
-                print 'IOD:', instance_or_dict
-                print 'IODT:', type(instance_or_dict)
                 raw_value = instance_or_dict[field_name]
 
             if raw_value is None:
