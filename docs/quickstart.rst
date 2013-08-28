@@ -27,7 +27,7 @@ was found.
   class WeatherReport(Model):
       city = StringType()
       temperature = DecimalType()
-      when = DateTimeType(default=datetime.datetime.now)
+      taken_at = DateTimeType(default=datetime.datetime.now)
 
 That'll do.
 
@@ -43,33 +43,36 @@ Here's what it looks like use it.
 
 And remember that ``DateTimeType`` we set a default callable for?
 
-  >>> t1.when
+  >>> t1.taken_at
   datetime.datetime(2013, 8, 21, 13, 6, 38, 11883)
 
 
 Serialization
 =============
 
-The ``serialize()`` function will reduce the native Python types into string
+Serialization comes in two primary forms.  In both cases the data is produced
+as a dictionary.
+
+The ``to_primitive()`` function will reduce the native Python types into string
 safe formats.  For example, the ``DateTimeType`` from above is stored as a 
 Python ``datetime``, but it will serialize to an ISO8601 format string.
 
-  >>> t1.serialize()
-  {'city': u'NYC', 'when': '2013-08-21T13:04:19.074808', 'temperature': u'80'}
+  >>> t1.to_primitive()
+  {'city': u'NYC', 'taken_at': '2013-08-21T13:04:19.074808', 'temperature': u'80'}
 
 Converting to JSON is then a simple task.
 
-  >>> json.dumps(t1.serialize())
-  '{"city": "NYC", "when": "2013-08-21T13:04:19.074808", "temperature": "80"}'
+  >>> json.dumps(t1.to_primitive())
+  '{"city": "NYC", "taken_at": "2013-08-21T13:04:19.074808", "temperature": "80"}'
 
 Instantiating an instance from JSON is not too different.
 
   >>> json_str = json.dumps(t1.serialize())
   >>> json_str
-  '{"city": "NYC", "when": "2013-08-21T13:06:38.011883", "temperature": "80"}'
+  '{"city": "NYC", "taken_at": "2013-08-21T13:06:38.011883", "temperature": "80"}'
 
   >>> t1_prime = WeatherReport(json.loads(json_str))
-  >>> t1_prime.when
+  >>> t1_prime.taken_at
   datetime.datetime(2013, 8, 21, 13, 6, 38, 11883)
 
 
@@ -87,13 +90,13 @@ And this is what it looks like when validation fails.
 
 .. doctest::
 
-  >>> t1.when = 'whatever'
+  >>> t1.taken_at = 'whatever'
   >>> t1.validate()
   Traceback (most recent call last):
     File "<stdin>", line 1, in <module>
     File "schematics/models.py", line 229, in validate
       raise ModelValidationError(e.messages)
-  schematics.exceptions.ModelValidationError: {'when': [u'Could not parse whatever. Should be ISO8601.']}
+  schematics.exceptions.ModelValidationError: {'taken_at': [u'Could not parse whatever. Should be ISO8601.']}
 
 
 Persistence
@@ -102,7 +105,22 @@ Persistence
 In many cases, persistence can be as easy as converting the model to a
 dictionary and passing that into a query.
 
-That looks like this:
+First, to get at the values we'd pass into a SQL database, we might call
+``to_primitive()``.
 
-  >>> dict = t1.convert()
-  >>> dict
+Let's get a fresh t1 and take a look.
+
+  >>> wr = WeatherReport({'city': 'NYC', 'temperature': 80})
+  >>> wr.to_primitive()
+  {'city': u'NYC', 'taken_at': datetime.datetime(2013, 8, 27, 0, 25, 53, 185279), 'temperature': Decimal('80')}
+
+A simple query could look like this:
+
+  >>> q = "INSERT INTO temps (city, taken_at, temperature) VALUES ('%s', '%s', '%s');"
+  >>> query = q % wr.to_primitiv()
+  >>> db_conn
+
+INSERT INTO temps (city, taken_at, temperature) VALUES ('NYC', '2013-08-27T00:17:07.276387', '80');
+
+INSERT INTO films (code, title, did, date_prod, kind)
+    VALUES ('T_601', 'Yojimbo', 106, '1961-06-16', 'Drama');
