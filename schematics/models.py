@@ -8,7 +8,8 @@ from .types.compound import ModelType
 from .types.serializable import Serializable
 from .exceptions import (BaseError, ValidationError, ModelValidationError,
                          ConversionError, ModelConversionError)
-from .transforms import allow_none, atoms, serialize, flatten, expand, to_native, convert
+from .transforms import allow_none, atoms, flatten, expand
+from .transforms import to_primitive, to_native, convert
 from .validate import validate
 from .datastructures import OrderedDict as OrderedDictWithSort
 
@@ -239,7 +240,10 @@ class Model(object):
         """
         return convert(self.__class__, raw_data)
 
-    def serialize(self, role=None):
+    def to_native(self, role=None):
+        return to_native(self.__class__, self, role=role)
+
+    def to_primitive(self, role=None):
         """Return data as it would be validated. No filtering of output unless
         role is defined.
 
@@ -247,7 +251,10 @@ class Model(object):
             Filter output by a specific role
 
         """
-        return serialize(self.__class__, self, role=role)
+        return to_primitive(self.__class__, self, role=role)
+
+    def serialize(self, role=None):
+        return self.to_primitive(role=role)
 
     def flatten(self, role=None, prefix=""):
         """
