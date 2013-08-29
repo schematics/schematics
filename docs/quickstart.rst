@@ -106,21 +106,59 @@ In many cases, persistence can be as easy as converting the model to a
 dictionary and passing that into a query.
 
 First, to get at the values we'd pass into a SQL database, we might call
-``to_primitive()``.
+``to_native()``.
 
-Let's get a fresh t1 and take a look.
+Let's get a fresh ``WeatherReport`` instance.
 
   >>> wr = WeatherReport({'city': 'NYC', 'temperature': 80})
-  >>> wr.to_primitive()
+  >>> wr.to_native()
   {'city': u'NYC', 'taken_at': datetime.datetime(2013, 8, 27, 0, 25, 53, 185279), 'temperature': Decimal('80')}
 
-A simple query could look like this:
 
-  >>> q = "INSERT INTO temps (city, taken_at, temperature) VALUES ('%s', '%s', '%s');"
-  >>> query = q % wr.to_primitiv()
-  >>> db_conn
+With PostgreSQL
+----------
 
-INSERT INTO temps (city, taken_at, temperature) VALUES ('NYC', '2013-08-27T00:17:07.276387', '80');
+You'll want to create a table with this query:
 
-INSERT INTO films (code, title, did, date_prod, kind)
-    VALUES ('T_601', 'Yojimbo', 106, '1961-06-16', 'Drama');
+  CREATE TABLE weatherreports(
+      city varchar,
+      taken_at timestamp,
+      temperature decimal
+  );
+
+Then, from Python, an insert statement could look like this:
+
+  >>> q = "INSERT INTO weatherreports (city, taken_at, temperature) VALUES ('%s', '%s', '%s');"
+  >>> query = q % (wr.city, wr.taken_at, wr.temperature)
+  >>> query
+  u"INSERT INTO temps (city, taken_at, temperature) VALUES ('NYC', '2013-08-29 17:49:41.284189', '80');"
+
+Let's insert that into PostgreSQL using the ``psycopg2`` driver.
+
+  >>> import psycopg2
+  >>> db_conn = psycopg2.connect("host='localhost' dbname='mydb'")
+  >>> cursor = db_conn.cursor()
+  >>> cursor.execute(query)
+  >>> db_conn.commit()
+
+Reading isn't much different.
+
+  >>> query = "SELECT city,taken_at,temperature FROM weatherreports;"
+  >>> cursor = db_conn.cursor()
+  >>> cursor.execute(query)
+  >>> rows = dbc.fetchall()
+
+Now to translate that data into instances
+
+  >>> instances = list()
+  >>> for row in rows:
+  ...     (city, taken_at, temperature) = row
+  ...     instance = WeatherReport()
+  ...     instance.city = city
+  ...     instance.taken_at = taken_at
+  ...     instance.temperature = temperature
+  ...     instances.append(instance)
+  ...
+  >>> instances
+  [<WeatherReport: WeatherReport object>]
+
