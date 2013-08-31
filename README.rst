@@ -1,29 +1,62 @@
+==========
 Schematics
 ==========
 
-**Python Data Structures for Humans™.**
+.. rubric:: Python Data Structures for Humans™.
 
 .. image:: https://secure.travis-ci.org/j2labs/schematics.png?branch=master
   :target: https://secure.travis-ci.org/j2labs/schematics
   :alt: Build Status
 
-Show me the Code!
-~~~~~~~~~~~~~~~~~
 
-.. code-block:: python
+About
+=====
+
+Schematics is a Python library to validate, manipulate, and serialize data
+structures. The internals are a lot like form libraries such as WTForms or
+Django forms, but Schematics is geared towards richer data structures like
+JSON.
+
+
+Common use cases:
+
++ Create data structures for very specific types of data.
++ Convert structures to and from different formats, like JSON or a simple dict.
++ Validate API inputs.
++ Serialize data with / without fields, depending on how you're using it.
++ Define message formats for communications protocols, like an RPC.
++ Customer persistence layers.
+
+
+Examples
+--------
+
+This is a simple Model.
+
+.. code:: python
 
   >>> from schematics.models import Model
-  >>> from schematics.types import StringType
+  >>> from schematics.types import StringType, URLType
   >>> class Person(Model):
   ...     name = StringType(required=True)
+  ...     website = URLType()
   ...
-  >>> person = Person({'name': u'Joe Strummer'})
+  >>> person = Person({'name': u'Joe Strummer', 
+  ...                  'url': 'http://soundcloud.com/joestrummer'})
   >>> person.name
   u'Joe Strummer'
 
-Let’s see some validation
+Serializing the data to JSON.
 
-.. code-block:: python
+.. code:: python
+
+  >>> import json
+  >>> json.dumps(person.to_native())
+  {"name": "Joe Strummer", "url": "http://soundcloud.com/joestrummer"}
+
+This is validation.
+
+.. code:: python
 
   >>> person = Person()
   >>> try:
@@ -31,44 +64,3 @@ Let’s see some validation
   ... except ValidationError, e:
   ...     print e.messages
   {'name': [u'This field is required.']}
-
-Installation
-~~~~~~~~~~~~
-
-  $ pip install schematics
-
-Python 2.7 is supported. 2.6 support is close but test suite needs to be
-updated.
-
-Documentation
-~~~~~~~~~~~~~
-
-`schematics.readthedocs.org <https://schematics.readthedocs.org/en/latest/>`_
-
-Tests
-~~~~~
-
-Using py.test::
-
-  $ py.test tests/
-
-Authors
-~~~~~~~~~~~~
-
-+ `James Dennis <https://github.com/j2labs>`_
-+ `Jökull Sólberg Auðunsson <https://github.com/jokull>`_
-+ `Jóhann Þorvaldur Bergþórsson <https://github.com/johannth>`_
-+ `Andrew Gwozdziewycz <https://github.com/apgwoz>`_
-+ `Dion Paragas <https://github.com/d1on>`_
-+ `Tom Waits <https://github.com/tomwaits>`_
-+ `Chris McCulloh <https://github.com/st0w>`_
-+ `Sean O'Connor <https://github.com/SeanOC>`_
-+ `Alexander Dean <https://github.com/alexanderdean>`_
-+ `Rob Spychala <https://github.com/robspychala>`_
-+ `Ben Beecher <https://github.com/gone>`_
-+ `John Krauss <https://github.com/talos>`_
-+ `Titusz <https://github.com/titusz>`_
-+ `Nicola Iarocci <https://github.com/nicolaiarocci>`_
-+ `Justin Lilly <http://github.com/justinlilly>`_
-+ `Jonathan Halcrow <https://github.com/jhalcrow>`_
-
