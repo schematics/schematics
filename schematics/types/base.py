@@ -72,6 +72,8 @@ class BaseType(object):
         The name of this field defaults to the class attribute used in the
         model. However if the field has another name in foreign data set this
         argument. Serialized data will use this value for the key name too.
+    :param serialize:
+        Whether or not field should be included in serialization. Default: True
     :param choices:
         An iterable of valid choices. This is the last step of the validator
         chain.
@@ -98,10 +100,11 @@ class BaseType(object):
     }
 
     def __init__(self, required=False, default=None, serialized_name=None,
-                 choices=None, validators=None,
+                 serialize=True, choices=None, validators=None,
                  serialize_when_none=None, messages=None):
         self.required = required
         self._default = default
+        self.serialize = serialize
         self.serialized_name = serialized_name
         self.choices = choices
 
