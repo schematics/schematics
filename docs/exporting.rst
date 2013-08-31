@@ -1,5 +1,6 @@
-Serialization & Roles
-=====================
+=========
+Exporting
+=========
 
 
 To present data to clients we have the ``Model.serialize`` method. Default

@@ -1,3 +1,4 @@
+==========
 Validation
 ==========
 
@@ -96,7 +97,7 @@ dependencies:
 
 
 Detailed Example
-~~~~~~~~~~~~~~~~
+================
 
 What else can Schematics do?
 

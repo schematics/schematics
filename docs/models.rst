@@ -1,8 +1,8 @@
 .. _models:
 
-========
+======
 Models
-========
+======
 
 Schematics models
 

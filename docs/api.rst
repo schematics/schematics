@@ -1,15 +1,19 @@
+.. _api:
+
+==============
 Schematics API
 ==============
 
+
 Models
-~~~~~~
+======
 
 .. automodule:: schematics.models
    :members:
 
 
 Types
-~~~~~
+=====
 
 .. automodule:: schematics.types.base
    :members:
@@ -17,22 +21,23 @@ Types
 .. automodule:: schematics.types.compound
    :members:
 
-Serialize
-~~~~~~~~~
 
-.. automodule:: schematics.serialize
+Transforms
+==========
+
+.. automodule:: schematics.transforms
    :members:
 
 
 Validation
-~~~~~~~~~~
+==========
 
 .. automodule:: schematics.validate
    :members:
 
 
 Contrib
-~~~~~~~
+=======
 
 .. automodule:: schematics.contrib
    :members:
