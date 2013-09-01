@@ -59,6 +59,15 @@ This is validation.
 .. code:: python
 
   >>> person = Person()
+  >>> person.name = 'Amon Tobin'
+  >>> person.validate()
+  >>> 
+
+And this is what failure looks like:
+
+.. code:: python
+
+  >>> person.name = None
   >>> try:
   ...     person.validate()
   ... except ValidationError, e:

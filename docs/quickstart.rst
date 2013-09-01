@@ -51,6 +51,32 @@ And remember that ``DateTimeType`` we set a default callable for?
   datetime.datetime(2013, 8, 21, 13, 6, 38, 11883)
 
 
+Validation
+==========
+
+Validating data is fundamentally important for many systems.
+
+This is what it looks like when validation succeeds.
+
+.. code:: python
+
+  >>> t1.validate()
+  >>>
+
+And this is what it looks like when validation fails.
+
+.. doctest::
+.. code:: python
+
+  >>> t1.taken_at = 'whatever'
+  >>> t1.validate()
+  Traceback (most recent call last):
+    File "<stdin>", line 1, in <module>
+    File "schematics/models.py", line 229, in validate
+      raise ModelValidationError(e.messages)
+  schematics.exceptions.ModelValidationError: {'taken_at': [u'Could not parse whatever. Should be ISO8601.']}
+
+
 Serialization
 =============
 
@@ -81,32 +107,6 @@ Instantiating an instance from JSON is not too different.
   >>> t1_prime = WeatherReport(json.loads(json_str))
   >>> t1_prime.taken_at
   datetime.datetime(2013, 8, 21, 13, 4, 19, 074808)
-
-
-Validation
-==========
-
-Validating data is fundamentally important for many systems.
-
-This is what it looks like when validation succeeds.
-
-.. code:: python
-
-  >>> t1.validate()
-  >>>
-
-And this is what it looks like when validation fails.
-
-.. doctest::
-.. code:: python
-
-  >>> t1.taken_at = 'whatever'
-  >>> t1.validate()
-  Traceback (most recent call last):
-    File "<stdin>", line 1, in <module>
-    File "schematics/models.py", line 229, in validate
-      raise ModelValidationError(e.messages)
-  schematics.exceptions.ModelValidationError: {'taken_at': [u'Could not parse whatever. Should be ISO8601.']}
 
 
 Persistence
@@ -140,6 +140,10 @@ You'll want to create a table with this query:
       temperature decimal
   );
 
+
+Inserting
+~~~~~~~~~
+
 Then, from Python, an insert statement could look like this:
 
 .. code:: python
@@ -158,6 +162,10 @@ Let's insert that into PostgreSQL using the ``psycopg2`` driver.
   >>> cursor = db_conn.cursor()
   >>> cursor.execute(query)
   >>> db_conn.commit()
+
+
+Reading
+~~~~~~~
 
 Reading isn't much different.
 
