@@ -3,6 +3,7 @@
 import collections
 import itertools
 
+from .types.base import BaseType
 from .types.serializable import Serializable
 from .exceptions import ConversionError, ModelConversionError
 
@@ -275,6 +276,8 @@ def apply_shape(cls, instance_or_dict, field_converter,
 
         ### Skipping this field was requested
         if gottago(field_name, value):
+            continue
+        if isinstance(field, BaseType) and field.serialize is False:
             continue
 
         ### Value found, apply transformation and store it
