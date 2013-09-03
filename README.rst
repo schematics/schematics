@@ -47,7 +47,7 @@ This is a simple Model.
   ...     website = URLType()
   ...
   >>> person = Person({'name': u'Joe Strummer', 
-  ...                  'url': 'http://soundcloud.com/joestrummer'})
+  ...                  'website': 'http://soundcloud.com/joestrummer'})
   >>> person.name
   u'Joe Strummer'
 
@@ -57,14 +57,14 @@ Serializing the data to JSON.
 
   >>> import json
   >>> json.dumps(person.to_primitive())
-  {"name": "Joe Strummer", "url": "http://soundcloud.com/joestrummer"}
+  {"name": "Joe Strummer", "website": "http://soundcloud.com/joestrummer"}
 
 Let's try validating without a name value, since it's required.
 
 .. code:: python
 
   >>> person = Person()
-  >>> person.url = 'http://www.amontobin.com/'
+  >>> person.website = 'http://www.amontobin.com/'
   >>> person.validate()
   Traceback (most recent call last):
     File "<stdin>", line 1, in <module>
@@ -78,6 +78,6 @@ Add the field and validation passes
 
   >>> person = Person()
   >>> person.name = 'Amon Tobin'
-  >>> person.url = 'http://www.amontobin.com/'
+  >>> person.website = 'http://www.amontobin.com/'
   >>> person.validate()
   >>> 
