@@ -25,10 +25,31 @@ We'll use the following model for the examples:
       personal_thoughts = StringType()
       class Options:
           roles = {'public': blacklist('personal_thoughts')}
+
+
+Terminology
+===========
+
+To `serialize` data is to convert from the way it's represented in Schematics
+to some other form.  That might be a reduction of the ``Model`` into a
+``dict``.  It might be more complicated.
+
+A field can be serialized if it is an instance of ``BaseType`` or if a function
+is wrapped with the ``@serializable`` decorator.
   
 
+Converting Data
+===============
+
+To export data is basically to convert from one form to another.  Schematics
+can convert data into simple Python types or a langauge agnostic format.  We
+refer to the native
+serialization as `to_native`, but we refer to the language agnostic format as
+`primitive`, since it has removed all dependencies on Python.
+
+
 Native Types
-============
+------------
 
 The fields in a model attempt to use the best Python representation of data
 whenever possible.  For example, the DateTimeType will use Python's
@@ -51,7 +72,7 @@ You can reduce a model into the native Python types by calling ``to_native``.
 
 
 Primitive Types
-===============
+---------------
 
 To present data to clients we have the ``Model.to_primitive`` method. Default
 behavior is to output the same data you would need to reproduce the model in its
@@ -136,18 +157,28 @@ Here is what happens when we call ``to_primitive()`` on it.
   }
   
 
+Customizing Output
+==================
+
+Schematics offers many ways to customize the behavior of serilaizataion
+
+
 Roles
-=====
+-----
 
 Roles offer a way to specify whether or not a field should be skipped during
 export.  There are many reasons this might be desirable, such as access
 permissions or to not serialize more data than absolutely necessary.
 
-Imagine we are sending our movie instance to a random person on the Internet.
-We probably don't want to share our personal thoughts.
+Roles are implemented as either white lists or black lists where the members of
+the list are field names.
 
-Recall earlier that we added a role called ``public`` and gave it a blacklist
-with ``personal_thoughts`` listed.
+  >>> r = blacklist('private_field', 'another_private_field')
+
+Imagine we are sending our movie instance to a random person on the Internet.
+We probably don't want to share our personal thoughts.  Recall earlier that we
+added a role called ``public`` and gave it a blacklist with
+``personal_thoughts`` listed.
 
 .. code:: python
 
@@ -196,6 +227,77 @@ also expect the ``notes`` field to be removed from the collection data.
   }
 
 
-Serialized Names
-================
+Serializable
+------------
+
+Earlier we mentioned a ``@serializable`` decorator.  You can write a function
+that will produce a value used during serialization with a field name matching
+the function name.
+
+That looks like this:
+
+.. code:: python
+
+  ...
+  from schematics.types.serializable import serializable
+  
+  class Song(Model):
+      name = StringType()
+      artist = StringType()
+      url = URLType()
+
+      @serializable
+      def id(self):
+          return u'%s/%s' % (self.artist, self.name)
+
+This is what it looks like to use it.  
+
+.. code:: python
+
+  >>> song = Song()
+  >>> song.artist = 'Fiona Apple'
+  >>> song.name = 'Werewolf'
+  >>> song.url = 'http://www.youtube.com/watch?v=67KGSJVkix0'
+  >>> song.id
+  'Fiona Apple/Werewolf'
+
+Or here:
+
+.. code:: python
+
+  >>> song.to_native()
+  {
+      'id': u'Fiona Apple/Werewolf', 
+      'artist': u'Fiona Apple'
+      'name': u'Werewolf',
+      'url': u'http://www.youtube.com/watch?v=67KGSJVkix0', 
+  }
+
+
+Serialized Name
+---------------
+
+There are times when you have one name for a field in one place and another
+name for it somewhere else.  Schematics tries to help you by letting you
+customize the field names used during serialization.
+
+That looks like this:
+
+.. code:: python
+
+  class Person(Model):
+    name = StringType(serialized_name='person_name')
+
+Notice the effect it has on serialization.
+
+.. code:: python
+
+  >>> p = Person()
+  >>> p.name = 'Ben Weinman'
+  >>> p.to_native()
+  {'person_name': u'Ben Weinman'}
+
+
+Serialize When None
+-------------------
 
