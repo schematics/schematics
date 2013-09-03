@@ -42,7 +42,12 @@ You can reduce a model into the native Python types by calling ``to_native``.
   >>> trainspotting.release_date = datetime.datetime(1996, 7, 19, 0, 0)
   >>> trainspotting.personal_thoughts = 'This movie was great!'
   >>> trainspotting.to_native()
-  {'name': u'Trainspotting', 'director': u'Danny Boyle', 'release_date': datetime.datetime(1996, 7, 19, 0, 0), 'personal_thoughts': 'This movie was great!'}
+  {
+    'name': u'Trainspotting', 
+    'director': u'Danny Boyle', 
+    'release_date': datetime.datetime(1996, 7, 19, 0, 0), 
+    'personal_thoughts': 'This movie was great!'
+  }
 
 
 Primitive Types
@@ -55,14 +60,24 @@ current state.
 .. code:: python
 
   >>> trainspotting.to_primitive()
-  {'name': u'Trainspotting', 'director': u'Danny Boyle', 'release_date': '1996-07-19T00:00:00.000000', 'personal_thoughts': 'This movie was great!'}
+  {
+    'name': u'Trainspotting',
+    'director': u'Danny Boyle', 
+    'release_date': '1996-07-19T00:00:00.000000', 
+    'personal_thoughts': 'This movie was great!'
+  }
 
 Great.  We got the primitive data back.  It would be easy to convert to JSON
 from here.
 
   >>> import json
   >>> json.dumps(trainspotting.to_primitive())
-  '{"name": "Trainspotting", "director": "Danny Boyle", "release_date": "1996-07-19T00:00:00.000000", "personal_thoughts": "This movie was great!"}'
+  '{
+     "name": "Trainspotting", 
+     "director": "Danny Boyle", 
+     "release_date": "1996-07-19T00:00:00.000000", 
+     "personal_thoughts": "This movie was great!"
+   }'
 
 
 Compound Types
@@ -104,7 +119,21 @@ Let's instantiate a collection.
 Here is what happens when we call ``to_primitive()`` on it.
 
   >>> favorites.to_primitive()
-  {'movies': [{'director': u'Danny Boyle', 'personal_thoughts': 'This movie was great!', 'release_date': '1996-07-19T00:00:00.000000', 'name': u'Trainspotting'}, {'director': u'Paul Verhoeven', 'personal_thoughts': 'Old classic.  Still love it.', 'release_date': '1990-06-01T00:00:00.000000', 'name': u'Total Recall'}], 'notes': 'These are some of my favorite movies', 'name': 'My favorites'}
+  {
+      'notes': 'These are some of my favorite movies', 
+      'name': 'My favorites',
+      'movies': [{
+          'name': u'Trainspotting',
+          'director': u'Danny Boyle', 
+          'personal_thoughts': 'This movie was great!', 
+          'release_date': '1996-07-19T00:00:00.000000'
+      }, {
+          'name': u'Total Recall',
+          'director': u'Paul Verhoeven', 
+          'personal_thoughts': 'Old classic.  Still love it.', 
+          'release_date': '1990-06-01T00:00:00.000000'
+      }]
+  }
   
 
 Roles
@@ -133,7 +162,11 @@ This is what it looks like to use the role, which should simply remove
 .. code:: python
 
   >>> movie.to_primitive(role='public')
-  {'name': u'Trainspotting', 'director': u'Danny Boyle', 'release_date': '1996-07-19T00:00:00.000000'}
+  {
+      'name': u'Trainspotting', 
+      'director': u'Danny Boyle', 
+      'release_date': '1996-07-19T00:00:00.000000'
+  }
 
 This works for compound types too, such as the list of movies in our
 ``Collection`` model above.
@@ -149,5 +182,20 @@ We expect the ``personal_thoughts`` field to removed from the movie data and we
 also expect the ``notes`` field to be removed from the collection data.
 
   >>> favorites.to_primitive(role='public')
-  {'movies': [{'director': u'Danny Boyle', 'release_date': '1996-07-19T00:00:00.000000', 'name': u'Trainspotting'}, {'director': u'Paul Verhoeven', 'release_date': '1990-06-01T00:00:00.000000', 'name': u'Total Recall'}], 'name': 'My favorites'}
+  {
+      'name': 'My favorites',
+      'movies': [{
+          'name': u'Trainspotting',
+          'director': u'Danny Boyle', 
+          'release_date': '1996-07-19T00:00:00.000000'
+      }, {
+          'name': u'Total Recall',
+          'director': u'Paul Verhoeven', 
+          'release_date': '1990-06-01T00:00:00.000000'
+      }]
+  }
+
+
+Serialized Names
+================
 
