@@ -8,12 +8,13 @@ Types are the smallest definition of structure in Schematics.  They represent
 structure by offering functions to inspect or mutate the data in some way.
 
 According to Schematics, a type is an instance of a way to do three things:
+
 1. Coerce the data type into an appropriate representation in Python
 2. Convert the Python representation into other formats suitable for
    serialization
 3. Offer a precise method of validating data of many forms
 
-These needs are represented as ``to_native``, ``to_primitive``, and
+These properties are implemented as ``to_native``, ``to_primitive``, and
 ``validate``. 
 
 

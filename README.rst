@@ -12,20 +12,25 @@ Schematics
 About
 =====
 
-Schematics is a Python library to validate, manipulate, and serialize data
-structures. The internals are a lot like form libraries such as WTForms or
-Django forms, but Schematics is geared towards richer data structures like
-JSON.
+Schematics is a Python library to combine types into structures, validate them,
+and transform the shapes of your data based on simple descriptions.
 
+The internals are similar to ORM type systems, but there is no database layer
+in Schematics.  Instead, Schematics believes the task of building a database
+layer is made significantly easier when Schematics handles everything but
+writing the query.
 
-Common use cases:
+Further, it can be used for a range of tasks where having a database involved
+may not make sense.
 
-+ Create data structures for very specific types of data.
-+ Convert structures to and from different formats, like JSON or a simple dict.
-+ Validate API inputs.
-+ Serialize data with / without fields, depending on how you're using it.
-+ Define message formats for communications protocols, like an RPC.
-+ Customer persistence layers.
+Some common use cases:
+
++ Design and document specific data structures for code
++ Convert structures to and from different formats, like JSON or MsgPack
++ Validate API inputs
++ Remove fields based on access rights of some data's recipient
++ Define message formats for communications protocols, like an RPC
++ Custom persistence layers.
 
 
 Examples
@@ -51,25 +56,28 @@ Serializing the data to JSON.
 .. code:: python
 
   >>> import json
-  >>> json.dumps(person.to_native())
+  >>> json.dumps(person.to_primitive())
   {"name": "Joe Strummer", "url": "http://soundcloud.com/joestrummer"}
 
-This is validation.
+Let's try validating without a name value, since it's required.
+
+.. code:: python
+
+  >>> person = Person()
+  >>> person.url = 'http://www.amontobin.com/'
+  >>> person.validate()
+  Traceback (most recent call last):
+    File "<stdin>", line 1, in <module>
+    File "schematics/models.py", line 231, in validate
+      raise ModelValidationError(e.messages)
+  schematics.exceptions.ModelValidationError: {'name': [u'This field is required.']}
+
+Add the field and validation passes
 
 .. code:: python
 
   >>> person = Person()
   >>> person.name = 'Amon Tobin'
+  >>> person.url = 'http://www.amontobin.com/'
   >>> person.validate()
   >>> 
-
-And this is what failure looks like:
-
-.. code:: python
-
-  >>> person.name = None
-  >>> try:
-  ...     person.validate()
-  ... except ValidationError, e:
-  ...     print e.messages
-  {'name': [u'This field is required.']}

@@ -18,7 +18,6 @@ Let's say we want to build a structure for storing weather data.  At it's core,
 we'll need a way to represent some temperature information and where that temp
 was found.
 
-.. testcode:: intro
 .. code:: python
 
   import datetime
@@ -34,7 +33,6 @@ That'll do.
 
 Here's what it looks like use it.
 
-.. doctest:: intro
 .. code:: python
 
   >>> t1 = WeatherReport({'city': 'NYC', 'temperature': 80})
@@ -65,7 +63,6 @@ This is what it looks like when validation succeeds.
 
 And this is what it looks like when validation fails.
 
-.. doctest::
 .. code:: python
 
   >>> t1.taken_at = 'whatever'

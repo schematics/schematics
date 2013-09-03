@@ -3,9 +3,9 @@
 Community
 =========
 
-Schematics was born in Brooklyn, NY by `James Dennis <http://j2labs.io>`_.
-Over time, people from around the world have contributed code.  We work almost
-entirely via github and a mailing list.
+Schematics was created in Brooklyn, NY by `James Dennis <http://j2labs.io>`_.
+Since then the code has been worked on by folks from around the world.  If you
+have ideas for Schematics, you should share them!
 
 Special thanks to `Hacker School <http://hackerschool.com>`_, `Plain Vanilla
 <http://www.plainvanilla.is/>`_, `Quantopian <http://quantopian.com>`_, `Apple
@@ -13,8 +13,8 @@ Special thanks to `Hacker School <http://hackerschool.com>`_, `Plain Vanilla
 everyone who has contributed ideas or code to this project.
 
 
-GitHub
-------
+Bugs & Features
+---------------
 
 We track bugs, feature requests, and documentation requests with `Github Issues
 <https://github.com/j2labs/schematics/issues>`_.
