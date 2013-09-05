@@ -367,7 +367,7 @@ class NumberType(BaseType):
 
         return value
 
-    def check_value(self, value):
+    def validate_range(self, value):
         if self.min_value is not None and value < self.min_value:
             raise ValidationError(self.messages['number_min']
                 .format(self.number_type, self.min_value))
