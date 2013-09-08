@@ -4,8 +4,6 @@ import unittest
 
 from schematics.models import Model
 from schematics.types.numpy import NumpyType
-from schematics.types.compound import ModelType, ListType
-from schematics.serialize import wholelist
 from schematics.exceptions import ValidationError, ConversionError
 
 try:
