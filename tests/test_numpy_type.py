@@ -3,7 +3,7 @@
 import unittest
 
 from schematics.models import Model
-from schematics.types.numpy import NumpyType
+from schematics.contrib.numpy import NumpyType
 from schematics.exceptions import ValidationError, ConversionError
 
 try:

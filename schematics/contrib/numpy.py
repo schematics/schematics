@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import numpy as np
 
-from .base import BaseType
+from ..types.base import BaseType
 from ..exceptions import ValidationError, ConversionError
 
 
