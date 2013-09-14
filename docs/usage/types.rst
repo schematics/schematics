@@ -65,6 +65,3 @@ It converts to a string just fine.  Now, let's attempt to validate it.
     File "schematics/types/base.py", line 164, in validate
       raise ValidationError(errors)
   schematics.exceptions.ValidationError: [u'String value is too long.']
-
-The ``BaseType``, which all types derive from, accepts a few arguments for
-customizing behavior.  

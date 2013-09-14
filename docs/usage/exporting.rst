@@ -1,3 +1,5 @@
+.. _exporting:
+
 =========
 Exporting
 =========
@@ -27,26 +29,32 @@ We'll use the following model for the examples:
           roles = {'public': blacklist('personal_thoughts')}
 
 
+.. _exporting_terminology:
+
 Terminology
 ===========
 
 To `serialize` data is to convert from the way it's represented in Schematics
 to some other form.  That might be a reduction of the ``Model`` into a
-``dict``.  It might be more complicated.
+``dict``, but it might also be more complicated.
 
 A field can be serialized if it is an instance of ``BaseType`` or if a function
 is wrapped with the ``@serializable`` decorator.
-  
+
+
+.. _exporting_converting_data:  
 
 Converting Data
 ===============
 
 To export data is basically to convert from one form to another.  Schematics
 can convert data into simple Python types or a langauge agnostic format.  We
-refer to the native
-serialization as `to_native`, but we refer to the language agnostic format as
-`primitive`, since it has removed all dependencies on Python.
+refer to the native serialization as `to_native`, but we refer to the language
+agnostic format as `primitive`, since it has removed all dependencies on
+Python.
 
+
+.. _exporting_native_types:
 
 Native Types
 ------------
@@ -70,6 +78,8 @@ You can reduce a model into the native Python types by calling ``to_native``.
     'personal_thoughts': 'This movie was great!'
   }
 
+
+.. _exporting_primitive_types:
 
 Primitive Types
 ---------------
@@ -100,6 +110,8 @@ from here.
      "personal_thoughts": "This movie was great!"
    }'
 
+
+.. _exporting_compound_types:
 
 Compound Types
 ==============
@@ -157,11 +169,15 @@ Here is what happens when we call ``to_primitive()`` on it.
   }
   
 
+.. _exporting_customizing_output:
+
 Customizing Output
 ==================
 
 Schematics offers many ways to customize the behavior of serilaizataion
 
+
+.. _exporting_roles:
 
 Roles
 -----
@@ -173,6 +189,8 @@ permissions or to not serialize more data than absolutely necessary.
 Roles are implemented as either white lists or black lists where the members of
 the list are field names.
 
+.. code:: python
+
   >>> r = blacklist('private_field', 'another_private_field')
 
 Imagine we are sending our movie instance to a random person on the Internet.
@@ -183,6 +201,7 @@ added a role called ``public`` and gave it a blacklist with
 .. code:: python
 
   class Movie(Model):
+      personal_thoughts = StringType()
       ...
       class Options:
           roles = {'public': blacklist('personal_thoughts')}
@@ -205,6 +224,7 @@ This works for compound types too, such as the list of movies in our
 .. code:: python
 
   class Collection(Model):
+      notes = StringType()
       ...
       class Options:
           roles = {'public': blacklist('notes')}
@@ -226,6 +246,8 @@ also expect the ``notes`` field to be removed from the collection data.
       }]
   }
 
+
+.. _exporting_serializable:
 
 Serializable
 ------------
@@ -274,6 +296,8 @@ Or here:
   }
 
 
+.. _exporting_serialized_name:
+
 Serialized Name
 ---------------
 
@@ -286,7 +310,7 @@ That looks like this:
 .. code:: python
 
   class Person(Model):
-    name = StringType(serialized_name='person_name')
+      name = StringType(serialized_name='person_name')
 
 Notice the effect it has on serialization.
 
@@ -298,6 +322,51 @@ Notice the effect it has on serialization.
   {'person_name': u'Ben Weinman'}
 
 
+.. _exporting_serialize_when_none:
+
 Serialize When None
 -------------------
+
+If a value is not required and doesn't have a value, it will serialize with a
+None value by default.  This can be disabled.
+
+.. code:: python
+
+  >>> song = Song()
+  >>> song.to_native()
+  {'url': None, 'name': None, 'artist': None}
+
+You can disable at the field level like this:
+
+.. code:: python
+
+  class Song(Model):
+      name = StringType(serialize_when_none=False)
+      artist = StringType()
+
+And this produces the following:
+
+.. code:: python
+
+  >>> s = Song()
+  >>> s.to_native()
+  {'artist': None}
+
+Or you can disable it at the class level:
+
+.. code:: python
+
+  class Song(Model):
+      name = StringType()
+      artist = StringType()
+      class Options:
+          serialize_when_none=False
+  
+Using it:
+
+.. code:: python
+
+  >>> s = Song()
+  >>> s.to_native()
+  >>> 
 

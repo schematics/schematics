@@ -3,8 +3,8 @@
 Documentation
 =============
 
-New Schematics users should start with our :doc:`quickstart` guide.  That is
-the fastest way to get a look at what Schematics does.
+New Schematics users should start with the :doc:`quickstart`.  That is the
+fastest way to get a look at what Schematics does.
 
 
 Usage
@@ -18,6 +18,7 @@ and easily serialize the results into any format we need.
 .. toctree::
    :maxdepth: 2
 
+   usage/types
    usage/models
    usage/exporting
    usage/importing

@@ -46,6 +46,45 @@ And remember that ``DateTimeType`` we set a default callable for?
 Model Configuration
 ===================
 
-Word.
+Models offer a few configuration options.  Options are attached in the form of a
+class.
 
+.. code:: python 
+
+  class Whatever(Model):
+      ...
+      class Options:
+          option = value
+
+``namespace`` is a namespace identifier that can be used with persistence
+layers.
+
+.. code:: python 
+
+  class Whatever(Model):
+      ...
+      class Options:
+          namespace = "whatever_bucket"
+
+``roles`` is a dictionary that stores whitelists and blacklists.
+
+.. code:: python
+
+  class Whatever(Model):
+      ...
+      class Options:
+          roles = {
+              'public': whitelist('some', 'fields'),
+              'owner': blacklist('some', 'internal', 'stuff'),
+          }
+
+``serialize_when_none`` can be ``True`` or ``False``.  It's behavior is
+explained here: :ref:`_exporting_serialize_when_none`.
+
+.. code:: python
+
+  class Whatever(Model):
+      ...
+      class Options:
+          serialize_when_none = False
 

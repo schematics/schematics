@@ -1,8 +1,8 @@
 .. _quickstart:
 
-===========
-Quick Start
-===========
+================
+Quickstart Guide
+================
 
 Working with Schematics begins with modeling the data, so this tutorial will
 start there.
