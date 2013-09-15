@@ -8,6 +8,9 @@ Schematics
   :target: https://secure.travis-ci.org/j2labs/schematics
   :alt: Build Status
 
+For more information, please see `our documentation
+<http://schematics.readthedocs.org/en/latest/>`_.
+
 
 About
 =====
