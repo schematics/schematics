@@ -41,7 +41,7 @@ Examples
 
 This is a simple Model.
 
-.. code:: python
+::
 
   >>> from schematics.models import Model
   >>> from schematics.types import StringType, URLType
@@ -56,7 +56,7 @@ This is a simple Model.
 
 Serializing the data to JSON.
 
-.. code:: python
+::
 
   >>> import json
   >>> json.dumps(person.to_primitive())
@@ -64,7 +64,7 @@ Serializing the data to JSON.
 
 Let's try validating without a name value, since it's required.
 
-.. code:: python
+::
 
   >>> person = Person()
   >>> person.website = 'http://www.amontobin.com/'
@@ -77,7 +77,7 @@ Let's try validating without a name value, since it's required.
 
 Add the field and validation passes
 
-.. code:: python
+::
 
   >>> person = Person()
   >>> person.name = 'Amon Tobin'
