@@ -136,4 +136,21 @@ class TestStringType(unittest.TestCase):
         with self.assertRaises(ValidationError):
             StringType(regex='\d+').validate("a")
 
+class TestUSDType(unittest.TestCase):
+    def test_raises_error(self):
+        field = USDCurrencyType()
+        with self.assertRaises(ConversionError):
+            field.convert(None)
 
+    def test_raises_error_none(self):
+        field = USDCurrencyType()
+        with self.assertRaises(ConversionError):
+            field.convert("PIGGY")
+
+    def test_accepts_float(self):
+        field = USDCurrencyType()
+        self.assertEqual(field.convert(100),100.00)
+
+    def test_accepts_string_with_dollar(self):
+        field = USDCurrencyType()
+        self.assertEqual(field.convert('$100.00'),100.00)
