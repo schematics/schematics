@@ -14,7 +14,7 @@ format, but you can easily modify it.
 
 We'll use the following model for the examples:
 
-.. code:: python
+::
 
   from schematics.models import Model
   from schematics.types import StringType, DateTimeType
@@ -88,7 +88,7 @@ To present data to clients we have the ``Model.to_primitive`` method. Default
 behavior is to output the same data you would need to reproduce the model in its
 current state.
 
-.. code:: python
+::
 
   >>> trainspotting.to_primitive()
   {
@@ -121,7 +121,7 @@ we'll define a collection which will have a list of ``Movie`` instances.
 
 First, let's instantiate another movie.
 
-.. code:: python
+::
 
   >>> total_recall = Movie()
   >>> total_recall.name = u'Total Recall'
@@ -131,7 +131,7 @@ First, let's instantiate another movie.
 
 Now, let's define a collection, which has a list of movies in it.
 
-.. code:: python
+::
 
   from schematics.types.compound import ListType, ModelType
 
@@ -189,7 +189,7 @@ permissions or to not serialize more data than absolutely necessary.
 Roles are implemented as either white lists or black lists where the members of
 the list are field names.
 
-.. code:: python
+::
 
   >>> r = blacklist('private_field', 'another_private_field')
 
@@ -198,7 +198,7 @@ We probably don't want to share our personal thoughts.  Recall earlier that we
 added a role called ``public`` and gave it a blacklist with
 ``personal_thoughts`` listed.
 
-.. code:: python
+::
 
   class Movie(Model):
       personal_thoughts = StringType()
@@ -209,7 +209,7 @@ added a role called ``public`` and gave it a blacklist with
 This is what it looks like to use the role, which should simply remove
 ``personal_thoughts`` from the export.
 
-.. code:: python
+::
 
   >>> movie.to_primitive(role='public')
   {
@@ -221,7 +221,7 @@ This is what it looks like to use the role, which should simply remove
 This works for compound types too, such as the list of movies in our
 ``Collection`` model above.
 
-.. code:: python
+::
 
   class Collection(Model):
       notes = StringType()
@@ -258,7 +258,7 @@ the function name.
 
 That looks like this:
 
-.. code:: python
+::
 
   ...
   from schematics.types.serializable import serializable
@@ -274,7 +274,7 @@ That looks like this:
 
 This is what it looks like to use it.  
 
-.. code:: python
+::
 
   >>> song = Song()
   >>> song.artist = 'Fiona Apple'
@@ -285,7 +285,7 @@ This is what it looks like to use it.
 
 Or here:
 
-.. code:: python
+::
 
   >>> song.to_native()
   {
@@ -307,14 +307,14 @@ customize the field names used during serialization.
 
 That looks like this:
 
-.. code:: python
+::
 
   class Person(Model):
       name = StringType(serialized_name='person_name')
 
 Notice the effect it has on serialization.
 
-.. code:: python
+::
 
   >>> p = Person()
   >>> p.name = 'Ben Weinman'
@@ -330,7 +330,7 @@ Serialize When None
 If a value is not required and doesn't have a value, it will serialize with a
 None value by default.  This can be disabled.
 
-.. code:: python
+::
 
   >>> song = Song()
   >>> song.to_native()
@@ -338,7 +338,7 @@ None value by default.  This can be disabled.
 
 You can disable at the field level like this:
 
-.. code:: python
+::
 
   class Song(Model):
       name = StringType(serialize_when_none=False)
@@ -346,7 +346,7 @@ You can disable at the field level like this:
 
 And this produces the following:
 
-.. code:: python
+::
 
   >>> s = Song()
   >>> s.to_native()
@@ -354,7 +354,7 @@ And this produces the following:
 
 Or you can disable it at the class level:
 
-.. code:: python
+::
 
   class Song(Model):
       name = StringType()
@@ -364,7 +364,7 @@ Or you can disable it at the class level:
   
 Using it:
 
-.. code:: python
+::
 
   >>> s = Song()
   >>> s.to_native()

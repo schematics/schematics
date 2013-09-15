@@ -3,7 +3,7 @@
 Install Guide
 =============
 
-.. code:: sh
+::
 
   $ pip install schematics
 
@@ -28,7 +28,7 @@ Installing from Github
 The canonical repository for Schematics is `on Github
 <https://github.com/j2labs/schematics>`_.
 
-.. code:: sh
+::
 
   $ git clone https://github.com/j2labs/schematics.git
 
@@ -40,7 +40,7 @@ help us develop Schematics.  See the :doc:`development`.
 One trick the development team likes is to alias ``pythisdir`` to add the
 current directory to ``$PYTHONPATH``.
 
-.. code:: sh
+::
 
   $ alias pythisdir='export PYTHONPATH=$PWD'
 

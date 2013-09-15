@@ -23,11 +23,15 @@ Coercion
 
 A simple example is the ``DateTimeType``.
 
+::
+
   >>> from schematics.types import DateTimeType
   >>> dt_t = DateTimeType()
 
 The ``to_native`` function transforms an ISO8601 formatted date string into a 
 Python ``datetime.datetime``.
+
+::
 
   >>> dt = dt_t.to_native('2013-08-31T02:21:21.486072')
   >>> dt
@@ -39,6 +43,8 @@ Conversion
 
 The ``to_primitive`` function changes it back to a langauge agnostic form, in
 this case an ISO8601 formatted string, just like we used above.
+
+::
 
   >>> dt_t.to_primitive(dt)
   '2013-08-31T02:21:21.486072'
@@ -53,11 +59,15 @@ data or behavior during a typical use, like serialization.
 
 Let's look at the ``StringType``.  We'll set a ``max_length`` of 10.
 
+::
+
   >>> st = StringType(max_length=10)
   >>> st.to_native('this is longer than 10')
   u'this is longer than 10'
 
 It converts to a string just fine.  Now, let's attempt to validate it.
+
+::
 
   >>> st.validate('this is longer than 10')
   Traceback (most recent call last):

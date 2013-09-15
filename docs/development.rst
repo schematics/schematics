@@ -12,7 +12,7 @@ project is very much a sum of the work done by a community.
 List of Contributors
 --------------------
 
-.. code: sh
+::
 
   $ cd schematics
   $ git shortlog -sn
@@ -36,8 +36,9 @@ page for details on how to obtain Fabric's source code.
 Tests
 -----
 
-Using py.test::
+Using py.test
+
+::
 
   $ py.test tests/
-
 

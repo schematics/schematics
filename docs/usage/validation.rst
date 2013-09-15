@@ -7,7 +7,7 @@ data.  The data model describes what valid data looks like in different forms.
 
 Here's a quick glance and some of the ways you can tweak validation.
 
-.. code:: python
+::
 
   >>> from schematics.models import Model
   >>> from schematics.types import StringType
@@ -30,7 +30,7 @@ Validation failures throw an exception called ``ValidationError``.  A
 description of what failed is stored in ``messages``, which is a dictionary
 keyed by the field name with a list of reasons the field failed.
 
-.. code:: python
+::
 
   >>> from schematics.exceptions import ValidationError
   >>> try:
@@ -53,7 +53,7 @@ Type-level Validation
 Here is a function that checks if a string is uppercase and throws a
 ``ValidationError`` if it is not.
 
-.. code:: python
+::
 
   >>> from schematics.exceptions import ValidationError
   >>> def is_uppercase(value):
@@ -64,7 +64,7 @@ Here is a function that checks if a string is uppercase and throws a
 
 And we can attach it to our StringType like this:
 
-.. code:: python
+::
 
   >>> class Person(Model):
   ...     name = StringType(validators=[is_uppercase])
@@ -82,7 +82,7 @@ It is also possible to define new types with custom validation by subclassing a
 type, like ``BaseType``, and implementing instance methods that start with
 ``validate_``.
 
-.. code:: python
+::
 
   >>> from schematics.exceptions import ValidationError
   >>> class UppercaseType(StringType):
@@ -111,7 +111,7 @@ fields are declared is preserved inside the model. So if the validity of a field
 depends on another field’s value, just make sure to declare it below its
 dependencies:
 
-.. code:: python
+::
 
   >>> from schematics.models import Model
   >>> from schematics.types import StringType, BooleanType

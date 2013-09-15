@@ -8,7 +8,7 @@ date string, for example, would be converted to a ``datetime.datetime``.
 
 Perhaps we're writing a web API that receives song data.  Let's model the song.
 
-.. code:: python
+::
 
   class Song(Model):
       name = StringType()
@@ -17,7 +17,7 @@ Perhaps we're writing a web API that receives song data.  Let's model the song.
 
 This is what successful validation of the data looks like.
 
-.. code:: python
+::
 
   >>> song_json = '{"url": "http://www.youtube.com/watch?v=67KGSJVkix0", "name": "Werewolf", "artist": "Fiona Apple"}'
   >>> fiona_song = Song(json.loads(song_json))
@@ -30,21 +30,21 @@ Compound Types
 
 We could define a simple collection of songs like this:
 
-.. code:: python
+::
 
   class Collection(Model):
       songs = ListType(ModelType(Song))
 
 Some JSON data for this type of a model might look like this:
 
-.. code:: python
+::
 
   >>> songs_json = '{"songs": [{"url": "https://www.youtube.com/watch?v=UeBFEanVsp4", "name": "When I Lost My Bet", "artist": "Dillinger Escape Plan"}, {"url": "http://www.youtube.com/watch?v=67KGSJVkix0", "name": "Werewolf", "artist": "Fiona Apple"}]}'
 
 The collection has a list of models for songs, so when we import that list, that
 data should be converted to model instances.
 
-.. code:: python
+::
 
   >>> song_collection = Collection(json.loads(songs_json))
   >>> song_collection.songs[0]

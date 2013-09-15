@@ -8,7 +8,7 @@ Installing
 
 Install stable releases of Schematics with ``pip``.
 
-.. code:: sh
+::
 
   $ pip install schematics
 

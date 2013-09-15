@@ -18,7 +18,7 @@ Let's say we want to build a structure for storing weather data.  At it's core,
 we'll need a way to represent some temperature information and where that temp
 was found.
 
-.. code:: python
+::
 
   import datetime
   from schematics.models import Model
@@ -33,7 +33,7 @@ That'll do.
 
 Here's what it looks like use it.
 
-.. code:: python
+::
 
   >>> t1 = WeatherReport({'city': 'NYC', 'temperature': 80})
   >>> t2 = WeatherReport({'city': 'NYC', 'temperature': 81})
@@ -43,7 +43,7 @@ Here's what it looks like use it.
 
 And remember that ``DateTimeType`` we set a default callable for?
 
-.. code:: python
+::
 
   >>> t1.taken_at
   datetime.datetime(2013, 8, 21, 13, 6, 38, 11883)
@@ -56,14 +56,14 @@ Validating data is fundamentally important for many systems.
 
 This is what it looks like when validation succeeds.
 
-.. code:: python
+::
 
   >>> t1.validate()
   >>>
 
 And this is what it looks like when validation fails.
 
-.. code:: python
+::
 
   >>> t1.taken_at = 'whatever'
   >>> t1.validate()
@@ -84,14 +84,14 @@ The ``to_primitive()`` function will reduce the native Python types into string
 safe formats.  For example, the ``DateTimeType`` from above is stored as a 
 Python ``datetime``, but it will serialize to an ISO8601 format string.
 
-.. code:: python
+::
 
   >>> t1.to_primitive()
   {'city': u'NYC', 'taken_at': '2013-08-21T13:04:19.074808', 'temperature': u'80'}
 
 Converting to JSON is then a simple task.
 
-.. code:: python
+::
 
   >>> json_str = json.dumps(t1.to_primitive())
   >>> json_str
@@ -99,7 +99,7 @@ Converting to JSON is then a simple task.
 
 Instantiating an instance from JSON is not too different.
 
-.. code:: python
+::
 
   >>> t1_prime = WeatherReport(json.loads(json_str))
   >>> t1_prime.taken_at
@@ -117,7 +117,7 @@ First, to get at the values we'd pass into a SQL database, we might call
 
 Let's get a fresh ``WeatherReport`` instance.
 
-.. code:: python
+::
 
   >>> wr = WeatherReport({'city': 'NYC', 'temperature': 80})
   >>> wr.to_native()
@@ -143,7 +143,7 @@ Inserting
 
 Then, from Python, an insert statement could look like this:
 
-.. code:: python
+::
 
   >>> q = "INSERT INTO weatherreports (city, taken_at, temperature) VALUES ('%s', '%s', '%s');"
   >>> query = q % (wr.city, wr.taken_at, wr.temperature)
@@ -152,7 +152,7 @@ Then, from Python, an insert statement could look like this:
 
 Let's insert that into PostgreSQL using the ``psycopg2`` driver.
 
-.. code:: python
+::
 
   >>> import psycopg2
   >>> db_conn = psycopg2.connect("host='localhost' dbname='mydb'")
@@ -166,7 +166,7 @@ Reading
 
 Reading isn't much different.
 
-.. code:: python
+::
 
   >>> query = "SELECT city,taken_at,temperature FROM weatherreports;"
   >>> cursor = db_conn.cursor()
@@ -175,7 +175,7 @@ Reading isn't much different.
 
 Now to translate that data into instances
 
-.. code:: python
+::
 
   >>> instances = list()
   >>> for row in rows:
