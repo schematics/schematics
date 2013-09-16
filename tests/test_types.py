@@ -4,7 +4,7 @@ import datetime
 
 from schematics.types import (
     BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
-    URLType,USDCurrencyType
+    URLType, USDCurrencyType
 )
 from schematics.exceptions import ValidationError, StopValidation, ConversionError
 
