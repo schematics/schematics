@@ -448,6 +448,36 @@ class DecimalType(BaseType):
 
         return value
 
+class USDCurrencyType(DecimalType):
+    """a dollar field in $USD"""
+
+    MESSAGES = {
+        'none_problem': u"Value is None",
+        'number_coerce': u"Value is not {} or ${}",
+        'number_min': u"{} value should be greater than {}",
+        'number_max': u"{} value should be less than {}",
+    }
+
+    def __init__(self, min_value=None, max_value=None, **kwargs):
+        self.min_value, self.max_value = min_value, max_value
+        super(DecimalType, self).__init__(**kwargs)
+
+    def convert(self, value):
+        from decimal import Decimal
+        if value:
+            try:
+                d = re.search('\d+(\.\d+)?', str(value))
+                usd = d.group(0)
+                if usd:
+                    return Decimal("%.2f" % float(usd))
+                else:
+                    raise ConversionError(self.messages['number_coerce'])
+            except:
+                raise ConversionError(self.messages['number_coerce'])
+        else:
+            raise ConversionError(self.messages['none_problem'])
+
+
 
 class HashType(BaseType):
 
