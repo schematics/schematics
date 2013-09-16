@@ -452,7 +452,7 @@ class USDCurrencyType(DecimalType):
     """a dollar field in $USD"""
 
     MESSAGES = {
-        'null_problem': u"Value is null",
+        'None_problem': u"Value is None",
         'number_coerce': u"Value is not {} or ${}",
         'number_min': u"{} value should be greater than {}",
         'number_max': u"{} value should be less than {}",
