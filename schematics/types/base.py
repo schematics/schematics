@@ -452,7 +452,7 @@ class USDCurrencyType(DecimalType):
     """a dollar field in $USD"""
 
     MESSAGES = {
-        'None_problem': u"Value is None",
+        'none_problem': u"Value is None",
         'number_coerce': u"Value is not {} or ${}",
         'number_min': u"{} value should be greater than {}",
         'number_max': u"{} value should be less than {}",
@@ -475,7 +475,7 @@ class USDCurrencyType(DecimalType):
             except:
                 raise ConversionError(self.messages['number_coerce'])
         else:
-            raise ConversionError(self.messages['null_problem'])
+            raise ConversionError(self.messages['none_problem'])
 
 
 
