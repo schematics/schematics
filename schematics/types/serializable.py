@@ -1,5 +1,6 @@
 
 from schematics.types.base import BaseType
+from schematics.models import Model
 
 def serializable(*args, **kwargs):
     """A serializable is a way to define dynamic serializable fields that are
