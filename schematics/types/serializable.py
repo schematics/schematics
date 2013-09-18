@@ -1,6 +1,6 @@
 
 from schematics.types.base import BaseType
-
+from ..models import Model
 
 def serializable(*args, **kwargs):
     """A serializable is a way to define dynamic serializable fields that are
@@ -54,3 +54,51 @@ class Serializable(object):
 
     def to_primitive(self, value):
         return self.type.to_primitive(value)
+
+def for_jsonschema(model):
+    """Returns a representation of this Schematics class as a JSON schema,
+    but not yet serialized to JSON. If certain fields are marked public,
+    only those fields will be represented in the schema.
+
+    Certain Schematics fields do not map precisely to JSON schema types or
+    formats.
+    """
+    field_converter = lambda f, v: f.for_jsonschema()
+    model_converter = lambda m: for_jsonschema(m)
+    gottago = blacklist([], allow_none=True)
+
+    properties = apply_shape(model.__class__, model, field_converter,
+                             model_converter, gottago)
+
+    return {
+        'type': 'object',
+        'title': model.__class__.__name__,
+        'properties': properties
+    }
+
+def from_jsonschema(schema, model=Model):
+    """Generate a Schematics Model class from a JSON schema.  The JSON
+    schema's title field will be the name of the class.  You must specify a
+    title and at least one property or there will be an AttributeError.
+    """
+    os = schema
+    # this is a desctructive op. This should be only strings/dicts, so this
+    # should be cheap
+    schema = copy.deepcopy(schema)
+    if schema.get('title', False):
+        class_name = schema['title']
+    else:
+        raise AttributeError('JSON Schema missing Model title')
+
+    if 'description' in schema:
+        # TODO figure out way to put this in to resulting obj
+        description = schema['description']
+
+    if 'properties' in schema:
+        model_fields = {}
+        for field_name, schema_field in schema['properties'].iteritems():
+            field = map_jsonschema_field_to_schematics(schema_field, model)
+            model_fields[field_name] = field
+        return type(class_name, (model,), model_fields)
+    else:
+        raise AttributeError('JSON schema missing one or more properties')
