@@ -84,3 +84,11 @@ Add the field and validation passes
   >>> person.website = 'http://www.amontobin.com/'
   >>> person.validate()
   >>> 
+
+What's with the fork?
+=====================
+
+At the top of this projects Github page is says "forked from
+exfm/dictshield". *schematics* was originally based on *exfm/dictshield*
+but has since then come a long way. They should now be considered two
+fully separate projects.
