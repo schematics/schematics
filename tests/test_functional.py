@@ -13,7 +13,7 @@ class TestFunctionalInterface(unittest.TestCase):
         class Player(Model):
             id = IntType()
 
-        validate(Player, {'id': 4})            
+        validate(Player, {'id': 4})
 
     def test_validate_keep_context_data(self):
         class Player(Model):
@@ -47,10 +47,13 @@ class TestFunctionalInterface(unittest.TestCase):
         class Player(Model):
             id = IntType()
 
-        try:
+        with self.assertRaises(ValidationError) as e:
             data = validate(Player, {'id': 4}, strict=True, context={'name': 'Arthur'})
-        except ValidationError as e:
-            self.assertIn('name', e.messages)
+        self.assertIn('name', e.exception.messages)
+
+        with self.assertRaises(ValidationError) as e:
+            Player({'id': 4, 'name': 'Arthur'}).validate(strict=True)
+        self.assertIn('name', e.exception.messages)
 
     def test_validate_partial_with_context_data(self):
         class Player(Model):
