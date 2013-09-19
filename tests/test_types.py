@@ -4,7 +4,7 @@ import datetime
 
 from schematics.types import (
     BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
-    URLType,
+    URLType
 )
 from schematics.exceptions import ValidationError, StopValidation, ConversionError
 
@@ -135,5 +135,3 @@ class TestStringType(unittest.TestCase):
 
         with self.assertRaises(ValidationError):
             StringType(regex='\d+').validate("a")
-
-
