@@ -27,12 +27,12 @@ may not make sense.
 
 Some common use cases:
 
-+ Design and document specific data structures
-+ Convert structures to and from different formats such as JSON or MsgPack
-+ Validate API inputs
-+ Remove fields based on access rights of some data's recipient
++ Design and document specific `data structures <https://schematics.readthedocs.org/en/latest/usage/models.html>`_
++ `Convert structures <https://schematics.readthedocs.org/en/latest/usage/exporting.html#converting-data>`_ to and from different formats such as JSON or MsgPack
++ `Validate <https://schematics.readthedocs.org/en/latest/usage/validation.html>`_ API inputs
++ `Remove fields based on access rights <https://schematics.readthedocs.org/en/latest/usage/exporting.html>`_ of some data's recipient
 + Define message formats for communications protocols, like an RPC
-+ Custom persistence layers
++ Custom `persistence layers <https://schematics.readthedocs.org/en/latest/usage/models.html#model-configuration>`_
 
 
 Examples
