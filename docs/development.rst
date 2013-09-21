@@ -43,6 +43,8 @@ Using py.test
   $ py.test tests/
 
 
+.. _writing_documentation:
+
 Writing Documentation
 ---------------
 
@@ -54,6 +56,8 @@ Schematics uses the .rst (reStructuredText) format for all of our
 documentation. You can read more about .rst on the `reStructuredText Primer <http://sphinx-doc.org/rest.html>`_ 
 page.
 
+
+.. _installing_documentation:
 
 Installing Documentation
 ---------------
