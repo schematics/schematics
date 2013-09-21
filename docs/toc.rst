@@ -23,7 +23,6 @@ and easily serialize the results into any format we need.
    usage/exporting
    usage/importing
    usage/validation
-   usage/transforms
 
 .. _api:
 
