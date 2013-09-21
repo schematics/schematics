@@ -34,4 +34,4 @@ Contributing
 ------------
 
 If you're interested in contributing code or documentation to Schematics, 
-please visit :doc:`development` for instructions.
+please visit the :doc:`development` for instructions.
