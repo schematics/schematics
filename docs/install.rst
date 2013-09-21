@@ -20,7 +20,7 @@ Schematics has no dependencies.  Regardless, we often use it with `ujson
 <https://pypi.python.org/pypi/msgpack-python/>`_.
 
 
-.. _install_from_github
+.. _install_from_github:
 
 Installing from Github
 ----------------------
