@@ -29,3 +29,9 @@ We discuss the future of Schematics and upcoming changes in detail on
 If you've read the documentation and still haven't found the answer you're
 looking for, you should reach out to us here too.
 
+
+Contributing
+------------
+
+If you're interested in contributing code or documentation to Schematics, 
+please visit :doc:`development` for instructions.
