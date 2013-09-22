@@ -3,6 +3,9 @@
 Documentation
 =============
 
+Getting Started
+---------------
+
 New Schematics users should start with the :doc:`quickstart`.  That is the
 fastest way to get a look at what Schematics does.
 
