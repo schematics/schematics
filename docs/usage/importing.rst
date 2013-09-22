@@ -51,3 +51,9 @@ data should be converted to model instances.
   <Song: Song object>
   >>> song_collection.songs[0].artist
   u'Dillinger Escape Plan'
+
+
+More Information
+================
+
+To learn more about **Importing**, visit the :ref:`Transforms API <api_doc_transforms>`

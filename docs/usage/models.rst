@@ -88,3 +88,8 @@ explained here: :ref:`_exporting_serialize_when_none`.
       class Options:
           serialize_when_none = False
 
+
+More Information
+================
+
+To learn more about **Models**, visit the :ref:`Models API <api_doc_models>`
