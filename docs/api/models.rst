@@ -1,4 +1,4 @@
-.. _api_docs_models:
+.. _api_doc_models:
 
 
 Models
