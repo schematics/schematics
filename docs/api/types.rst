@@ -11,7 +11,7 @@ Types
 
 
 Usage
-=====
+~~~~~
 
 To learn more about how **Types** are used, visit 
 :doc:`Using Types <../usage/types>`

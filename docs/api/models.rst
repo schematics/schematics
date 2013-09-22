@@ -9,7 +9,7 @@ Models
 
 
 Usage
-=====
+~~~~~
 
 To learn more about how **Models** are used, visit 
 :doc:`Using Models <../usage/models>`

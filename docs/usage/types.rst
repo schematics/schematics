@@ -78,6 +78,6 @@ It converts to a string just fine.  Now, let's attempt to validate it.
 
 
 More Information
-================
+~~~~~~~~~~~~~~~~
 
 To learn more about **Types**, visit the :ref:`Types API <api_doc_types>`
