@@ -8,7 +8,7 @@ Validation
 
 
 Usage
-=====
+~~~~~
 
 To learn more about how **Validation** is used, visit 
 :doc:`Using Validation <../usage/validation>`

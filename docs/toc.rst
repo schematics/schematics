@@ -34,7 +34,7 @@ The User's Guide provides the high-level concepts, but the code itself provides
 the most accurate reference.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    api/models
    api/validation
