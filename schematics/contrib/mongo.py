@@ -1,5 +1,5 @@
 """This module contains fields that depend on importing `bson`. `bson` is
-as part of the pymongo distribution.
+a part of the pymongo distribution.
 """
 
 from schematics.types import BaseType
