@@ -6,6 +6,7 @@ Documentation
 New Schematics users should start with the :doc:`quickstart`.  That is the
 fastest way to get a look at what Schematics does.
 
+.. _toc_usage:
 
 Usage
 -----
@@ -24,7 +25,7 @@ and easily serialize the results into any format we need.
    usage/importing
    usage/validation
 
-.. _api:
+.. _toc_api:
 
 API Reference
 -------------
