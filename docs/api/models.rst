@@ -1,4 +1,4 @@
-.. _api_docs_models:
+.. _api_doc_models:
 
 
 Models
@@ -8,3 +8,8 @@ Models
    :members:
 
 
+Usage
+~~~~~
+
+To learn more about how **Models** are used, visit 
+:doc:`Using Models <../usage/models>`
