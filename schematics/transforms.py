@@ -44,6 +44,18 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     data = dict(context) if context is not None else {}
     errors = {}
 
+    ### Determine all acceptable field input names
+    all_fields = set(cls._fields) ^ set(cls._serializables)
+    for field_name, field, in cls._fields.iteritems():
+        if hasattr(field, 'serialized_name'):
+            all_fields.add(field.serialized_name)
+
+    ### Check for rogues if strict is set
+    rogue_fields = set(instance_or_dict) - set(all_fields)
+    if strict and len(rogue_fields) > 0:
+        for field in rogue_fields:
+            errors[field] = 'Rogue field'
+
     for field_name, field in cls._fields.iteritems():
         serialized_field_name = field.serialized_name or field_name
         

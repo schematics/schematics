@@ -208,7 +208,7 @@ class Model(object):
         if raw_data is None:
             raw_data = {}
         self._initial = raw_data
-        self._data = self.convert(raw_data)
+        self._data = self.convert(raw_data, strict=True)
 
     def validate(self, partial=False, strict=False):
         """
@@ -230,7 +230,7 @@ class Model(object):
         except BaseError as e:
             raise ModelValidationError(e.messages)
 
-    def convert(self, raw_data):
+    def convert(self, raw_data, **kw):
         """
         Converts the raw data into richer Python constructs according to the
         fields on the model
@@ -238,7 +238,7 @@ class Model(object):
         :param raw_data:
             The data to be converted
         """
-        return convert(self.__class__, raw_data)
+        return convert(self.__class__, raw_data, **kw)
 
     def to_native(self, role=None):
         return to_native(self.__class__, self, role=role)

@@ -4,7 +4,7 @@ import unittest
 from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.validate import validate
-from schematics.exceptions import ValidationError
+from schematics.exceptions import ValidationError, ModelConversionError
 
 
 class TestFunctionalInterface(unittest.TestCase):
@@ -51,7 +51,7 @@ class TestFunctionalInterface(unittest.TestCase):
             data = validate(Player, {'id': 4}, strict=True, context={'name': 'Arthur'})
         self.assertIn('name', e.exception.messages)
 
-        with self.assertRaises(ValidationError) as e:
+        with self.assertRaises(ModelConversionError) as e:
             Player({'id': 4, 'name': 'Arthur'}).validate(strict=True)
         self.assertIn('name', e.exception.messages)
 
