@@ -8,8 +8,7 @@ Schematics
   :target: https://secure.travis-ci.org/j2labs/schematics
   :alt: Build Status
 
-For more information, please see `our documentation
-<http://schematics.readthedocs.org/en/latest/>`_.
+**For more information, please see our documentation:** http://schematics.readthedocs.org/en/latest/
 
 
 About
@@ -19,7 +18,7 @@ Schematics is a Python library to combine types into structures, validate them,
 and transform the shapes of your data based on simple descriptions.
 
 The internals are similar to ORM type systems, but there is no database layer
-in Schematics.  Instead, Schematics believes the task of building a database
+in Schematics.  Instead, we believe that building a database
 layer is made significantly easier when Schematics handles everything but
 writing the query.
 
@@ -28,12 +27,12 @@ may not make sense.
 
 Some common use cases:
 
-+ Design and document specific data structures for code
-+ Convert structures to and from different formats, like JSON or MsgPack
-+ Validate API inputs
-+ Remove fields based on access rights of some data's recipient
++ Design and document specific `data structures <https://schematics.readthedocs.org/en/latest/usage/models.html>`_
++ `Convert structures <https://schematics.readthedocs.org/en/latest/usage/exporting.html#converting-data>`_ to and from different formats such as JSON or MsgPack
++ `Validate <https://schematics.readthedocs.org/en/latest/usage/validation.html>`_ API inputs
++ `Remove fields based on access rights <https://schematics.readthedocs.org/en/latest/usage/exporting.html>`_ of some data's recipient
 + Define message formats for communications protocols, like an RPC
-+ Custom persistence layers.
++ Custom `persistence layers <https://schematics.readthedocs.org/en/latest/usage/models.html#model-configuration>`_
 
 
 Examples

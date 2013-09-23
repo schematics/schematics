@@ -5,7 +5,7 @@ Community
 
 Schematics was created in Brooklyn, NY by `James Dennis <http://j2labs.io>`_.
 Since then, the code has been worked on by folks from around the world.  If you
-have ideas for Schematics, we encourage you to share them!
+have ideas, we encourage you to share them!
 
 Special thanks to `Hacker School <http://hackerschool.com>`_, `Plain Vanilla
 <http://www.plainvanilla.is/>`_, `Quantopian <http://quantopian.com>`_, `Apple
@@ -29,3 +29,9 @@ We discuss the future of Schematics and upcoming changes in detail on
 If you've read the documentation and still haven't found the answer you're
 looking for, you should reach out to us here too.
 
+
+Contributing
+------------
+
+If you're interested in contributing code or documentation to Schematics, 
+please visit the :doc:`development` for instructions.

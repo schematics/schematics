@@ -3,9 +3,13 @@
 Documentation
 =============
 
+Getting Started
+---------------
+
 New Schematics users should start with the :doc:`quickstart`.  That is the
 fastest way to get a look at what Schematics does.
 
+.. _toc_usage:
 
 Usage
 -----
@@ -24,7 +28,7 @@ and easily serialize the results into any format we need.
    usage/importing
    usage/validation
 
-.. _api:
+.. _toc_api:
 
 API Reference
 -------------
@@ -33,7 +37,7 @@ The User's Guide provides the high-level concepts, but the code itself provides
 the most accurate reference.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    api/models
    api/validation

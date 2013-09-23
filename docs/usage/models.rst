@@ -9,6 +9,8 @@ collection types in a class.  When a `Type` is given a name inside a `Model`, it
 is called a `field`.
 
 
+.. _simple_model:
+
 Simple Model
 ============
 
@@ -42,6 +44,8 @@ And remember that ``DateTimeType`` we set a default callable for?
   >>> wr.taken_at
   datetime.datetime(2013, 8, 21, 13, 6, 38, 11883)
 
+
+.. _model_configuration:
 
 Model Configuration
 ===================
@@ -79,7 +83,7 @@ layers.
           }
 
 ``serialize_when_none`` can be ``True`` or ``False``.  It's behavior is
-explained here: :ref:`_exporting_serialize_when_none`.
+explained here: :ref:`exporting_serialize_when_none`.
 
 ::
 
@@ -88,3 +92,8 @@ explained here: :ref:`_exporting_serialize_when_none`.
       class Options:
           serialize_when_none = False
 
+
+More Information
+~~~~~~~~~~~~~~~~
+
+To learn more about **Models**, visit the :ref:`Models API <api_doc_models>`
