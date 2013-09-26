@@ -77,9 +77,9 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
             if field_name in data:
                 continue
             data[field_name] = field.default
-        except ConversionError, e:
+        except ConversionError as e:
             errors[serialized_field_name] = e.messages
-        except ValidationError, e:
+        except ValidationError as e:
             errors[serialized_field_name] = e.messages
 
     if errors:

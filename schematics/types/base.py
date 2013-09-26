@@ -154,7 +154,7 @@ class BaseType(object):
         for validator in self.validators:
             try:
                 validator(value)
-            except ValidationError, e:
+            except ValidationError as e:
                 errors.extend(e.messages)
 
                 if isinstance(e, StopValidation):
