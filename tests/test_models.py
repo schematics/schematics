@@ -327,3 +327,46 @@ class TestCompoundTypes(unittest.TestCase):
 
         with self.assertRaises(ConversionError):
             Card({'user': [1, 2]})
+
+
+class TestAppendFields(unittest.TestCase):
+
+    def test_append_new_field(self):
+        class User(Model):
+            pass
+
+        User.append_field('name', StringType())
+
+        u = User({'name': 'Marvin'})
+        self.assertEqual(u.name, 'Marvin')
+
+    def test_append_same_field(self):
+        shared_type = StringType(required=True)
+
+        class User(Model):
+            name = shared_type
+
+        User.append_field('location', shared_type)
+
+        u = User()
+        self.assertRaises(ValidationError, u.validate)
+
+        shared_type.required = False  # change the field rules
+        u = User()
+        u.validate()
+
+        shared_type.required = True  # change them back
+        u = User()
+        self.assertRaises(ValidationError, u.validate)
+
+    def test_append_field_copy(self):
+        class User(Model):
+            name = StringType(required=True)
+
+        User.append_field('gender', User.name.copy())
+        User.gender.required = False
+
+        u = User()
+        self.assertEqual(u.name, None)
+        self.assertEqual(u.gender, None)
+        self.assertRaises(ValidationError, u.validate)
