@@ -295,19 +295,28 @@ class Model(object):
 
     def iter(self):
         return iter(self._fields)
-    
-    def __getitem__(self, name):
-        try:
-            return getattr(self, name)
-        except AttributeError:
-            pass
-        raise KeyError(name)
+
+    def keys(self):
+        return self._fields.keys()
+
+    def items(self):
+        return [(k, self.get(k)) for k in self._fields.iterkeys()]
+
+    def values(self):
+        return [self.get(k) for k in self._fields.iterkeys()]
 
     def get(self, key, default=None):
         try:
             return self[key]
         except KeyError:
             return default
+
+    def __getitem__(self, name):
+        try:
+            return getattr(self, name)
+        except AttributeError:
+            pass
+        raise KeyError(name)
 
     def __setitem__(self, name, value):
         if name not in self._data:
@@ -322,10 +331,8 @@ class Model(object):
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            keys = self._fields
-
-            for key in keys:
-                if self[key] != other[key]:
+            for k in self._fields:
+                if self.get(k) != other.get(k):
                     return False
             return True
         return False
