@@ -18,7 +18,7 @@ class MultiType(BaseType):
         for validator in self.validators:
             try:
                 validator(value)
-            except ModelValidationError, e:
+            except ModelValidationError as e:
                 errors.update(e.messages)
 
                 if isinstance(e, StopValidation):
@@ -158,7 +158,7 @@ class ListType(MultiType):
         for idx, item in enumerate(items, 1):
             try:
                 self.field.validate(item)
-            except ValidationError, e:
+            except ValidationError as e:
                 errors.append(e.message)
 
         if errors:
@@ -234,7 +234,7 @@ class DictType(MultiType):
         for key, value in items.iteritems():
             try:
                 self.field.validate(value)
-            except ValidationError, e:
+            except ValidationError as e:
                 errors[key] = e
 
         if errors:

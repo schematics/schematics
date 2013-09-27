@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
 import unittest
 
@@ -130,14 +131,14 @@ class TestListTypeWithModelType(unittest.TestCase):
         exception = cm.exception
         self.assertEqual(exception.messages['users'], [u'This field is required.'])
 
-        print 'BEFORE'
+        print('BEFORE')
         with self.assertRaises(ValidationError) as cm:
             c = Card({"users": []})
             c.validate()
-        print 'AFTER'
+        print('AFTER')
 
         exception = cm.exception
-        print 'EXC:', type(exception)
+        print('EXC:', type(exception))
         self.assertEqual(exception.messages['users'], [u'Please provide at least 1 item.'])
 
     def test_list_field_required(self):
