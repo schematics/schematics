@@ -208,7 +208,7 @@ class Model(object):
         if raw_data is None:
             raw_data = {}
         self._initial = raw_data
-        self._data = self.convert(raw_data, strict=True)
+        self._data = self.convert(raw_data, strict=False)
 
     def validate(self, partial=False, strict=False):
         """
