@@ -2,4 +2,8 @@ language: python
 # command to install dependencies
 install: true
 # command to run tests
-script: python setup.py test
+script: coverage run --source schematics -m py.test
+
+after_success:
+    coveralls
+
