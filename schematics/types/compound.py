@@ -1,10 +1,10 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from __future__ import division
 from ..exceptions import ValidationError, ConversionError, ModelValidationError, StopValidation
 from ..transforms import export_loop, EMPTY_LIST, EMPTY_DICT
 from .base import BaseType
+
 
 class MultiType(BaseType):
 
@@ -18,7 +18,7 @@ class MultiType(BaseType):
         for validator in self.validators:
             try:
                 validator(value)
-            except ModelValidationError, e:
+            except ModelValidationError as e:
                 errors.update(e.messages)
 
                 if isinstance(e, StopValidation):
@@ -53,14 +53,14 @@ class ModelType(MultiType):
     def to_native(self, value):
         # We have already checked if the field is required. If it is None it
         # should continue being None
-        if value is None:  
+        if value is None:
             return None
 
         if isinstance(value, self.model_class):
             return value
 
         if not isinstance(value, dict):
-            raise ConversionError(u'Please use a mapping for this field or {} instance instead of {}.'.format(
+            raise ConversionError(u'Please use a mapping for this field or {0} instance instead of {1}.'.format(
                 self.model_class.__name__,
                 type(value).__name__))
 
@@ -94,7 +94,7 @@ class ModelType(MultiType):
             return shaped
         elif shaped:
             return shaped
-        elif print_none: 
+        elif print_none:
             return shaped
 
 
@@ -158,7 +158,7 @@ class ListType(MultiType):
         for idx, item in enumerate(items, 1):
             try:
                 self.field.validate(item)
-            except ValidationError, e:
+            except ValidationError as e:
                 errors.append(e.message)
 
         if errors:
@@ -234,7 +234,7 @@ class DictType(MultiType):
         for key, value in items.iteritems():
             try:
                 self.field.validate(value)
-            except ValidationError, e:
+            except ValidationError as e:
                 errors[key] = e
 
         if errors:
@@ -250,7 +250,7 @@ class DictType(MultiType):
         as `serialize.export_loop`.
         """
         data = {}
-        
+
         for key, value in dict_instance.iteritems():
             if hasattr(self.field, 'export_loop'):
                 shaped = self.field.export_loop(value, field_converter,
@@ -273,4 +273,4 @@ class DictType(MultiType):
             return data
         elif print_none:
             return data
-    
+
