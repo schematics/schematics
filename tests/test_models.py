@@ -238,6 +238,23 @@ class TestModelOptions(unittest.TestCase):
         self.assertEqual(fo.namespace, 'foo')
         self.assertEqual(fo.roles, {})
 
+    def test_options_parsing_from_optionsclass(self):
+        class FooOptions(ModelOptions):
+            def __init__(self, klass, **kwargs):
+                kwargs['namespace'] = kwargs.get('namespace') or 'foo'
+                kwargs['roles'] = kwargs.get('roles') or {}
+                super(FooOptions, self).__init__(klass, **kwargs)
+
+        class Foo(Model):
+            __optionsclass__ = FooOptions
+
+        f = Foo()
+        fo = f._options
+
+        self.assertEqual(fo.__class__, FooOptions)
+        self.assertEqual(fo.namespace, 'foo')
+        self.assertEqual(fo.roles, {})
+
     def test_subclassing_preservers_roles(self):
         class Parent(Model):
             id = StringType()
