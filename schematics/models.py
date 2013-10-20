@@ -165,7 +165,7 @@ class ModelMeta(type):
                     if not k.startswith("_") and not k == "klass":
                         options_members[k] = v
 
-        options_class = getattr(attrs, '__classoptions__', ModelOptions)
+        options_class = attrs.get('__optionsclass__', ModelOptions)
         if 'Options' in attrs:
             for k, v in inspect.getmembers(attrs['Options']):
                 if not k.startswith("_"):
