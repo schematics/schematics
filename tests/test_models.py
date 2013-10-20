@@ -248,6 +248,24 @@ def test_options_parsing_from_model():
     assert fo.roles == {}
 
 
+def test_options_parsing_from_optionsclass():
+    class FooOptions(ModelOptions):
+        def __init__(self, klass, **kwargs):
+            kwargs['namespace'] = kwargs.get('namespace') or 'foo'
+            kwargs['roles'] = kwargs.get('roles') or {}
+            super(FooOptions, self).__init__(klass, **kwargs)
+
+    class Foo(Model):
+        __optionsclass__ = FooOptions
+
+    f = Foo()
+    fo = f._options
+
+    assert fo.__class__ == FooOptions
+    assert fo.namespace == 'foo'
+    assert fo.roles == {}
+
+
 def test_subclassing_preservers_roles():
     class Parent(Model):
         id = StringType()
