@@ -182,11 +182,12 @@ class ModelMeta(type):
     def fields(cls):
         return cls._fields
 
-    def __iter__(self):
-        return itertools.chain(
-            self._unbound_fields.iteritems(),
-            self._unbound_serializables.iteritems()
-        )
+#   def __iter__(self):
+#       return itertools.chain(
+#           self.fields.iteritems(),
+#           self._unbound_fields.iteritems(),
+#           self._unbound_serializables.iteritems()
+#       )
 
 
 class Model(object):
