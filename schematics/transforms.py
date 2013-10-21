@@ -19,7 +19,7 @@ def _list_or_string(lors):
 ###
 
 def import_loop(cls, instance_or_dict, field_converter, context=None,
-                partial=False, strict=False):
+                partial=False, strict=False, mapping=None):
     """
     The import loop is designed to take untrusted data and convert it into the
     native types, as described in ``cls``.  It does this by calling
@@ -47,7 +47,8 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     if not is_cls and not is_dict:
         error_msg = 'Model conversion requires a model or dict'
         raise ModelConversionError(error_msg)
-
+    if mapping is None:
+        mapping = { }
     data = dict(context) if context is not None else {}
     errors = {}
 
@@ -58,6 +59,8 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
             all_fields.add(field.serialized_name)
         if hasattr(field, 'deserialize_from'):
             all_fields.update(set(_list_or_string(field.deserialize_from)))
+        if field_name in mapping:
+            all_fields.update(set(mapping[field_name]))
 
 
     ### Check for rogues if strict is set
@@ -70,6 +73,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
         serialized_field_name = field.serialized_name or field_name
 
         trial_keys = _list_or_string(field.deserialize_from)
+        trial_keys.extend(mapping.get(field_name, []))
         trial_keys.extend([serialized_field_name, field_name])
 
         raw_value = None
@@ -355,10 +359,11 @@ def blacklist(*field_list):
 ###
 
 
-def convert(cls, instance_or_dict, context=None, partial=True, strict=False):
+def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
+            mapping=None):
     field_converter = lambda field, value: field.to_native(value)
     data = import_loop(cls, instance_or_dict, field_converter, context=context,
-                       partial=partial, strict=strict)
+                       partial=partial, strict=strict, mapping=mapping)
     return data
 
 

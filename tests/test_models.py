@@ -364,7 +364,11 @@ def test_model_deserialize_from_with_list():
     assert User({'name': 'Ryan'}).username == 'Ryan'
     assert User({'user': 'Mike'}).username == 'Mike'
     assert User({'username': 'Mark'}).username == 'Mark'
-    assert User({'username': 'Mark', "name": "Second-class", "user": "key"}).username == 'Mark'
+    assert User({
+               "username": "Mark",
+               "name": "Second-class",
+               "user": "key"
+           }).username == 'Mark'
 
 def test_model_deserialize_from_with_string():
     class User(Model):
@@ -373,3 +377,17 @@ def test_model_deserialize_from_with_string():
     assert User({'name': 'Mike'}).username == 'Mike'
     assert User({'username': 'Mark'}).username == 'Mark'
     assert User({'username': 'Mark', "name": "Second-class field"}).username == 'Mark'
+
+def test_model_import_with_deserialize_mapping():
+    class User(Model):
+        username = StringType()
+
+    mapping = {
+        "username": ['name', 'user'],
+    }
+
+    assert User({'name': 'Ryan'}, deserialize_mapping=mapping).username == 'Ryan'
+    assert User({'user': 'Mike'}, deserialize_mapping=mapping).username == 'Mike'
+    assert User({'username': 'Mark'}, deserialize_mapping=mapping).username == 'Mark'
+    assert User({'username': 'Mark', "name": "Second-class", "user": "key"},
+               deserialize_mapping=mapping).username == 'Mark'
