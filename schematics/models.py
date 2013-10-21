@@ -204,11 +204,12 @@ class Model(object):
     __metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
-    def __init__(self, raw_data=None):  # TODO change back to keywords
+    def __init__(self, raw_data=None, deserialize_mapping=None):  # TODO change back to keywords
         if raw_data is None:
             raw_data = {}
         self._initial = raw_data
-        self._data = self.convert(raw_data, strict=True)
+        self._data = self.convert(raw_data, strict=True,
+                                  mapping=deserialize_mapping)
 
     def validate(self, partial=False, strict=False):
         """
