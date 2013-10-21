@@ -355,3 +355,21 @@ def test_model_field_validate_structure():
 
     with pytest.raises(ConversionError):
         Card({'user': [1, 2]})
+
+
+def test_model_deserialize_from_with_list():
+    class User(Model):
+        username = StringType(deserialize_from=['name', 'user'])
+
+    assert User({'name': 'Ryan'}).username == 'Ryan'
+    assert User({'user': 'Mike'}).username == 'Mike'
+    assert User({'username': 'Mark'}).username == 'Mark'
+    assert User({'username': 'Mark', "name": "Second-class", "user": "key"}).username == 'Mark'
+
+def test_model_deserialize_from_with_string():
+    class User(Model):
+        username = StringType(deserialize_from='name')
+
+    assert User({'name': 'Mike'}).username == 'Mike'
+    assert User({'username': 'Mark'}).username == 'Mark'
+    assert User({'username': 'Mark', "name": "Second-class field"}).username == 'Mark'

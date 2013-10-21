@@ -6,6 +6,13 @@ import itertools
 from .types.serializable import Serializable
 from .exceptions import ConversionError, ModelConversionError, ValidationError
 
+def _list_or_string(lors):
+    if lors is None:
+        return [ ]
+    if isinstance(lors, basestring):
+        return [lors]
+    return list(lors)
+
 
 ###
 ### Transform Loops
@@ -36,7 +43,6 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
         Complain about unrecognized keys. Default: False
     """
     is_dict = isinstance(instance_or_dict, dict)
-    print 'CLS:', cls
     is_cls = isinstance(instance_or_dict, cls)
     if not is_cls and not is_dict:
         error_msg = 'Model conversion requires a model or dict'
@@ -50,6 +56,9 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     for field_name, field, in cls._fields.iteritems():
         if hasattr(field, 'serialized_name'):
             all_fields.add(field.serialized_name)
+        if hasattr(field, 'deserialize_from'):
+            all_fields.update(set(_list_or_string(field.deserialize_from)))
+
 
     ### Check for rogues if strict is set
     rogue_fields = set(instance_or_dict) - set(all_fields)
@@ -59,13 +68,20 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
 
     for field_name, field in cls._fields.iteritems():
         serialized_field_name = field.serialized_name or field_name
-        
-        try:
-            if serialized_field_name in instance_or_dict:
-                raw_value = instance_or_dict[serialized_field_name]
-            else:
-                raw_value = instance_or_dict[field_name]
 
+        trial_keys = _list_or_string(field.deserialize_from)
+        trial_keys.extend([serialized_field_name, field_name])
+
+        raw_value = None
+        for key in trial_keys:
+            if key and key in instance_or_dict:
+                raw_value = instance_or_dict[key]
+        if raw_value is None:
+            if field_name in data:
+                continue
+            raw_value = field.default
+
+        try:
             if raw_value is None:
                 if field.required and not partial:
                     errors[serialized_field_name] = [field.messages['required'],]
@@ -74,10 +90,6 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
 
             data[field_name] = raw_value
 
-        except KeyError:
-            if field_name in data:
-                continue
-            data[field_name] = field.default
         except ConversionError, e:
             errors[serialized_field_name] = e.messages
         except ValidationError, e:
