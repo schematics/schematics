@@ -1,6 +1,7 @@
 language: python
 # command to install dependencies
-install: true
+install:
+    pip install -r dev-requirements.txt
 # command to run tests
 script: coverage run --source schematics -m py.test
 
