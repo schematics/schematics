@@ -1,8 +1,10 @@
 language: python
-install: 
-    pip install -r dev-requirements.txt --user-mirrors
-script: 
-    coverage run --source schematics -m py.test
+# command to install dependencies
+install:
+    pip install -r dev-requirements.txt
+# command to run tests
+script: coverage run --source schematics -m py.test
+
 after_success:
     coveralls
 
