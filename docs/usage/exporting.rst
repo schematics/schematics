@@ -65,7 +65,7 @@ whenever possible.  For example, the DateTimeType will use Python's
 
 You can reduce a model into the native Python types by calling ``to_native``.
 
-  >>> trainspotting = Trainspotting()
+  >>> trainspotting = Movie()
   >>> trainspotting.name = u'Trainspotting'
   >>> trainspotting.director = u'Danny Boyle'
   >>> trainspotting.release_date = datetime.datetime(1996, 7, 19, 0, 0)
