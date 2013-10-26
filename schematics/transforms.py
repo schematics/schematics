@@ -36,7 +36,6 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
         Complain about unrecognized keys. Default: False
     """
     is_dict = isinstance(instance_or_dict, dict)
-    print 'CLS:', cls
     is_cls = isinstance(instance_or_dict, cls)
     if not is_cls and not is_dict:
         error_msg = 'Model conversion requires a model or dict'
