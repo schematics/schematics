@@ -106,4 +106,7 @@ a ghost from this project's early years.
 Testing & Coverage support
 ==========================
 Run coverage and check the missing statements.
-$ `coverage run --source schematics -m py.test && coverage report`
+
+::
+
+  $ `coverage run --source schematics -m py.test && coverage report`
