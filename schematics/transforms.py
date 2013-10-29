@@ -60,7 +60,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
         if hasattr(field, 'deserialize_from'):
             all_fields.update(set(_list_or_string(field.deserialize_from)))
         if field_name in mapping:
-            all_fields.update(set(mapping[field_name]))
+            all_fields.update(set(_list_or_string(mapping[field_name])))
 
 
     ### Check for rogues if strict is set

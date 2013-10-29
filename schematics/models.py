@@ -231,6 +231,16 @@ class Model(object):
         except BaseError as e:
             raise ModelValidationError(e.messages)
 
+    def import_data(self, raw_data, **kw):
+        """
+        Converts and imports the raw data into the instance of the model
+        according to the fields in the model.
+
+        :param raw_data:
+            The data to be imported.
+        """
+        self._data.update(self.convert(raw_data, **kw))
+
     def convert(self, raw_data, **kw):
         """
         Converts the raw data into richer Python constructs according to the
