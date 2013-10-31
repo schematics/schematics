@@ -322,6 +322,11 @@ class Model(object):
             raise KeyError(name)
         return setattr(self, name, value)
 
+    def __delitem__(self, name):
+        if name not in self._data:
+            raise KeyError(name)
+        return setattr(self, name, None)
+
     def __contains__(self, name):
         return name in self._data or name in self._serializables
 
