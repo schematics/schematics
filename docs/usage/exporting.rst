@@ -246,6 +246,26 @@ also expect the ``notes`` field to be removed from the collection data.
       }]
   }
 
+If no role is specified, the default behavior is to export all fields.  This
+behavior can be overridden by specifying a ``default`` role.  Renaming
+the ``public`` role to ``default`` in the example above yields equivalent
+results without having to specify ``role`` in the export function.
+
+  >>> favorites.to_primitive()
+  {
+      'name': 'My favorites',
+      'movies': [{
+          'name': u'Trainspotting',
+          'director': u'Danny Boyle',
+          'release_date': '1996-07-19T00:00:00.000000'
+      }, {
+          'name': u'Total Recall',
+          'director': u'Paul Verhoeven',
+          'release_date': '1990-06-01T00:00:00.000000'
+      }]
+  }
+
+
 
 .. _exporting_serializable:
 
