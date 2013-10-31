@@ -139,6 +139,8 @@ def export_loop(cls, instance_or_dict, field_converter,
     elif role and raise_error_on_role:
         error_msg = u'%s Model has no role "%s"'
         raise ValueError(error_msg % (cls.__name__, role))
+    else:
+        gottago = cls._options.roles.get("default", gottago)
 
     for field_name, field, value in atoms(cls, instance_or_dict):
         serialized_name = field.serialized_name or field_name

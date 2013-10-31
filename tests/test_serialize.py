@@ -722,3 +722,61 @@ def test_role_set_operations():
         m2 = M(d)
         self.assertEqual(m2.md5, myhash)
 
+def test_serializable_with_list_and_default_role():
+    class Player(Model):
+        id = LongType()
+        display_name = StringType()
+
+        class Options:
+            roles = {
+                "default": blacklist("id")
+            }
+
+    class Game(Model):
+        id = StringType()
+        result = IntType()
+        players = ListType(ModelType(Player))
+
+        class Options:
+            roles = {
+                "default": blacklist("result")
+            }
+
+    p1 = Player({"id": 1, "display_name": "A"})
+    p2 = Player({"id": 2, "display_name": "B"})
+
+    game = Game({
+        "id": "1",
+        "players": [p1, p2]
+    })
+
+    assert game.players[0] == p1
+    assert game.players[1] == p2
+
+    d = game.serialize(role="default")
+
+    assert d == {
+        "id": "1",
+        "players": [
+            {
+                "display_name": "A",
+            },
+            {
+                "display_name": "B",
+            },
+        ]
+    }
+
+    d = game.serialize()
+
+    assert d == {
+        "id": "1",
+        "players": [
+            {
+                "display_name": "A",
+            },
+            {
+                "display_name": "B",
+            },
+        ]
+    }
