@@ -392,7 +392,7 @@ def test_model_import_with_deserialize_mapping():
     assert User({'username': 'Mark', "name": "Second-class", "user": "key"},
                deserialize_mapping=mapping).username == 'Mark'
 
-def test_model_convert_with_mapping():
+def test_model_import_data_with_mapping():
     class User(Model):
         username = StringType()
 
@@ -403,3 +403,4 @@ def test_model_convert_with_mapping():
     user = User()
     val = user.import_data({'name': 'Ryan'}, mapping=mapping)
     assert user.username == 'Ryan'
+
