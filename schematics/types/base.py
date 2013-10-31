@@ -71,6 +71,10 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         The name of this field defaults to the class attribute used in the
         model. However if the field has another name in foreign data set this
         argument. Serialized data will use this value for the key name too.
+    :param deserialize_from:
+        A name or list of named fields for which foreign data sets are
+        searched to provide a value for the given field.  This only effects
+        inbound data.
     :param choices:
         An iterable of valid choices. This is the last step of the validator
         chain.
@@ -95,12 +99,13 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
     }
 
     def __init__(self, required=False, default=None, serialized_name=None,
-                 choices=None, validators=None,
+                 choices=None, validators=None, deserialize_from=None,
                  serialize_when_none=None, messages=None):
         self.required = required
         self._default = default
         self.serialized_name = serialized_name
         self.choices = choices
+        self.deserialize_from = deserialize_from
 
         self.validators = [functools.partial(v, self) for v in self._validators]
         if validators:

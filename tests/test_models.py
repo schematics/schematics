@@ -355,3 +355,52 @@ def test_model_field_validate_structure():
 
     with pytest.raises(ConversionError):
         Card({'user': [1, 2]})
+
+
+def test_model_deserialize_from_with_list():
+    class User(Model):
+        username = StringType(deserialize_from=['name', 'user'])
+
+    assert User({'name': 'Ryan'}).username == 'Ryan'
+    assert User({'user': 'Mike'}).username == 'Mike'
+    assert User({'username': 'Mark'}).username == 'Mark'
+    assert User({
+               "username": "Mark",
+               "name": "Second-class",
+               "user": "key"
+           }).username == 'Mark'
+
+def test_model_deserialize_from_with_string():
+    class User(Model):
+        username = StringType(deserialize_from='name')
+
+    assert User({'name': 'Mike'}).username == 'Mike'
+    assert User({'username': 'Mark'}).username == 'Mark'
+    assert User({'username': 'Mark', "name": "Second-class field"}).username == 'Mark'
+
+def test_model_import_with_deserialize_mapping():
+    class User(Model):
+        username = StringType()
+
+    mapping = {
+        "username": ['name', 'user'],
+    }
+
+    assert User({'name': 'Ryan'}, deserialize_mapping=mapping).username == 'Ryan'
+    assert User({'user': 'Mike'}, deserialize_mapping=mapping).username == 'Mike'
+    assert User({'username': 'Mark'}, deserialize_mapping=mapping).username == 'Mark'
+    assert User({'username': 'Mark', "name": "Second-class", "user": "key"},
+               deserialize_mapping=mapping).username == 'Mark'
+
+def test_model_import_data_with_mapping():
+    class User(Model):
+        username = StringType()
+
+    mapping = {
+        "username": ['name', 'user'],
+    }
+
+    user = User()
+    val = user.import_data({'name': 'Ryan'}, mapping=mapping)
+    assert user.username == 'Ryan'
+

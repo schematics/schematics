@@ -182,11 +182,12 @@ class ModelMeta(type):
     def fields(cls):
         return cls._fields
 
-    def __iter__(self):
-        return itertools.chain(
-            self._unbound_fields.iteritems(),
-            self._unbound_serializables.iteritems()
-        )
+#   def __iter__(self):
+#       return itertools.chain(
+#           self.fields.iteritems(),
+#           self._unbound_fields.iteritems(),
+#           self._unbound_serializables.iteritems()
+#       )
 
 
 class Model(object):
@@ -203,11 +204,12 @@ class Model(object):
     __metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
-    def __init__(self, raw_data=None):  # TODO change back to keywords
+    def __init__(self, raw_data=None, deserialize_mapping=None):  # TODO change back to keywords
         if raw_data is None:
             raw_data = {}
         self._initial = raw_data
-        self._data = self.convert(raw_data, strict=True)
+        self._data = self.convert(raw_data, strict=True,
+                                  mapping=deserialize_mapping)
 
     def validate(self, partial=False, strict=False):
         """
@@ -228,6 +230,16 @@ class Model(object):
             self._data.update(**data)
         except BaseError as e:
             raise ModelValidationError(e.messages)
+
+    def import_data(self, raw_data, **kw):
+        """
+        Converts and imports the raw data into the instance of the model
+        according to the fields in the model.
+
+        :param raw_data:
+            The data to be imported.
+        """
+        self._data.update(self.convert(raw_data, **kw))
 
     def convert(self, raw_data, **kw):
         """
