@@ -1,9 +1,12 @@
-import uuid
-import re
+# -*- coding: utf-8 -*-
+
 import datetime
 import decimal
-import itertools
 import functools
+import itertools
+import re
+import types
+import uuid
 
 from ..exceptions import StopValidation, ValidationError, ConversionError
 
@@ -174,6 +177,60 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
             if value not in self.choices:
                 raise ValidationError(self.messages['choices']
                     .format(unicode(self.choices)))
+
+
+class AbstractType(BaseType):
+    """
+    Base class for custom model types.
+    """
+
+    string_primitive_types = (basestring,)
+    boolean_primitive_types = (bool,)
+    number_primitive_types = (int, long, float,)
+    null_primitive_types = (types.NoneType,)
+    simple_primitive_types = string_primitive_types + boolean_primitive_types + number_primitive_types + null_primitive_types
+    compound_primitive_types = (list, dict)
+    primitive_types = simple_primitive_types + compound_primitive_types
+
+    def to_primitive(self, value):
+        # Values of any primitive type can be returned outright, regardless of the field type
+        if isinstance(value, self.primitive_types):
+            return value
+
+        primitive_converter_name = '{}_to_primitive'.format(type(value).__name__.lower())
+        primitive_converter = getattr(self, primitive_converter_name, self.default_to_primitive)
+        return primitive_converter(value)
+
+    def tuple_to_primitive(self, value):
+        return list(value)
+
+    def default_to_primitive(self, value):
+        """By default, most types can be reasonable converted to a primitive via their unicode
+        conversions. This works well for:
+
+        * decimal
+
+        """
+        return unicode(value)
+
+
+class AnyType(AbstractType):
+    """
+    NOTE This type does not know to apply any specific validation to, e.g., URL values.
+    """
+
+    def validate_type(self, value):
+        if not isinstance(value, self.primitive_types):
+            raise ValidationError("value is expected to be of any primitive type: {}"
+                                  .format(', '.join(self.primitive_types)))
+
+
+class SimpleValueType(AbstractType):
+
+    def validate_type(self, value):
+        if not isinstance(value, self.simple_primitive_types):
+            raise ValidationError("value is expected to be of any primitive type: {}"
+                                  .format(', '.join(self.simple_primitive_types)))
 
 
 class UUIDType(BaseType):
