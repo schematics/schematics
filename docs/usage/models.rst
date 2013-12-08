@@ -14,9 +14,9 @@ it is called a `field`.
 Simple Model
 ============
 
-Let's say we want to build a social network for weather.  At it's core, we'll
-need a way to represent some temperature information and where that temp was
-found.
+Let's say we want to build a social network for weather. At its core, we'll
+need a way to represent some temperature information and where that temperature
+was found.
 
 ::
 
