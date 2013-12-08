@@ -44,7 +44,7 @@ Extending Validation
 ====================
 
 Validation for both types and models can be extended.  Whatever validation
-system you require is probably expressable via Schematics..
+system you require is probably expressable via Schematics.
 
 
 Type-level Validation
