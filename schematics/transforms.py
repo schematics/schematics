@@ -6,13 +6,20 @@ import itertools
 from .types.serializable import Serializable
 from .exceptions import ConversionError, ModelConversionError, ValidationError
 
+def _list_or_string(lors):
+    if lors is None:
+        return [ ]
+    if isinstance(lors, basestring):
+        return [lors]
+    return list(lors)
+
 
 ###
 ### Transform Loops
 ###
 
 def import_loop(cls, instance_or_dict, field_converter, context=None,
-                partial=False, strict=False):
+                partial=False, strict=False, mapping=None):
     """
     The import loop is designed to take untrusted data and convert it into the
     native types, as described in ``cls``.  It does this by calling
@@ -40,7 +47,8 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     if not is_cls and not is_dict:
         error_msg = 'Model conversion requires a model or dict'
         raise ModelConversionError(error_msg)
-
+    if mapping is None:
+        mapping = { }
     data = dict(context) if context is not None else {}
     errors = {}
 
@@ -49,6 +57,11 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     for field_name, field, in cls._fields.iteritems():
         if hasattr(field, 'serialized_name'):
             all_fields.add(field.serialized_name)
+        if hasattr(field, 'deserialize_from'):
+            all_fields.update(set(_list_or_string(field.deserialize_from)))
+        if field_name in mapping:
+            all_fields.update(set(_list_or_string(mapping[field_name])))
+
 
     ### Check for rogues if strict is set
     rogue_fields = set(instance_or_dict) - set(all_fields)
@@ -58,13 +71,21 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
 
     for field_name, field in cls._fields.iteritems():
         serialized_field_name = field.serialized_name or field_name
-        
-        try:
-            if serialized_field_name in instance_or_dict:
-                raw_value = instance_or_dict[serialized_field_name]
-            else:
-                raw_value = instance_or_dict[field_name]
 
+        trial_keys = _list_or_string(field.deserialize_from)
+        trial_keys.extend(mapping.get(field_name, []))
+        trial_keys.extend([serialized_field_name, field_name])
+
+        raw_value = None
+        for key in trial_keys:
+            if key and key in instance_or_dict:
+                raw_value = instance_or_dict[key]
+        if raw_value is None:
+            if field_name in data:
+                continue
+            raw_value = field.default
+
+        try:
             if raw_value is None:
                 if field.required and not partial:
                     errors[serialized_field_name] = [field.messages['required'],]
@@ -73,10 +94,6 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
 
             data[field_name] = raw_value
 
-        except KeyError:
-            if field_name in data:
-                continue
-            data[field_name] = field.default
         except ConversionError, e:
             errors[serialized_field_name] = e.messages
         except ValidationError, e:
@@ -122,6 +139,8 @@ def export_loop(cls, instance_or_dict, field_converter,
     elif role and raise_error_on_role:
         error_msg = u'%s Model has no role "%s"'
         raise ValueError(error_msg % (cls.__name__, role))
+    else:
+        gottago = cls._options.roles.get("default", gottago)
 
     for field_name, field, value in atoms(cls, instance_or_dict):
         serialized_name = field.serialized_name or field_name
@@ -342,10 +361,11 @@ def blacklist(*field_list):
 ###
 
 
-def convert(cls, instance_or_dict, context=None, partial=True, strict=False):
+def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
+            mapping=None):
     field_converter = lambda field, value: field.to_native(value)
     data = import_loop(cls, instance_or_dict, field_converter, context=context,
-                       partial=partial, strict=strict)
+                       partial=partial, strict=strict, mapping=mapping)
     return data
 
 
