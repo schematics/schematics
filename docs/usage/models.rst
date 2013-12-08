@@ -4,9 +4,9 @@
 Models
 ======
 
-Schematics models are the next form of structure above types.  They are a
-collection types in a class.  When a `Type` is given a name inside a `Model`, it
-is called a `field`.
+Schematics models are the next form of structure above types. They are a
+collection of types in a class. When a `Type` is given a name inside a `Model`,
+it is called a `field`.
 
 
 .. _simple_model:
