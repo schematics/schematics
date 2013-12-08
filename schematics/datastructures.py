@@ -1,5 +1,3 @@
-from itertools import izip, imap
-
 _missing = object()
 
 
@@ -125,7 +123,7 @@ class OrderedDict(dict):
         return zip(self._keys, self.values())
 
     def iteritems(self):
-        return izip(self._keys, self.itervalues())
+        return zip(self._keys, self.itervalues())
 
     def keys(self):
         return self._keys[:]
@@ -169,7 +167,7 @@ class OrderedDict(dict):
         return map(self.get, self._keys)
 
     def itervalues(self):
-        return imap(self.get, self._keys)
+        return map(self.get, self._keys)
 
     def index(self, item):
         return self._keys.index(item)

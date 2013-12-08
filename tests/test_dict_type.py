@@ -131,7 +131,7 @@ def test_with_empty():
 
 def test_key_type():
     def player_id(value):
-        return long(value)
+        return int(value)
 
     class CategoryStatsInfo(Model):
         slug = StringType()
@@ -145,7 +145,7 @@ def test_key_type():
 
     info = PlayerInfo({
         "categories": {
-            1L: {"slug": "math"}
+            1: {"slug": "math"}
         },
     })
 
@@ -153,5 +153,5 @@ def test_key_type():
 
     d = info.serialize()
     assert d == {
-        "categories": {1L: {"slug": "math"}}
+        "categories": {1: {"slug": "math"}}
     }

@@ -577,8 +577,8 @@ def test_serializable_with_dict_and_roles():
                 "public": blacklist("result")
             }
 
-    p1 = Player({"id": 1L, "display_name": "A"})
-    p2 = Player({"id": 2L, "display_name": "B"})
+    p1 = Player({"id": 1, "display_name": "A"})
+    p2 = Player({"id": 2, "display_name": "B"})
 
     game = Game({
         "id": "1",
@@ -596,10 +596,10 @@ def test_serializable_with_dict_and_roles():
     assert d == {
         "id": "1",
         "players": {
-            1L: {
+            1: {
                 "display_name": "A"
             },
-            2L: {
+            2: {
                 "display_name": "B"
             },
         }
@@ -684,7 +684,7 @@ def test_role_set_operations():
 
     user = User(
         dict(
-            (k, v) for k, v in data.iteritems()
+            (k, v) for k, v in data.items()
             if k in User._options.roles['create']  # filter by 'create' role
         )
     )

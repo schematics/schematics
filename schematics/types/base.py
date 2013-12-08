@@ -44,7 +44,7 @@ class TypeMeta(type):
 
         attrs['MESSAGES'] = messages
 
-        for attr_name, attr in attrs.iteritems():
+        for attr_name, attr in attrs.items():
             if attr_name.startswith("validate_"):
                 validators.append(attr)
 
@@ -116,7 +116,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
     @property
     def default(self):
         default = self._default
-        if callable(self._default):
+        if hasattr(self._default, '__call__'):
             default = self._default()
         return default
 
@@ -550,7 +550,7 @@ class DateTimeType(BaseType):
         """
 
         """
-        if isinstance(format, basestring):
+        if isinstance(format, str):
             formats = [formats]
         if formats is None:
             formats = self.DEFAULT_FORMATS
@@ -572,7 +572,7 @@ class DateTimeType(BaseType):
         raise ConversionError(self.messages['parse'].format(value))
 
     def to_primitive(self, value):
-        if callable(self.serialized_format):
+        if hasattr(self.serialized_format, '__call__'):
             return self.serialized_format(value)
         return value.strftime(self.serialized_format)
 

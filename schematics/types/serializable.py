@@ -30,7 +30,7 @@ def serializable(*args, **kwargs):
         return Serializable(f, type=serialized_type, serialized_name=serialized_name,
             serialize_when_none=serialize_when_none)
 
-    if len(args) == 1 and callable(args[0]):
+    if len(args) == 1 and hasattr(args[0], '__call__'):
         # No arguments, this is the decorator
         # Set default values for the arguments
         return wrapper(args[0])

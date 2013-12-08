@@ -91,7 +91,7 @@ class ModelMeta(type):
     Meta class for Models.
     """
 
-    def __new__(cls, name, bases, attrs):
+    def __new__(cls, name, bases, attrs, **kw):
         """
         This metaclass adds four attributes to host classes: cls._fields,
         cls._serializables, cls._validator_functions, and cls._options.
@@ -120,8 +120,8 @@ class ModelMeta(type):
                 validator_functions.update(base._validator_functions)
 
         ### Parse this class's attributes into meta structures
-        for key, value in attrs.iteritems():
-            if key.startswith('validate_') and callable(value):
+        for key, value in attrs.items():
+            if key.startswith('validate_') and hasattr(value, '__call__'):
                 validator_functions[key[9:]] = value
             if isinstance(value, BaseType):
                 fields[key] = value
@@ -133,7 +133,7 @@ class ModelMeta(type):
 
         ### Convert list of types into fields for new klass
         fields.sort(key=lambda i: i[1]._position_hint)
-        for key, field in fields.iteritems():
+        for key, field in fields.items():
             attrs[key] = FieldDescriptor(key)
 
         ### Ready meta data to be klass attributes
@@ -184,8 +184,8 @@ class ModelMeta(type):
 
     def __iter__(self):
         return itertools.chain(
-            self._unbound_fields.iteritems(),
-            self._unbound_serializables.iteritems()
+            self._unbound_fields.items(),
+            self._unbound_serializables.items()
         )
 
 
@@ -201,7 +201,7 @@ class Model(object):
     """
 
     __metaclass__ = ModelMeta
-    __optionsclass__ = ModelOptions
+    #__optionsclass__ = ModelOptions
 
     def __init__(self, raw_data=None):  # TODO change back to keywords
         if raw_data is None:

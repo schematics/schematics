@@ -11,7 +11,7 @@ class BaseError(Exception):
     def clean_messages(self, messages):
         if isinstance(messages, dict):
             clean_messages = {}
-            for k, v in messages.iteritems():
+            for k, v in messages.items():
                 if isinstance(v, ValidationError):
                     v = v.messages
                 clean_messages[k] = v

@@ -46,7 +46,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
 
     ### Determine all acceptable field input names
     all_fields = set(cls._fields) ^ set(cls._serializables)
-    for field_name, field, in cls._fields.iteritems():
+    for field_name, field, in cls._fields.items():
         if hasattr(field, 'serialized_name'):
             all_fields.add(field.serialized_name)
 
@@ -56,7 +56,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
         for field in rogue_fields:
             errors[field] = 'Rogue field'
 
-    for field_name, field in cls._fields.iteritems():
+    for field_name, field in cls._fields.items():
         serialized_field_name = field.serialized_name or field_name
         
         try:
@@ -77,9 +77,9 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
             if field_name in data:
                 continue
             data[field_name] = field.default
-        except ConversionError, e:
+        except ConversionError as e:
             errors[serialized_field_name] = e.messages
-        except ValidationError, e:
+        except ValidationError as e:
             errors[serialized_field_name] = e.messages
 
     if errors:
@@ -173,8 +173,8 @@ def atoms(cls, instance_or_dict):
         expectionation for this structure is that it implements a ``dict``
         interface.
     """
-    all_fields = itertools.chain(cls._fields.iteritems(),
-                                 cls._serializables.iteritems())
+    all_fields = itertools.chain(cls._fields.items(),
+                                 cls._serializables.items())
 
     return ((field_name, field, instance_or_dict[field_name])
             for field_name, field in all_fields)
@@ -407,7 +407,7 @@ def expand(data, context=None):
     if context is None:
         context = expanded_dict
 
-    for k, v in data.iteritems():
+    for k, v in data.items():
         try:
             key, remaining = k.split(".", 1)
         except ValueError:
@@ -455,8 +455,8 @@ def flatten_to_dict(instance_or_dict, prefix=None, ignore_none=True):
         This puts a prefix in front of the field names during flattening.
         Default: None
     """
-    if hasattr(instance_or_dict, "iteritems"):
-        iterator = instance_or_dict.iteritems()
+    if hasattr(instance_or_dict, "items"):
+        iterator = instance_or_dict.items()
     else:
         iterator = enumerate(instance_or_dict)
 
