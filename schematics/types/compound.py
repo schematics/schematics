@@ -33,6 +33,20 @@ class MultiType(BaseType):
                     role=None, print_none=False):
         raise NotImplemented()
 
+    def init_compound_field(self, field, compound_field, **kwargs):
+        """
+        Some of non-BaseType fields requires `field` arg.
+        Not avoid name conflict, provide it as `compound_field`.
+        Example:
+
+            comments = ListType(DictType, compound_field=StringType)
+        """
+        if compound_field:
+            field = field(field=compound_field, **kwargs)
+        else:
+            field = field(**kwargs)
+        return field
+
 
 class ModelType(MultiType):
     def __init__(self, model_class, **kwargs):
@@ -101,8 +115,10 @@ class ModelType(MultiType):
 class ListType(MultiType):
 
     def __init__(self, field, min_size=None, max_size=None, **kwargs):
+
         if not isinstance(field, BaseType):
-            field = field(**kwargs)
+            compound_field = kwargs.pop('compound_field', None)
+            field = self.init_compound_field(field, compound_field, **kwargs)
 
         self.field = field
         self.min_size = min_size
@@ -204,7 +220,8 @@ class DictType(MultiType):
 
     def __init__(self, field, coerce_key=None, **kwargs):
         if not isinstance(field, BaseType):
-            field = field(**kwargs)
+            compound_field = kwargs.pop('compound_field', None)
+            field = self.init_compound_field(field, compound_field, **kwargs)
 
         self.coerce_key = coerce_key or str
         self.field = field
