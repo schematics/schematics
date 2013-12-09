@@ -179,9 +179,9 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
                     .format(unicode(self.choices)))
 
 
-class AbstractType(BaseType):
+class BasePrimitiveType(BaseType):
     """
-    Base class for custom model types.
+    Base class for compound and simple primitive types.
     """
 
     string_primitive_types = (basestring,)
@@ -214,7 +214,7 @@ class AbstractType(BaseType):
         return unicode(value)
 
 
-class AnyType(AbstractType):
+class AnyPrimitiveType(BasePrimitiveType):
     """
     NOTE This type does not know to apply any specific validation to, e.g., URL values.
     """
@@ -225,7 +225,7 @@ class AnyType(AbstractType):
                                   .format(', '.join(self.primitive_types)))
 
 
-class SimpleValueType(AbstractType):
+class SimplePrimitiveType(BasePrimitiveType):
 
     def validate_type(self, value):
         if not isinstance(value, self.simple_primitive_types):
