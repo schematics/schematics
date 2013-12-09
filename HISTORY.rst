@@ -1,3 +1,15 @@
+0.9.4 / 2013-12/08
+==================
+
+* [Feature] (`#178 <https://github.com/j2labs/schematics/pull/178>`_) Added deserialize_from flag to BaseType for alternate field names on import
+* [Bug] (`#186 <https://github.com/j2labs/schematics/pull/186>`_) Compoundtype support in ListTypes
+* [Bug] (`#181 <https://github.com/j2labs/schematics/pull/181>`_) Removed that stupid print statement!
+* [Feature] (`#182 <https://github.com/j2labs/schematics/pull/182>`_) Default roles system
+* [Documentation] (`#190 <https://github.com/j2labs/schematics/pull/190>`_) Typos
+* [Bug] (`#177 <https://github.com/j2labs/schematics/pull/177>`_) Removed `__iter__` from ModelMeta
+* [Documentation] (`#188 <https://github.com/j2labs/schematics/pull/188>`_) Typos
+
+
 0.9.3 / 2013-10/20
 ==================
 
