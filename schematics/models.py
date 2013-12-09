@@ -240,6 +240,7 @@ class Model(object):
             The data to be imported.
         """
         self._data.update(self.convert(raw_data, **kw))
+        return self
 
     def convert(self, raw_data, **kw):
         """
