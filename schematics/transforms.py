@@ -90,7 +90,12 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
                 if field.required and not partial:
                     errors[serialized_field_name] = [field.messages['required'],]
             else:
-                raw_value = field_converter(field, raw_value)
+                try:
+                    mapping_by_model = mapping.get('model_mapping', {})
+                    model_mapping = mapping_by_model.get(field_name, {})
+                    raw_value = field_converter(field, raw_value, mapping=model_mapping)
+                except:
+                    raw_value = field_converter(field, raw_value)
 
             data[field_name] = raw_value
 
@@ -363,7 +368,12 @@ def blacklist(*field_list):
 
 def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
             mapping=None):
-    field_converter = lambda field, value: field.to_native(value)
+    def field_converter(field, value, mapping=None):
+        try:
+            return field.to_native(value, mapping=mapping)
+        except:
+            return field.to_native(value)
+#   field_converter = lambda field, value: field.to_native(value)
     data = import_loop(cls, instance_or_dict, field_converter, context=context,
                        partial=partial, strict=strict, mapping=mapping)
     return data

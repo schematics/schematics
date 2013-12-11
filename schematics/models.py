@@ -239,7 +239,11 @@ class Model(object):
         :param raw_data:
             The data to be imported.
         """
-        self._data.update(self.convert(raw_data, **kw))
+        data = self.convert(raw_data, **kw)
+        for k in data.keys():
+            if data[k] is None: del data[k]
+        self._data.update(data)
+        return self
 
     def convert(self, raw_data, **kw):
         """
