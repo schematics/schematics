@@ -92,6 +92,9 @@ pygments_style = 'sphinx'
 
 # -- Options for HTML output ---------------------------------------------------
 
+# Old read the docs theme
+RTD_OLD_THEME = True
+
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 sys.path.append(os.path.abspath('_themes'))
