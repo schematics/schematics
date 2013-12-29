@@ -182,7 +182,34 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
 class BasePrimitiveType(BaseType):
     """
     Base class for compound and simple primitive types.
+
+    ``to_primitive``
+    ----------------
+
+    This class provides basic conversion from native types to primitive types. However, it can be
+    extended to allow further conversions to be defined. To do so, define a method based on the
+    name of the type that you'd like to convert, like ``*<my_type_name_lower>*_to_primitive``,
+    taking the value to convert. The provided conversions are:
+
+    - ``tuple_to_primitive``: Convert tuples to lists
+    - ``list_to_primitive``: Return a new list with elements of the original converted.
+    - ``dict_to_primitive``: Return a new dict with values of the original converted. Also, keys
+      are forced to ``unicode``.
+
+    There is also one fallback method, ``default_to_primitive``, that simply converts an object
+    with the ``unicode`` function. This works well for, e.g., ``decimal.Decimal`` values.
+
+    ``to_native``
+    -------------
+    No specific native conversion is provided by the primitive types. They can be extended to
+    provide some conversion. However, too much of that suggests that something more than primitives
+    is needed to begin with.
+
     """
+
+    MESSAGES = {
+        'type': u"Value's type must be one of {0}",
+    }
 
     string_primitive_types = (basestring,)
     boolean_primitive_types = (bool,)
@@ -193,44 +220,113 @@ class BasePrimitiveType(BaseType):
     primitive_types = simple_primitive_types + compound_primitive_types
 
     def to_primitive(self, value):
-        # Values of any primitive type can be returned outright, regardless of the field type
-        if isinstance(value, self.primitive_types):
+        if isinstance(value, self.simple_primitive_types):
             return value
 
+        # Get a type-specific converter, or the fallback convert, and apply it to the value
         primitive_converter_name = '{}_to_primitive'.format(type(value).__name__.lower())
         primitive_converter = getattr(self, primitive_converter_name, self.default_to_primitive)
         return primitive_converter(value)
 
     def tuple_to_primitive(self, value):
-        return list(value)
+        return self.list_to_primitive(value)
+
+    def list_to_primitive(self, value):
+        return [
+            self.to_primitive(elem)
+            for elem in value
+        ]
+
+    def dict_to_primitive(self, value):
+        return dict(
+            (unicode(k), self.to_primitive(v))
+            for k, v in value.iteritems()
+        )
 
     def default_to_primitive(self, value):
-        """By default, most types can be reasonable converted to a primitive via their unicode
-        conversions. This works well for:
-
-        * decimal
+        """
+        By default, most types can be reasonable converted to a primitive via their unicode
+        conversions. This works well for ``decimal.Decimal`` values.
 
         """
         return unicode(value)
 
+    def validate_list_elements(self, value):
+        """
+        Validate the elements of a primitive list, collecting any errors in a dict keyed by element
+        index in the list. If there are any errors, the dict is used to create a new
+        ValidationError raised from here.
 
-class AnyPrimitiveType(BasePrimitiveType):
+        """
+        if isinstance(value, list):
+            errors = {}
+            for index, elem in enumerate(value):
+                try:
+                    self.validate(elem)
+                except ValidationError as e:
+                    errors[index] = e.messages
+
+            if errors:
+                raise ValidationError(errors)
+
+    def validate_dict_values(self, value):
+        """
+        Validate the values of a primitive dict, collecting any errors in a dict keyed by dict item
+        key. If there are any errors, the dict is used to create a new ValidationError raised from
+        here.
+
+        """
+        if isinstance(value, dict):
+            errors = {}
+            for k, v in value.iteritems():
+                try:
+                    self.validate(v)
+                except ValidationError as e:
+                    errors[k] = e.messages
+
+            if errors:
+                raise ValidationError(errors)
+
+
+class PrimitiveType(BasePrimitiveType):
     """
-    NOTE This type does not know to apply any specific validation to, e.g., URL values.
+    A field that accepts any primitive value, including the following types:
+
+    * string
+    * unicode
+    * bool
+    * int
+    * long
+    * float
+    * None
+    * list of any of the other permitted types
+    * dict of any of the other permitted types
+
     """
 
     def validate_type(self, value):
         if not isinstance(value, self.primitive_types):
-            raise ValidationError("value is expected to be of any primitive type: {}"
-                                  .format(', '.join(self.primitive_types)))
+            raise ValidationError(self.messages['type'].format(u', '.join(self.primitive_types)))
 
 
 class SimplePrimitiveType(BasePrimitiveType):
+    """
+    A field that accepts any simple primitive value, including the following types:
+
+    * string
+    * unicode
+    * bool
+    * int
+    * long
+    * float
+    * None
+
+    """
 
     def validate_type(self, value):
         if not isinstance(value, self.simple_primitive_types):
-            raise ValidationError("value is expected to be of any primitive type: {}"
-                                  .format(', '.join(self.simple_primitive_types)))
+            raise ValidationError(self.messages['type'].format(
+                    u', '.join(self.simple_primitive_types)))
 
 
 class UUIDType(BaseType):
