@@ -223,8 +223,8 @@ class BasePrimitiveType(BaseType):
         if isinstance(value, self.simple_primitive_types):
             return value
 
-        # Get a type-specific converter, or the fallback convert, and apply it to the value
-        primitive_converter_name = '{}_to_primitive'.format(type(value).__name__.lower())
+        # Get a type-specific converter, or the fallback converter, and apply it to the value
+        primitive_converter_name = '{0}_to_primitive'.format(type(value).__name__.lower())
         primitive_converter = getattr(self, primitive_converter_name, self.default_to_primitive)
         return primitive_converter(value)
 
@@ -306,7 +306,8 @@ class PrimitiveType(BasePrimitiveType):
 
     def validate_type(self, value):
         if not isinstance(value, self.primitive_types):
-            raise ValidationError(self.messages['type'].format(u', '.join(self.primitive_types)))
+            raise ValidationError(self.messages['type'].format(
+                    u', '.join([t.__name__ for t in self.primitive_types])))
 
 
 class SimplePrimitiveType(BasePrimitiveType):
@@ -326,7 +327,7 @@ class SimplePrimitiveType(BasePrimitiveType):
     def validate_type(self, value):
         if not isinstance(value, self.simple_primitive_types):
             raise ValidationError(self.messages['type'].format(
-                    u', '.join(self.simple_primitive_types)))
+                    u', '.join([t.__name__ for t in self.simple_primitive_types])))
 
 
 class UUIDType(BaseType):

@@ -1,11 +1,120 @@
-import pytest
+import contextlib
 import datetime
+import decimal
+
+import pytest
 
 from schematics.types import (
     BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
-    URLType,
+    URLType, PrimitiveType, SimplePrimitiveType
 )
 from schematics.exceptions import ValidationError, ConversionError
+
+
+@contextlib.contextmanager
+def does_not_raise(ExceptionClass):
+    try:
+        yield
+    except ExceptionClass:
+        assert False, u'{0} was raised'.format(ExceptionClass.__name__)
+
+
+def test_primitive_to_primitive():
+    field = PrimitiveType()
+    data = {'attr': [1.0, 'a', False, None]}
+    primitive = field.to_primitive(data)
+    assert data == primitive
+
+
+def test_primitive_tuple_to_primitive():
+    field = PrimitiveType()
+    primitive = field.to_primitive((1, 2))
+    assert [1, 2] == primitive
+
+
+def test_primitive_list_to_primitive():
+    field = PrimitiveType()
+    primitive = field.to_primitive([decimal.Decimal('3.14')])
+    assert [u'3.14'] == primitive
+
+
+def test_primitive_dict_to_primitive():
+    field = PrimitiveType()
+    primitive = field.to_primitive({'a': decimal.Decimal('3.14')})
+    assert {'a': u'3.14'} == primitive
+
+
+def test_primitive_custom_to_primitive():
+    class PrimitiveWithDateType(PrimitiveType):
+        def date_to_primitive(self, value):
+            return value.isoformat()
+
+    d = datetime.date.today()
+    primitive = PrimitiveWithDateType().to_primitive(d)
+    assert d.isoformat() == primitive
+
+
+def test_primitive_default_to_primitive():
+    field = PrimitiveType()
+    primitive = field.to_primitive(decimal.Decimal('3.14'))
+    assert u'3.14' == primitive
+
+
+def test_primitive_validate_list_elements():
+    field = PrimitiveType()
+    with pytest.raises(ValidationError):
+        field.validate([datetime.date.today()])
+
+
+def test_primitive_validate_dict_values():
+    field = PrimitiveType()
+    with pytest.raises(ValidationError):
+        field.validate({'a': datetime.date.today()})
+
+
+def test_primitive_validate_type():
+    field = PrimitiveType()
+    with pytest.raises(ValidationError):
+        field.validate(object())
+    with pytest.raises(ValidationError):
+        field.validate(())
+
+    with does_not_raise(ValidationError):
+        field.validate([])
+    with does_not_raise(ValidationError):
+        field.validate({})
+    with does_not_raise(ValidationError):
+        field.validate(None)
+    with does_not_raise(ValidationError):
+        field.validate(1)
+    with does_not_raise(ValidationError):
+        field.validate(3.14159)
+    with does_not_raise(ValidationError):
+        field.validate(True)
+    with does_not_raise(ValidationError):
+        field.validate("aString")
+    
+
+
+def test_simple_primitive_validate_type():
+    field = SimplePrimitiveType()
+    with pytest.raises(ValidationError):
+        field.validate([])
+    with pytest.raises(ValidationError):
+        field.validate({})
+    with pytest.raises(ValidationError):
+        field.validate(())
+
+    with does_not_raise(ValidationError):
+        field.validate(None)
+    with does_not_raise(ValidationError):
+        field.validate(1)
+    with does_not_raise(ValidationError):
+        field.validate(3.14159)
+    with does_not_raise(ValidationError):
+        field.validate(True)
+    with does_not_raise(ValidationError):
+        field.validate("aString")
 
 
 def test_date():
