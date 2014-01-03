@@ -189,7 +189,10 @@ class ModelMeta(type):
         )
 
 
-class Model(object):
+ModelBase = ModelMeta('ModelBase', (object,), {})
+
+
+class Model(ModelBase):
     """
     Enclosure for fields and validation. Same pattern deployed by Django
     models, SQLAlchemy declarative extension and other developer friendly
@@ -200,8 +203,7 @@ class Model(object):
     possible to convert the raw data into richer Python constructs.
     """
 
-    __metaclass__ = ModelMeta
-    #__optionsclass__ = ModelOptions
+    __optionsclass__ = ModelOptions
 
     def __init__(self, raw_data=None):  # TODO change back to keywords
         if raw_data is None:
