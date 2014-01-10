@@ -30,7 +30,7 @@ def test_validate_override_context_data():
     p1 = Player({'id': 4})
     data = validate(Player, {'id': 3}, context=p1._data)
 
-    data == {'id': 3}
+    assert data == {'id': 3}
 
 
 def test_validate_ignore_extra_context_data():
