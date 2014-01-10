@@ -1,7 +1,7 @@
 from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.validate import validate
-from schematics.exceptions import ValidationError, ModelConversionError
+from schematics.exceptions import ValidationError
 
 
 def test_validate_simple_dict():
@@ -30,7 +30,7 @@ def test_validate_override_context_data():
     p1 = Player({'id': 4})
     data = validate(Player, {'id': 3}, context=p1._data)
 
-    data == {'id': 3}
+    assert data == {'id': 3}
 
 
 def test_validate_ignore_extra_context_data():
@@ -69,13 +69,13 @@ def test_validate_with_instance_level_validators():
         def validate_id(self, context, value):
             if p1._initial['id'] != value:
                 p1._data['id'] = p1._initial['id']
-                raise ValidationError('Cannot change id')            
+                raise ValidationError('Cannot change id')
 
     p1 = Player({'id': 4})
     p1.id = 3
 
     try:
-        data = validate(Player, p1)
+        validate(Player, p1)
     except ValidationError as e:
         assert 'id' in e.messages
         assert 'Cannot change id' in e.messages['id']

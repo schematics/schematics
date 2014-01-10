@@ -718,7 +718,7 @@ def test_role_set_operations():
         self.assertEqual(d, {
             'md5': myhash
         })
-        
+
         m2 = M(d)
         self.assertEqual(m2.md5, myhash)
 
