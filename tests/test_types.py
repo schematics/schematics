@@ -128,5 +128,3 @@ def test_string_regex():
 
     with pytest.raises(ValidationError):
         StringType(regex='\d+').validate("a")
-
-

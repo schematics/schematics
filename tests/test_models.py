@@ -212,7 +212,7 @@ def test_explicit_values_override_defaults():
 
 def test_good_options_args():
     mo = ModelOptions(klass=None, roles=None)
-    assert mo != None
+    assert mo is not None
 
     assert mo.roles == {}
 
@@ -231,7 +231,7 @@ def test_bad_options_args():
 def test_no_options_args():
     args = {}
     mo = ModelOptions(None, **args)
-    assert mo != None
+    assert mo is not None
 
 
 def test_options_parsing_from_model():
@@ -401,6 +401,6 @@ def test_model_import_data_with_mapping():
     }
 
     user = User()
-    val = user.import_data({'name': 'Ryan'}, mapping=mapping)
+    user.import_data({'name': 'Ryan'}, mapping=mapping)
     assert user.username == 'Ryan'
 
