@@ -251,10 +251,10 @@ class Model(object):
         """
         return convert(self.__class__, raw_data, **kw)
 
-    def to_native(self, role=None):
-        return to_native(self.__class__, self, role=role)
+    def to_native(self, role=None, context=None):
+        return to_native(self.__class__, self, role=role, context=context)
 
-    def to_primitive(self, role=None):
+    def to_primitive(self, role=None, context=None):
         """Return data as it would be validated. No filtering of output unless
         role is defined.
 
@@ -262,10 +262,10 @@ class Model(object):
             Filter output by a specific role
 
         """
-        return to_primitive(self.__class__, self, role=role)
+        return to_primitive(self.__class__, self, role=role, context=context)
 
-    def serialize(self, role=None):
-        return self.to_primitive(role=role)
+    def serialize(self, role=None, context=None):
+        return self.to_primitive(role=role, context=context)
 
     def flatten(self, role=None, prefix=""):
         """

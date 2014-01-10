@@ -64,7 +64,7 @@ class ModelType(MultiType):
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         # We have already checked if the field is required. If it is None it
         # should continue being None
         if value is None:
@@ -82,7 +82,7 @@ class ModelType(MultiType):
         # not obviously useful
         return self.model_class(value)
 
-    def to_primitive(self, model_instance):
+    def to_primitive(self, model_instance, context=None):
         primitive_data = {}
         for field_name, field, value in model_instance.atoms():
             serialized_name = field.serialized_name or field_name
@@ -90,7 +90,8 @@ class ModelType(MultiType):
             if value is None and model_instance.allow_none(field):
                     primitive_data[serialized_name] = None
             else:
-                primitive_data[serialized_name] = field.to_primitive(value)
+                primitive_data[serialized_name] = field.to_primitive(value,
+                                                                     context)
 
         return primitive_data
 
@@ -147,10 +148,10 @@ class ListType(MultiType):
         except TypeError:
             return [value]
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         items = self._force_list(value)
 
-        return map(self.field.to_native, items)
+        return [self.field.to_native(item, context) for item in items]
 
     def check_length(self, value):
         list_length = len(value) if value else 0
@@ -180,8 +181,8 @@ class ListType(MultiType):
         if errors:
             raise ValidationError(errors)
 
-    def to_primitive(self, value):
-        return map(self.field.to_primitive, value)
+    def to_primitive(self, value, context=None):
+        return [self.field.to_primitive(item, context) for item in value]
 
     def export_loop(self, list_instance, field_converter, 
                     role=None, print_none=False):
@@ -234,7 +235,7 @@ class DictType(MultiType):
     def model_class(self):
         return self.field.model_class
 
-    def to_native(self, value, safe=False):
+    def to_native(self, value, safe=False, context=None):
         if value == EMPTY_DICT:
             value = {}
 
@@ -243,7 +244,7 @@ class DictType(MultiType):
         if not isinstance(value, dict):
             raise ValidationError(u'Only dictionaries may be used in a DictType')
 
-        return dict((self.coerce_key(k), self.field.to_native(v))
+        return dict((self.coerce_key(k), self.field.to_native(v, context))
                     for k, v in value.iteritems())
 
     def validate_items(self, items):
@@ -257,8 +258,9 @@ class DictType(MultiType):
         if errors:
             raise ValidationError(errors)
 
-    def to_primitive(self, value):
-        return dict((unicode(k), self.field.to_primitive(v)) for k, v in value.iteritems())
+    def to_primitive(self, value, context=None):
+        return dict((unicode(k), self.field.to_primitive(v, context))
+                    for k, v in value.iteritems())
 
     def export_loop(self, dict_instance, field_converter, 
                     role=None, print_none=False):
