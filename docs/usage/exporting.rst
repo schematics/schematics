@@ -41,6 +41,9 @@ to some other form.  That might be a reduction of the ``Model`` into a
 A field can be serialized if it is an instance of ``BaseType`` or if a function
 is wrapped with the ``@serializable`` decorator.
 
+A ``Model`` instance may be serialized with a particular `context`. A context
+is a ``dict`` passed through the model to each of its fields. A field may use
+values from the context to alter how it is serialized.
 
 .. _exporting_converting_data:  
 
@@ -110,6 +113,36 @@ from here.
      "personal_thoughts": "This movie was great!"
    }'
 
+.. _exporting_using_contexts:
+
+Using Contexts
+--------------
+
+Sometimes a field needs information about its environment to know how to
+serialize itself. For example, suppose we have a custom type called
+``MultiLingualStringType`` that holds several translations of a phrase:
+
+  >>> class TestModel(Model):
+  ...     mls = MultiLingualStringType()
+  ...
+  >>> mls_test = TestModel({'mls': {
+  ...     'en_US': 'Hello, world!',
+  ...     'fr_FR': 'Bonjour tout le monde!',
+  ...     'es_MX': '¡Hola, mundo!',
+  ... }})
+
+Its default serialization might simply return every translation:
+
+  >>> mls_test.to_native()
+  {'mls': {'en_US': 'Hello, world!',
+    'es_MX': '\xc2\xa1Hola, mundo!',
+    'fr_FR': 'Bonjour tout le monde!'}}
+
+However, it could also use information in a `context` to return a more
+appropriate representation:
+
+  >>> mls_test.to_native(context={'locale': 'en_US'})
+  {'mls': 'Hello, world!'}
 
 .. _exporting_compound_types:
 
