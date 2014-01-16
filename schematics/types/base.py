@@ -125,12 +125,12 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
             default = self._default()
         return default
 
-    def to_primitive(self, value):
+    def to_primitive(self, value, context=None):
         """Convert internal data to a value safe to serialize.
         """
         return value
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         """
         Convert untrusted data to a richer Python construct.
         """
@@ -180,12 +180,12 @@ class UUIDType(BaseType):
     """A field that stores a valid UUID value.
     """
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         if not isinstance(value, uuid.UUID):
             value = uuid.UUID(value)
         return value
 
-    def to_primitive(self, value):
+    def to_primitive(self, value, context=None):
         return str(value)
 
 
@@ -252,7 +252,7 @@ class StringType(BaseType):
 
         super(StringType, self).__init__(**kwargs)
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         if value is None:
             return None
 
@@ -360,7 +360,7 @@ class NumberType(BaseType):
 
         super(NumberType, self).__init__(**kwargs)
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         try:
             value = self.number_class(value)
         except (TypeError, ValueError):
@@ -424,10 +424,10 @@ class DecimalType(BaseType):
 
         super(DecimalType, self).__init__(**kwargs)
 
-    def to_primitive(self, value):
+    def to_primitive(self, value, context=None):
         return unicode(value)
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         if not isinstance(value, decimal.Decimal):
             if not isinstance(value, basestring):
                 value = unicode(value)
@@ -458,7 +458,7 @@ class HashType(BaseType):
         'hash_hex': u"Hash value is not hexadecimal.",
     }
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         if len(value) != self.LENGTH:
             raise ValidationError(self.messages['hash_length'])
         try:
@@ -494,7 +494,7 @@ class BooleanType(BaseType):
     TRUE_VALUES = ('True', 'true', '1')
     FALSE_VALUES = ('False', 'false', '0')
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         if isinstance(value, basestring):
             if value in self.TRUE_VALUES:
                 value = True
@@ -520,7 +520,7 @@ class DateType(BaseType):
         self.serialized_format = self.SERIALIZED_FORMAT
         super(DateType, self).__init__(**kwargs)
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         if isinstance(value, datetime.date):
             return value
 
@@ -529,7 +529,7 @@ class DateType(BaseType):
         except (ValueError, TypeError):
             raise ConversionError(self.messages['parse'].format(value))
 
-    def to_primitive(self, value):
+    def to_primitive(self, value, context=None):
         return value.strftime(self.serialized_format)
 
 
@@ -565,7 +565,7 @@ class DateTimeType(BaseType):
         self.serialized_format = serialized_format
         super(DateTimeType, self).__init__(**kwargs)
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         if isinstance(value, datetime.datetime):
             return value
 
@@ -576,7 +576,7 @@ class DateTimeType(BaseType):
                 continue
         raise ConversionError(self.messages['parse'].format(value))
 
-    def to_primitive(self, value):
+    def to_primitive(self, value, context=None):
         if callable(self.serialized_format):
             return self.serialized_format(value)
         return value.strftime(self.serialized_format)
@@ -586,7 +586,7 @@ class GeoPointType(BaseType):
     """A list storing a latitude and longitude.
     """
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         """Make sure that a geo-value is of type (x, y)
         """
         if not len(value) == 2:
