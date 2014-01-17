@@ -612,6 +612,9 @@ class MultilingualStringType(BaseType):
 
     Minimum and maximum lengths apply to each of the localized values.
 
+    At least one of ``default_locale`` or ``context['locale']`` must be defined
+    when calling ``.to_native`` or ``.to_primitive``.
+
     """
 
     allow_casts = (int, str)
@@ -639,6 +642,11 @@ class MultilingualStringType(BaseType):
         super(MultilingualStringType, self).__init__(**kwargs)
 
     def to_native(self, value, context=None):
+        """
+        Use a combination of ``default_locale`` and ``context['locale']`` to return
+        the best localized string.
+
+        """
         if value is None:
             return None
 
