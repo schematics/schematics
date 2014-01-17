@@ -119,11 +119,11 @@ Using Contexts
 --------------
 
 Sometimes a field needs information about its environment to know how to
-serialize itself. For example, suppose we have a custom type called
-``MultiLingualStringType`` that holds several translations of a phrase:
+serialize itself. For example, the ``MultilingualStringType`` holds several
+translations of a phrase:
 
   >>> class TestModel(Model):
-  ...     mls = MultiLingualStringType()
+  ...     mls = MultilingualStringType()
   ...
   >>> mls_test = TestModel({'mls': {
   ...     'en_US': 'Hello, world!',
@@ -131,18 +131,32 @@ serialize itself. For example, suppose we have a custom type called
   ...     'es_MX': '¡Hola, mundo!',
   ... }})
 
-Its default serialization might simply return every translation:
+In this case, serializing without knowing which localized string to use
+wouldn't make sense:
 
-  >>> mls_test.to_native()
-  {'mls': {'en_US': 'Hello, world!',
-    'es_MX': '\xc2\xa1Hola, mundo!',
-    'fr_FR': 'Bonjour tout le monde!'}}
+  >>> mls_test.to_primitive()
+  [...]
+  schematics.exceptions.ConversionError: [u'No default or explicit locales were given.']
 
-However, it could also use information in a `context` to return a more
-appropriate representation:
+Neither does choosing the locale ahead of time, because the same
+MultilingualStringType field might be serialized several times with different
+locales inside the same method.
 
-  >>> mls_test.to_native(context={'locale': 'en_US'})
+However, it could use information in a `context` to return a useful
+representation:
+
+  >>> mls_test.to_primitive(context={'locale': 'en_US'})
   {'mls': 'Hello, world!'}
+
+This allows us to use the same model instance several times with different
+contexts:
+
+
+  >>> for user, locale in [('Joe', 'en_US'), ('Sue', 'es_MX')]:
+  ...     print '%s says %s' % (user, mls_test.to_primitive(context={'locale': locale})['mls'])
+  ...
+  Joe says Hello, world!
+  Sue says ¡Hola, mundo!
 
 .. _exporting_compound_types:
 
