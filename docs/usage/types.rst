@@ -41,7 +41,7 @@ Python ``datetime.datetime``.
 Conversion
 ==========
 
-The ``to_primitive`` function changes it back to a langauge agnostic form, in
+The ``to_primitive`` function changes it back to a language agnostic form, in
 this case an ISO8601 formatted string, just like we used above.
 
 ::

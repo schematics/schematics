@@ -51,7 +51,7 @@ Converting Data
 ===============
 
 To export data is basically to convert from one form to another.  Schematics
-can convert data into simple Python types or a langauge agnostic format.  We
+can convert data into simple Python types or a language agnostic format.  We
 refer to the native serialization as `to_native`, but we refer to the language
 agnostic format as `primitive`, since it has removed all dependencies on
 Python.
