@@ -626,9 +626,10 @@ class MultilingualStringType(BaseType):
         'regex_localized': u"String value in locale %s did not match validation regex.",
     }
 
+    LOCALE_REGEX = r'^[a-z]{2}(:?_[A-Z]{2})?$'
+
     def __init__(self, regex=None, max_length=None, min_length=None,
-                 default_locale=None, locale_regex=r'^[a-z]{2}(:?_[A-Z]{2})?$',
-                 **kwargs):
+                 default_locale=None, locale_regex=LOCALE_REGEX, **kwargs):
         self.regex = re.compile(regex) if regex else None
         self.max_length = max_length
         self.min_length = min_length
@@ -641,22 +642,30 @@ class MultilingualStringType(BaseType):
         if value is None:
             return None
 
+        context_locale = None
         if context is not None and 'locale' in context:
             context_locale = context['locale']
-        else:
-            context_locale = None
 
-        if context_locale is None and self.default_locale is None:
+        # Build a list of all possible locales to try
+        possible_locales = []
+        for locale in (context_locale, self.default_locale):
+            if not locale:
+                continue
+
+            if isinstance(locale, basestring):
+                possible_locales.append(locale)
+            else:
+                possible_locales.extend(locale)
+
+        if not possible_locales:
             raise ConversionError(self.messages['no_locale'])
 
-        if context_locale is not None and context_locale in value:
-            locale = context_locale
-        elif self.default_locale is not None and self.default_locale in value:
-            locale = self.default_locale
+        for locale in possible_locales:
+            if locale in value:
+                localized = value[locale]
+                break
         else:
             raise ConversionError(self.messages['locale_not_found'])
-
-        localized = value[locale]
 
         if not isinstance(localized, unicode):
             if isinstance(localized, self.allow_casts):

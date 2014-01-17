@@ -174,3 +174,20 @@ def test_multilingual_string_without_matching_locale_should_explode():
     with pytest.raises(ConversionError):
         mls.to_native({'fr_FR': 'serpent'})
         mls.to_native({'en_US': 'snake'}, context={'locale': 'fr_FR'})
+
+
+def test_multilingual_string_should_accept_lists_of_locales():
+    strings = {
+        'en_US': 'snake',
+        'fr_FR': 'serpent',
+        'es_MX': 'serpiente',
+    }
+
+    mls = MultilingualStringType(default_locale=['foo', 'fr_FR', 'es_MX'])
+
+    assert mls.to_native(strings) == 'serpent'
+    assert mls.to_native(strings, context={'locale': ['es_MX', 'bar']}) == 'serpiente'
+
+    mls = MultilingualStringType()
+
+    assert mls.to_native(strings, context={'locale': ['foo', 'es_MX', 'fr_FR']}) == 'serpiente'
