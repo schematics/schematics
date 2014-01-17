@@ -613,7 +613,7 @@ class MultilingualStringType(BaseType):
     Minimum and maximum lengths apply to each of the localized values.
 
     At least one of ``default_locale`` or ``context['locale']`` must be defined
-    when calling ``.to_native`` or ``.to_primitive``.
+    when calling ``.to_primitive``.
 
     """
 
@@ -640,6 +640,14 @@ class MultilingualStringType(BaseType):
         self.locale_regex = re.compile(locale_regex) if locale_regex else None
 
         super(MultilingualStringType, self).__init__(**kwargs)
+
+    def to_native(self, value, context=None):
+        """Make sure a MultilingualStringType value is a dict or None."""
+
+        if not (value is None or isinstance(value, dict)):
+            raise ValueError('Value must be a dict or None')
+
+        return value
 
     def to_primitive(self, value, context=None):
         """

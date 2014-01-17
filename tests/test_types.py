@@ -130,6 +130,18 @@ def test_string_regex():
         StringType(regex='\d+').validate("a")
 
 
+def test_multilingualstring_should_only_take_certain_types():
+    mls = MultilingualStringType()
+
+    mls(None)
+    mls({})
+
+    with pytest.raises(ValueError):
+        mls(123)
+        mls([])
+        mls('foo')
+
+
 def test_multilingualstring_should_validate_length():
     MultilingualStringType(min_length=3).validate({'en_US': 'foo'})
     MultilingualStringType(max_length=3).validate({'en_US': 'foo'})
