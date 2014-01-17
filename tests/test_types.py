@@ -150,13 +150,13 @@ def test_multilingualstring_should_validate_regex():
 def test_multilingual_string_should_emit_string_with_default_locale():
     mls = MultilingualStringType(default_locale='en_US')
 
-    assert mls.to_native({'en_US': 'snake', 'fr_FR': 'serpent'}) == 'snake'
+    assert mls.to_primitive({'en_US': 'snake', 'fr_FR': 'serpent'}) == 'snake'
 
 
 def test_multilingual_string_should_emit_string_with_explicit_locale():
     mls = MultilingualStringType(default_locale='en_US')
 
-    assert mls.to_native(
+    assert mls.to_primitive(
         {'en_US': 'snake', 'fr_FR': 'serpent'},
         context={'locale': 'fr_FR'}) == 'serpent'
 
@@ -165,15 +165,15 @@ def test_multilingual_string_should_require_a_locale():
     mls = MultilingualStringType()
 
     with pytest.raises(ConversionError):
-        mls.to_native({'foo': 'bar'})
+        mls.to_primitive({'foo': 'bar'})
 
 
 def test_multilingual_string_without_matching_locale_should_explode():
     mls = MultilingualStringType(default_locale='en_US')
 
     with pytest.raises(ConversionError):
-        mls.to_native({'fr_FR': 'serpent'})
-        mls.to_native({'en_US': 'snake'}, context={'locale': 'fr_FR'})
+        mls.to_primitive({'fr_FR': 'serpent'})
+        mls.to_primitive({'en_US': 'snake'}, context={'locale': 'fr_FR'})
 
 
 def test_multilingual_string_should_accept_lists_of_locales():
@@ -185,9 +185,9 @@ def test_multilingual_string_should_accept_lists_of_locales():
 
     mls = MultilingualStringType(default_locale=['foo', 'fr_FR', 'es_MX'])
 
-    assert mls.to_native(strings) == 'serpent'
-    assert mls.to_native(strings, context={'locale': ['es_MX', 'bar']}) == 'serpiente'
+    assert mls.to_primitive(strings) == 'serpent'
+    assert mls.to_primitive(strings, context={'locale': ['es_MX', 'bar']}) == 'serpiente'
 
     mls = MultilingualStringType()
 
-    assert mls.to_native(strings, context={'locale': ['foo', 'es_MX', 'fr_FR']}) == 'serpiente'
+    assert mls.to_primitive(strings, context={'locale': ['foo', 'es_MX', 'fr_FR']}) == 'serpiente'

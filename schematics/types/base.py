@@ -641,7 +641,7 @@ class MultilingualStringType(BaseType):
 
         super(MultilingualStringType, self).__init__(**kwargs)
 
-    def to_native(self, value, context=None):
+    def to_primitive(self, value, context=None):
         """
         Use a combination of ``default_locale`` and ``context['locale']`` to return
         the best localized string.
@@ -684,8 +684,6 @@ class MultilingualStringType(BaseType):
                 raise ConversionError(self.messages['convert'])
 
         return localized
-
-    to_primitive = to_native
 
     def validate_length(self, value):
         for locale, localized in value.items():
