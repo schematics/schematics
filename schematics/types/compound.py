@@ -79,9 +79,7 @@ class ModelType(MultiType):
                 self.model_class.__name__,
                 type(value).__name__))
 
-        # We don't allow partial submodels because that is just complex and
-        # not obviously useful
-        # ryanolson - partial submodels now available with import_data
+        # partial submodels now available with import_data (ht ryanolson)
         model = self.model_class()
         return model.import_data(value, mapping=mapping)
 
