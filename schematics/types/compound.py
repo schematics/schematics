@@ -64,12 +64,13 @@ class ModelType(MultiType):
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
 
-    def to_native(self, value):
+    def to_native(self, value, mapping=None):
         # We have already checked if the field is required. If it is None it
         # should continue being None
+        if mapping is None:
+            mapping = {}
         if value is None:
             return None
-
         if isinstance(value, self.model_class):
             return value
 
@@ -80,7 +81,9 @@ class ModelType(MultiType):
 
         # We don't allow partial submodels because that is just complex and
         # not obviously useful
-        return self.model_class(value)
+        # ryanolson - partial submodels now available with import_data
+        model = self.model_class()
+        return model.import_data(value, mapping=mapping)
 
     def to_primitive(self, model_instance):
         primitive_data = {}
