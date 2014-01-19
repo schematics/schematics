@@ -404,3 +404,42 @@ def test_model_import_data_with_mapping():
     val = user.import_data({'name': 'Ryan'}, mapping=mapping)
     assert user.username == 'Ryan'
 
+def test_nested_model_import_data_with_mappings():
+    class Nested(Model):
+        nested_attr = StringType()
+
+    class Root(Model):
+        root_attr = StringType()
+        nxt_level = ModelType(Nested)
+    
+    mapping = {
+       'root_attr': ['attr'],
+       'nxt_level': ['next'],
+       'model_mapping': {
+           'nxt_level': {
+               'nested_attr': ['attr'],
+           },
+       },
+    }
+   
+    root = Root()
+    root.import_data({
+        "attr": "root value",
+        "next": {
+            "attr": "nested value",
+        },
+    }, mapping=mapping)
+
+    assert root.root_attr == 'root value'
+    assert root.nxt_level.nested_attr == 'nested value'
+
+    root = Root({
+        "attr": "root value",
+        "next": {
+            "attr": "nested value",
+        },
+    }, deserialize_mapping=mapping)
+    
+    assert root.root_attr == 'root value'
+    assert root.nxt_level.nested_attr == 'nested value'
+
