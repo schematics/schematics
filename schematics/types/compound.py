@@ -94,14 +94,14 @@ class ModelType(MultiType):
 
         return primitive_data
 
-    def export_loop(self, model_instance, field_converter, 
+    def export_loop(self, model_instance, field_converter,
                     role=None, print_none=False):
         """
         Calls the main `export_loop` implementation because they are both
         supposed to operate on models.
         """
         shaped =  export_loop(self.model_class, model_instance,
-                              field_converter, 
+                              field_converter,
                               role=role, print_none=print_none)
 
         if shaped and len(shaped) == 0 and self.allow_none():
@@ -141,7 +141,7 @@ class ListType(MultiType):
                 raise TypeError()
 
             if isinstance(value, dict):
-                return [value[str(k)] for k in sorted(map(int, value.keys()))]
+                return [value[unicode(k)] for k in sorted(map(int, value.keys()))]
 
             return list(value)
         except TypeError:
@@ -183,7 +183,7 @@ class ListType(MultiType):
     def to_primitive(self, value):
         return map(self.field.to_primitive, value)
 
-    def export_loop(self, list_instance, field_converter, 
+    def export_loop(self, list_instance, field_converter,
                     role=None, print_none=False):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
@@ -223,7 +223,7 @@ class DictType(MultiType):
             compound_field = kwargs.pop('compound_field', None)
             field = self.init_compound_field(field, compound_field, **kwargs)
 
-        self.coerce_key = coerce_key or str
+        self.coerce_key = coerce_key or unicode
         self.field = field
 
         validators = [self.validate_items] + kwargs.pop("validators", [])
@@ -260,7 +260,7 @@ class DictType(MultiType):
     def to_primitive(self, value):
         return dict((unicode(k), self.field.to_primitive(v)) for k, v in value.iteritems())
 
-    def export_loop(self, dict_instance, field_converter, 
+    def export_loop(self, dict_instance, field_converter,
                     role=None, print_none=False):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
