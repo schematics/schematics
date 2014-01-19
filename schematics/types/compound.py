@@ -54,6 +54,7 @@ class ModelType(MultiType):
         self.fields = self.model_class.fields
 
         validators = kwargs.pop("validators", [])
+        self.strict = kwargs.pop("strict", True)
 
         def validate_model(model_instance):
             model_instance.validate()
@@ -80,7 +81,7 @@ class ModelType(MultiType):
 
         # We don't allow partial submodels because that is just complex and
         # not obviously useful
-        return self.model_class(value)
+        return self.model_class(value, None, self.strict)
 
     def to_primitive(self, model_instance):
         primitive_data = {}
