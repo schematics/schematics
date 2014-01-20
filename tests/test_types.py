@@ -3,7 +3,7 @@ import datetime
 
 from schematics.types import (
     BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
-    URLType,
+    URLType, MultilingualStringType,
 )
 from schematics.exceptions import ValidationError, ConversionError
 
@@ -128,3 +128,78 @@ def test_string_regex():
 
     with pytest.raises(ValidationError):
         StringType(regex='\d+').validate("a")
+
+
+def test_multilingualstring_should_only_take_certain_types():
+    mls = MultilingualStringType()
+
+    mls(None)
+    mls({})
+
+    with pytest.raises(ValueError):
+        mls(123)
+        mls([])
+        mls('foo')
+
+
+def test_multilingualstring_should_validate_length():
+    MultilingualStringType(min_length=3).validate({'en_US': 'foo'})
+    MultilingualStringType(max_length=3).validate({'en_US': 'foo'})
+
+    with pytest.raises(ValidationError):
+        MultilingualStringType(min_length=4).validate({'en_US': 'foo'})
+        MultilingualStringType(max_length=2).validate({'en_US': 'foo'})
+
+
+def test_multilingualstring_should_validate_regex():
+    MultilingualStringType(regex='^[a-z]*$').validate({'en_US': 'foo'})
+
+    with pytest.raises(ValidationError):
+        MultilingualStringType(regex='^[a-z]*$').validate({'en_US': '123'})
+        MultilingualStringType(locale_regex='^\d*$').validate({'en_US': 'foo'})
+
+
+def test_multilingual_string_should_emit_string_with_default_locale():
+    mls = MultilingualStringType(default_locale='en_US')
+
+    assert mls.to_primitive({'en_US': 'snake', 'fr_FR': 'serpent'}) == 'snake'
+
+
+def test_multilingual_string_should_emit_string_with_explicit_locale():
+    mls = MultilingualStringType(default_locale='en_US')
+
+    assert mls.to_primitive(
+        {'en_US': 'snake', 'fr_FR': 'serpent'},
+        context={'locale': 'fr_FR'}) == 'serpent'
+
+
+def test_multilingual_string_should_require_a_locale():
+    mls = MultilingualStringType()
+
+    with pytest.raises(ConversionError):
+        mls.to_primitive({'foo': 'bar'})
+
+
+def test_multilingual_string_without_matching_locale_should_explode():
+    mls = MultilingualStringType(default_locale='en_US')
+
+    with pytest.raises(ConversionError):
+        mls.to_primitive({'fr_FR': 'serpent'})
+        mls.to_primitive({'en_US': 'snake'}, context={'locale': 'fr_FR'})
+
+
+def test_multilingual_string_should_accept_lists_of_locales():
+    strings = {
+        'en_US': 'snake',
+        'fr_FR': 'serpent',
+        'es_MX': 'serpiente',
+    }
+
+    mls = MultilingualStringType(default_locale=['foo', 'fr_FR', 'es_MX'])
+
+    assert mls.to_primitive(strings) == 'serpent'
+    assert mls.to_primitive(strings, context={'locale': ['es_MX', 'bar']}) == 'serpiente'
+
+    mls = MultilingualStringType()
+
+    assert mls.to_primitive(strings, context={'locale': ['foo', 'es_MX', 'fr_FR']}) == 'serpiente'

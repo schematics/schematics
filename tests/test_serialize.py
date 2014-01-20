@@ -50,7 +50,7 @@ def test_serializable_with_serializable_name():
 def test_serializable_with_custom_serializable_class():
     class PlayerIdType(LongType):
 
-        def to_primitive(self, value):
+        def to_primitive(self, value, context=None):
             return unicode(value)
 
     class Player(Model):
