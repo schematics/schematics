@@ -555,7 +555,7 @@ class DateTimeType(BaseType):
         """
 
         """
-        if isinstance(format, basestring):
+        if isinstance(formats, basestring):
             formats = [formats]
         if formats is None:
             formats = self.DEFAULT_FORMATS
