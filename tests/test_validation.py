@@ -6,7 +6,7 @@ from schematics.exceptions import (
     BaseError, ValidationError, ConversionError,
     ModelValidationError, ModelConversionError,
 )
-from schematics.types import StringType, DateTimeType, BooleanType
+from schematics.types import StringType, DateTimeType, BooleanType, IntType
 from schematics.types.compound import ModelType, ListType, DictType
 
 
@@ -128,6 +128,22 @@ def test_model_validators():
 
     with pytest.raises(ValidationError):
         TestDoc({'publish': future}).validate()
+
+
+def test_model_validators_return_value():
+
+    readonly_value = 42
+
+    class ReadonlyModel(Model):
+        readonly_field = IntType()
+    
+        def validate_readonly_field(self, data, value):
+            return readonly_value
+    
+    model = ReadonlyModel({'readonly_field': 15})   
+    model.validate()
+
+    assert model.readonly_field == readonly_value
 
 
 def test_multi_key_validation():

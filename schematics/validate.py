@@ -79,7 +79,8 @@ def _validate_model(cls, data):
                 context = data
                 if hasattr(cls, '_data'):
                     context = dict(cls._data, **data)
-                cls._validator_functions[field_name](cls, context, value)
+                clean_value = cls._validator_functions[field_name](cls, context, value)
+                data[field_name] = clean_value
             except BaseError as e:
                 field = cls._fields[field_name]
                 serialized_field_name = field.serialized_name or field_name
