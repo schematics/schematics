@@ -171,6 +171,30 @@ def test_multi_key_validation_part_two():
         Signup({'name': u'Brad', 'call_me': True}).validate()
 
 
+def test_multi_key_validation_fields_order():
+    class Signup(Model):
+        name = StringType()
+        call_me = BooleanType(default=False)
+
+        def validate_name(self, data, value):
+            if data['name'] == u'Brad':
+                value = u'Joe'
+                data['name'] = value
+                return value
+            return value
+
+        def validate_call_me(self, data, value):
+            if data['name'] == u'Joe':
+                raise ValidationError(u"Don't try to decept me! You're Joe!")
+            return value
+
+    Signup({'name': u'Tom'}).validate()
+
+    with pytest.raises(ValidationError):
+        Signup({'name': u'Brad'}).validate()
+
+
+
 def test_basic_error():
     class School(Model):
         name = StringType(required=True)
