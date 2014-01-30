@@ -1,4 +1,13 @@
 language: python
+
+
+python:
+  - "3.4"
+  - "3.3"
+  - "2.7"
+  - "2.6"
+  - "pypy"
+
 # command to install dependencies
 install:
     pip install -r dev-requirements.txt
@@ -7,4 +16,3 @@ script: coverage run --source schematics -m py.test
 
 after_success:
     coveralls
-
