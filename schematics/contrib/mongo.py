@@ -3,7 +3,7 @@ a part of the pymongo distribution.
 """
 
 from schematics.types import BaseType
-from schematics.exceptions import ValidationError
+from schematics.exceptions import ValidationError, ConversionError
 
 import bson
 
@@ -22,7 +22,10 @@ class ObjectIdType(BaseType):
 
     def to_native(self, value):
         if not isinstance(value, bson.objectid.ObjectId):
-            value = bson.objectid.ObjectId(unicode(value))
+            try:
+                value = bson.objectid.ObjectId(unicode(value))
+            except bson.errors.InvalidId:
+                raise ConversionError('Invalid ObjectId.')
         return value
 
     def to_primitive(self, value):
@@ -33,5 +36,5 @@ class ObjectIdType(BaseType):
             try:
                 value = bson.objectid.ObjectId(unicode(value))
             except Exception, e:
-                raise ValidationError('Invalid ObjectId')
+                raise ValidationError('Invalid ObjectId.')
         return True
