@@ -104,7 +104,12 @@ class ModelType(MultiType):
         Calls the main `export_loop` implementation because they are both
         supposed to operate on models.
         """
-        shaped =  export_loop(self.model_class, model_instance,
+        if isinstance(model_instance, self.model_class):
+            model_class = model_instance.__class__
+        else:
+            model_class = self.model_class
+
+        shaped =  export_loop(model_class, model_instance,
                               field_converter,
                               role=role, print_none=print_none)
 
