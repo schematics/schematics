@@ -326,10 +326,13 @@ class Model(object):
             return default
 
     @classmethod
-    def get_mock_object(cls, context=None):
-        values = {}
-        for name, field in cls.fields.items():
-            values[name] = field.mock(context)
+    def get_mock_object(cls, context=None, overrides=None):
+        if overrides is None:
+            overrides = {}
+        values = {name: field.mock(context)
+                  for name, field in cls.fields.items()
+                  if name not in overrides}
+        values.update(overrides)
         return cls(values)
 
     def __getitem__(self, name):

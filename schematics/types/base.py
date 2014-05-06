@@ -20,7 +20,7 @@ def force_unicode(obj, encoding='utf-8'):
     return obj
 
 
-def get_length_in(min_length, max_length):
+def get_value_in(min_length, max_length, padding=0):
     if min_length is None and max_length is None:
         min_length = 1
         max_length = 16
@@ -28,12 +28,15 @@ def get_length_in(min_length, max_length):
         min_length = min(0, max_length - 1)
     elif min_length is not None and max_length is None:
         max_length = min_length * 2
+    if padding:
+        max_length = max(1, max_length - padding)
+        if max_length < min_length:
+            min_length = max_length - 1
     return random.randint(min_length, max_length)
 
 
-def random_string(length):
-    return ''.join(random.choice(string.letters + string.digits)
-                   for _ in range(length))
+def random_string(length, chars=string.letters + string.digits):
+    return ''.join(random.choice(chars) for _ in range(length))
 
 
 _last_position_hint = -1
@@ -136,6 +139,9 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
     def __call__(self, value):
         return self.to_native(value)
 
+    def _mock(self, context=None):
+        return None
+
     @property
     def default(self):
         default = self._default
@@ -200,13 +206,13 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
             return random.choice(self.choices)
         return self._mock(context)
 
-    def _mock(self, context=None):
-        return None
-
 
 class UUIDType(BaseType):
     """A field that stores a valid UUID value.
     """
+
+    def _mock(self, context=None):
+        return uuid.uuid4()
 
     def to_native(self, value, context=None):
         if not isinstance(value, uuid.UUID):
@@ -215,9 +221,6 @@ class UUIDType(BaseType):
 
     def to_primitive(self, value, context=None):
         return str(value)
-
-    def _mock(self, context):
-        return uuid.uuid4()
 
 
 class IPv4Type(BaseType):
@@ -228,6 +231,9 @@ class IPv4Type(BaseType):
 
     def _jsonschema_type(self):
         return 'string'
+
+    def _mock(self, context=None):
+        return '.'.join(str(random.randrange(256)) for _ in range(4))
 
     @classmethod
     def valid_ip(cls, addr):
@@ -284,7 +290,7 @@ class StringType(BaseType):
         super(StringType, self).__init__(**kwargs)
 
     def _mock(self, context=None):
-        return random_string(get_length_in(self.min_length, self.max_length))
+        return random_string(get_value_in(self.min_length, self.max_length))
 
     def to_native(self, value, context=None):
         if value is None:
@@ -339,6 +345,12 @@ class URLType(StringType):
         self.verify_exists = verify_exists
         super(URLType, self).__init__(**kwargs)
 
+    def _mock(self, context=None):
+        prefix = 'http://'
+        return 'http://' + random_string(
+            get_value_in(self.min_length, self.max_length,
+                          padding=len(prefix)))
+
     def validate_url(self, value):
         if not URLType.URL_REGEX.match(value):
             raise StopValidation(self.messages['invalid_url'])
@@ -370,6 +382,12 @@ class EmailType(StringType):
         re.IGNORECASE
     )
 
+    def _mock(self, context=None):
+        suffix = '@example.com'
+        return random_string(
+            get_value_in(self.min_length, self.max_length,
+                          padding=len(suffix))) + suffix
+
     def validate_email(self, value):
         if not EmailType.EMAIL_REGEX.match(value):
             raise StopValidation(self.messages['email'])
@@ -393,6 +411,9 @@ class NumberType(BaseType):
         self.max_value = max_value
 
         super(NumberType, self).__init__(**kwargs)
+
+    def _mock(self, context=None):
+        return get_value_in(self.min_value, self.max_value)
 
     def to_native(self, value, context=None):
         try:
@@ -492,6 +513,9 @@ class HashType(BaseType):
         'hash_hex': u"Hash value is not hexadecimal.",
     }
 
+    def _mock(self, context=None):
+        return random_string(self.LENGTH, string.hexdigits)
+
     def to_native(self, value, context=None):
         if len(value) != self.LENGTH:
             raise ValidationError(self.messages['hash_length'])
@@ -528,6 +552,9 @@ class BooleanType(BaseType):
     TRUE_VALUES = ('True', 'true', '1')
     FALSE_VALUES = ('False', 'false', '0')
 
+    def _mock(self, context=None):
+        return random.choice([True, False])
+
     def to_native(self, value, context=None):
         if isinstance(value, basestring):
             if value in self.TRUE_VALUES:
@@ -553,6 +580,13 @@ class DateType(BaseType):
     def __init__(self, **kwargs):
         self.serialized_format = self.SERIALIZED_FORMAT
         super(DateType, self).__init__(**kwargs)
+
+    def _mock(self, context=None):
+        return datetime.datetime(
+            year=random.randrange(600) + 1900,
+            month=random.randrange(12) + 1,
+            day=random.randrange(28) + 1,
+        )
 
     def to_native(self, value, context=None):
         if isinstance(value, datetime.date):
@@ -599,6 +633,17 @@ class DateTimeType(BaseType):
         self.serialized_format = serialized_format
         super(DateTimeType, self).__init__(**kwargs)
 
+    def _mock(self, context=None):
+        return datetime.datetime(
+            year=random.randrange(600) + 1900,
+            month=random.randrange(12) + 1,
+            day=random.randrange(28) + 1,
+            hour=random.randrange(24),
+            minute=random.randrange(60),
+            second=random.randrange(60),
+            microsecond=random.randrange(1000000),
+        )
+
     def to_native(self, value, context=None):
         if isinstance(value, datetime.datetime):
             return value
@@ -619,6 +664,9 @@ class DateTimeType(BaseType):
 class GeoPointType(BaseType):
     """A list storing a latitude and longitude.
     """
+
+    def _mock(self, context=None):
+        return (random.randrange(-90, 90), random.randrange(-90, 90))
 
     def to_native(self, value, context=None):
         """Make sure that a geo-value is of type (x, y)
@@ -674,6 +722,9 @@ class MultilingualStringType(BaseType):
         self.locale_regex = re.compile(locale_regex) if locale_regex else None
 
         super(MultilingualStringType, self).__init__(**kwargs)
+
+    def _mock(self, context=None):
+        return random_string(get_value_in(self.min_length, self.max_length))
 
     def to_native(self, value, context=None):
         """Make sure a MultilingualStringType value is a dict or None."""
