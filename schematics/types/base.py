@@ -4,6 +4,8 @@ import datetime
 import decimal
 import itertools
 import functools
+import random
+import string
 
 from ..exceptions import StopValidation, ValidationError, ConversionError
 
@@ -16,6 +18,22 @@ def force_unicode(obj, encoding='utf-8'):
         obj = unicode(obj)
 
     return obj
+
+
+def get_length_in(min_length, max_length):
+    if min_length is None and max_length is None:
+        min_length = 1
+        max_length = 16
+    elif min_length is None and max_length is not None:
+        min_length = min(0, max_length - 1)
+    elif min_length is not None and max_length is None:
+        max_length = min_length * 2
+    return random.randint(min_length, max_length)
+
+
+def random_string(length):
+    return ''.join(random.choice(string.letters + string.digits)
+                   for _ in range(length))
 
 
 _last_position_hint = -1
@@ -175,6 +193,16 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
                 raise ValidationError(self.messages['choices']
                     .format(unicode(self.choices)))
 
+    def mock(self, context):
+        if not self.required and not random.choice([True, False]):
+            return self.default
+        if self.choices is not None:
+            return random.choice(self.choices)
+        return self._mock(context)
+
+    def _mock(self, context=None):
+        return None
+
 
 class UUIDType(BaseType):
     """A field that stores a valid UUID value.
@@ -187,6 +215,9 @@ class UUIDType(BaseType):
 
     def to_primitive(self, value, context=None):
         return str(value)
+
+    def _mock(self, context):
+        return uuid.uuid4()
 
 
 class IPv4Type(BaseType):
@@ -251,6 +282,9 @@ class StringType(BaseType):
         self.min_length = min_length
 
         super(StringType, self).__init__(**kwargs)
+
+    def _mock(self, context=None):
+        return random_string(get_length_in(self.min_length, self.max_length))
 
     def to_native(self, value, context=None):
         if value is None:

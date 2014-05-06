@@ -325,6 +325,13 @@ class Model(object):
         except KeyError:
             return default
 
+    @classmethod
+    def get_mock_object(cls, context=None):
+        values = {}
+        for name, field in cls.fields.items():
+            values[name] = field.mock(context)
+        return cls(values)
+
     def __getitem__(self, name):
         try:
             return getattr(self, name)
