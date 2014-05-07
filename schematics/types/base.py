@@ -12,6 +12,15 @@ from ..exceptions import (
 )
 
 
+def fill_template(template, min_length, max_length):
+    return template % random_string(
+        get_value_in(
+            min_length,
+            max_length,
+            padding=len(template) - 2,
+            required_length=1))
+
+
 def force_unicode(obj, encoding='utf-8'):
     if isinstance(obj, basestring):
         if not isinstance(obj, unicode):
@@ -360,13 +369,8 @@ class URLType(StringType):
         super(URLType, self).__init__(**kwargs)
 
     def _mock(self, context=None):
-        template = 'http://a%s.ZZ'
-        return template % random_string(
-            get_value_in(
-                self.min_length,
-                self.max_length,
-                padding=len(template) - 2,
-                required_length=1))
+        return fill_template('http://a%s.ZZ', self.min_length,
+                             self.max_length)
 
     def validate_url(self, value):
         if not URLType.URL_REGEX.match(value):
@@ -400,13 +404,8 @@ class EmailType(StringType):
     )
 
     def _mock(self, context=None):
-        template = '%s@example.com'
-        return template % random_string(
-            get_value_in(
-                self.min_length,
-                self.max_length,
-                padding=len(template) - 2,
-                required_length=1))
+        return fill_template('%s@example.com', self.min_length,
+                             self.max_length)
 
     def validate_email(self, value):
         if not EmailType.EMAIL_REGEX.match(value):
