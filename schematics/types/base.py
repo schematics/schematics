@@ -35,9 +35,9 @@ def get_range_endpoints(min_length, max_length, padding=0, required_length=0):
     if min_length is None and max_length is None:
         min_length = 0
         max_length = 16
-    elif min_length is None and max_length is not None:
+    elif min_length is None:
         min_length = 0
-    elif min_length is not None and max_length is None:
+    elif max_length is None:
         max_length = max(min_length * 2, 16)
 
     if padding:
