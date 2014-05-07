@@ -329,9 +329,10 @@ class Model(object):
     def get_mock_object(cls, context=None, overrides=None):
         if overrides is None:
             overrides = {}
-        values = {name: field.mock(context)
-                  for name, field in cls.fields.items()
-                  if name not in overrides}
+        values = {}
+        for name, field in cls.fields.items():
+            if name not in overrides:
+                values[name] = field.mock(context)
         values.update(overrides)
         return cls(values)
 
