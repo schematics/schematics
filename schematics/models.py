@@ -6,7 +6,7 @@ import itertools
 from .types import BaseType
 from .types.compound import ModelType
 from .types.serializable import Serializable
-from .exceptions import BaseError, ModelValidationError
+from .exceptions import BaseError, ModelValidationError, MockCreationError
 from .transforms import allow_none, atoms, flatten, expand
 from .transforms import to_primitive, to_native, convert
 from .validate import validate
@@ -332,7 +332,10 @@ class Model(object):
         values = {}
         for name, field in cls.fields.items():
             if name not in overrides:
-                values[name] = field.mock(context)
+                try:
+                    values[name] = field.mock(context)
+                except MockCreationError as exc:
+                    raise MockCreationError('%s: %s' % (name, exc.message))
         values.update(overrides)
         return cls(values)
 

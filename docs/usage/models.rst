@@ -120,6 +120,22 @@ we can ask Schematic to generate a mock object with reasonable values:
   >>> WeatherReport.get_mock_object().to_primitive()
   {'city': u'zLmeEt7OAGOWI', 'temperature': u'8', 'taken_at': '2014-05-06T17:34:56.396280'}
 
+If you've set a constraint on a field that the mock can't satisfy - such as
+putting a ``max_length`` on a URL field so that it's too small to hold a
+randomly-generated URL - then ``get_mock_object`` will raise a
+``MockCreationError`` exception:
+
+::
+
+  from schematics.types import URLType
+
+  class OverlyStrict(Model):
+      url = URLType(max_length=11, required=True)
+
+  >>> OverlyStrict.get_mock_object()
+  ...
+  schematics.exceptions.MockCreationError: url: This field is too short to hold the mock data
+
 More Information
 ~~~~~~~~~~~~~~~~
 
