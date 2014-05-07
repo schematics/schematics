@@ -192,22 +192,22 @@ def test_flatten_with_listtype():
     input_data = {
         "id": 1,
         "categories": [
-        {
-            "slug": "math",
-            "xp_level": {
-                "level": 1,
-                "stars": 1,
-                "title": "Master",
-            }
-        },
-        {
-            "slug": "twilight",
-            "xp_level": {
-                "level": 2,
-                "stars": 1,
-                "title": "Master",
-            }
-        }]
+            {
+                "slug": "math",
+                "xp_level": {
+                    "level": 1,
+                    "stars": 1,
+                    "title": "Master",
+                }
+            },
+            {
+                "slug": "twilight",
+                "xp_level": {
+                    "level": 2,
+                    "stars": 1,
+                    "title": "Master",
+                }
+            }]
     }
     info = PlayerCategoryInfo(input_data)
 

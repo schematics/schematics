@@ -111,4 +111,5 @@ def test_serializable_doesnt_keep_global_state():
     location_US = Location({"country_code": "US"})
     location_IS = Location({"country_code": "IS"})
 
-    assert id(location_US._serializables["country_name"]) == id(location_IS._serializables["country_name"])
+    assert id(location_US._serializables["country_name"]) == id(
+        location_IS._serializables["country_name"])

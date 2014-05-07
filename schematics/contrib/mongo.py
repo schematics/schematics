@@ -9,6 +9,7 @@ import bson
 
 
 class ObjectIdType(BaseType):
+
     """An field wrapper around MongoDB ObjectIds.  It is correct to say they're
     bson fields, but I am unaware of bson being used outside MongoDB.
 

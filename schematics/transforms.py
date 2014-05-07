@@ -6,16 +6,17 @@ import itertools
 from .types.serializable import Serializable
 from .exceptions import ConversionError, ModelConversionError, ValidationError
 
+
 def _list_or_string(lors):
     if lors is None:
-        return [ ]
+        return []
     if isinstance(lors, basestring):
         return [lors]
     return list(lors)
 
 
 ###
-### Transform Loops
+# Transform Loops
 ###
 
 def import_loop(cls, instance_or_dict, field_converter, context=None,
@@ -48,11 +49,11 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
         error_msg = 'Model conversion requires a model or dict'
         raise ModelConversionError(error_msg)
     if mapping is None:
-        mapping = { }
+        mapping = {}
     data = dict(context) if context is not None else {}
     errors = {}
 
-    ### Determine all acceptable field input names
+    # Determine all acceptable field input names
     all_fields = set(cls._fields) ^ set(cls._serializables)
     for field_name, field, in cls._fields.iteritems():
         if hasattr(field, 'serialized_name'):
@@ -62,8 +63,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
         if field_name in mapping:
             all_fields.update(set(_list_or_string(mapping[field_name])))
 
-
-    ### Check for rogues if strict is set
+    # Check for rogues if strict is set
     rogue_fields = set(instance_or_dict) - set(all_fields)
     if strict and len(rogue_fields) > 0:
         for field in rogue_fields:
@@ -88,7 +88,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
         try:
             if raw_value is None:
                 if field.required and not partial:
-                    errors[serialized_field_name] = [field.messages['required'],]
+                    errors[serialized_field_name] = [field.messages['required'], ]
             else:
                 try:
                     mapping_by_model = mapping.get('model_mapping', {})
@@ -137,7 +137,7 @@ def export_loop(cls, instance_or_dict, field_converter,
     """
     data = {}
 
-    ### Translate `role` into `gottago` function
+    # Translate `role` into `gottago` function
     gottago = wholelist()
     if hasattr(cls, '_options') and role in cls._options.roles:
         gottago = cls._options.roles[role]
@@ -150,11 +150,11 @@ def export_loop(cls, instance_or_dict, field_converter,
     for field_name, field, value in atoms(cls, instance_or_dict):
         serialized_name = field.serialized_name or field_name
 
-        ### Skipping this field was requested
+        # Skipping this field was requested
         if gottago(field_name, value):
             continue
 
-        ### Value found, apply transformation and store it
+        # Value found, apply transformation and store it
         elif value is not None:
             if hasattr(field, 'export_loop'):
                 shaped = field.export_loop(value, field_converter,
@@ -163,7 +163,7 @@ def export_loop(cls, instance_or_dict, field_converter,
             else:
                 shaped = field_converter(field, value)
 
-            ### Print if we want none or found a value
+            # Print if we want none or found a value
             if (shaped is None and allow_none(cls, field)):
                 data[serialized_name] = shaped
             elif shaped is not None:
@@ -171,13 +171,13 @@ def export_loop(cls, instance_or_dict, field_converter,
             elif print_none:
                 data[serialized_name] = shaped
 
-        ### Store None if reqeusted
+        # Store None if reqeusted
         elif value is None and allow_none(cls, field):
             data[serialized_name] = value
         elif print_none:
             data[serialized_name] = value
 
-    ### Return data if the list contains anything
+    # Return data if the list contains anything
     if len(data) > 0:
         return data
     elif print_none:
@@ -224,10 +224,11 @@ def allow_none(cls, field):
 
 
 ###
-### Field Filtering
+# Field Filtering
 ###
 
 class Role(collections.Set):
+
     """
     A ``Role`` object can be used to filter specific fields against a sequence.
 
@@ -240,6 +241,7 @@ class Role(collections.Set):
     is has an opinion on.  When Roles are combined with other roles, the
     filtering behavior of the first role is used.
     """
+
     def __init__(self, function, fields):
         self.function = function
         self.fields = set(fields)
@@ -258,11 +260,11 @@ class Role(collections.Set):
 
     def __eq__(self, other):
         return (self.function.func_name == other.function.func_name and
-            self.fields == other.fields)
+                self.fields == other.fields)
 
     def __str__(self):
         return '%s(%s)' % (self.function.func_name,
-            ', '.join("'%s'" % f for f in self.fields))
+                           ', '.join("'%s'" % f for f in self.fields))
 
     def __repr__(self):
         return '<Role %s>' % str(self)
@@ -275,7 +277,7 @@ class Role(collections.Set):
     def __sub__(self, other):
         fields = self.fields.difference(other)
         return self._from_iterable(fields)
- 
+
     # apply role to field
     def __call__(self, k, v):
         return self.function(k, v, self.fields)
@@ -310,7 +312,7 @@ class Role(collections.Set):
         :param seq:
             The list of fields associated with the ``Role``.
         """
-    
+
         if seq is not None and len(seq) > 0:
             return k not in seq
         return True
@@ -320,7 +322,7 @@ class Role(collections.Set):
         """
         Implements the behavior of a blacklist by requesting a field be skipped
         whenever it's name is found in the list of fields.
-        
+
         :param k:
             The field name to inspect.
         :param v:
@@ -362,7 +364,7 @@ def blacklist(*field_list):
 
 
 ###
-### Import and export functions
+# Import and export functions
 ###
 
 
@@ -423,10 +425,9 @@ def serialize(cls, instance_or_dict, role=None, raise_error_on_role=True,
                         context)
 
 
-
-
 EMPTY_LIST = "[]"
 EMPTY_DICT = "{}"
+
 
 def expand(data, context=None):
     """
@@ -471,7 +472,7 @@ def flatten_to_dict(instance_or_dict, prefix=None, ignore_none=True):
         }
 
         becomes
-        
+
         {
             's': 'jms was hrrr',
             u'l.1': 'here',
@@ -526,7 +527,7 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
     are represented by the structure of the key.
 
     Example:
-    
+
         >>> class Foo(Model):
         ...    s = StringType()
         ...    l = ListType(StringType)
@@ -534,7 +535,7 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
         >>> f = Foo()
         >>> f.s = 'string'
         >>> f.l = ['jms', 'was here', 'and here']
-        
+
         >>> flatten(Foo, f)
         {'s': 'string', u'l.1': 'jms', u'l.0': 'was here', u'l.2': 'and here'}
 
@@ -560,7 +561,7 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
     """
     field_converter = lambda field, value: field.to_primitive(value,
                                                               context=context)
-    
+
     data = export_loop(cls, instance_or_dict, field_converter,
                        role=role, print_none=True)
 

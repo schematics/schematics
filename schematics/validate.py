@@ -30,25 +30,25 @@ def validate(cls, instance_or_dict, partial=False, strict=False, context=None):
     data = {}
     errors = {}
 
-    ### Function for validating an individual field
+    # Function for validating an individual field
     def field_converter(field, value):
         value = field.to_native(value)
         field.validate(value)
         return value
 
-    ### Loop across fields and coerce values
+    # Loop across fields and coerce values
     try:
         data = import_loop(cls, instance_or_dict, field_converter,
                            context=context, partial=partial, strict=strict)
     except ModelConversionError as mce:
         errors = mce.messages
 
-    ### Check if unknown fields are present
+    # Check if unknown fields are present
     if strict:
         rogue_field_errors = _check_for_unknown_fields(cls, data)
         errors.update(rogue_field_errors)
 
-    ### Model level validation
+    # Model level validation
     instance_errors = _validate_model(cls, data)
     errors.update(instance_errors)
 

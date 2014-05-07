@@ -49,6 +49,7 @@ class MultiType(BaseType):
 
 
 class ModelType(MultiType):
+
     def __init__(self, model_class, **kwargs):
         self.model_class = model_class
         self.fields = self.model_class.fields
@@ -91,7 +92,7 @@ class ModelType(MultiType):
             serialized_name = field.serialized_name or field_name
 
             if value is None and model_instance.allow_none(field):
-                    primitive_data[serialized_name] = None
+                primitive_data[serialized_name] = None
             else:
                 primitive_data[serialized_name] = field.to_primitive(value,
                                                                      context)
@@ -104,9 +105,9 @@ class ModelType(MultiType):
         Calls the main `export_loop` implementation because they are both
         supposed to operate on models.
         """
-        shaped =  export_loop(self.model_class, model_instance,
-                              field_converter,
-                              role=role, print_none=print_none)
+        shaped = export_loop(self.model_class, model_instance,
+                             field_converter,
+                             role=role, print_none=print_none)
 
         if shaped and len(shaped) == 0 and self.allow_none():
             return shaped
@@ -203,7 +204,7 @@ class ListType(MultiType):
                 shaped = field_converter(self.field, value)
                 feels_empty = shaped == None
 
-            ### Print if we want empty or found a value
+            # Print if we want empty or found a value
             if (feels_empty and self.allow_none()):
                 data.append(shaped)
             elif shaped is not None:
@@ -211,7 +212,7 @@ class ListType(MultiType):
             elif print_none:
                 data.append(shaped)
 
-        ### Return data if the list contains anything
+        # Return data if the list contains anything
         if len(data) > 0:
             return data
         elif len(data) == 0 and self.allow_none():
@@ -295,4 +296,3 @@ class DictType(MultiType):
             return data
         elif print_none:
             return data
-
