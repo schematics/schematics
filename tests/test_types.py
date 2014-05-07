@@ -3,7 +3,8 @@ import datetime
 
 from schematics.types import (
     BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
-    URLType, MultilingualStringType,
+    URLType, MultilingualStringType, UUIDType, IPv4Type, MD5Type, BooleanType,
+    GeoPointType,
 )
 from schematics.exceptions import ValidationError, ConversionError
 
@@ -203,3 +204,27 @@ def test_multilingual_string_should_accept_lists_of_locales():
     mls = MultilingualStringType()
 
     assert mls.to_primitive(strings, context={'locale': ['foo', 'es_MX', 'fr_FR']}) == 'serpiente'
+
+
+def test_basetype_mock():
+    assert BaseType()._mock() is None
+
+
+def test_other_type_mocks():
+    for cls in [
+        UUIDType,
+        IPv4Type,
+        StringType,
+        URLType,
+        EmailType,
+        IntType,
+        MD5Type,
+        BooleanType,
+        DateType,
+        DateTimeType,
+        GeoPointType,
+    ]:
+        field = cls()
+        for i in range(1000):
+            mock_value = field._mock()
+            field.validate(mock_value)

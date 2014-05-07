@@ -346,10 +346,11 @@ class URLType(StringType):
         super(URLType, self).__init__(**kwargs)
 
     def _mock(self, context=None):
-        prefix = 'http://'
-        return 'http://' + random_string(
+        prefix = 'http://a'
+        suffix = '.ZZ'
+        return prefix + random_string(
             get_value_in(self.min_length, self.max_length,
-                          padding=len(prefix)))
+                         padding=len(prefix) + len(suffix))) + suffix
 
     def validate_url(self, value):
         if not URLType.URL_REGEX.match(value):
