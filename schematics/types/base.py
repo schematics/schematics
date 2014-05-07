@@ -480,6 +480,9 @@ class DecimalType(BaseType):
 
         super(DecimalType, self).__init__(**kwargs)
 
+    def _mock(self, context=None):
+        return get_value_in(self.min_value, self.max_value)
+
     def to_primitive(self, value, context=None):
         return unicode(value)
 
