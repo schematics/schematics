@@ -93,6 +93,33 @@ explained here: :ref:`exporting_serialize_when_none`.
           serialize_when_none = False
 
 
+.. _model_mocking:
+
+Model Mocking
+=============
+
+Testing typically involves creating lots of fake (but plausible) objects. Good
+tests use random values so that multiple tests can run in parallel without
+overwriting each other. Great tests exercise many possible valid input values
+to make sure the code being tested can deal with various combinations.
+
+Schematics models can help you write great tests by automatically generating
+mock objects. Starting with our ``WeatherReport`` model from earlier:
+
+::
+
+  class WeatherReport(Model):
+      city = StringType()
+      temperature = DecimalType()
+      taken_at = DateTimeType(default=datetime.datetime.now)
+
+we can ask Schematic to generate a mock object with reasonable values:
+
+::
+
+  >>> WeatherReport.get_mock_object().to_primitive()
+  {'city': u'zLmeEt7OAGOWI', 'temperature': u'8', 'taken_at': '2014-05-06T17:34:56.396280'}
+
 More Information
 ~~~~~~~~~~~~~~~~
 
