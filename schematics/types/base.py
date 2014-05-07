@@ -7,7 +7,9 @@ import functools
 import random
 import string
 
-from ..exceptions import StopValidation, ValidationError, ConversionError
+from ..exceptions import (
+    StopValidation, ValidationError, ConversionError, MockCreationError
+)
 
 
 def force_unicode(obj, encoding='utf-8'):
@@ -20,19 +22,31 @@ def force_unicode(obj, encoding='utf-8'):
     return obj
 
 
-def get_value_in(min_length, max_length, padding=0):
+def get_range_endpoints(min_length, max_length, padding=0, required_length=0):
     if min_length is None and max_length is None:
-        min_length = 1
+        min_length = 0
         max_length = 16
     elif min_length is None and max_length is not None:
-        min_length = min(0, max_length - 1)
+        min_length = 0
     elif min_length is not None and max_length is None:
-        max_length = min_length * 2
+        max_length = max(min_length * 2, 16)
+
     if padding:
-        max_length = max(1, max_length - padding)
-        if max_length < min_length:
-            min_length = max_length - 1
-    return random.randint(min_length, max_length)
+        max_length = max_length - padding
+        min_length = max(min_length - padding, 0)
+
+    if max_length < required_length:
+        raise MockCreationError(
+            'This field is too short to hold the mock data')
+
+    min_length = max(min_length, required_length)
+
+    return min_length, max_length
+
+
+def get_value_in(min_length, max_length, padding=0, required_length=0):
+    return random.randint(
+        *get_range_endpoints(min_length, max_length, padding, required_length))
 
 
 def random_string(length, chars=string.letters + string.digits):
@@ -199,7 +213,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
                 raise ValidationError(self.messages['choices']
                     .format(unicode(self.choices)))
 
-    def mock(self, context):
+    def mock(self, context=None):
         if not self.required and not random.choice([True, False]):
             return self.default
         if self.choices is not None:
@@ -346,11 +360,13 @@ class URLType(StringType):
         super(URLType, self).__init__(**kwargs)
 
     def _mock(self, context=None):
-        prefix = 'http://a'
-        suffix = '.ZZ'
-        return prefix + random_string(
-            get_value_in(self.min_length, self.max_length,
-                         padding=len(prefix) + len(suffix))) + suffix
+        template = 'http://a%s.ZZ'
+        return template % random_string(
+            get_value_in(
+                self.min_length,
+                self.max_length,
+                padding=len(template) - 2,
+                required_length=1))
 
     def validate_url(self, value):
         if not URLType.URL_REGEX.match(value):
@@ -384,10 +400,13 @@ class EmailType(StringType):
     )
 
     def _mock(self, context=None):
-        suffix = '@example.com'
-        return random_string(
-            get_value_in(self.min_length, self.max_length,
-                          padding=len(suffix))) + suffix
+        template = '%s@example.com'
+        return template % random_string(
+            get_value_in(
+                self.min_length,
+                self.max_length,
+                padding=len(template) - 2,
+                required_length=1))
 
     def validate_email(self, value):
         if not EmailType.EMAIL_REGEX.match(value):

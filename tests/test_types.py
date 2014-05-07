@@ -6,7 +6,10 @@ from schematics.types import (
     URLType, MultilingualStringType, UUIDType, IPv4Type, MD5Type, BooleanType,
     GeoPointType,
 )
-from schematics.exceptions import ValidationError, ConversionError
+from schematics.types.base import get_range_endpoints
+from schematics.exceptions import (
+    ValidationError, ConversionError, MockCreationError
+)
 
 
 def test_date():
@@ -208,6 +211,31 @@ def test_multilingual_string_should_accept_lists_of_locales():
 
 def test_basetype_mock():
     assert BaseType()._mock() is None
+
+
+def test_get_range_endpoints_without_padding():
+    assert get_range_endpoints(None, None) == (0, 16)
+    assert get_range_endpoints(None, 20) == (0, 20)
+    assert get_range_endpoints(2, None) == (2, 16)
+    assert get_range_endpoints(9, None) == (9, 18)
+
+
+def test_get_range_endpoints_with_padding():
+    with pytest.raises(MockCreationError):
+        get_range_endpoints(None, None, padding=17)
+    assert get_range_endpoints(None, None, padding=8) == (0, 8)
+    assert get_range_endpoints(None, 20, padding=8) == (0, 12)
+    assert get_range_endpoints(2, None, padding=8) == (0, 8)
+    assert get_range_endpoints(9, None, padding=8) == (1, 10)
+
+
+def test_get_range_endpoints_with_required_length():
+    with pytest.raises(MockCreationError):
+        get_range_endpoints(None, None, required_length=17)
+    assert get_range_endpoints(None, None, required_length=2) == (2, 16)
+    assert get_range_endpoints(None, 20, required_length=2) == (2, 20)
+    assert get_range_endpoints(2, None, required_length=2) == (2, 16)
+    assert get_range_endpoints(9, None, required_length=2) == (9, 18)
 
 
 def test_other_type_mocks():
