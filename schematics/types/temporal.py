@@ -19,22 +19,6 @@ class TimeStampType(DateTimeType):
     instead of a ISO-8601 string.
     """
 
-    def __set__(self, instance, value):
-        """Will try to parse the value as a timestamp.  If that fails it
-        will fallback to DateTimeType's value parsing.
-
-        A datetime may be used (and is encouraged).
-        """
-        if not value:
-            return
-
-        try:
-            value = TimeStampType.timestamp_to_date(value)
-        except TypeError:
-            pass
-
-        super(TimeStampType, self).__set__(instance, value)
-
     @classmethod
     def timestamp_to_date(cls, value):
         return datetime.datetime.fromtimestamp(value, tz=tzutc())
