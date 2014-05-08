@@ -69,23 +69,23 @@ class OrderedDict(dict):
     """
 
     def __init__(self, *args, **kwargs):
-        dict.__init__(self)
+        super(OrderedDict, self).__init__()
         self._keys = []
         self.update(*args, **kwargs)
 
     def __delitem__(self, key):
-        dict.__delitem__(self, key)
+        super(OrderedDict, self).__delitem__(key)
         self._keys.remove(key)
 
     def __setitem__(self, key, item):
         if key not in self:
             self._keys.append(key)
-        dict.__setitem__(self, key, item)
+        super(OrderedDict, self).__setitem__(key, item)
 
     def __deepcopy__(self, memo):
         d = memo.get(id(self), _missing)
         memo[id(self)] = d = self.__class__()
-        dict.__init__(d, deepcopy(self.items(), memo))
+        d.__init__(deepcopy(self.items(), memo))
         d._keys = self._keys[:]
         return d
 
@@ -98,7 +98,7 @@ class OrderedDict(dict):
 
     def clear(self):
         del self._keys[:]
-        dict.clear(self)
+        super(OrderedDict, self).clear()
 
     def copy(self):
         return self.__class__(self)
@@ -121,7 +121,7 @@ class OrderedDict(dict):
                 raise KeyError(key)
             return default
         self._keys.remove(key)
-        return dict.pop(self, key, default)
+        return super(OrderedDict, self).pop(key, default)
 
     def popitem(self):
         if not self._keys:
@@ -131,7 +131,7 @@ class OrderedDict(dict):
     def setdefault(self, key, default=None):
         if key not in self:
             self._keys.append(key)
-        return dict.setdefault(self, key, default)
+        return super(OrderedDict, self).setdefault(key, default)
 
     def update(self, *args, **kwargs):
         sources = []
