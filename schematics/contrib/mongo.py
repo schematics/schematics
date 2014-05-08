@@ -32,6 +32,6 @@ class ObjectIdType(BaseType):
         if not isinstance(value, bson.objectid.ObjectId):
             try:
                 value = bson.objectid.ObjectId(unicode(value))
-            except Exception, e:
+            except Exception:
                 raise ValidationError('Invalid ObjectId')
         return True
