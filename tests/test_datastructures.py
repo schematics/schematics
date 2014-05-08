@@ -60,13 +60,6 @@ def test_od_clear():
     assert od == {}
 
 
-def test_od_move():
-    od = OrderedDict([('a', 'b'), ('c', 'd'), ('foo', 'bar')])
-    od.move('foo', 0)
-
-    assert od.keys() == ['foo', 'a', 'c']
-
-
 def test_od_copy():
     od = OrderedDict([('a', 'b'), ('c', 'd'), ('foo', object())])
     new_od = od.copy()
@@ -136,26 +129,6 @@ def test_od_update():
         pass
     else:
         raise AssertionError('update should not accept more than one argument')
-
-
-def test_od_index():
-    od = OrderedDict([('a', 'b'), ('c', 'd')])
-
-    assert od.index('a') == 0
-
-
-def test_od_byitem():
-    od = OrderedDict([('a', 'b'), ('c', 'd'), ('foo', 'bar')])
-
-    assert od.byindex(1) == ('c', 'd')
-
-
-def test_reverse():
-    od = OrderedDict([('a', 'b'), ('c', 'd'), ('foo', 'bar')])
-
-    od.reverse()
-
-    assert od.keys() == ['foo', 'c', 'a']
 
 
 def test_sort():

@@ -56,19 +56,7 @@ class OrderedDict(dict):
     >>> list(d.iteritems())
     [('a', 'b'), ('c', 'd'), ('foo', 'bar'), ('spam', [])]
 
-    Index based lookup is supported too by `byindex` which returns the
-    key/value pair for an index:
-
-    >>> d.byindex(2)
-    ('foo', 'bar')
-
-    You can reverse the OrderedDict as well:
-
-    >>> d.reverse()
-    >>> d
-    OrderedDict([('spam', []), ('foo', 'bar'), ('c', 'd'), ('a', 'b')])
-
-    And sort it like a list:
+    You can sort the OrderedDict like a list:
 
     >>> d.sort(key=lambda x: x[0].lower())
     >>> d
@@ -111,10 +99,6 @@ class OrderedDict(dict):
     def clear(self):
         del self._keys[:]
         dict.clear(self)
-
-    def move(self, key, index):
-        self._keys.remove(key)
-        self._keys.insert(index, key)
 
     def copy(self):
         return self.__class__(self)
@@ -169,16 +153,6 @@ class OrderedDict(dict):
 
     def itervalues(self):
         return imap(self.get, self._keys)
-
-    def index(self, item):
-        return self._keys.index(item)
-
-    def byindex(self, item):
-        key = self._keys[item]
-        return (key, dict.__getitem__(self, key))
-
-    def reverse(self):
-        self._keys.reverse()
 
     def sort(self, cmp=None, key=None, reverse=False):
         if key is not None:
