@@ -364,7 +364,13 @@ class Model(object):
             u = unicode(self)
         except (UnicodeEncodeError, UnicodeDecodeError):
             u = '[Bad Unicode data]'
-        return u"<%s: %s>" % (self.__class__.__name__, u)
+
+        try:
+            class_name = unicode(self.__class__.__name__)
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            class_name = '[Bad Unicode class name]'
+
+        return u"<%s: %s>" % (class_name, u)
 
     def __unicode__(self):
         return '%s object' % self.__class__.__name__
