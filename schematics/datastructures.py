@@ -1,3 +1,4 @@
+from copy import deepcopy
 from itertools import izip, imap
 
 _missing = object()
@@ -100,9 +101,6 @@ class OrderedDict(dict):
         d._keys = self._keys[:]
         return d
 
-    def __reduce__(self):
-        return type(self), self.items()
-
     def __reversed__(self):
         return reversed(self._keys)
 
@@ -134,21 +132,22 @@ class OrderedDict(dict):
         return iter(self._keys)
 
     def pop(self, key, default=_missing):
-        if default is _missing:
-            return dict.pop(self, key)
-        elif key not in self:
+        if key not in self:
+            if default is _missing:
+                raise KeyError(key)
             return default
         self._keys.remove(key)
         return dict.pop(self, key, default)
 
-    def popitem(self, key):
-        self._keys.remove(key)
-        return dict.popitem(self, key)
+    def popitem(self):
+        if not self._keys:
+            raise KeyError('popitem(): dictionary is empty')
+        return self._keys[0], self.pop(self._keys[0])
 
     def setdefault(self, key, default=None):
         if key not in self:
             self._keys.append(key)
-        dict.setdefault(self, key, default)
+        return dict.setdefault(self, key, default)
 
     def update(self, *args, **kwargs):
         sources = []
