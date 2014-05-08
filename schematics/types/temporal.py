@@ -45,6 +45,6 @@ class TimeStampType(DateTimeType):
             value = value.replace(tzinfo=tzlocal())
         return int(round(mktime(value.astimezone(tzutc()).timetuple())))
 
-    def to_primitive(self, value):
+    def to_primitive(self, value, context=None):
         v = TimeStampType.date_to_timestamp(value)
         return v

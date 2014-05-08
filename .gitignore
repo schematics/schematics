@@ -19,4 +19,4 @@ docs/_build
 /include
 /.Python
 /.cache
-
+.coverage

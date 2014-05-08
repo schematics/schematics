@@ -20,12 +20,12 @@ class ObjectIdType(BaseType):
         self.auto_fill = auto_fill
         super(ObjectIdType, self).__init__(**kwargs)
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         if not isinstance(value, bson.objectid.ObjectId):
             value = bson.objectid.ObjectId(unicode(value))
         return value
 
-    def to_primitive(self, value):
+    def to_primitive(self, value, context=None):
         return str(value)
 
     def validate_id(self, value):

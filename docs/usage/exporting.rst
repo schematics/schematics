@@ -41,6 +41,9 @@ to some other form.  That might be a reduction of the ``Model`` into a
 A field can be serialized if it is an instance of ``BaseType`` or if a function
 is wrapped with the ``@serializable`` decorator.
 
+A ``Model`` instance may be serialized with a particular `context`. A context
+is a ``dict`` passed through the model to each of its fields. A field may use
+values from the context to alter how it is serialized.
 
 .. _exporting_converting_data:  
 
@@ -48,7 +51,7 @@ Converting Data
 ===============
 
 To export data is basically to convert from one form to another.  Schematics
-can convert data into simple Python types or a langauge agnostic format.  We
+can convert data into simple Python types or a language agnostic format.  We
 refer to the native serialization as `to_native`, but we refer to the language
 agnostic format as `primitive`, since it has removed all dependencies on
 Python.
@@ -110,6 +113,50 @@ from here.
      "personal_thoughts": "This movie was great!"
    }'
 
+.. _exporting_using_contexts:
+
+Using Contexts
+--------------
+
+Sometimes a field needs information about its environment to know how to
+serialize itself. For example, the ``MultilingualStringType`` holds several
+translations of a phrase:
+
+  >>> class TestModel(Model):
+  ...     mls = MultilingualStringType()
+  ...
+  >>> mls_test = TestModel({'mls': {
+  ...     'en_US': 'Hello, world!',
+  ...     'fr_FR': 'Bonjour tout le monde!',
+  ...     'es_MX': '¡Hola, mundo!',
+  ... }})
+
+In this case, serializing without knowing which localized string to use
+wouldn't make sense:
+
+  >>> mls_test.to_primitive()
+  [...]
+  schematics.exceptions.ConversionError: [u'No default or explicit locales were given.']
+
+Neither does choosing the locale ahead of time, because the same
+MultilingualStringType field might be serialized several times with different
+locales inside the same method.
+
+However, it could use information in a `context` to return a useful
+representation:
+
+  >>> mls_test.to_primitive(context={'locale': 'en_US'})
+  {'mls': 'Hello, world!'}
+
+This allows us to use the same model instance several times with different
+contexts:
+
+
+  >>> for user, locale in [('Joe', 'en_US'), ('Sue', 'es_MX')]:
+  ...     print '%s says %s' % (user, mls_test.to_primitive(context={'locale': locale})['mls'])
+  ...
+  Joe says Hello, world!
+  Sue says ¡Hola, mundo!
 
 .. _exporting_compound_types:
 

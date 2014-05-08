@@ -90,7 +90,12 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
                 if field.required and not partial:
                     errors[serialized_field_name] = [field.messages['required'],]
             else:
-                raw_value = field_converter(field, raw_value)
+                try:
+                    mapping_by_model = mapping.get('model_mapping', {})
+                    model_mapping = mapping_by_model.get(field_name, {})
+                    raw_value = field_converter(field, raw_value, mapping=model_mapping)
+                except:
+                    raw_value = field_converter(field, raw_value)
 
             data[field_name] = raw_value
 
@@ -363,20 +368,28 @@ def blacklist(*field_list):
 
 def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
             mapping=None):
-    field_converter = lambda field, value: field.to_native(value)
+    def field_converter(field, value, mapping=None):
+        try:
+            return field.to_native(value, mapping=mapping)
+        except:
+            return field.to_native(value)
+#   field_converter = lambda field, value: field.to_native(value)
     data = import_loop(cls, instance_or_dict, field_converter, context=context,
                        partial=partial, strict=strict, mapping=mapping)
     return data
 
 
-def to_native(cls, instance_or_dict, role=None, raise_error_on_role=True):
-    field_converter = lambda field, value: field.to_native(value)
+def to_native(cls, instance_or_dict, role=None, raise_error_on_role=True,
+              context=None):
+    field_converter = lambda field, value: field.to_native(value,
+                                                           context=context)
     data = export_loop(cls, instance_or_dict, field_converter,
                        role=role, raise_error_on_role=raise_error_on_role)
     return data
 
 
-def to_primitive(cls, instance_or_dict, role=None, raise_error_on_role=True):
+def to_primitive(cls, instance_or_dict, role=None, raise_error_on_role=True,
+                 context=None):
     """
     Implements serialization as a mechanism to convert ``Model`` instances into
     dictionaries keyed by field_names with the converted data as the values.
@@ -397,14 +410,17 @@ def to_primitive(cls, instance_or_dict, role=None, raise_error_on_role=True):
         This parameter enforces strict behavior which requires substructures
         to have the same role definition as their parent structures.
     """
-    field_converter = lambda field, value: field.to_primitive(value)
+    field_converter = lambda field, value: field.to_primitive(value,
+                                                              context=context)
     data = export_loop(cls, instance_or_dict, field_converter,
                        role=role, raise_error_on_role=raise_error_on_role)
     return data
 
 
-def serialize(cls, instance_or_dict, role=None, raise_error_on_role=True):
-    return to_primitive(cls, instance_or_dict, role, raise_error_on_role)
+def serialize(cls, instance_or_dict, role=None, raise_error_on_role=True,
+              context=None):
+    return to_primitive(cls, instance_or_dict, role, raise_error_on_role,
+                        context)
 
 
 
@@ -503,7 +519,7 @@ def flatten_to_dict(instance_or_dict, prefix=None, ignore_none=True):
 
 
 def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
-            ignore_none=True, prefix=None):
+            ignore_none=True, prefix=None, context=None):
     """
     Produces a flat dictionary representation of the model.  Flat, in this
     context, means there is only one level to the dictionary.  Multiple layers
@@ -542,7 +558,8 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
         This puts a prefix in front of the field names during flattening.
         Default: None
     """
-    field_converter = lambda field, value: field.to_primitive(value)
+    field_converter = lambda field, value: field.to_primitive(value,
+                                                              context=context)
     
     data = export_loop(cls, instance_or_dict, field_converter,
                        role=role, print_none=True)

@@ -238,7 +238,7 @@ def test_flatten_with_dicttype_empty_value():
     p = PlayerCategoryInfo(dict(id="1", categories={}))
     flat = p.flatten()
 
-    flat == {
+    assert flat == {
         "id": "1",
         "categories": EMPTY_DICT,
     }
@@ -263,7 +263,7 @@ def test_flatten_with_dicttype_basic_types():
     }
 
     p_from_flat = PlayerCategoryInfo.from_flat(flat)
-    p == p_from_flat
+    assert p == p_from_flat
 
 
 def test_flatten_with_dicttype_model_types():
@@ -283,14 +283,14 @@ def test_flatten_with_dicttype_model_types():
     ))
     flat = p.flatten()
 
-    flat == {
+    assert flat == {
         "id": "1",
         "categories.a.total_wins": 1,
         "categories.b.total_wins": 5,
     }
 
     p_from_flat = PlayerCategoryInfo.from_flat(flat)
-    p == p_from_flat
+    assert p == p_from_flat
 
 
 def test_flatten_serializables_on_by_default():
@@ -309,7 +309,7 @@ def test_flatten_serializables_on_by_default():
 
     player = Player({"total_points": 2})
 
-    player.xp_level.level == 4
+    assert player.xp_level.level == 4
 
     flat = player.flatten()
     assert flat == {"total_points": 2, "xp_level.level": 4, "xp_level.title": "Best"}
@@ -420,7 +420,7 @@ def test_expand_with_both_empty_dict_and_values():
         flat_data = OrderedDict(ordering)
 
         expanded = expand(flat_data)
-        expanded == {
+        assert expanded == {
             "categories": {
                 "basketball": {
                     "category_slug": "basketball",
@@ -456,7 +456,7 @@ def test_expand_with_both_empty_list_and_values():
         flat_data = OrderedDict(ordering)
 
         expanded = expand(flat_data)
-        expanded == {
+        assert expanded == {
             "categories": {
                 "0": "basketball",
                 "1": "0",

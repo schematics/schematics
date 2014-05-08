@@ -125,12 +125,12 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
             default = self._default()
         return default
 
-    def to_primitive(self, value):
+    def to_primitive(self, value, context=None):
         """Convert internal data to a value safe to serialize.
         """
         return value
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         """
         Convert untrusted data to a richer Python construct.
         """
@@ -180,12 +180,12 @@ class UUIDType(BaseType):
     """A field that stores a valid UUID value.
     """
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         if not isinstance(value, uuid.UUID):
             value = uuid.UUID(value)
         return value
 
-    def to_primitive(self, value):
+    def to_primitive(self, value, context=None):
         return str(value)
 
 
@@ -252,7 +252,7 @@ class StringType(BaseType):
 
         super(StringType, self).__init__(**kwargs)
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         if value is None:
             return None
 
@@ -360,7 +360,7 @@ class NumberType(BaseType):
 
         super(NumberType, self).__init__(**kwargs)
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         try:
             value = self.number_class(value)
         except (TypeError, ValueError):
@@ -424,10 +424,10 @@ class DecimalType(BaseType):
 
         super(DecimalType, self).__init__(**kwargs)
 
-    def to_primitive(self, value):
+    def to_primitive(self, value, context=None):
         return unicode(value)
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         if not isinstance(value, decimal.Decimal):
             if not isinstance(value, basestring):
                 value = unicode(value)
@@ -458,7 +458,7 @@ class HashType(BaseType):
         'hash_hex': u"Hash value is not hexadecimal.",
     }
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         if len(value) != self.LENGTH:
             raise ValidationError(self.messages['hash_length'])
         try:
@@ -494,7 +494,7 @@ class BooleanType(BaseType):
     TRUE_VALUES = ('True', 'true', '1')
     FALSE_VALUES = ('False', 'false', '0')
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         if isinstance(value, basestring):
             if value in self.TRUE_VALUES:
                 value = True
@@ -520,7 +520,7 @@ class DateType(BaseType):
         self.serialized_format = self.SERIALIZED_FORMAT
         super(DateType, self).__init__(**kwargs)
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         if isinstance(value, datetime.date):
             return value
 
@@ -529,7 +529,7 @@ class DateType(BaseType):
         except (ValueError, TypeError):
             raise ConversionError(self.messages['parse'].format(value))
 
-    def to_primitive(self, value):
+    def to_primitive(self, value, context=None):
         return value.strftime(self.serialized_format)
 
 
@@ -555,7 +555,7 @@ class DateTimeType(BaseType):
         """
 
         """
-        if isinstance(format, basestring):
+        if isinstance(formats, basestring):
             formats = [formats]
         if formats is None:
             formats = self.DEFAULT_FORMATS
@@ -565,7 +565,7 @@ class DateTimeType(BaseType):
         self.serialized_format = serialized_format
         super(DateTimeType, self).__init__(**kwargs)
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         if isinstance(value, datetime.datetime):
             return value
 
@@ -576,7 +576,7 @@ class DateTimeType(BaseType):
                 continue
         raise ConversionError(self.messages['parse'].format(value))
 
-    def to_primitive(self, value):
+    def to_primitive(self, value, context=None):
         if callable(self.serialized_format):
             return self.serialized_format(value)
         return value.strftime(self.serialized_format)
@@ -586,7 +586,7 @@ class GeoPointType(BaseType):
     """A list storing a latitude and longitude.
     """
 
-    def to_native(self, value):
+    def to_native(self, value, context=None):
         """Make sure that a geo-value is of type (x, y)
         """
         if not len(value) == 2:
@@ -603,3 +603,115 @@ class GeoPointType(BaseType):
             raise ValueError('GeoPointType can only accept tuples, lists, or dicts')
 
         return value
+
+
+class MultilingualStringType(BaseType):
+
+    """
+    A multilanguage string field, stored as a dict with {'locale': 'localized_value'}.
+
+    Minimum and maximum lengths apply to each of the localized values.
+
+    At least one of ``default_locale`` or ``context['locale']`` must be defined
+    when calling ``.to_primitive``.
+
+    """
+
+    allow_casts = (int, str)
+
+    MESSAGES = {
+        'convert': u"Couldn't interpret value as string.",
+        'max_length': u"String value in locale %s is too long.",
+        'min_length': u"String value in locale %s is too short.",
+        'locale_not_found': u"No requested locale was available.",
+        'no_locale': u"No default or explicit locales were given.",
+        'regex_locale': u"Name of locale %s did not match validation regex.",
+        'regex_localized': u"String value in locale %s did not match validation regex.",
+    }
+
+    LOCALE_REGEX = r'^[a-z]{2}(:?_[A-Z]{2})?$'
+
+    def __init__(self, regex=None, max_length=None, min_length=None,
+                 default_locale=None, locale_regex=LOCALE_REGEX, **kwargs):
+        self.regex = re.compile(regex) if regex else None
+        self.max_length = max_length
+        self.min_length = min_length
+        self.default_locale = default_locale
+        self.locale_regex = re.compile(locale_regex) if locale_regex else None
+
+        super(MultilingualStringType, self).__init__(**kwargs)
+
+    def to_native(self, value, context=None):
+        """Make sure a MultilingualStringType value is a dict or None."""
+
+        if not (value is None or isinstance(value, dict)):
+            raise ValueError('Value must be a dict or None')
+
+        return value
+
+    def to_primitive(self, value, context=None):
+        """
+        Use a combination of ``default_locale`` and ``context['locale']`` to return
+        the best localized string.
+
+        """
+        if value is None:
+            return None
+
+        context_locale = None
+        if context is not None and 'locale' in context:
+            context_locale = context['locale']
+
+        # Build a list of all possible locales to try
+        possible_locales = []
+        for locale in (context_locale, self.default_locale):
+            if not locale:
+                continue
+
+            if isinstance(locale, basestring):
+                possible_locales.append(locale)
+            else:
+                possible_locales.extend(locale)
+
+        if not possible_locales:
+            raise ConversionError(self.messages['no_locale'])
+
+        for locale in possible_locales:
+            if locale in value:
+                localized = value[locale]
+                break
+        else:
+            raise ConversionError(self.messages['locale_not_found'])
+
+        if not isinstance(localized, unicode):
+            if isinstance(localized, self.allow_casts):
+                if not isinstance(localized, str):
+                    localized = str(localized)
+                localized = unicode(localized, 'utf-8')
+            else:
+                raise ConversionError(self.messages['convert'])
+
+        return localized
+
+    def validate_length(self, value):
+        for locale, localized in value.items():
+            len_of_value = len(localized) if localized else 0
+
+            if self.max_length is not None and len_of_value > self.max_length:
+                raise ValidationError(self.messages['max_length'] % locale)
+
+            if self.min_length is not None and len_of_value < self.min_length:
+                raise ValidationError(self.messages['min_length'] % locale)
+
+    def validate_regex(self, value):
+        if self.regex is None and self.locale_regex is None:
+            return
+
+        for locale, localized in value.items():
+            if self.regex is not None and self.regex.match(localized) is None:
+                raise ValidationError(
+                    self.messages['regex_localized'] % locale)
+
+            if self.locale_regex is not None and self.locale_regex.match(locale) is None:
+                raise ValidationError(
+                    self.messages['regex_locale'] % locale)

@@ -1,2 +1,2 @@
 ordereddict==1.1
-pytest==2.3.5
+pytest==2.5.1

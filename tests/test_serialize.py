@@ -23,6 +23,9 @@ def test_serializable():
     d = location_US.serialize()
     assert d == {"country_code": "US", "country_name": "United States"}
 
+    d = location_US.to_native()
+    assert d == {"country_code": u"US", "country_name": "United States"}
+
     location_IS = Location({"country_code": "IS"})
 
     assert location_IS.country_name == "Unknown"
@@ -50,7 +53,7 @@ def test_serializable_with_serializable_name():
 def test_serializable_with_custom_serializable_class():
     class PlayerIdType(LongType):
 
-        def to_primitive(self, value):
+        def to_primitive(self, value, context=None):
             return unicode(value)
 
     class Player(Model):
@@ -718,7 +721,7 @@ def test_role_set_operations():
         self.assertEqual(d, {
             'md5': myhash
         })
-        
+
         m2 = M(d)
         self.assertEqual(m2.md5, myhash)
 
