@@ -30,6 +30,7 @@ def test_od_deepcopy():
     assert od['a'] is lst
     assert lst == [1, 2, 3]
     assert new_od['a'] == [1, 2, 3, 4]
+    assert od.keys() == new_od.keys()
 
 
 def test_od_reduce():

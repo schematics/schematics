@@ -1,5 +1,5 @@
 from copy import deepcopy
-from itertools import izip, imap
+from itertools import izip
 
 _missing = object()
 
@@ -83,11 +83,9 @@ class OrderedDict(dict):
         super(OrderedDict, self).__setitem__(key, item)
 
     def __deepcopy__(self, memo):
-        d = memo.get(id(self), _missing)
-        memo[id(self)] = d = self.__class__()
-        d.__init__(deepcopy(self.items(), memo))
-        d._keys = self._keys[:]
-        return d
+        memo[id(self)] = new_od = self.__class__()
+        new_od.__init__(deepcopy(self.items(), memo))
+        return new_od
 
     def __reversed__(self):
         return reversed(self._keys)
@@ -149,10 +147,10 @@ class OrderedDict(dict):
                 self[key] = val
 
     def values(self):
-        return map(self.get, self._keys)
+        return [self.get(key) for key in self._keys]
 
     def itervalues(self):
-        return imap(self.get, self._keys)
+        return (self.get(key) for key in self._keys)
 
     def sort(self, cmp=None, key=None, reverse=False):
         if key is not None:
