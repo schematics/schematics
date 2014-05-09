@@ -23,12 +23,12 @@ def serializable(*args, **kwargs):
     :param serialized_name:
         The name of this field in the serialized output.
     """
-    def wrapper(f):
-        serialized_type = kwargs.pop("type", BaseType())
+    def wrapper(func):
+        serialized_type = kwargs.pop("type", BaseType())  # pylint: disable=no-value-for-parameter
         serialized_name = kwargs.pop("serialized_name", None)
         serialize_when_none = kwargs.pop("serialize_when_none", True)
-        return Serializable(f, type=serialized_type, serialized_name=serialized_name,
-            serialize_when_none=serialize_when_none)
+        return Serializable(func, type=serialized_type, serialized_name=serialized_name,
+                            serialize_when_none=serialize_when_none)
 
     if len(args) == 1 and callable(args[0]):
         # No arguments, this is the decorator
@@ -40,14 +40,14 @@ def serializable(*args, **kwargs):
 
 class Serializable(object):
 
-    def __init__(self, f, type=None, serialized_name=None, serialize_when_none=True):
-        self.f = f
+    def __init__(self, func, type=None, serialized_name=None, serialize_when_none=True):
+        self.func = func
         self.type = type
         self.serialized_name = serialized_name
         self.serialize_when_none = serialize_when_none
 
-    def __get__(self, object, owner):
-        return self.f(object)
+    def __get__(self, instance, cls):
+        return self.func(instance)
 
     def to_native(self, value, context=None):
         return self.type.to_native(value, context)
