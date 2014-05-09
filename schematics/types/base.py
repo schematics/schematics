@@ -192,12 +192,6 @@ class UUIDType(BaseType):
 class IPv4Type(BaseType):
     """ A field that stores a valid IPv4 address """
 
-    def __init__(self, auto_fill=False, **kwargs):
-        super(IPv4Type, self).__init__(**kwargs)
-
-    def _jsonschema_type(self):
-        return 'string'
-
     @classmethod
     def valid_ip(cls, addr):
         try:
@@ -218,17 +212,6 @@ class IPv4Type(BaseType):
             error_msg = 'Invalid IPv4 address'
             raise ValidationError(error_msg)
         return True
-
-    def _jsonschema_format(self):
-        return 'ip-address'
-
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return ['ip-address']
-
-    @classmethod
-    def _from_jsonschema_types(self):
-        return ['string']
 
 
 class StringType(BaseType):
