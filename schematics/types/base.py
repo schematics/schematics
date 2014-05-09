@@ -398,8 +398,8 @@ class DecimalType(BaseType):
 
     MESSAGES = {
         'number_coerce': 'Number failed to convert to a decimal',
-        'number_min': u"Value should be greater than {}",
-        'number_max': u"Value should be less than {}",
+        'number_min': u"Value should be greater than {0}",
+        'number_max': u"Value should be less than {0}",
     }
 
     def __init__(self, min_value=None, max_value=None, **kwargs):
