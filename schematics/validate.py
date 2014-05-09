@@ -77,8 +77,6 @@ def _validate_model(cls, data):
         if field_name in cls._validator_functions:
             try:
                 context = data
-                if hasattr(cls, '_data'):
-                    context = dict(cls._data, **data)
                 cls._validator_functions[field_name](cls, context, value)
             except BaseError as e:
                 field = cls._fields[field_name]
