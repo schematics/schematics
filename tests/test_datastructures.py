@@ -1,6 +1,8 @@
 import pickle
 from copy import deepcopy
 
+import pytest
+
 from schematics.datastructures import OrderedDict
 
 
@@ -78,12 +80,8 @@ def test_od_pop():
 
     assert od.pop('bar', 1) == 1
 
-    try:
+    with pytest.raises(KeyError):
         od.pop('bar')
-    except KeyError as exc:
-        assert exc.message == 'bar'
-    else:
-        raise AssertionError('pop should fail with missing value')
 
 
 def test_od_popitem():
@@ -101,12 +99,8 @@ def test_od_popitem():
     assert 'foo' not in od
     assert od.keys() == []
 
-    try:
+    with pytest.raises(KeyError):
         od.popitem()
-    except KeyError:
-        pass
-    else:
-        raise AssertionError('popitem should fail when empty')
 
 
 def test_od_setdefault():
@@ -124,12 +118,8 @@ def test_od_setdefault():
 
 def test_od_update():
     od = OrderedDict()
-    try:
+    with pytest.raises(TypeError):
         od.update([], [])
-    except TypeError:
-        pass
-    else:
-        raise AssertionError('update should not accept more than one argument')
 
 
 def test_sort():
