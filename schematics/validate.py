@@ -1,6 +1,5 @@
 from .exceptions import BaseError, ValidationError, ModelConversionError
-from .exceptions import ModelValidationError
-from transforms import import_loop
+from .transforms import import_loop
 
 
 def validate(cls, instance_or_dict, partial=False, strict=False, context=None):
