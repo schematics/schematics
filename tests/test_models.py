@@ -451,21 +451,13 @@ def test_fielddescriptor_connectedness():
 
     inst = TestModel()
     inst._data = {}
-    try:
+    with pytest.raises(AttributeError):
         inst.field1
-    except AttributeError:
-        pass
-    else:
-        raise AssertionError('models should break cleanly when badly damaged')
 
     inst = TestModel()
     del inst._fields['field1']
-    try:
+    with pytest.raises(AttributeError):
         del inst.field1
-    except AttributeError:
-        pass
-    else:
-        raise AssertionError('models should break cleanly when badly damaged')
 
     del inst.field2
 
@@ -516,12 +508,8 @@ def test_setitem():
 
     inst = TestModel()
 
-    try:
+    with pytest.raises(KeyError):
         inst['foo'] = 1
-    except KeyError:
-        pass
-    else:
-        raise AssertionError('__setitem__ should raise KeyError if field does not exist')
 
     inst['field1'] = 'foo'
     assert inst.field1 == 'foo'
@@ -533,12 +521,8 @@ def test_delitem():
 
     inst = TestModel({'field1': 'foo'})
 
-    try:
+    with pytest.raises(KeyError):
         del inst['foo']
-    except KeyError:
-        pass
-    else:
-        raise AssertionError('__delitem__ should raise KeyError if field does not exist')
 
     del inst['field1']
     assert inst.field1 is None
