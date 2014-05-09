@@ -18,7 +18,6 @@ def force_unicode(obj, encoding='utf-8'):
     return obj
 
 
-_last_position_hint = -1
 _next_position_hint = itertools.count()
 
 
@@ -28,7 +27,7 @@ class TypeMeta(type):
     validator methods.
     """
 
-    def __new__(cls, name, bases, attrs):
+    def __new__(mcs, name, bases, attrs):
         messages = {}
         validators = []
 
@@ -50,7 +49,7 @@ class TypeMeta(type):
 
         attrs["_validators"] = validators
 
-        return type.__new__(cls, name, bases, attrs)
+        return type.__new__(mcs, name, bases, attrs)
 
 
 class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
@@ -101,6 +100,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
     def __init__(self, required=False, default=None, serialized_name=None,
                  choices=None, validators=None, deserialize_from=None,
                  serialize_when_none=None, messages=None):
+        super(BaseType, self).__init__()
         self.required = required
         self._default = default
         self.serialized_name = serialized_name
@@ -156,10 +156,10 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         for validator in self.validators:
             try:
                 validator(value)
-            except ValidationError as e:
-                errors.extend(e.messages)
+            except ValidationError as exc:
+                errors.extend(exc.messages)
 
-                if isinstance(e, StopValidation):
+                if isinstance(exc, StopValidation):
                     break
 
         if errors:
@@ -441,6 +441,8 @@ class HashType(BaseType):
         'hash_hex': u"Hash value is not hexadecimal.",
     }
 
+    LENGTH = None
+
     def to_native(self, value, context=None):
         if len(value) != self.LENGTH:
             raise ValidationError(self.messages['hash_length'])
@@ -552,9 +554,9 @@ class DateTimeType(BaseType):
         if isinstance(value, datetime.datetime):
             return value
 
-        for format in self.formats:
+        for fmt in self.formats:
             try:
-                return datetime.datetime.strptime(value, format)
+                return datetime.datetime.strptime(value, fmt)
             except (ValueError, TypeError):
                 continue
         raise ConversionError(self.messages['parse'].format(value))
@@ -575,8 +577,8 @@ class GeoPointType(BaseType):
         if not len(value) == 2:
             raise ValueError('Value must be a two-dimensional point')
         if isinstance(value, dict):
-            for v in value.values():
-                if not isinstance(v, (float, int)):
+            for val in value.values():
+                if not isinstance(val, (float, int)):
                     raise ValueError('Both values in point must be float or int')
         elif isinstance(value, (list, tuple)):
             if (not isinstance(value[0], (float, int)) or
