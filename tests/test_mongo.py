@@ -1,3 +1,4 @@
+import pytest
 from bson.objectid import ObjectId, InvalidId
 
 from schematics.contrib.mongo import ObjectIdType
@@ -12,12 +13,8 @@ def test_to_native():
     assert oid.to_native(FAKE_OID) == FAKE_OID
     assert oid.to_native(str(FAKE_OID)) == FAKE_OID
 
-    try:
+    with pytest.raises(InvalidId):
         oid.to_native('foo')
-    except InvalidId:
-        pass
-    else:
-        raise AssertionError('ObjectIdType.to_native should enforce valid ObjectIds')
 
 
 def test_to_primitive():
@@ -33,9 +30,5 @@ def test_validate_id():
     assert oid.validate_id(FAKE_OID) is True
     assert oid.validate_id(str(FAKE_OID)) is True
 
-    try:
+    with pytest.raises(ValidationError):
         oid.validate_id('foo')
-    except ValidationError:
-        pass
-    else:
-        raise AssertionError('validate_id should raise ValidationError on bad inputs')
