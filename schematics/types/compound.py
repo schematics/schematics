@@ -18,11 +18,11 @@ class MultiType(BaseType):
         for validator in self.validators:
             try:
                 validator(value)
-            except ModelValidationError as e:
-                errors.update(e.messages)
-
-                if isinstance(e, StopValidation):
-                    break
+            except ModelValidationError as exc:
+                errors.update(exc.messages)
+            except StopValidation as exc:
+                errors.update(exc.messages)
+                break
 
         if errors:
             raise ValidationError(errors)
@@ -31,7 +31,7 @@ class MultiType(BaseType):
 
     def export_loop(self, shape_instance, field_converter,
                     role=None, print_none=False):
-        raise NotImplemented()
+        raise NotImplementedError
 
     def init_compound_field(self, field, compound_field, **kwargs):
         """
