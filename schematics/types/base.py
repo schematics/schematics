@@ -199,7 +199,7 @@ class IPv4Type(BaseType):
         except AttributeError:
             return False
         try:
-            return len(addr) == 4 and all(int(octet) < 256 for octet in addr)
+            return len(addr) == 4 and all(0 <= int(octet) < 256 for octet in addr)
         except ValueError:
             return False
 
