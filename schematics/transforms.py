@@ -34,7 +34,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     :param field_convert:
         This function is applied to every field found in ``instance_or_dict``.
     :param context:
-        A ``dict``-like structure that may contain already validated data.        
+        A ``dict``-like structure that may contain already validated data.
     :param partial:
         Allow partial data to validate; useful for PATCH requests.
         Essentially drops the ``required=True`` arguments from field
@@ -171,10 +171,8 @@ def export_loop(cls, instance_or_dict, field_converter,
             elif print_none:
                 data[serialized_name] = shaped
 
-        ### Store None if reqeusted
-        elif value is None and allow_none(cls, field):
-            data[serialized_name] = value
-        elif print_none:
+        ### Store None if requested
+        elif allow_none(cls, field) or print_none:
             data[serialized_name] = value
 
     ### Return data if the list contains anything
@@ -275,7 +273,7 @@ class Role(collections.Set):
     def __sub__(self, other):
         fields = self.fields.difference(other)
         return self._from_iterable(fields)
- 
+
     # apply role to field
     def __call__(self, k, v):
         return self.function(k, v, self.fields)
@@ -310,7 +308,7 @@ class Role(collections.Set):
         :param seq:
             The list of fields associated with the ``Role``.
         """
-    
+
         if seq is not None and len(seq) > 0:
             return k not in seq
         return True
@@ -320,7 +318,7 @@ class Role(collections.Set):
         """
         Implements the behavior of a blacklist by requesting a field be skipped
         whenever it's name is found in the list of fields.
-        
+
         :param k:
             The field name to inspect.
         :param v:
@@ -417,12 +415,8 @@ def to_primitive(cls, instance_or_dict, role=None, raise_error_on_role=True,
     return data
 
 
-def serialize(cls, instance_or_dict, role=None, raise_error_on_role=True,
-              context=None):
-    return to_primitive(cls, instance_or_dict, role, raise_error_on_role,
-                        context)
-
-
+# Backward compatibility
+serialize = to_primitive
 
 
 EMPTY_LIST = "[]"
@@ -471,7 +465,7 @@ def flatten_to_dict(instance_or_dict, prefix=None, ignore_none=True):
         }
 
         becomes
-        
+
         {
             's': 'jms was hrrr',
             u'l.1': 'here',
@@ -526,7 +520,7 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
     are represented by the structure of the key.
 
     Example:
-    
+
         >>> class Foo(Model):
         ...    s = StringType()
         ...    l = ListType(StringType)
@@ -534,7 +528,7 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
         >>> f = Foo()
         >>> f.s = 'string'
         >>> f.l = ['jms', 'was here', 'and here']
-        
+
         >>> flatten(Foo, f)
         {'s': 'string', u'l.1': 'jms', u'l.0': 'was here', u'l.2': 'and here'}
 
@@ -560,7 +554,7 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
     """
     field_converter = lambda field, value: field.to_primitive(value,
                                                               context=context)
-    
+
     data = export_loop(cls, instance_or_dict, field_converter,
                        role=role, print_none=True)
 

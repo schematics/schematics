@@ -37,6 +37,14 @@ def test_invalid_models_validate_partially():
     u.validate(partial=True)
 
 
+def test_model_with_rogue_field_throws_exception():
+    class User(Model):
+        name = StringType()
+
+    with pytest.raises(ModelConversionError):
+        User({'foo': 'bar'})
+
+
 def test_equality():
     class Player(Model):
         id = IntType()
@@ -411,7 +419,7 @@ def test_nested_model_import_data_with_mappings():
     class Root(Model):
         root_attr = StringType()
         nxt_level = ModelType(Nested)
-    
+
     mapping = {
        'root_attr': ['attr'],
        'nxt_level': ['next'],
@@ -421,7 +429,7 @@ def test_nested_model_import_data_with_mappings():
            },
        },
     }
-   
+
     root = Root()
     root.import_data({
         "attr": "root value",
@@ -439,7 +447,7 @@ def test_nested_model_import_data_with_mappings():
             "attr": "nested value",
         },
     }, deserialize_mapping=mapping)
-    
+
     assert root.root_attr == 'root value'
     assert root.nxt_level.nested_attr == 'nested value'
 

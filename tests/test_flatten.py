@@ -3,7 +3,7 @@ try:
 except ImportError:
     from ordereddict import OrderedDict  # python2.6 fallback
 
-from schematics.transforms import expand, whitelist
+from schematics.transforms import expand, whitelist, flatten
 from schematics.models import Model
 from schematics.types.serializable import serializable
 from schematics.types import StringType, IntType
@@ -332,6 +332,18 @@ def test_flatten_ignores_none_by_default():
 
     player_from_flat = Player.from_flat(flat)
     assert player, player_from_flat
+
+
+def test_flatten_includes_none_when_asked():
+    class Player(Model):
+        id = StringType()
+        display_name = StringType()
+
+    player = Player({"display_name": "Joe"})
+
+    flat = flatten(Player, player, ignore_none=False)
+
+    assert flat == {'display_name': 'Joe', 'id': None}
 
 
 def test_flatten_with_whitelist():
