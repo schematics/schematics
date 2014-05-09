@@ -788,6 +788,7 @@ def test_role_set_operations():
         m2 = M(d)
         self.assertEqual(m2.md5, myhash)
 
+
 def test_serializable_with_list_and_default_role():
     class Player(Model):
         id = LongType()
