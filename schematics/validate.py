@@ -51,9 +51,8 @@ def validate(cls, instance_or_dict, partial=False, strict=False, context=None):
     instance_errors = _validate_model(cls, data)
     errors.update(instance_errors)
 
-    if len(errors) > 0:
-        ve = ValidationError(errors)
-        raise ve
+    if errors:
+        raise ValidationError(errors)
 
     return data
 
@@ -77,10 +76,10 @@ def _validate_model(cls, data):
             try:
                 context = data
                 cls._validator_functions[field_name](cls, context, value)
-            except BaseError as e:
+            except BaseError as exc:
                 field = cls._fields[field_name]
                 serialized_field_name = field.serialized_name or field_name
-                errors[serialized_field_name] = e.messages
+                errors[serialized_field_name] = exc.messages
                 data.pop(field_name, None)  # get rid of the invalid field
     return errors
 
