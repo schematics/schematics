@@ -14,6 +14,10 @@ def test_simple_embedded_models():
         id = IntType()
         location = ModelType(Location)
 
+    r = repr(Player.location)
+    assert r.startswith("<schematics.types.compound.ModelType object at 0x")
+    assert r.endswith("for <class 'tests.test_model_type.Location'>>")
+
     p = Player(dict(id=1, location={"country_code": "US"}))
 
     assert p.id == 1
@@ -23,6 +27,8 @@ def test_simple_embedded_models():
 
     assert isinstance(p.location, Location)
     assert p.location.country_code == "IS"
+
+    assert Player.location.to_native(None) is None
 
 
 def test_simple_embedded_models_is_none():

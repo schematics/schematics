@@ -3,7 +3,7 @@ import pytest
 from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.types.compound import ModelType, ListType
-from schematics.exceptions import ValidationError
+from schematics.exceptions import ValidationError, StopValidation
 
 
 def test_list_field():
@@ -178,3 +178,21 @@ def test_list_model_field():
         errors = exception.messages
 
         assert errors['users'] == [u'This field is required.']
+
+
+def test_stop_validation():
+    def raiser(x):
+        raise StopValidation({'something': 'bad'})
+
+    lst = ListType(StringType(), validators=[raiser])
+
+    with pytest.raises(ValidationError) as exc:
+        lst.validate('foo@bar.com')
+
+    assert exc.value.messages == {'something': 'bad'}
+
+
+def test_compound_fields():
+    comments = ListType(ListType, compound_field=StringType)
+
+    assert isinstance(comments.field, ListType)
