@@ -1,8 +1,8 @@
 import pytest
-from bson.objectid import ObjectId, InvalidId
+from bson.objectid import ObjectId
 
 from schematics.contrib.mongo import ObjectIdType
-from schematics.exceptions import ValidationError
+from schematics.exceptions import ConversionError, ValidationError
 
 FAKE_OID = ObjectId()
 
@@ -13,7 +13,7 @@ def test_to_native():
     assert oid.to_native(FAKE_OID) == FAKE_OID
     assert oid.to_native(str(FAKE_OID)) == FAKE_OID
 
-    with pytest.raises(InvalidId):
+    with pytest.raises(ConversionError):
         oid.to_native('foo')
 
 
