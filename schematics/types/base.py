@@ -179,10 +179,16 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
 class UUIDType(BaseType):
     """A field that stores a valid UUID value.
     """
+    MESSAGES = {
+        'convert': u"Couldn't interpret value as UUID.",
+    }
 
     def to_native(self, value, context=None):
         if not isinstance(value, uuid.UUID):
-            value = uuid.UUID(value)
+            try:
+                value = uuid.UUID(value)
+            except (AttributeError, TypeError, ValueError):
+                raise ConversionError(self.messages['convert'])
         return value
 
     def to_primitive(self, value, context=None):

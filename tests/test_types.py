@@ -1,9 +1,11 @@
-import pytest
 import datetime
+import uuid
+
+import pytest
 
 from schematics.types import (
     BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
-    URLType, MultilingualStringType,
+    URLType, MultilingualStringType, UUIDType,
 )
 from schematics.exceptions import ValidationError, ConversionError
 
@@ -203,3 +205,26 @@ def test_multilingual_string_should_accept_lists_of_locales():
     mls = MultilingualStringType()
 
     assert mls.to_primitive(strings, context={'locale': ['foo', 'es_MX', 'fr_FR']}) == 'serpiente'
+
+
+def test_uuid_to_native_from_string():
+    val = '6a10ca93-6ca2-4fc1-b932-6231c0590433'
+
+    assert UUIDType().to_native(val) == uuid.UUID(val)
+
+
+def test_uuid_to_native_from_uuid():
+    val = '6a10ca93-6ca2-4fc1-b932-6231c0590433'
+
+    assert UUIDType().to_native(uuid.UUID(val)) == uuid.UUID(val)
+
+
+def test_uuid_to_native_from_other_values():
+    for val in [
+        'not-a-uuid',
+        'zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz',
+        None,
+        123,
+    ]:
+        with pytest.raises(ConversionError):
+            UUIDType().to_native(val)
