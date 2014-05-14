@@ -346,9 +346,9 @@ class NumberType(BaseType):
     """
 
     MESSAGES = {
-        'number_coerce': u"Value is not {0}",
-        'number_min': u"{0} value should be greater than {1}",
-        'number_max': u"{0} value should be less than {1}",
+        'number_coerce': u"Value is not {0}.",
+        'number_min': u"{0} value should be greater than {1}.",
+        'number_max': u"{0} value should be less than {1}.",
     }
 
     def __init__(self, number_class, number_type,
@@ -414,9 +414,9 @@ class DecimalType(BaseType):
     """
 
     MESSAGES = {
-        'number_coerce': 'Number failed to convert to a decimal',
-        'number_min': u"Value should be greater than {}",
-        'number_max': u"Value should be less than {}",
+        'number_coerce': u"Number failed to convert to a decimal.",
+        'number_min': u"Value should be greater than {0}.",
+        'number_max': u"Value should be less than {0}.",
     }
 
     def __init__(self, min_value=None, max_value=None, **kwargs):
@@ -502,7 +502,7 @@ class BooleanType(BaseType):
                 value = False
 
         if not isinstance(value, bool):
-            raise ConversionError(u'Must be either true or false.')
+            raise ConversionError(u"Must be either true or false.")
 
         return value
 
@@ -513,7 +513,7 @@ class DateType(BaseType):
 
     SERIALIZED_FORMAT = '%Y-%m-%d'
     MESSAGES = {
-        'parse': u'Could not parse {0}. Should be ISO8601 (YYYY-MM-DD).',
+        'parse': u"Could not parse {0}. Should be ISO8601 (YYYY-MM-DD).",
     }
 
     def __init__(self, **kwargs):
@@ -548,7 +548,7 @@ class DateTimeType(BaseType):
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 
     MESSAGES = {
-        'parse': u'Could not parse {0}. Should be ISO8601.',
+        'parse': u"Could not parse {0}. Should be ISO8601.",
     }
 
     def __init__(self, formats=None, serialized_format=None, **kwargs):
@@ -621,12 +621,12 @@ class MultilingualStringType(BaseType):
 
     MESSAGES = {
         'convert': u"Couldn't interpret value as string.",
-        'max_length': u"String value in locale %s is too long.",
-        'min_length': u"String value in locale %s is too short.",
+        'max_length': u"String value in locale {0} is too long.",
+        'min_length': u"String value in locale {0} is too short.",
         'locale_not_found': u"No requested locale was available.",
         'no_locale': u"No default or explicit locales were given.",
-        'regex_locale': u"Name of locale %s did not match validation regex.",
-        'regex_localized': u"String value in locale %s did not match validation regex.",
+        'regex_locale': u"Name of locale {0} did not match validation regex.",
+        'regex_localized': u"String value in locale {0} did not match validation regex.",
     }
 
     LOCALE_REGEX = r'^[a-z]{2}(:?_[A-Z]{2})?$'
@@ -698,10 +698,10 @@ class MultilingualStringType(BaseType):
             len_of_value = len(localized) if localized else 0
 
             if self.max_length is not None and len_of_value > self.max_length:
-                raise ValidationError(self.messages['max_length'] % locale)
+                raise ValidationError(self.messages['max_length'].format(locale))
 
             if self.min_length is not None and len_of_value < self.min_length:
-                raise ValidationError(self.messages['min_length'] % locale)
+                raise ValidationError(self.messages['min_length'].format(locale))
 
     def validate_regex(self, value):
         if self.regex is None and self.locale_regex is None:
@@ -710,8 +710,8 @@ class MultilingualStringType(BaseType):
         for locale, localized in value.items():
             if self.regex is not None and self.regex.match(localized) is None:
                 raise ValidationError(
-                    self.messages['regex_localized'] % locale)
+                    self.messages['regex_localized'].format(locale))
 
             if self.locale_regex is not None and self.locale_regex.match(locale) is None:
                 raise ValidationError(
-                    self.messages['regex_locale'] % locale)
+                    self.messages['regex_locale'].format(locale))
