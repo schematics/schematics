@@ -502,7 +502,7 @@ class BooleanType(BaseType):
                 value = False
 
         if not isinstance(value, bool):
-            raise ConversionError(u'Must be either true or false.')
+            raise ConversionError(u"Must be either true or false.")
 
         return value
 
@@ -513,7 +513,7 @@ class DateType(BaseType):
 
     SERIALIZED_FORMAT = '%Y-%m-%d'
     MESSAGES = {
-        'parse': u'Could not parse {0}. Should be ISO8601 (YYYY-MM-DD).',
+        'parse': u"Could not parse {0}. Should be ISO8601 (YYYY-MM-DD).",
     }
 
     def __init__(self, **kwargs):
@@ -548,7 +548,7 @@ class DateTimeType(BaseType):
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 
     MESSAGES = {
-        'parse': u'Could not parse {0}. Should be ISO8601.',
+        'parse': u"Could not parse {0}. Should be ISO8601.",
     }
 
     def __init__(self, formats=None, serialized_format=None, **kwargs):
