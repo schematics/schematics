@@ -3,7 +3,7 @@ import datetime
 
 from schematics.types import (
     BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
-    URLType, MultilingualStringType,
+    URLType, MultilingualStringType, BooleanType,
 )
 from schematics.exceptions import ValidationError, ConversionError
 
@@ -203,3 +203,17 @@ def test_multilingual_string_should_accept_lists_of_locales():
     mls = MultilingualStringType()
 
     assert mls.to_primitive(strings, context={'locale': ['foo', 'es_MX', 'fr_FR']}) == 'serpiente'
+
+
+def test_boolean_to_native():
+    bool_field = BooleanType()
+
+    for true_value in ['True', '1', 1, True]:
+        assert bool_field.to_native(true_value)
+
+    for false_value in ['False', '0', 0, False]:
+        assert not bool_field.to_native(false_value)
+
+    for bad_value in ['TrUe', 'foo', 2, None, 1.0]:
+        with pytest.raises(ConversionError):
+            bool_field.to_native(bad_value)
