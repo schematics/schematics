@@ -1,5 +1,6 @@
 # encoding=utf-8
 
+from copy import deepcopy
 import inspect
 
 from six import iteritems
@@ -125,11 +126,11 @@ class ModelMeta(type):
         # Accumulate metas info from parent classes
         for base in reversed(bases):
             if hasattr(base, '_fields'):
-                fields.update(base._fields)
+                fields.update(deepcopy(base._fields))
             if hasattr(base, '_serializables'):
-                serializables.update(base._serializables)
+                serializables.update(deepcopy(base._serializables))
             if hasattr(base, '_validator_functions'):
-                validator_functions.update(base._validator_functions)
+                validator_functions.update(deepcopy(base._validator_functions))
 
         # Parse this class's attributes into meta structures
         for key, value in iteritems(attrs):
