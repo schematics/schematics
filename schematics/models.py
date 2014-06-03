@@ -157,8 +157,12 @@ class ModelMeta(type):
         klass = type.__new__(mcs, name, bases, attrs)
 
         # Add reference to klass to each field instance
-        for field in fields.values():
+        def set_owner_model(field, klass):
             field.owner_model = klass
+            if hasattr(field, 'field'):
+                set_owner_model(field.field, klass)
+        for field in fields.values():
+            set_owner_model(field, klass)
 
         return klass
 
