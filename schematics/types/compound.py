@@ -18,11 +18,11 @@ class MultiType(BaseType):
         for validator in self.validators:
             try:
                 validator(value)
-            except ModelValidationError as e:
-                errors.update(e.messages)
-
-                if isinstance(e, StopValidation):
-                    break
+            except ModelValidationError as exc:
+                errors.update(exc.messages)
+            except StopValidation as exc:
+                errors.update(exc.messages)
+                break
 
         if errors:
             raise ValidationError(errors)
@@ -31,7 +31,7 @@ class MultiType(BaseType):
 
     def export_loop(self, shape_instance, field_converter,
                     role=None, print_none=False):
-        raise NotImplemented()
+        raise NotImplementedError
 
     def init_compound_field(self, field, compound_field, **kwargs):
         """
@@ -61,7 +61,7 @@ class ModelType(MultiType):
             model_instance.validate()
             return model_instance
 
-        super(ModelType, self).__init__(validators=[validate_model] + validators,  **kwargs)
+        super(ModelType, self).__init__(validators=[validate_model] + validators, **kwargs)
 
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
@@ -77,9 +77,10 @@ class ModelType(MultiType):
             return value
 
         if not isinstance(value, dict):
-            raise ConversionError(u'Please use a mapping for this field or {0} instance instead of {1}.'.format(
-                self.model_class.__name__,
-                type(value).__name__))
+            raise ConversionError(
+                u'Please use a mapping for this field or {0} instance instead of {1}.'.format(
+                    self.model_class.__name__,
+                    type(value).__name__))
 
         # partial submodels now available with import_data (ht ryanolson)
         model = self.model_class()
@@ -163,24 +164,24 @@ class ListType(MultiType):
         if self.min_size is not None and list_length < self.min_size:
             message = ({
                 True: u'Please provide at least %d item.',
-                False: u'Please provide at least %d items.'}[self.min_size == 1]
-            ) % self.min_size
+                False: u'Please provide at least %d items.',
+            }[self.min_size == 1]) % self.min_size
             raise ValidationError(message)
 
         if self.max_size is not None and list_length > self.max_size:
             message = ({
                 True: u'Please provide no more than %d item.',
-                False: u'Please provide no more than %d items.'}[self.max_size == 1]
-            ) % self.max_size
+                False: u'Please provide no more than %d items.',
+            }[self.max_size == 1]) % self.max_size
             raise ValidationError(message)
 
     def validate_items(self, items):
         errors = []
-        for idx, item in enumerate(items, 1):
+        for item in items:
             try:
                 self.field.validate(item)
-            except ValidationError as e:
-                errors.append(e.message)
+            except ValidationError as exc:
+                errors.append(exc.message)
 
         if errors:
             raise ValidationError(errors)
@@ -202,10 +203,10 @@ class ListType(MultiType):
                 feels_empty = shaped and len(shaped) == 0
             else:
                 shaped = field_converter(self.field, value)
-                feels_empty = shaped == None
+                feels_empty = shaped is None
 
             # Print if we want empty or found a value
-            if (feels_empty and self.allow_none()):
+            if feels_empty and self.allow_none():
                 data.append(shaped)
             elif shaped is not None:
                 data.append(shaped)
@@ -256,8 +257,8 @@ class DictType(MultiType):
         for key, value in items.iteritems():
             try:
                 self.field.validate(value)
-            except ValidationError as e:
-                errors[key] = e
+            except ValidationError as exc:
+                errors[key] = exc
 
         if errors:
             raise ValidationError(errors)
@@ -281,7 +282,7 @@ class DictType(MultiType):
                 feels_empty = shaped and len(shaped) == 0
             else:
                 shaped = field_converter(self.field, value)
-                feels_empty = shaped == None
+                feels_empty = shaped is None
 
             if feels_empty and self.allow_none():
                 data[key] = shaped

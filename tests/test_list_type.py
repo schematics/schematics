@@ -3,7 +3,7 @@ import pytest
 from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.types.compound import ModelType, ListType
-from schematics.exceptions import ValidationError
+from schematics.exceptions import ValidationError, StopValidation
 
 
 def test_list_field():
@@ -116,24 +116,30 @@ def test_list_default_to_none_embedded_model():
     assert question_pack.questions[2].resources["pictures"][0] == resource
 
 
-def test_validation_with_min_size():
+def test_validation_with_size_limits():
     class User(Model):
         name = StringType()
 
     class Card(Model):
-        users = ListType(ModelType(User), min_size=1, required=True)
+        users = ListType(ModelType(User), min_size=1, max_size=2, required=True)
 
     with pytest.raises(ValidationError) as exception:
         c = Card({"users": None})
         c.validate()
 
-        assert exception.messages['users'] == [u'This field is required.']
+    assert exception.value.messages['users'] == [u'This field is required.']
 
     with pytest.raises(ValidationError) as exception:
         c = Card({"users": []})
         c.validate()
 
-        assert exception.messages['users'] == [u'Please provide at least 1 item.']
+    assert exception.value.messages['users'] == [u'Please provide at least 1 item.']
+
+    with pytest.raises(ValidationError) as exception:
+        c = Card({"users": [User(), User(), User()]})
+        c.validate()
+
+    assert exception.value.messages['users'] == [u'Please provide no more than 2 items.']
 
 
 def test_list_field_required():
@@ -175,6 +181,23 @@ def test_list_model_field():
     with pytest.raises(ValidationError) as exception:
         c.validate()
 
-        errors = exception.messages
+    errors = exception.value.messages
+    assert errors['users'] == [u'This field is required.']
 
-        assert errors['users'] == [u'This field is required.']
+
+def test_stop_validation():
+    def raiser(x):
+        raise StopValidation({'something': 'bad'})
+
+    lst = ListType(StringType(), validators=[raiser])
+
+    with pytest.raises(ValidationError) as exc:
+        lst.validate('foo@bar.com')
+
+    assert exc.value.messages == {'something': 'bad'}
+
+
+def test_compound_fields():
+    comments = ListType(ListType, compound_field=StringType)
+
+    assert isinstance(comments.field, ListType)
