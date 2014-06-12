@@ -591,6 +591,9 @@ class BooleanType(BaseType):
             elif value in self.FALSE_VALUES:
                 value = False
 
+        if isinstance(value, int) and value in [0, 1]:
+            value = bool(value)
+
         if not isinstance(value, bool):
             raise ConversionError(u'Must be either true or false.')
 
