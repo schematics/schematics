@@ -15,6 +15,7 @@ from .base import DateTimeType
 
 
 class TimeStampType(DateTimeType):
+
     """Variant of a datetime field that saves itself as a unix timestamp (int)
     instead of a ISO-8601 string.
     """

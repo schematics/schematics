@@ -236,6 +236,7 @@ def test_no_options_args():
 
 def test_options_parsing_from_model():
     class Foo(Model):
+
         class Options:
             namespace = 'foo'
             roles = {}
@@ -250,6 +251,7 @@ def test_options_parsing_from_model():
 
 def test_options_parsing_from_optionsclass():
     class FooOptions(ModelOptions):
+
         def __init__(self, klass, **kwargs):
             kwargs['namespace'] = kwargs.get('namespace') or 'foo'
             kwargs['roles'] = kwargs.get('roles') or {}
@@ -365,10 +367,11 @@ def test_model_deserialize_from_with_list():
     assert User({'user': 'Mike'}).username == 'Mike'
     assert User({'username': 'Mark'}).username == 'Mark'
     assert User({
-               "username": "Mark",
-               "name": "Second-class",
-               "user": "key"
-           }).username == 'Mark'
+        "username": "Mark",
+        "name": "Second-class",
+        "user": "key"
+    }).username == 'Mark'
+
 
 def test_model_deserialize_from_with_string():
     class User(Model):
@@ -377,6 +380,7 @@ def test_model_deserialize_from_with_string():
     assert User({'name': 'Mike'}).username == 'Mike'
     assert User({'username': 'Mark'}).username == 'Mark'
     assert User({'username': 'Mark', "name": "Second-class field"}).username == 'Mark'
+
 
 def test_model_import_with_deserialize_mapping():
     class User(Model):
@@ -390,7 +394,8 @@ def test_model_import_with_deserialize_mapping():
     assert User({'user': 'Mike'}, deserialize_mapping=mapping).username == 'Mike'
     assert User({'username': 'Mark'}, deserialize_mapping=mapping).username == 'Mark'
     assert User({'username': 'Mark', "name": "Second-class", "user": "key"},
-               deserialize_mapping=mapping).username == 'Mark'
+                deserialize_mapping=mapping).username == 'Mark'
+
 
 def test_model_import_data_with_mapping():
     class User(Model):
@@ -404,6 +409,7 @@ def test_model_import_data_with_mapping():
     user.import_data({'name': 'Ryan'}, mapping=mapping)
     assert user.username == 'Ryan'
 
+
 def test_nested_model_import_data_with_mappings():
     class Nested(Model):
         nested_attr = StringType()
@@ -411,17 +417,17 @@ def test_nested_model_import_data_with_mappings():
     class Root(Model):
         root_attr = StringType()
         nxt_level = ModelType(Nested)
-    
+
     mapping = {
-       'root_attr': ['attr'],
-       'nxt_level': ['next'],
-       'model_mapping': {
-           'nxt_level': {
-               'nested_attr': ['attr'],
-           },
-       },
+        'root_attr': ['attr'],
+        'nxt_level': ['next'],
+        'model_mapping': {
+            'nxt_level': {
+                'nested_attr': ['attr'],
+            },
+        },
     }
-   
+
     root = Root()
     root.import_data({
         "attr": "root value",
@@ -439,7 +445,6 @@ def test_nested_model_import_data_with_mappings():
             "attr": "nested value",
         },
     }, deserialize_mapping=mapping)
-    
+
     assert root.root_attr == 'root value'
     assert root.nxt_level.nested_attr == 'nested value'
-

@@ -14,6 +14,7 @@ from .datastructures import OrderedDict as OrderedDictWithSort
 
 
 class FieldDescriptor(object):
+
     """
     The FieldDescriptor serves as a wrapper for Types that converts them into
     fields.
@@ -61,11 +62,13 @@ class FieldDescriptor(object):
 
 
 class ModelOptions(object):
+
     """
     This class is a container for all metaclass configuration options. Its
     primary purpose is to create an instance of a model's options for every
     instance of a model.
     """
+
     def __init__(self, klass, namespace=None, roles=None,
                  serialize_when_none=True):
         """
@@ -87,6 +90,7 @@ class ModelOptions(object):
 
 
 class ModelMeta(type):
+
     """
     Meta class for Models.
     """
@@ -105,12 +109,12 @@ class ModelMeta(type):
         ``cls._options`` is the end result of parsing the ``Options`` class
         """
 
-        ### Structures used to accumulate meta info
+        # Structures used to accumulate meta info
         fields = OrderedDictWithSort()
         serializables = {}
         validator_functions = {}  # Model level
 
-        ### Accumulate metas info from parent classes
+        # Accumulate metas info from parent classes
         for base in reversed(bases):
             if hasattr(base, '_fields'):
                 fields.update(base._fields)
@@ -119,7 +123,7 @@ class ModelMeta(type):
             if hasattr(base, '_validator_functions'):
                 validator_functions.update(base._validator_functions)
 
-        ### Parse this class's attributes into meta structures
+        # Parse this class's attributes into meta structures
         for key, value in attrs.iteritems():
             if key.startswith('validate_') and callable(value):
                 validator_functions[key[9:]] = value
@@ -128,15 +132,15 @@ class ModelMeta(type):
             if isinstance(value, Serializable):
                 serializables[key] = value
 
-        ### Parse meta options
+        # Parse meta options
         options = cls._read_options(name, bases, attrs)
 
-        ### Convert list of types into fields for new klass
+        # Convert list of types into fields for new klass
         fields.sort(key=lambda i: i[1]._position_hint)
         for key, field in fields.iteritems():
             attrs[key] = FieldDescriptor(key)
 
-        ### Ready meta data to be klass attributes
+        # Ready meta data to be klass attributes
         attrs['_fields'] = fields
         attrs['_serializables'] = serializables
         attrs['_validator_functions'] = validator_functions
@@ -144,7 +148,7 @@ class ModelMeta(type):
 
         klass = type.__new__(cls, name, bases, attrs)
 
-        ### Add reference to klass to each field instance
+        # Add reference to klass to each field instance
         for field in fields.values():
             field.owner_model = klass
 
@@ -191,6 +195,7 @@ class ModelMeta(type):
 
 
 class Model(object):
+
     """
     Enclosure for fields and validation. Same pattern deployed by Django
     models, SQLAlchemy declarative extension and other developer friendly
@@ -204,7 +209,8 @@ class Model(object):
     __metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
-    def __init__(self, raw_data=None, deserialize_mapping=None, strict=True):  # TODO change back to keywords
+    # TODO change back to keywords
+    def __init__(self, raw_data=None, deserialize_mapping=None, strict=True):
         if raw_data is None:
             raw_data = {}
         self._initial = raw_data
@@ -240,7 +246,8 @@ class Model(object):
         """
         data = self.convert(raw_data, **kw)
         for k in data.keys():
-            if data[k] is None: del data[k]
+            if data[k] is None:
+                del data[k]
         self._data.update(data)
         return self
 

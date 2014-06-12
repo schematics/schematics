@@ -31,7 +31,7 @@ def test_dict_type_with_model_type():
 
     class PlayerInfo(Model):
         categories = DictType(ModelType(CategoryStats))
-        #TODO: Maybe it would be cleaner to have
+        # TODO: Maybe it would be cleaner to have
         #       DictType(CategoryStats) and implicitly convert to ModelType(CategoryStats)
 
     info = PlayerInfo(dict(categories={
@@ -78,7 +78,7 @@ def test_dict_type_with_model_type_init_with_instance():
     class PlayerInfo(Model):
         id = IntType()
         categories = DictType(ModelType(CategoryStats))
-        #TODO: Maybe it would be cleaner to have
+        # TODO: Maybe it would be cleaner to have
         #       DictType(CategoryStats) and implicitly convert to ModelType(CategoryStats)
 
     math_stats = CategoryStats({

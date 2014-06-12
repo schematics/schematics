@@ -52,6 +52,7 @@ def test_int():
 
 def test_custom_validation_functions():
     class UppercaseType(BaseType):
+
         def validate_uppercase(self, value):
             if value.upper() != value:
                 raise ValidationError("Value must be uppercase!")
@@ -78,7 +79,8 @@ def test_custom_validation_function_and_inheritance():
 
         def validate_contains_m_chars(self, value):
             if value.count("M") != self.number_of_m_chars:
-                raise ValidationError("Value must contain {0} 'm' characters".format(self.number_of_m_chars))
+                raise ValidationError(
+                    "Value must contain {0} 'm' characters".format(self.number_of_m_chars))
 
     field = MUppercaseType(number_of_m_chars=3)
 

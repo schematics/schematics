@@ -5,6 +5,7 @@ _missing = object()
 
 
 class OrderedDict(dict):
+
     """Simple ordered dict implementation.
 
     It's a dict subclass and provides some list functions.  The implementation

@@ -28,7 +28,7 @@ def serializable(*args, **kwargs):
         serialized_name = kwargs.pop("serialized_name", None)
         serialize_when_none = kwargs.pop("serialize_when_none", True)
         return Serializable(f, type=serialized_type, serialized_name=serialized_name,
-            serialize_when_none=serialize_when_none)
+                            serialize_when_none=serialize_when_none)
 
     if len(args) == 1 and callable(args[0]):
         # No arguments, this is the decorator
