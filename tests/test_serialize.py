@@ -34,6 +34,20 @@ def test_serializable():
     assert d == {"country_code": "IS", "country_name": "Unknown"}
 
 
+def test_serializable_to_native():
+    class Location(Model):
+        country_code = StringType()
+
+        @serializable
+        def country_name(self):
+            return "United States" if self.country_code == "US" else "Unknown"
+
+    loc = Location({'country_code': 'US'})
+
+    d = loc.to_native()
+    assert d == {'country_code': 'US', 'country_name': 'United States'}
+
+
 def test_serializable_with_serializable_name():
     class Location(Model):
         country_code = StringType(serialized_name="cc")
