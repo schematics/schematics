@@ -131,3 +131,25 @@ def test_default_value_when_embedded_model():
 
     assert pack.question.question_id == "1"
     assert pack.question.type == "text"
+
+
+def test_export_loop_with_subclassed_model():
+    class Asset(Model):
+        file_name = StringType()
+
+    class S3Asset(Asset):
+        bucket_name = StringType()
+
+    class Product(Model):
+        title = StringType()
+        asset = ModelType(Asset)
+
+    asset = S3Asset({'bucket_name': 'assets_bucket', 'file_name': 'bar'})
+
+    product = Product({'title': 'baz', 'asset': asset})
+
+    primitive = product.to_primitive()
+    assert 'bucket_name' in primitive['asset']
+
+    native = product.to_native()
+    assert 'bucket_name' in native['asset']
