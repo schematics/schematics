@@ -12,16 +12,16 @@ class BaseError(Exception):
     def clean_messages(self, messages):
         if isinstance(messages, dict):
             clean_messages = {}
-            for k, v in messages.iteritems():
-                if isinstance(v, ValidationError):
-                    v = v.messages
-                clean_messages[k] = v
+            for key, value in messages.iteritems():
+                if isinstance(value, ValidationError):
+                    value = value.messages
+                clean_messages[key] = value
         else:
             clean_messages = []
-            for v in messages:
-                if isinstance(v, ValidationError):
-                    v = v.messages
-                clean_messages.append(v)
+            for message in messages:
+                if isinstance(message, ValidationError):
+                    message = message.messages
+                clean_messages.append(message)
 
         return clean_messages
 
