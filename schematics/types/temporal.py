@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
 import datetime
-from time import mktime
 
 try:
     from dateutil.tz import tzutc, tzlocal
-except ImportError:
+except ImportError:  # pragma: no cover
     raise ImportError(
         'Using the datetime fields requires the dateutil library. '
         'You can obtain dateutil from http://labix.org/python-dateutil'
@@ -13,28 +10,14 @@ except ImportError:
 
 from .base import DateTimeType
 
+EPOCH = datetime.datetime.utcfromtimestamp(0).replace(tzinfo=tzutc())
+
 
 class TimeStampType(DateTimeType):
 
     """Variant of a datetime field that saves itself as a unix timestamp (int)
     instead of a ISO-8601 string.
     """
-
-    def __set__(self, instance, value):
-        """Will try to parse the value as a timestamp.  If that fails it
-        will fallback to DateTimeType's value parsing.
-
-        A datetime may be used (and is encouraged).
-        """
-        if not value:
-            return
-
-        try:
-            value = TimeStampType.timestamp_to_date(value)
-        except TypeError:
-            pass
-
-        super(TimeStampType, self).__set__(instance, value)
 
     @classmethod
     def timestamp_to_date(cls, value):
@@ -44,8 +27,8 @@ class TimeStampType(DateTimeType):
     def date_to_timestamp(cls, value):
         if value.tzinfo is None:
             value = value.replace(tzinfo=tzlocal())
-        return int(round(mktime(value.astimezone(tzutc()).timetuple())))
+        delta = value - EPOCH
+        return (delta.days * 24 * 3600) + delta.seconds + delta.microseconds
 
     def to_primitive(self, value, context=None):
-        v = TimeStampType.date_to_timestamp(value)
-        return v
+        return TimeStampType.date_to_timestamp(value)
