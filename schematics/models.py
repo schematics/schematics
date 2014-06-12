@@ -1,7 +1,6 @@
 # encoding=utf-8
 
 import inspect
-import itertools
 
 from .types import BaseType
 from .types.compound import ModelType
@@ -95,18 +94,18 @@ class ModelMeta(type):
     Meta class for Models.
     """
 
-    def __new__(cls, name, bases, attrs):
+    def __new__(mcs, name, bases, attrs):
         """
-        This metaclass adds four attributes to host classes: cls._fields,
-        cls._serializables, cls._validator_functions, and cls._options.
+        This metaclass adds four attributes to host classes: mcs._fields,
+        mcs._serializables, mcs._validator_functions, and mcs._options.
 
         This function creates those attributes like this:
 
-        ``cls._fields`` is list of fields that are schematics types
-        ``cls._serializables`` is a list of functions that are used to generate
+        ``mcs._fields`` is list of fields that are schematics types
+        ``mcs._serializables`` is a list of functions that are used to generate
         values during serialization
-        ``cls._validator_functions`` are class level validation functions
-        ``cls._options`` is the end result of parsing the ``Options`` class
+        ``mcs._validator_functions`` are class level validation functions
+        ``mcs._options`` is the end result of parsing the ``Options`` class
         """
 
         # Structures used to accumulate meta info
@@ -133,7 +132,7 @@ class ModelMeta(type):
                 serializables[key] = value
 
         # Parse meta options
-        options = cls._read_options(name, bases, attrs)
+        options = mcs._read_options(name, bases, attrs)
 
         # Convert list of types into fields for new klass
         fields.sort(key=lambda i: i[1]._position_hint)
@@ -146,7 +145,7 @@ class ModelMeta(type):
         attrs['_validator_functions'] = validator_functions
         attrs['_options'] = options
 
-        klass = type.__new__(cls, name, bases, attrs)
+        klass = type.__new__(mcs, name, bases, attrs)
 
         # Add reference to klass to each field instance
         for field in fields.values():
@@ -155,7 +154,7 @@ class ModelMeta(type):
         return klass
 
     @classmethod
-    def _read_options(cls, name, bases, attrs):
+    def _read_options(mcs, name, bases, attrs):
         """
         Parses `ModelOptions` instance into the options value attached to
         `Model` instances.
@@ -164,23 +163,23 @@ class ModelMeta(type):
 
         for base in reversed(bases):
             if hasattr(base, "_options"):
-                for k, v in inspect.getmembers(base._options):
-                    if not k.startswith("_") and not k == "klass":
-                        options_members[k] = v
+                for key, value in inspect.getmembers(base._options):
+                    if not key.startswith("_") and not key == "klass":
+                        options_members[key] = value
 
         options_class = attrs.get('__optionsclass__', ModelOptions)
         if 'Options' in attrs:
-            for k, v in inspect.getmembers(attrs['Options']):
-                if not k.startswith("_"):
-                    if k == "roles":
+            for key, value in inspect.getmembers(attrs['Options']):
+                if not key.startswith("_"):
+                    if key == "roles":
                         roles = options_members.get("roles", {}).copy()
-                        roles.update(v)
+                        roles.update(value)
 
                         options_members["roles"] = roles
                     else:
-                        options_members[k] = v
+                        options_members[key] = value
 
-        return options_class(cls, **options_members)
+        return options_class(mcs, **options_members)
 
     @property
     def fields(cls):
@@ -209,7 +208,6 @@ class Model(object):
     __metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
-    # TODO change back to keywords
     def __init__(self, raw_data=None, deserialize_mapping=None, strict=True):
         if raw_data is None:
             raw_data = {}
@@ -233,8 +231,8 @@ class Model(object):
             data = validate(self.__class__, self._data, partial=partial,
                             strict=strict)
             self._data.update(**data)
-        except BaseError as e:
-            raise ModelValidationError(e.messages)
+        except BaseError as exc:
+            raise ModelValidationError(exc.messages)
 
     def import_data(self, raw_data, **kw):
         """
@@ -368,10 +366,16 @@ class Model(object):
 
     def __repr__(self):
         try:
-            u = unicode(self)
+            obj = unicode(self)
         except (UnicodeEncodeError, UnicodeDecodeError):
-            u = '[Bad Unicode data]'
-        return u"<%s: %s>" % (self.__class__.__name__, u)
+            obj = '[Bad Unicode data]'
+
+        try:
+            class_name = unicode(self.__class__.__name__)
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            class_name = '[Bad Unicode class name]'
+
+        return u"<%s: %s>" % (class_name, obj)
 
     def __unicode__(self):
         return '%s object' % self.__class__.__name__
