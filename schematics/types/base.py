@@ -18,7 +18,6 @@ def force_unicode(obj, encoding='utf-8'):
     return obj
 
 
-_last_position_hint = -1
 _next_position_hint = itertools.count()
 
 
@@ -29,7 +28,7 @@ class TypeMeta(type):
     validator methods.
     """
 
-    def __new__(cls, name, bases, attrs):
+    def __new__(mcs, name, bases, attrs):
         messages = {}
         validators = []
 
@@ -51,7 +50,7 @@ class TypeMeta(type):
 
         attrs["_validators"] = validators
 
-        return type.__new__(cls, name, bases, attrs)
+        return type.__new__(mcs, name, bases, attrs)
 
 
 class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
@@ -103,6 +102,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
     def __init__(self, required=False, default=None, serialized_name=None,
                  choices=None, validators=None, deserialize_from=None,
                  serialize_when_none=None, messages=None):
+        super(BaseType, self).__init__()
         self.required = required
         self._default = default
         self.serialized_name = serialized_name
@@ -158,10 +158,10 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         for validator in self.validators:
             try:
                 validator(value)
-            except ValidationError as e:
-                errors.extend(e.messages)
+            except ValidationError as exc:
+                errors.extend(exc.messages)
 
-                if isinstance(e, StopValidation):
+                if isinstance(exc, StopValidation):
                     break
 
         if errors:
@@ -196,12 +196,6 @@ class IPv4Type(BaseType):
 
     """ A field that stores a valid IPv4 address """
 
-    def __init__(self, auto_fill=False, **kwargs):
-        super(IPv4Type, self).__init__(**kwargs)
-
-    def _jsonschema_type(self):
-        return 'string'
-
     @classmethod
     def valid_ip(cls, addr):
         try:
@@ -209,7 +203,7 @@ class IPv4Type(BaseType):
         except AttributeError:
             return False
         try:
-            return len(addr) == 4 and all(int(octet) < 256 for octet in addr)
+            return len(addr) == 4 and all(0 <= int(octet) < 256 for octet in addr)
         except ValueError:
             return False
 
@@ -222,17 +216,6 @@ class IPv4Type(BaseType):
             error_msg = 'Invalid IPv4 address'
             raise ValidationError(error_msg)
         return True
-
-    def _jsonschema_format(self):
-        return 'ip-address'
-
-    @classmethod
-    def _from_jsonschema_formats(self):
-        return ['ip-address']
-
-    @classmethod
-    def _from_jsonschema_types(self):
-        return ['string']
 
 
 class StringType(BaseType):
@@ -429,8 +412,8 @@ class DecimalType(BaseType):
 
     MESSAGES = {
         'number_coerce': 'Number failed to convert to a decimal',
-        'number_min': u"Value should be greater than {}",
-        'number_max': u"Value should be less than {}",
+        'number_min': u"Value should be greater than {0}",
+        'number_max': u"Value should be less than {0}",
     }
 
     def __init__(self, min_value=None, max_value=None, **kwargs):
@@ -471,6 +454,8 @@ class HashType(BaseType):
         'hash_length': u"Hash value is wrong length.",
         'hash_hex': u"Hash value is not hexadecimal.",
     }
+
+    LENGTH = None
 
     def to_native(self, value, context=None):
         if len(value) != self.LENGTH:
@@ -588,9 +573,9 @@ class DateTimeType(BaseType):
         if isinstance(value, datetime.datetime):
             return value
 
-        for format in self.formats:
+        for fmt in self.formats:
             try:
-                return datetime.datetime.strptime(value, format)
+                return datetime.datetime.strptime(value, fmt)
             except (ValueError, TypeError):
                 continue
         raise ConversionError(self.messages['parse'].format(value))
@@ -612,8 +597,8 @@ class GeoPointType(BaseType):
         if not len(value) == 2:
             raise ValueError('Value must be a two-dimensional point')
         if isinstance(value, dict):
-            for v in value.values():
-                if not isinstance(v, (float, int)):
+            for val in value.values():
+                if not isinstance(val, (float, int)):
                     raise ValueError('Both values in point must be float or int')
         elif isinstance(value, (list, tuple)):
             if (not isinstance(value[0], (float, int)) or
