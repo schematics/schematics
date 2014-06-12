@@ -1,4 +1,5 @@
-from itertools import izip, imap
+from copy import deepcopy
+from itertools import izip
 
 _missing = object()
 
@@ -55,19 +56,7 @@ class OrderedDict(dict):
     >>> list(d.iteritems())
     [('a', 'b'), ('c', 'd'), ('foo', 'bar'), ('spam', [])]
 
-    Index based lookup is supported too by `byindex` which returns the
-    key/value pair for an index:
-
-    >>> d.byindex(2)
-    ('foo', 'bar')
-
-    You can reverse the OrderedDict as well:
-
-    >>> d.reverse()
-    >>> d
-    OrderedDict([('spam', []), ('foo', 'bar'), ('c', 'd'), ('a', 'b')])
-
-    And sort it like a list:
+    You can sort the OrderedDict like a list:
 
     >>> d.sort(key=lambda x: x[0].lower())
     >>> d
@@ -80,28 +69,23 @@ class OrderedDict(dict):
     """
 
     def __init__(self, *args, **kwargs):
-        dict.__init__(self)
+        super(OrderedDict, self).__init__()
         self._keys = []
         self.update(*args, **kwargs)
 
     def __delitem__(self, key):
-        dict.__delitem__(self, key)
+        super(OrderedDict, self).__delitem__(key)
         self._keys.remove(key)
 
     def __setitem__(self, key, item):
         if key not in self:
             self._keys.append(key)
-        dict.__setitem__(self, key, item)
+        super(OrderedDict, self).__setitem__(key, item)
 
     def __deepcopy__(self, memo):
-        d = memo.get(id(self), _missing)
-        memo[id(self)] = d = self.__class__()
-        dict.__init__(d, deepcopy(self.items(), memo))
-        d._keys = self._keys[:]
-        return d
-
-    def __reduce__(self):
-        return type(self), self.items()
+        memo[id(self)] = new_od = self.__class__()
+        new_od.__init__(deepcopy(self.items(), memo))
+        return new_od
 
     def __reversed__(self):
         return reversed(self._keys)
@@ -112,11 +96,7 @@ class OrderedDict(dict):
 
     def clear(self):
         del self._keys[:]
-        dict.clear(self)
-
-    def move(self, key, index):
-        self._keys.remove(key)
-        self._keys.insert(index, key)
+        super(OrderedDict, self).clear()
 
     def copy(self):
         return self.__class__(self)
@@ -134,21 +114,22 @@ class OrderedDict(dict):
         return iter(self._keys)
 
     def pop(self, key, default=_missing):
-        if default is _missing:
-            return dict.pop(self, key)
-        elif key not in self:
+        if key not in self:
+            if default is _missing:
+                raise KeyError(key)
             return default
         self._keys.remove(key)
-        return dict.pop(self, key, default)
+        return super(OrderedDict, self).pop(key, default)
 
-    def popitem(self, key):
-        self._keys.remove(key)
-        return dict.popitem(self, key)
+    def popitem(self):
+        if not self._keys:
+            raise KeyError('popitem(): dictionary is empty')
+        return self._keys[0], self.pop(self._keys[0])
 
     def setdefault(self, key, default=None):
         if key not in self:
             self._keys.append(key)
-        dict.setdefault(self, key, default)
+        return super(OrderedDict, self).setdefault(key, default)
 
     def update(self, *args, **kwargs):
         sources = []
@@ -166,20 +147,10 @@ class OrderedDict(dict):
                 self[key] = val
 
     def values(self):
-        return map(self.get, self._keys)
+        return [self.get(key) for key in self._keys]
 
     def itervalues(self):
-        return imap(self.get, self._keys)
-
-    def index(self, item):
-        return self._keys.index(item)
-
-    def byindex(self, item):
-        key = self._keys[item]
-        return (key, dict.__getitem__(self, key))
-
-    def reverse(self):
-        self._keys.reverse()
+        return (self.get(key) for key in self._keys)
 
     def sort(self, cmp=None, key=None, reverse=False):
         if key is not None:
