@@ -3,3 +3,4 @@ Sphinx==1.1.3
 coverage
 python-coveralls
 python-dateutil==2.2
+pymongo==2.7.1

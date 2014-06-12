@@ -4,8 +4,21 @@ import datetime
 import decimal
 import itertools
 import functools
+import random
+import string
 
-from ..exceptions import StopValidation, ValidationError, ConversionError
+from ..exceptions import (
+    StopValidation, ValidationError, ConversionError, MockCreationError
+)
+
+
+def fill_template(template, min_length, max_length):
+    return template % random_string(
+        get_value_in(
+            min_length,
+            max_length,
+            padding=len(template) - 2,
+            required_length=1))
 
 
 def force_unicode(obj, encoding='utf-8'):
@@ -18,6 +31,38 @@ def force_unicode(obj, encoding='utf-8'):
     return obj
 
 
+def get_range_endpoints(min_length, max_length, padding=0, required_length=0):
+    if min_length is None and max_length is None:
+        min_length = 0
+        max_length = 16
+    elif min_length is None:
+        min_length = 0
+    elif max_length is None:
+        max_length = max(min_length * 2, 16)
+
+    if padding:
+        max_length = max_length - padding
+        min_length = max(min_length - padding, 0)
+
+    if max_length < required_length:
+        raise MockCreationError(
+            'This field is too short to hold the mock data')
+
+    min_length = max(min_length, required_length)
+
+    return min_length, max_length
+
+
+def get_value_in(min_length, max_length, padding=0, required_length=0):
+    return random.randint(
+        *get_range_endpoints(min_length, max_length, padding, required_length))
+
+
+def random_string(length, chars=string.letters + string.digits):
+    return ''.join(random.choice(chars) for _ in range(length))
+
+
+_last_position_hint = -1
 _next_position_hint = itertools.count()
 
 
@@ -120,6 +165,9 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
     def __call__(self, value):
         return self.to_native(value)
 
+    def _mock(self, context=None):
+        return None
+
     @property
     def default(self):
         default = self._default
@@ -177,11 +225,21 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
                 raise ValidationError(self.messages['choices']
                                       .format(unicode(self.choices)))
 
+    def mock(self, context=None):
+        if not self.required and not random.choice([True, False]):
+            return self.default
+        if self.choices is not None:
+            return random.choice(self.choices)
+        return self._mock(context)
+
 
 class UUIDType(BaseType):
 
     """A field that stores a valid UUID value.
     """
+
+    def _mock(self, context=None):
+        return uuid.uuid4()
 
     def to_native(self, value, context=None):
         if not isinstance(value, uuid.UUID):
@@ -195,6 +253,9 @@ class UUIDType(BaseType):
 class IPv4Type(BaseType):
 
     """ A field that stores a valid IPv4 address """
+
+    def _mock(self, context=None):
+        return '.'.join(str(random.randrange(256)) for _ in range(4))
 
     @classmethod
     def valid_ip(cls, addr):
@@ -239,6 +300,9 @@ class StringType(BaseType):
         self.min_length = min_length
 
         super(StringType, self).__init__(**kwargs)
+
+    def _mock(self, context=None):
+        return random_string(get_value_in(self.min_length, self.max_length))
 
     def to_native(self, value, context=None):
         if value is None:
@@ -294,6 +358,10 @@ class URLType(StringType):
         self.verify_exists = verify_exists
         super(URLType, self).__init__(**kwargs)
 
+    def _mock(self, context=None):
+        return fill_template('http://a%s.ZZ', self.min_length,
+                             self.max_length)
+
     def validate_url(self, value):
         if not URLType.URL_REGEX.match(value):
             raise StopValidation(self.messages['invalid_url'])
@@ -326,6 +394,10 @@ class EmailType(StringType):
         re.IGNORECASE
     )
 
+    def _mock(self, context=None):
+        return fill_template('%s@example.com', self.min_length,
+                             self.max_length)
+
     def validate_email(self, value):
         if not EmailType.EMAIL_REGEX.match(value):
             raise StopValidation(self.messages['email'])
@@ -350,6 +422,9 @@ class NumberType(BaseType):
         self.max_value = max_value
 
         super(NumberType, self).__init__(**kwargs)
+
+    def _mock(self, context=None):
+        return get_value_in(self.min_value, self.max_value)
 
     def to_native(self, value, context=None):
         try:
@@ -421,6 +496,9 @@ class DecimalType(BaseType):
 
         super(DecimalType, self).__init__(**kwargs)
 
+    def _mock(self, context=None):
+        return get_value_in(self.min_value, self.max_value)
+
     def to_primitive(self, value, context=None):
         return unicode(value)
 
@@ -455,7 +533,8 @@ class HashType(BaseType):
         'hash_hex': u"Hash value is not hexadecimal.",
     }
 
-    LENGTH = None
+    def _mock(self, context=None):
+        return random_string(self.LENGTH, string.hexdigits)
 
     def to_native(self, value, context=None):
         if len(value) != self.LENGTH:
@@ -496,6 +575,9 @@ class BooleanType(BaseType):
     TRUE_VALUES = ('True', 'true', '1')
     FALSE_VALUES = ('False', 'false', '0')
 
+    def _mock(self, context=None):
+        return random.choice([True, False])
+
     def to_native(self, value, context=None):
         if isinstance(value, basestring):
             if value in self.TRUE_VALUES:
@@ -522,6 +604,13 @@ class DateType(BaseType):
     def __init__(self, **kwargs):
         self.serialized_format = self.SERIALIZED_FORMAT
         super(DateType, self).__init__(**kwargs)
+
+    def _mock(self, context=None):
+        return datetime.datetime(
+            year=random.randrange(600) + 1900,
+            month=random.randrange(12) + 1,
+            day=random.randrange(28) + 1,
+        )
 
     def to_native(self, value, context=None):
         if isinstance(value, datetime.date):
@@ -569,6 +658,17 @@ class DateTimeType(BaseType):
         self.serialized_format = serialized_format
         super(DateTimeType, self).__init__(**kwargs)
 
+    def _mock(self, context=None):
+        return datetime.datetime(
+            year=random.randrange(600) + 1900,
+            month=random.randrange(12) + 1,
+            day=random.randrange(28) + 1,
+            hour=random.randrange(24),
+            minute=random.randrange(60),
+            second=random.randrange(60),
+            microsecond=random.randrange(1000000),
+        )
+
     def to_native(self, value, context=None):
         if isinstance(value, datetime.datetime):
             return value
@@ -590,6 +690,9 @@ class GeoPointType(BaseType):
 
     """A list storing a latitude and longitude.
     """
+
+    def _mock(self, context=None):
+        return (random.randrange(-90, 90), random.randrange(-90, 90))
 
     def to_native(self, value, context=None):
         """Make sure that a geo-value is of type (x, y)
@@ -645,6 +748,9 @@ class MultilingualStringType(BaseType):
         self.locale_regex = re.compile(locale_regex) if locale_regex else None
 
         super(MultilingualStringType, self).__init__(**kwargs)
+
+    def _mock(self, context=None):
+        return random_string(get_value_in(self.min_length, self.max_length))
 
     def to_native(self, value, context=None):
         """Make sure a MultilingualStringType value is a dict or None."""

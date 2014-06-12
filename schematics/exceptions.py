@@ -50,3 +50,8 @@ class StopValidation(ValidationError):
 
     """Exception raised when no more validation need occur."""
     pass
+
+
+class MockCreationError(ValueError):
+    """Exception raised when a mock value cannot be generated."""
+    pass
