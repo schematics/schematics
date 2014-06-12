@@ -3,7 +3,7 @@ a part of the pymongo distribution.
 """
 
 from schematics.types import BaseType
-from schematics.exceptions import ValidationError
+from schematics.exceptions import ConversionError, ValidationError
 
 import bson
 
@@ -17,13 +17,20 @@ class ObjectIdType(BaseType):
     typically obtained after a successful save to Mongo.
     """
 
+    MESSAGES = {
+        'convert': u"Couldn't interpret value as an ObjectId.",
+    }
+
     def __init__(self, auto_fill=False, **kwargs):
         self.auto_fill = auto_fill
         super(ObjectIdType, self).__init__(**kwargs)
 
     def to_native(self, value, context=None):
         if not isinstance(value, bson.objectid.ObjectId):
-            value = bson.objectid.ObjectId(unicode(value))
+            try:
+                value = bson.objectid.ObjectId(unicode(value))
+            except bson.objectid.InvalidId:
+                raise ConversionError(self.messages['convert'])
         return value
 
     def to_primitive(self, value, context=None):
@@ -33,6 +40,6 @@ class ObjectIdType(BaseType):
         if not isinstance(value, bson.objectid.ObjectId):
             try:
                 value = bson.objectid.ObjectId(unicode(value))
-            except Exception, e:
+            except Exception:
                 raise ValidationError('Invalid ObjectId')
         return True
