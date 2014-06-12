@@ -37,6 +37,14 @@ def test_invalid_models_validate_partially():
     u.validate(partial=True)
 
 
+def test_model_with_rogue_field_throws_exception():
+    class User(Model):
+        name = StringType()
+
+    with pytest.raises(ModelConversionError):
+        User({'foo': 'bar'})
+
+
 def test_equality():
     class Player(Model):
         id = IntType()

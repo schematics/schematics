@@ -5,7 +5,7 @@ from schematics.models import Model
 from schematics.types import StringType, LongType, IntType, MD5Type
 from schematics.types.compound import ModelType, DictType, ListType
 from schematics.types.serializable import serializable
-from schematics.transforms import blacklist, whitelist, wholelist
+from schematics.transforms import blacklist, whitelist, wholelist, export_loop
 
 
 def test_serializable():
@@ -31,6 +31,9 @@ def test_serializable():
     assert location_IS.country_name == "Unknown"
 
     d = location_IS.serialize()
+    assert d == {"country_code": "IS", "country_name": "Unknown"}
+
+    d = location_IS.to_native()
     assert d == {"country_code": "IS", "country_name": "Unknown"}
 
 
@@ -419,6 +422,36 @@ def test_complex_types_hiding_after_apply_role_leaves_it_empty():
     assert d == {'question_id': '1'}
 
 
+def test_serialize_none_fields_if_field_says_so():
+    class TestModel(Model):
+        inst_id = StringType(required=True, serialize_when_none=True)
+
+    q = TestModel({'inst_id': 1})
+
+    d = export_loop(TestModel, q, lambda field, value: None)
+    assert d == {'inst_id': None}
+
+
+def test_serialize_none_fields_if_export_loop_says_so():
+    class TestModel(Model):
+        inst_id = StringType(required=True, serialize_when_none=False)
+
+    q = TestModel({'inst_id': 1})
+
+    d = export_loop(TestModel, q, lambda field, value: None, print_none=True)
+    assert d == {'inst_id': None}
+
+
+def test_serialize_print_none_always_gets_you_something():
+    class TestModel(Model):
+        pass
+
+    q = TestModel()
+
+    d = export_loop(TestModel, q, lambda field, value: None, print_none=True)
+    assert d == {}
+
+
 def test_roles_work_with_subclassing():
     class Address(Model):
         private_key = StringType()
@@ -690,7 +723,27 @@ def test_role_set_operations():
                 'create': all_fields - ['id'],
                 'public': all_fields - ['password'],
                 'nospam': blacklist('password') + blacklist('email'),
+                'empty': whitelist(),
+                'everything': blacklist(),
             }
+
+    roles = User.Options.roles
+    assert len(roles['create']) == 3
+    assert len(roles['public']) == 3
+    assert len(roles['nospam']) == 2
+    assert len(roles['empty']) == 0
+    assert len(roles['everything']) == 0
+
+    # Sets sort different with different Python versions. We should be getting something back
+    # like: "whitelist('password', 'email', 'name')"
+    s = str(roles['create'])
+    assert s.startswith('whitelist(') and s.endswith(')')
+    assert sorted(s[10:-1].split(', ')) == ["'email'", "'name'", "'password'"]
+
+    # Similar, but now looking for: <Role whitelist('password', 'email', 'name')>
+    r = repr(roles['create'])
+    assert r.startswith('<Role whitelist(') and r.endswith(')>')
+    assert sorted(r[16:-2].split(', ')) == ["'email'", "'name'", "'password'"]
 
     data = {
         'id': 'NaN',
@@ -719,6 +772,19 @@ def test_role_set_operations():
     assert d == {
         'id': 42,
         'name': 'Arthur',
+    }
+
+    d = user.serialize(role='empty')
+
+    assert d is None
+
+    d = user.serialize(role='everything')
+
+    assert d == {
+        'email': 'adent@hitchhiker.gal',
+        'id': 42,
+        'name': 'Arthur',
+        'password': 'dolphins'
     }
 
     def test_md5_type(self):
