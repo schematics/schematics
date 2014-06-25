@@ -46,7 +46,10 @@ class FieldDescriptor(object):
         Checks the field name against a model and sets the value.
         """
         field = instance._fields[self.name]
-        if not isinstance(value, Model) and isinstance(field, ModelType):
+        if all((
+                value is not None,
+                not isinstance(value, Model),
+                isinstance(field, ModelType))):
             value = field.model_class(value)
         instance._data[self.name] = value
 
