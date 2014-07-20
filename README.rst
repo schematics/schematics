@@ -8,8 +8,8 @@ Schematics
   :target: https://secure.travis-ci.org/schematics/schematics
   :alt: Build Status
 
-.. image:: https://coveralls.io/repos/j2labs/schematics/badge.png?branch=master
-  :target: https://coveralls.io/r/j2labs/schematics?branch=master
+.. image:: https://coveralls.io/repos/schematics/schematics/badge.png?branch=master
+  :target: https://coveralls.io/r/schematics/schematics?branch=master
   :alt: Coverage
 
 **For more information, please see our documentation:** http://schematics.readthedocs.org/en/latest/
