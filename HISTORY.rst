@@ -1,3 +1,32 @@
+0.9.5 / 2014-07-19
+==================
+
+* [Feature] (`#191 <https://github.com/schematics/schematics/pull/191>`_) Updated import_data to avoid overwriting existing data. deserialize_mapping can now support partial and nested models.
+* [Documentation] (`#192 <https://github.com/schematics/schematics/pull/192>`_) Document the creation of custom types 
+* [Feature] (`#193 <https://github.com/schematics/schematics/pull/193>`_) Add primitive types accepting values of any simple or compound primitive JSON type.
+* [Bug] (`#194 <https://github.com/schematics/schematics/pull/194>`_) Change standard coerce_key function to unicode
+* [Tests] (`#196 <https://github.com/schematics/schematics/pull/196>`_) Test fixes and cleanup
+* [Feature] (`#197 <https://github.com/schematics/schematics/pull/197>`_) Giving context to serialization
+* [Bug] (`#198 <https://github.com/schematics/schematics/pull/198>`_) Fixed typo in variable name in DateTimeType
+* [Feature] (`#200 <https://github.com/schematics/schematics/pull/200>`_) Added the option to turn of strict conversion when creating a Model from a dict
+* [Feature] (`#212 <https://github.com/schematics/schematics/pull/212>`_) Support exporting ModelType fields with subclassed model instances
+* [Feature] (`#214 <https://github.com/schematics/schematics/pull/214>`_) Create mock objects using a class's fields as a template 
+* [Bug] (`#215 <https://github.com/schematics/schematics/pull/215>`_) PEP 8 FTW
+* [Feature] (`#216 <https://github.com/schematics/schematics/pull/216>`_) Datastructures cleanup
+* [Feature] (`#217 <https://github.com/schematics/schematics/pull/217>`_) Models cleanup pt 1
+* [Feature] (`#218 <https://github.com/schematics/schematics/pull/218>`_) Models cleanup pt 2
+* [Feature] (`#219 <https://github.com/schematics/schematics/pull/219>`_) Mongo cleanup
+* [Feature] (`#220 <https://github.com/schematics/schematics/pull/220>`_) Temporal cleanup
+* [Feature] (`#221 <https://github.com/schematics/schematics/pull/221>`_) Base cleanup
+* [Feature] (`#224 <https://github.com/schematics/schematics/pull/224>`_) Exceptions cleanup
+* [Feature] (`#225 <https://github.com/schematics/schematics/pull/225>`_) Validate cleanup
+* [Feature] (`#226 <https://github.com/schematics/schematics/pull/226>`_) Serializable cleanup
+* [Feature] (`#227 <https://github.com/schematics/schematics/pull/227>`_) Transforms cleanup
+* [Feature] (`#228 <https://github.com/schematics/schematics/pull/228>`_) Compound cleanup
+* [Feature] (`#229 <https://github.com/schematics/schematics/pull/229>`_) UUID cleanup
+* [Feature] (`#230 <https://github.com/schematics/schematics/pull/231>`_) Booleans as numbers
+
+
 0.9.4 / 2013-12/08
 ==================
 
