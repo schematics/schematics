@@ -106,7 +106,7 @@ Just like before, using it is now built in.
 Model-level Validation
 ----------------------
 
-What about field validation based on other model data? The order whith which
+What about field validation based on other model data? The order in which
 fields are declared is preserved inside the model. So if the validity of a field
 depends on another field’s value, just make sure to declare it below its
 dependencies:
