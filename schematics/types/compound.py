@@ -198,7 +198,7 @@ class ListType(MultiType):
                     role=None, print_none=False):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
-        as `serialize.export_loop`.
+        as `transforms.export_loop`.
         """
         data = []
         for value in list_instance:
@@ -276,7 +276,7 @@ class DictType(MultiType):
                     role=None, print_none=False):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
-        as `serialize.export_loop`.
+        as `transforms.export_loop`.
         """
         data = {}
 
