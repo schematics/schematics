@@ -112,7 +112,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
 def export_loop(cls, instance_or_dict, field_converter,
                 role=None, raise_error_on_role=False, print_none=False):
     """
-    The apply shape function is intended to be a general loop definition that
+    The export_loop function is intended to be a general loop definition that
     can be used for any form of data shaping, such as application of roles or
     how a field is transformed.
 
