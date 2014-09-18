@@ -10,7 +10,7 @@ def validate(cls, instance_or_dict, partial=False, strict=False, context=None):
     :param cls:
         The model class to use as source for validation. If given an instance,
         will also run instance-level validators on the data.
-    :param raw_data:
+    :param instance_or_dict:
         A ``dict`` or ``dict``-like structure for incoming data.
     :param partial:
         Allow partial data to validate; useful for PATCH requests.
