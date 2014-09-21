@@ -627,8 +627,8 @@ def test_serializable_with_dict_and_roles():
                 "public": blacklist("result")
             }
 
-    p1 = Player({"id": 1L, "display_name": "A"})
-    p2 = Player({"id": 2L, "display_name": "B"})
+    p1 = Player({"id": 1, "display_name": "A"})
+    p2 = Player({"id": 2, "display_name": "B"})
 
     game = Game({
         "id": "1",
@@ -646,10 +646,10 @@ def test_serializable_with_dict_and_roles():
     assert d == {
         "id": "1",
         "players": {
-            1L: {
+            1: {
                 "display_name": "A"
             },
-            2L: {
+            2: {
                 "display_name": "B"
             },
         }
