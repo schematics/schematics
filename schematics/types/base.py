@@ -8,6 +8,7 @@ import random
 import string
 
 from six import iteritems
+from six import text_type as unicode
 
 from ..exceptions import (
     StopValidation, ValidationError, ConversionError, MockCreationError

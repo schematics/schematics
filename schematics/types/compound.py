@@ -6,6 +6,8 @@ from ..transforms import export_loop, EMPTY_LIST, EMPTY_DICT
 from .base import BaseType
 
 from six import iteritems
+from six import string_types as basestring
+from six import text_type as unicode
 
 class MultiType(BaseType):
 
