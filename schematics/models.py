@@ -2,6 +2,8 @@
 
 import inspect
 
+from six import iteritems
+
 from .types import BaseType
 from .types.compound import ModelType
 from .types.serializable import Serializable
@@ -123,7 +125,7 @@ class ModelMeta(type):
                 validator_functions.update(base._validator_functions)
 
         # Parse this class's attributes into meta structures
-        for key, value in attrs.iteritems():
+        for key, value in iteritems(attrs):
             if key.startswith('validate_') and callable(value):
                 validator_functions[key[9:]] = value
             if isinstance(value, BaseType):
@@ -136,7 +138,7 @@ class ModelMeta(type):
 
         # Convert list of types into fields for new klass
         fields.sort(key=lambda i: i[1]._position_hint)
-        for key, field in fields.iteritems():
+        for key, field in iteritems(fields):
             attrs[key] = FieldDescriptor(key)
 
         # Ready meta data to be klass attributes

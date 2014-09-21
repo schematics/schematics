@@ -7,10 +7,16 @@ import functools
 import random
 import string
 
+from six import iteritems
+
 from ..exceptions import (
     StopValidation, ValidationError, ConversionError, MockCreationError
 )
 
+try: 
+    from string import ascii_letters
+except ImportError:
+    from string import letters as ascii_letters
 
 def fill_template(template, min_length, max_length):
     return template % random_string(
@@ -58,7 +64,7 @@ def get_value_in(min_length, max_length, padding=0, required_length=0):
         *get_range_endpoints(min_length, max_length, padding, required_length))
 
 
-def random_string(length, chars=string.letters + string.digits):
+def random_string(length, chars=ascii_letters + string.digits):
     return ''.join(random.choice(chars) for _ in range(length))
 
 
@@ -89,7 +95,7 @@ class TypeMeta(type):
 
         attrs['MESSAGES'] = messages
 
-        for attr_name, attr in attrs.iteritems():
+        for attr_name, attr in iteritems(attrs):
             if attr_name.startswith("validate_"):
                 validators.append(attr)
 

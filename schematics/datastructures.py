@@ -1,5 +1,6 @@
 from copy import deepcopy
-from itertools import izip
+from six.moves import zip
+from six import iteritems
 
 _missing = object()
 
@@ -103,10 +104,10 @@ class OrderedDict(dict):
         return self.__class__(self)
 
     def items(self):
-        return zip(self._keys, self.values())
+        return list(zip(self._keys, self.values()))
 
     def iteritems(self):
-        return izip(self._keys, self.itervalues())
+        return list(zip(self._keys, self.itervalues()))
 
     def keys(self):
         return self._keys[:]
@@ -135,14 +136,16 @@ class OrderedDict(dict):
     def update(self, *args, **kwargs):
         sources = []
         if len(args) == 1:
-            if hasattr(args[0], 'iteritems'):
-                sources.append(args[0].iteritems())
+            if isinstance(args[0], dict):
+                sources.append(iteritems(args[0]))
+            # if hasattr(args[0], 'iteritems'):
+            #     sources.append(args[0].iteritems())
             else:
                 sources.append(iter(args[0]))
         elif args:
             raise TypeError('expected at most one positional argument')
         if kwargs:
-            sources.append(kwargs.iteritems())
+            sources.append(iteritems(kwargs))
         for iterable in sources:
             for key, val in iterable:
                 self[key] = val

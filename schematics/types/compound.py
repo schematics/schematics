@@ -5,6 +5,7 @@ from ..exceptions import ValidationError, ConversionError, ModelValidationError,
 from ..transforms import export_loop, EMPTY_LIST, EMPTY_DICT
 from .base import BaseType
 
+from six import iteritems
 
 class MultiType(BaseType):
 
@@ -255,11 +256,11 @@ class DictType(MultiType):
             raise ValidationError(u'Only dictionaries may be used in a DictType')
 
         return dict((self.coerce_key(k), self.field.to_native(v, context))
-                    for k, v in value.iteritems())
+                    for k, v in iteritems(value))
 
     def validate_items(self, items):
         errors = {}
-        for key, value in items.iteritems():
+        for key, value in iteritems(items):
             try:
                 self.field.validate(value)
             except ValidationError as exc:
@@ -270,7 +271,7 @@ class DictType(MultiType):
 
     def to_primitive(self, value, context=None):
         return dict((unicode(k), self.field.to_primitive(v, context))
-                    for k, v in value.iteritems())
+                    for k, v in iteritems(value))
 
     def export_loop(self, dict_instance, field_converter,
                     role=None, print_none=False):
@@ -280,7 +281,7 @@ class DictType(MultiType):
         """
         data = {}
 
-        for key, value in dict_instance.iteritems():
+        for key, value in iteritems(dict_instance):
             if hasattr(self.field, 'export_loop'):
                 shaped = self.field.export_loop(value, field_converter,
                                                 role=role)
