@@ -620,7 +620,7 @@ def test_serializable_with_dict_and_roles():
     class Game(Model):
         id = StringType()
         result = IntType()
-        players = DictType(ModelType(Player), coerce_key=lambda k: long(k))
+        players = DictType(ModelType(Player), coerce_key=lambda k: int(k))
 
         class Options:
             roles = {

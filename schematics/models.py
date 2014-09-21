@@ -247,9 +247,11 @@ class Model(object):
             The data to be imported.
         """
         data = self.convert(raw_data, **kw)
-        for k in data.keys():
-            if data[k] is None:
-                del data[k]
+        #[x * 2 if x % 2 == 0 else x for x in a_list]
+        del_keys = [ k for k in data.keys() if data[k] is None]
+        for k in del_keys:
+            del data[k]
+
         self._data.update(data)
         return self
 

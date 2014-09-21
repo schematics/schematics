@@ -8,6 +8,7 @@ import random
 import string
 
 from six import iteritems
+from six import string_types as basestring
 from six import text_type as unicode
 
 from ..exceptions import (
@@ -379,10 +380,10 @@ class URLType(StringType):
         if not URLType.URL_REGEX.match(value):
             raise StopValidation(self.messages['invalid_url'])
         if self.verify_exists:
-            import urllib2
+            from six.moves import urllib
             try:
-                request = urllib2.Request(value)
-                urllib2.urlopen(request)
+                request = urllib.Request(value)
+                urllib.urlopen(request)
             except Exception:
                 raise StopValidation(self.messages['not_found'])
 
@@ -477,7 +478,14 @@ class LongType(NumberType):
     """
 
     def __init__(self, *args, **kwargs):
-        super(LongType, self).__init__(number_class=long,
+
+        try:
+            number_class = long #PY2
+        except NameError:
+            number_class = int #PY3
+        
+
+        super(LongType, self).__init__(number_class=number_class,
                                        number_type='Long',
                                        *args, **kwargs)
 

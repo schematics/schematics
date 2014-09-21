@@ -71,6 +71,7 @@ def _validate_model(cls, data):
         Errors of the fields that did not pass validation.
     """
     errors = {}
+    invalid_fields = []
     for field_name, value in data.items():
         if field_name in cls._validator_functions:
             try:
@@ -80,7 +81,11 @@ def _validate_model(cls, data):
                 field = cls._fields[field_name]
                 serialized_field_name = field.serialized_name or field_name
                 errors[serialized_field_name] = exc.messages
-                data.pop(field_name, None)  # get rid of the invalid field
+                invalid_fields.append(field_name)
+
+    for field_name in invalid_fields:
+        data.pop(field_name, None)  # get rid of the invalid field
+
     return errors
 
 
