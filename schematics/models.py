@@ -3,6 +3,8 @@
 import inspect
 
 from six import iteritems
+from six import iterkeys
+from six import add_metaclass
 
 from .types import BaseType
 from .types.compound import ModelType
@@ -194,7 +196,7 @@ class ModelMeta(type):
 #           self._unbound_serializables.iteritems()
 #       )
 
-
+@add_metaclass(ModelMeta)
 class Model(object):
 
     """
@@ -207,7 +209,7 @@ class Model(object):
     possible to convert the raw data into richer Python constructs.
     """
 
-    __metaclass__ = ModelMeta
+    #__metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
     def __init__(self, raw_data=None, deserialize_mapping=None, strict=True):
@@ -321,10 +323,10 @@ class Model(object):
         return self._fields.keys()
 
     def items(self):
-        return [(k, self.get(k)) for k in self._fields.iterkeys()]
+        return [(k, self.get(k)) for k in iterkeys(self._fields)]
 
     def values(self):
-        return [self.get(k) for k in self._fields.iterkeys()]
+        return [self.get(k) for k in iterkeys(self._fields)]
 
     def get(self, key, default=None):
         try:
