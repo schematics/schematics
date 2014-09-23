@@ -7,10 +7,37 @@ import functools
 import random
 import string
 
+import six
+from six import iteritems
+
 from ..exceptions import (
     StopValidation, ValidationError, ConversionError, MockCreationError
 )
 
+try: 
+    from string import ascii_letters # PY3
+except ImportError:
+    from string import letters as ascii_letters #PY2 
+
+try:
+    basestring #PY2
+except NameError:
+    basestring = str #PY3
+
+try:
+    unicode #PY2
+except:
+    import codecs
+    unicode = str #PY3
+
+def utf8_decode(s):
+
+    if six.PY3:
+        s = str(s) #todo: right thing to do?
+    else:
+        s = unicode(s, 'utf-8')
+
+    return s
 
 def fill_template(template, min_length, max_length):
     return template % random_string(
@@ -24,9 +51,11 @@ def fill_template(template, min_length, max_length):
 def force_unicode(obj, encoding='utf-8'):
     if isinstance(obj, basestring):
         if not isinstance(obj, unicode):
-            obj = unicode(obj, encoding)
+            #obj = unicode(obj, encoding)
+            obj = utf8_decode(obj)
     elif not obj is None:
-        obj = unicode(obj)
+        #obj = unicode(obj)
+        obj = utf8_decode(obj)
 
     return obj
 
@@ -58,7 +87,7 @@ def get_value_in(min_length, max_length, padding=0, required_length=0):
         *get_range_endpoints(min_length, max_length, padding, required_length))
 
 
-def random_string(length, chars=string.letters + string.digits):
+def random_string(length, chars=ascii_letters + string.digits):
     return ''.join(random.choice(chars) for _ in range(length))
 
 
@@ -89,7 +118,7 @@ class TypeMeta(type):
 
         attrs['MESSAGES'] = messages
 
-        for attr_name, attr in attrs.iteritems():
+        for attr_name, attr in iteritems(attrs):
             if attr_name.startswith("validate_"):
                 validators.append(attr)
 
@@ -318,7 +347,7 @@ class StringType(BaseType):
             if isinstance(value, self.allow_casts):
                 if not isinstance(value, str):
                     value = str(value)
-                value = unicode(value, 'utf-8')
+                value = utf8_decode(value) #unicode(value, 'utf-8')
             else:
                 raise ConversionError(self.messages['convert'])
 
@@ -372,10 +401,10 @@ class URLType(StringType):
         if not URLType.URL_REGEX.match(value):
             raise StopValidation(self.messages['invalid_url'])
         if self.verify_exists:
-            import urllib2
+            from six.moves import urllib
             try:
-                request = urllib2.Request(value)
-                urllib2.urlopen(request)
+                request = urllib.Request(value)
+                urllib.urlopen(request)
             except Exception:
                 raise StopValidation(self.messages['not_found'])
 
@@ -470,7 +499,14 @@ class LongType(NumberType):
     """
 
     def __init__(self, *args, **kwargs):
-        super(LongType, self).__init__(number_class=long,
+
+        try:
+            number_class = long #PY2
+        except NameError:
+            number_class = int #PY3
+        
+
+        super(LongType, self).__init__(number_class=number_class,
                                        number_type='Long',
                                        *args, **kwargs)
 
@@ -807,7 +843,8 @@ class MultilingualStringType(BaseType):
             if isinstance(localized, self.allow_casts):
                 if not isinstance(localized, str):
                     localized = str(localized)
-                localized = unicode(localized, 'utf-8')
+                #localized = unicode(localized, 'utf-8')
+                localized = utf8_decode(localized)
             else:
                 raise ConversionError(self.messages['convert'])
 
