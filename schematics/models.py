@@ -15,6 +15,11 @@ from .transforms import to_primitive, to_native, convert
 from .validate import validate
 from .datastructures import OrderedDict as OrderedDictWithSort
 
+try:
+    unicode #PY2
+except:
+    import codecs
+    unicode = str #PY3
 
 class FieldDescriptor(object):
 
@@ -396,6 +401,9 @@ class Model(object):
             class_name = '[Bad Unicode class name]'
 
         return u"<%s: %s>" % (class_name, obj)
+
+    def __str__(self):
+        return '%s object' % self.__class__.__name__        
 
     def __unicode__(self):
         return '%s object' % self.__class__.__name__

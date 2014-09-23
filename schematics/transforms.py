@@ -7,6 +7,10 @@ from six import iteritems
 
 from .exceptions import ConversionError, ModelConversionError, ValidationError
 
+try:
+    basestring #PY2
+except NameError:
+    basestring = str #PY3
 
 def _list_or_string(lors):
     if lors is None:
@@ -15,6 +19,11 @@ def _list_or_string(lors):
         return [lors]
     return list(lors)
 
+try:
+    unicode #PY2
+except:
+    import codecs
+    unicode = str #PY3
 
 ###
 # Transform Loops
@@ -260,11 +269,12 @@ class Role(collections.Set):
         return len(self.fields)
 
     def __eq__(self, other):
-        return (self.function.func_name == other.function.func_name and
+        print(dir(self.function))
+        return (self.function.__name__ == other.function.__name__ and
                 self.fields == other.fields)
 
     def __str__(self):
-        return '%s(%s)' % (self.function.func_name,
+        return '%s(%s)' % (self.function.__name__,
                            ', '.join("'%s'" % f for f in self.fields))
 
     def __repr__(self):

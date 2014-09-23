@@ -3,6 +3,10 @@ from schematics.types import IntType, StringType
 from schematics.types.serializable import serializable
 from schematics.types.compound import ModelType, DictType
 
+try:
+    long
+except NameError:
+    long = int
 
 def test_basic_type():
     class PlayerInfo(Model):

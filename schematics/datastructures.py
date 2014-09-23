@@ -1,6 +1,7 @@
 from copy import deepcopy
 from six.moves import zip
 from six import iteritems
+from six import PY3
 
 _missing = object()
 
@@ -81,7 +82,10 @@ class OrderedDict(dict):
 
     def __setitem__(self, key, item):
         if key not in self:
-            self._keys.append(key)
+            if hasattr(self, '_keys'):
+                self._keys.append(key)
+            else:
+                self._keys = [key]
         super(OrderedDict, self).__setitem__(key, item)
 
     def __deepcopy__(self, memo):
