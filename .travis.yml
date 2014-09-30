@@ -1,6 +1,6 @@
 language: python
 # command to install tox, tox env will install deps.
-install: pip install tox --use-mirrors
+install: pip install tox
 # command to run tests
 script: tox
 
