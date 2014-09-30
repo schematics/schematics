@@ -1,3 +1,5 @@
+from six import iteritems
+
 class BaseError(Exception):
 
     def __init__(self, messages):
@@ -12,7 +14,7 @@ class BaseError(Exception):
     def clean_messages(self, messages):
         if isinstance(messages, dict):
             clean_messages = {}
-            for key, value in messages.iteritems():
+            for key, value in iteritems(messages):
                 if isinstance(value, ValidationError):
                     value = value.messages
                 clean_messages[key] = value

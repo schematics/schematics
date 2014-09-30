@@ -3,8 +3,14 @@
 import collections
 import itertools
 
+from six import iteritems
+
 from .exceptions import ConversionError, ModelConversionError, ValidationError
 
+try:
+    basestring #PY2
+except NameError:
+    basestring = str #PY3
 
 def _list_or_string(lors):
     if lors is None:
@@ -13,6 +19,11 @@ def _list_or_string(lors):
         return [lors]
     return list(lors)
 
+try:
+    unicode #PY2
+except:
+    import codecs
+    unicode = str #PY3
 
 ###
 # Transform Loops
@@ -54,7 +65,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
 
     # Determine all acceptable field input names
     all_fields = set(cls._fields) ^ set(cls._serializables)
-    for field_name, field, in cls._fields.iteritems():
+    for field_name, field, in iteritems(cls._fields):
         if hasattr(field, 'serialized_name'):
             all_fields.add(field.serialized_name)
         if hasattr(field, 'deserialize_from'):
@@ -68,7 +79,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
         for field in rogue_fields:
             errors[field] = 'Rogue field'
 
-    for field_name, field in cls._fields.iteritems():
+    for field_name, field in iteritems(cls._fields):
         serialized_field_name = field.serialized_name or field_name
 
         trial_keys = _list_or_string(field.deserialize_from)
@@ -196,8 +207,8 @@ def atoms(cls, instance_or_dict):
         expectionation for this structure is that it implements a ``dict``
         interface.
     """
-    all_fields = itertools.chain(cls._fields.iteritems(),
-                                 cls._serializables.iteritems())
+    all_fields = itertools.chain(iteritems(cls._fields),
+                                 iteritems(cls._serializables))
 
     return ((field_name, field, instance_or_dict[field_name])
             for field_name, field in all_fields)
@@ -258,11 +269,12 @@ class Role(collections.Set):
         return len(self.fields)
 
     def __eq__(self, other):
-        return (self.function.func_name == other.function.func_name and
+        print(dir(self.function))
+        return (self.function.__name__ == other.function.__name__ and
                 self.fields == other.fields)
 
     def __str__(self):
-        return '%s(%s)' % (self.function.func_name,
+        return '%s(%s)' % (self.function.__name__,
                            ', '.join("'%s'" % f for f in self.fields))
 
     def __repr__(self):
@@ -443,7 +455,7 @@ def expand(data, context=None):
     if context is None:
         context = expanded_dict
 
-    for key, value in data.iteritems():
+    for key, value in iteritems(data):
         try:
             key, remaining = key.split(".", 1)
         except ValueError:
@@ -491,8 +503,10 @@ def flatten_to_dict(instance_or_dict, prefix=None, ignore_none=True):
         This puts a prefix in front of the field names during flattening.
         Default: None
     """
-    if hasattr(instance_or_dict, "iteritems"):
-        iterator = instance_or_dict.iteritems()
+    if isinstance(instance_or_dict, dict):
+        iterator = iteritems(instance_or_dict)
+    # if hasattr(instance_or_dict, "iteritems"):
+    #     iterator = instance_or_dict.iteritems()
     else:
         iterator = enumerate(instance_or_dict)
 

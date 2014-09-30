@@ -1,6 +1,6 @@
 import pickle
 from copy import deepcopy
-
+from six import PY3
 import pytest
 
 from schematics.datastructures import OrderedDict
@@ -128,9 +128,9 @@ def test_sort():
         items.append((i, 9 - i))
 
     od = OrderedDict(items)
-    od.sort(cmp=lambda x, y: cmp(x[1], y[1]))
+    od.sort(key=lambda x: x[1])
 
-    assert od.keys() == range(9, -1, -1)
+    assert od.keys() == list(range(9, -1, -1))
 
     items = []
     for i in range(10):
@@ -139,12 +139,12 @@ def test_sort():
     od = OrderedDict(items)
     od.sort()
 
-    assert od.keys() == range(10)
+    assert od.keys() == list(range(10))
 
     od = OrderedDict(items)
     od.sort(reverse=True)
 
-    assert od.keys() == range(9, -1, -1)
+    assert od.keys() == list(range(9, -1, -1))
 
 
 def test_repr():
