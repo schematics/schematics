@@ -7,6 +7,11 @@ from schematics.exceptions import ConversionError, ValidationError
 
 import bson
 
+try:
+    unicode #PY2
+except:
+    import codecs
+    unicode = str #PY3
 
 class ObjectIdType(BaseType):
 

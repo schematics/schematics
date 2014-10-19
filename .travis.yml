@@ -1,9 +1,8 @@
 language: python
-# command to install dependencies
-install:
-    pip install -r dev-requirements.txt
+# command to install tox, tox env will install deps.
+install: pip install tox
 # command to run tests
-script: coverage run --source schematics -m py.test
+script: tox
 
 after_success:
     coveralls

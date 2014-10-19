@@ -1,3 +1,11 @@
+1.0.0 / 2014-10-16
+==================
+* [Documentation] (`#239 <https://github.com/schematics/schematics/issues/239>`_) Fix typo with wording suggestion
+* [Documentation] (`#244 <https://github.com/schematics/schematics/issues/244>`_) fix wrong reference in docs
+* [Documentation] (`#246 <https://github.com/schematics/schematics/issues/246>`_) Using the correct function name in the docstring
+* [Documentation] (`#245 <https://github.com/schematics/schematics/issues/245>`_) Making the docstring match actual parameter names
+* [Feature] (`#241 <https://github.com/schematics/schematics/issues/241>`_) Py3k support
+
 0.9.5 / 2014-07-19
 ==================
 

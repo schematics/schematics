@@ -9,6 +9,7 @@ from schematics.types.base import StringType, IntType
 from schematics.types.compound import ModelType
 from schematics.exceptions import ValidationError, ConversionError, ModelConversionError
 
+from six import PY3
 
 def test_init_with_dict():
     class Player(Model):
@@ -557,5 +558,6 @@ def test_repr():
     inst = TestModel({'field1': 'foo'})
     assert repr(inst) == '<TestModel: TestModel object>'
 
-    inst.__class__.__name__ = '\x80'
-    assert repr(inst) == '<[Bad Unicode class name]: [Bad Unicode data]>'
+    if not PY3: #todo: make this work for PY3
+        inst.__class__.__name__ = '\x80'
+        assert repr(inst) == '<[Bad Unicode class name]: [Bad Unicode data]>'

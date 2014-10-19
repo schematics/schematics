@@ -52,7 +52,7 @@ This is a simple Model.
   ...     name = StringType(required=True)
   ...     website = URLType()
   ...
-  >>> person = Person({'name': u'Joe Strummer', 
+  >>> person = Person({'name': u'Joe Strummer',
   ...                  'website': 'http://soundcloud.com/joestrummer'})
   >>> person.name
   u'Joe Strummer'
@@ -86,7 +86,7 @@ Add the field and validation passes
   >>> person.name = 'Amon Tobin'
   >>> person.website = 'http://www.amontobin.com/'
   >>> person.validate()
-  >>> 
+  >>>
 
 What's with the fork?
 =====================

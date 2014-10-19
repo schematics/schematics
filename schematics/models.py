@@ -2,6 +2,10 @@
 
 import inspect
 
+from six import iteritems
+from six import iterkeys
+from six import add_metaclass
+
 from .types import BaseType
 from .types.compound import ModelType
 from .types.serializable import Serializable
@@ -11,6 +15,11 @@ from .transforms import to_primitive, to_native, convert
 from .validate import validate
 from .datastructures import OrderedDict as OrderedDictWithSort
 
+try:
+    unicode #PY2
+except:
+    import codecs
+    unicode = str #PY3
 
 class FieldDescriptor(object):
 
@@ -123,7 +132,7 @@ class ModelMeta(type):
                 validator_functions.update(base._validator_functions)
 
         # Parse this class's attributes into meta structures
-        for key, value in attrs.iteritems():
+        for key, value in iteritems(attrs):
             if key.startswith('validate_') and callable(value):
                 validator_functions[key[9:]] = value
             if isinstance(value, BaseType):
@@ -136,7 +145,7 @@ class ModelMeta(type):
 
         # Convert list of types into fields for new klass
         fields.sort(key=lambda i: i[1]._position_hint)
-        for key, field in fields.iteritems():
+        for key, field in iteritems(fields):
             attrs[key] = FieldDescriptor(key)
 
         # Ready meta data to be klass attributes
@@ -192,7 +201,7 @@ class ModelMeta(type):
 #           self._unbound_serializables.iteritems()
 #       )
 
-
+@add_metaclass(ModelMeta)
 class Model(object):
 
     """
@@ -205,7 +214,7 @@ class Model(object):
     possible to convert the raw data into richer Python constructs.
     """
 
-    __metaclass__ = ModelMeta
+    #__metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
     def __init__(self, raw_data=None, deserialize_mapping=None, strict=True):
@@ -243,9 +252,11 @@ class Model(object):
             The data to be imported.
         """
         data = self.convert(raw_data, **kw)
-        for k in data.keys():
-            if data[k] is None:
-                del data[k]
+        #[x * 2 if x % 2 == 0 else x for x in a_list]
+        del_keys = [ k for k in data.keys() if data[k] is None]
+        for k in del_keys:
+            del data[k]
+
         self._data.update(data)
         return self
 
@@ -319,10 +330,10 @@ class Model(object):
         return self._fields.keys()
 
     def items(self):
-        return [(k, self.get(k)) for k in self._fields.iterkeys()]
+        return [(k, self.get(k)) for k in iterkeys(self._fields)]
 
     def values(self):
-        return [self.get(k) for k in self._fields.iterkeys()]
+        return [self.get(k) for k in iterkeys(self._fields)]
 
     def get(self, key, default=None):
         try:
@@ -390,6 +401,9 @@ class Model(object):
             class_name = '[Bad Unicode class name]'
 
         return u"<%s: %s>" % (class_name, obj)
+
+    def __str__(self):
+        return '%s object' % self.__class__.__name__        
 
     def __unicode__(self):
         return '%s object' % self.__class__.__name__

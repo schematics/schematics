@@ -3,6 +3,10 @@ from schematics.types import IntType, StringType
 from schematics.types.serializable import serializable
 from schematics.types.compound import ModelType, DictType
 
+try:
+    long
+except NameError:
+    long = int
 
 def test_basic_type():
     class PlayerInfo(Model):
@@ -145,7 +149,7 @@ def test_key_type():
 
     info = PlayerInfo({
         "categories": {
-            1L: {"slug": "math"}
+            1: {"slug": "math"}
         },
     })
 
@@ -153,5 +157,5 @@ def test_key_type():
 
     d = info.serialize()
     assert d == {
-        "categories": {1L: {"slug": "math"}}
+        "categories": {1: {"slug": "math"}}
     }
