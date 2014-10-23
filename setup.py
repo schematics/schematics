@@ -30,7 +30,7 @@ setup(
     license='BSD',
     version=__version__,
     description='Structured Data for Humans',
-    author=u'James Dennis, Jökull Sólberg, Jóhann Þorvaldur Bergþórsson',
+    author='James Dennis, Jökull Sólberg, Jóhann Þorvaldur Bergþórsson',
     author_email='jdennis@gmail.com, jokull@plainvanillagames.com, johann@plainvanillagames.com',
     url='http://github.com/j2labs/schematics',
     packages=['schematics', 'schematics.types', 'schematics.contrib'],
