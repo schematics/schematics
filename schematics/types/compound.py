@@ -8,7 +8,7 @@ import itertools
 from ..exceptions import ValidationError, ConversionError, ModelValidationError, StopValidation
 from ..models import Model
 from ..transforms import export_loop, EMPTY_LIST, EMPTY_DICT
-from .base import BaseType
+from .base import BaseType, get_value_in
 
 from six import iteritems
 from six import string_types as basestring
@@ -154,6 +154,22 @@ class ListType(MultiType):
     @property
     def model_class(self):
         return self.field.model_class
+
+    def _mock(self, context=None):
+        min_size = self.min_size or 1
+        max_size = self.max_size or 1
+
+        if min_size > max_size:
+            message = u'Minimum list size is greater than maximum list size.'
+            raise MockCreationError(message)
+
+        random_length = get_value_in(min_size, max_size)
+
+        if isinstance(self.field, ModelType):
+            model_class = self.model_class
+            return [model_class.get_mock_object(context) for _ in xrange(random_length)]
+
+        return [self.field._mock(context) for _ in xrange(random_length)]
 
     def _force_list(self, value):
         if value is None or value == EMPTY_LIST:
