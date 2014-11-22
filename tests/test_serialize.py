@@ -116,6 +116,26 @@ def test_serializable_with_model():
     assert d == {"total_points": 2, "xp_level": {"level": 4, "title": "Best"}}
 
 
+def test_serializable_with_model_to_native():
+    class ExperienceLevel(Model):
+        level = IntType()
+        title = StringType()
+
+    class Player(Model):
+        total_points = IntType()
+
+        @serializable(type=ModelType(ExperienceLevel))
+        def xp_level(self):
+            return ExperienceLevel(dict(level=self.total_points * 2, title="Best"))
+
+    player = Player({"total_points": 2})
+
+    assert player.xp_level.level == 4
+
+    d = player.to_native()
+    assert d == {"total_points": 2, "xp_level": {"level": 4, "title": "Best"}}
+
+
 def test_serializable_with_model_when_None():
     class ExperienceLevel(Model):
         level = IntType()
