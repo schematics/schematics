@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import division
+
+from collections import Iterable
+import itertools
+
 from ..exceptions import ValidationError, ConversionError, ModelValidationError, StopValidation
+from ..models import Model
 from ..transforms import export_loop, EMPTY_LIST, EMPTY_DICT
 from .base import BaseType
 
@@ -305,3 +310,114 @@ class DictType(MultiType):
             return data
         elif print_none:
             return data
+
+
+class PolyModelType(MultiType):
+
+    def __init__(self, model_classes, **kwargs):
+
+        if isinstance(model_classes, type) and issubclass(model_classes, Model):
+            self.model_classes = (model_classes,)
+            self.allow_subclasses = True
+        elif isinstance(model_classes, Iterable) \
+          and not isinstance(model_classes, basestring):
+            self.model_classes = tuple(model_classes)
+            self.allow_subclasses = False
+        else:
+            raise Exception("The first argument to PolyModelType.__init__() "
+                            "must be a model or an iterable.")
+
+        validators = kwargs.pop("validators", [])
+        self.strict = kwargs.pop("strict", True)
+        self.claim_function = kwargs.pop("claim_function", None)
+
+        def validate_model(model_instance):
+            model_instance.validate()
+            return model_instance
+
+        MultiType.__init__(self, validators=[validate_model] + validators, **kwargs)
+
+    def __repr__(self):
+        return object.__repr__(self)[:-1] + ' for %s>' % str(self.model_classes)
+
+    def is_allowed_model(self, model_instance):
+        if self.allow_subclasses:
+            if isinstance(model_instance, self.model_classes):
+                return True
+        else:
+            if model_instance.__class__ in self.model_classes:
+                return True
+        return False
+
+    def to_native(self, value, mapping=None, context=None):
+
+        if mapping is None:
+            mapping = {}
+        if value is None:
+            return None
+        if self.is_allowed_model(value):
+            return value
+        if not isinstance(value, dict):
+            if len(self.model_classes) > 1:
+                instanceof_msg = 'one of: {}'.format(', '.join(
+                    cls.__name__ for cls in self.model_classes))
+            else:
+                instanceof_msg = self.model_classes[0].__name__
+            raise ConversionError(u'Please use a mapping for this field or '
+                                    'an instance of {}'.format(instanceof_msg))
+
+        model_class = self.find_model(value)
+        model = model_class()
+        return model.import_data(value, mapping=mapping, context=context,
+                                 strict=self.strict)
+
+    def find_model(self, data):
+        """Finds the intended type by consulting potential classes or `claim_function`."""
+
+        chosen_class = None
+        if self.claim_function:
+            chosen_class = self.claim_function(self, data)
+        else:
+            candidates = self.model_classes
+            if self.allow_subclasses:
+                candidates = itertools.chain.from_iterable(
+                                 ([m] + m._subclasses for m in candidates))
+            fallback = None
+            matching_classes = []
+            for cls in candidates:
+                match = None
+                if '_claim' in cls.__dict__:
+                    match = cls._claim(data)
+                elif not fallback: # The first model that doesn't define `_claim`
+                    fallback = cls # can be used as a default if there's no match.
+                if match:
+                    matching_classes.append(cls)
+            if not matching_classes and fallback:
+                chosen_class = fallback
+            elif len(matching_classes) == 1:
+                chosen_class = matching_classes[0]
+            else:
+                raise Exception("Got ambiguous input for polymorphic field")
+        if chosen_class:
+            return chosen_class
+        else:
+            raise Exception("Input for polymorphic field did not match any model")
+
+    def export_loop(self, model_instance, field_converter,
+                    role=None, print_none=False):
+
+        model_class = model_instance.__class__
+        if not self.is_allowed_model(model_instance):
+            raise Exception("Cannot export: {} is not an allowed type".format(model_class))
+
+        shaped = export_loop(model_class, model_instance,
+                             field_converter,
+                             role=role, print_none=print_none)
+
+        if shaped and len(shaped) == 0 and self.allow_none():
+            return shaped
+        elif shaped:
+            return shaped
+        elif print_none:
+            return shaped
+

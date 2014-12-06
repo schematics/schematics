@@ -9,7 +9,6 @@ from six import iterkeys
 from six import add_metaclass
 
 from .types import BaseType
-from .types.compound import ModelType
 from .types.serializable import Serializable
 from .exceptions import BaseError, ModelValidationError, MockCreationError
 from .transforms import allow_none, atoms, flatten, expand
@@ -169,8 +168,15 @@ class ModelMeta(type):
             field.owner_model = klass
             if hasattr(field, 'field'):
                 set_owner_model(field.field, klass)
-        for field in fields.values():
+        for field_name, field in fields.items():
             set_owner_model(field, klass)
+            field.name = field_name
+
+        # Register class on ancestor models
+        klass._subclasses = []
+        for base in klass.__mro__[1:]:
+            if isinstance(base, ModelMeta):
+                base._subclasses.append(klass)
 
         return klass
 
@@ -419,3 +425,6 @@ class Model(object):
 
     def __unicode__(self):
         return '%s object' % self.__class__.__name__
+
+
+from .types.compound import ModelType
