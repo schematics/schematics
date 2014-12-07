@@ -318,11 +318,11 @@ class PolyModelType(MultiType):
 
         if isinstance(model_classes, type) and issubclass(model_classes, Model):
             self.model_classes = (model_classes,)
-            self.allow_subclasses = True
+            allow_subclasses = True
         elif isinstance(model_classes, Iterable) \
           and not isinstance(model_classes, basestring):
             self.model_classes = tuple(model_classes)
-            self.allow_subclasses = False
+            allow_subclasses = False
         else:
             raise Exception("The first argument to PolyModelType.__init__() "
                             "must be a model or an iterable.")
@@ -330,6 +330,7 @@ class PolyModelType(MultiType):
         validators = kwargs.pop("validators", [])
         self.strict = kwargs.pop("strict", True)
         self.claim_function = kwargs.pop("claim_function", None)
+        self.allow_subclasses = kwargs.pop("allow_subclasses", allow_subclasses)
 
         def validate_model(model_instance):
             model_instance.validate()
