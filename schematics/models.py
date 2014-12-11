@@ -137,7 +137,7 @@ class ModelMeta(type):
             if hasattr(base, '_serializables'):
                 serializables.update(metacopy(base._serializables))
             if hasattr(base, '_validator_functions'):
-                validator_functions.update(metacopy(base._validator_functions))
+                validator_functions.update(base._validator_functions)
 
         # Parse this class's attributes into meta structures
         for key, value in iteritems(attrs):
