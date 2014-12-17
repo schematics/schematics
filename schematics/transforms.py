@@ -1,4 +1,4 @@
-# encoding=utf-8
+# -*- coding: utf-8 -*-
 
 import collections
 import itertools
@@ -13,12 +13,12 @@ try:
 except NameError:
     basestring = str #PY3
 
-def _list_or_string(lors):
-    if lors is None:
+def _listify(value):
+    if value is None:
         return []
-    if isinstance(lors, basestring):
-        return [lors]
-    return list(lors)
+    if isinstance(value, basestring):
+        return [value]
+    return list(value)
 
 try:
     unicode #PY2
@@ -54,11 +54,8 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     :param strict:
         Complain about unrecognized keys. Default: False
     """
-    is_dict = isinstance(instance_or_dict, dict)
-    is_cls = isinstance(instance_or_dict, cls)
-    if not is_cls and not is_dict:
-        error_msg = 'Model conversion requires a model or dict'
-        raise ModelConversionError(error_msg)
+    if not isinstance(instance_or_dict, (cls, dict)):
+        raise ModelConversionError('Model conversion requires a model or dict')
     if mapping is None:
         mapping = {}
     data = dict(context) if context is not None else {}
@@ -67,25 +64,28 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     # Determine all acceptable field input names
     all_fields = set(cls._fields) ^ set(cls._serializables)
     for field_name, field, in iteritems(cls._fields):
-        if hasattr(field, 'serialized_name'):
+        if field.serialized_name:
             all_fields.add(field.serialized_name)
-        if hasattr(field, 'deserialize_from'):
-            all_fields.update(set(_list_or_string(field.deserialize_from)))
+        if field.deserialize_from:
+            all_fields.update(set(_listify(field.deserialize_from)))
         if field_name in mapping:
-            all_fields.update(set(_list_or_string(mapping[field_name])))
+            all_fields.update(set(_listify(mapping[field_name])))
 
     # Check for rogues if strict is set
-    rogue_fields = set(instance_or_dict) - set(all_fields)
+    rogue_fields = set(instance_or_dict) - all_fields
     if strict and len(rogue_fields) > 0:
         for field in rogue_fields:
             errors[field] = 'Rogue field'
 
     for field_name, field in iteritems(cls._fields):
-        serialized_field_name = field.serialized_name or field_name
-
-        trial_keys = _list_or_string(field.deserialize_from)
-        trial_keys.extend(mapping.get(field_name, []))
-        trial_keys.extend([serialized_field_name, field_name])
+        trial_keys = _listify(field.deserialize_from)
+        trial_keys.extend(_listify(mapping.get(field_name, [])))
+        if field.serialized_name:
+            serialized_field_name = field.serialized_name
+            trial_keys.extend((serialized_field_name, field_name))
+        else:
+            serialized_field_name = field_name
+            trial_keys.append(field_name)
 
         raw_value = None
         for key in trial_keys:
@@ -410,7 +410,7 @@ def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
     def field_converter(field, value, mapping=None):
         try:
             return field.to_native(value, mapping=mapping)
-        except Exception:
+        except TypeError:
             return field.to_native(value)
 #   field_converter = lambda field, value: field.to_native(value)
     data = import_loop(cls, instance_or_dict, field_converter, context=context,

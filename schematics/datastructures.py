@@ -287,5 +287,6 @@ class ConfigObject(DataObject):
     def __getattr__(self, name):
         return None
 
-    __getitem__ = __getattr__
+    def __getitem__(self, key):
+        return getattr(self, key)
 
