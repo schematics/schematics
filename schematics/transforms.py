@@ -66,9 +66,9 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     # Determine all acceptable field input names
     all_fields = set(cls._fields) ^ set(cls._serializables)
     for field_name, field, in iteritems(cls._fields):
-        if hasattr(field, 'serialized_name'):
+        if field.serialized_name:
             all_fields.add(field.serialized_name)
-        if hasattr(field, 'deserialize_from'):
+        if field.deserialize_from:
             all_fields.update(set(_list_or_string(field.deserialize_from)))
         if field_name in mapping:
             all_fields.update(set(_list_or_string(mapping[field_name])))
@@ -81,10 +81,11 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
 
     for field_name, field in iteritems(cls._fields):
         serialized_field_name = field.serialized_name or field_name
-
         trial_keys = _list_or_string(field.deserialize_from)
-        trial_keys.extend(mapping.get(field_name, []))
-        trial_keys.extend([serialized_field_name, field_name])
+        trial_keys.extend(_list_or_string(mapping.get(field_name, [])))
+        trial_keys.append(serialized_field_name)
+        if field_name != serialized_field_name:
+            trial_keys.append(field_name)
 
         raw_value = None
         for key in trial_keys:
@@ -104,7 +105,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
                     mapping_by_model = mapping.get('model_mapping', {})
                     model_mapping = mapping_by_model.get(field_name, {})
                     raw_value = field_converter(field, raw_value, mapping=model_mapping)
-                except Exception:
+                except TypeError:
                     raw_value = field_converter(field, raw_value)
 
             data[field_name] = raw_value
@@ -384,7 +385,7 @@ def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
     def field_converter(field, value, mapping=None):
         try:
             return field.to_native(value, mapping=mapping)
-        except Exception:
+        except TypeError:
             return field.to_native(value)
 #   field_converter = lambda field, value: field.to_native(value)
     data = import_loop(cls, instance_or_dict, field_converter, context=context,
