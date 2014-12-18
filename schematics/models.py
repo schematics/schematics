@@ -1,6 +1,8 @@
 # encoding=utf-8
 
+from copy import deepcopy
 import inspect
+import sys
 
 from six import iteritems
 from six import iterkeys
@@ -20,6 +22,12 @@ try:
 except:
     import codecs
     unicode = str #PY3
+
+if sys.version_info[0] >= 3 or sys.version_info[1] >= 7:
+    metacopy = deepcopy
+else:
+    metacopy = lambda x: x
+
 
 class FieldDescriptor(object):
 
@@ -125,9 +133,9 @@ class ModelMeta(type):
         # Accumulate metas info from parent classes
         for base in reversed(bases):
             if hasattr(base, '_fields'):
-                fields.update(base._fields)
+                fields.update(metacopy(base._fields))
             if hasattr(base, '_serializables'):
-                serializables.update(base._serializables)
+                serializables.update(metacopy(base._serializables))
             if hasattr(base, '_validator_functions'):
                 validator_functions.update(base._validator_functions)
 
