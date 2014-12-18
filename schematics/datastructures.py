@@ -1,3 +1,4 @@
+from collections import defaultdict
 from copy import deepcopy
 from six.moves import zip
 from six import iteritems
@@ -182,14 +183,24 @@ class OrderedDict(dict):
     __iter__ = iterkeys
 
 
-class Container(dict):
-    """A dictionary that supports access to its elements via the attribute syntax"""
+class Container(defaultdict):
+    """
+    A dictionary that provides access to its elements via the attribute syntax
+    and inserts ``None`` when a nonexistent item is requested::
 
+    container.x <=> container['x'] <=> container.setdefault('x', None)
+
+    To get a value without inserting: ``container.get('x', <default>)``.
+
+    To check if a key exists: ``'x' in container``.
+    Please note that ``hasattr()`` does not work because it calls ``__getattr__``.
+
+    Although ``Container`` is a ``defaultdict``, it is instantiated like
+    a regular dict; i.e., the ``None`` generator is added for you.
+    """
     def __init__(self, *args, **kwargs):
-        if args and isinstance(args[0], basestring):
-            self.update(zip(args, (None,) * len(args)))
-            args = ()
-        dict.__init__(self, *args, **kwargs)
+        args = (lambda: None,) + args
+        defaultdict.__init__(self, *args, **kwargs)
 
     def __getattr__(self, name):
         return self[name]
@@ -199,4 +210,13 @@ class Container(dict):
 
     def __delattr__(self, name):
         del self[name]
+
+    def copy(self):
+        return self.__class__(self)
+
+    __copy__ = copy
+
+
+class Environment(Container):
+    pass
 

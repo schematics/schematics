@@ -243,17 +243,17 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         if errors:
             raise ValidationError(errors)
 
-    def validate_required(self, value, meta=None):
-        if self.required and value is None and not (meta and meta.get('partial')):
+    def validate_required(self, value, env=None):
+        if self.required and value is None and not (env and env.get('partial')):
             raise ValidationError(self.messages['required'])
 
-    def validate_choices(self, value, meta=None):
+    def validate_choices(self, value, env=None):
         if self.choices is not None:
             if value not in self.choices:
                 raise ValidationError(self.messages['choices']
                                       .format(unicode(self.choices)))
 
-    def mock(self, context=None, meta=None):
+    def mock(self, context=None, env=None):
         if not self.required and not random.choice([True, False]):
             return self.default
         if self.choices is not None:

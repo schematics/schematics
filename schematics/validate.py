@@ -3,7 +3,7 @@ from .transforms import import_loop
 from .types.compound import MultiType
 
 
-def validate(cls, instance_or_dict, partial=False, strict=False, context=None, meta=None):
+def validate(cls, instance_or_dict, partial=False, strict=False, context=None, env=None):
     """
     Validate some untrusted data using a model. Trusted data can be passed in
     the `context` parameter.
@@ -31,10 +31,10 @@ def validate(cls, instance_or_dict, partial=False, strict=False, context=None, m
     errors = {}
 
     # Function for validating an individual field
-    def field_converter(field, value, meta=None):
+    def field_converter(field, value, env=None):
         if isinstance(field, MultiType):
-            value = field.to_native(value, meta=meta)
-            field.validate(value, meta=meta)
+            value = field.to_native(value, env=env)
+            field.validate(value, env=env)
         else:
             value = field.to_native(value)
             field.validate(value)
@@ -43,7 +43,7 @@ def validate(cls, instance_or_dict, partial=False, strict=False, context=None, m
     # Loop across fields and coerce values
     try:
         data = import_loop(cls, instance_or_dict, field_converter,
-                           context=context, partial=partial, strict=strict, meta=meta)
+                           context=context, partial=partial, strict=strict, env=env)
     except ModelConversionError as mce:
         errors = mce.messages
 

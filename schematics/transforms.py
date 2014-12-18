@@ -5,7 +5,7 @@ import itertools
 
 from six import iteritems
 
-from .datastructures import Container
+from .datastructures import Environment
 from .exceptions import ConversionError, ModelConversionError, ValidationError
 from .types.compound import MultiType
 
@@ -32,7 +32,7 @@ except:
 ###
 
 def import_loop(cls, instance_or_dict, field_converter, context=None,
-                partial=False, strict=False, mapping=None, meta=None):
+                partial=False, strict=False, mapping=None, env=None):
     """
     The import loop is designed to take untrusted data and convert it into the
     native types, as described in ``cls``.  It does this by calling
@@ -61,11 +61,10 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
         error_msg = 'Model conversion requires a model or dict'
         raise ModelConversionError(error_msg)
 
-    meta = meta or Container({
-        'partial': partial,
-        'strict': strict,
-        'mapping': mapping or {}
-    })
+    env = env or Environment()
+    env.setdefault('partial', partial)
+    env.setdefault('strict', strict)
+    env.setdefault('mapping', mapping or {})
 
     data = dict(context) if context is not None else {}
     errors = {}
@@ -76,19 +75,19 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
             all_fields.add(field.serialized_name)
         if field.deserialize_from:
             all_fields.update(set(_list_or_string(field.deserialize_from)))
-        if field_name in meta.mapping:
-            all_fields.update(set(_list_or_string(meta.mapping[field_name])))
+        if field_name in env.mapping:
+            all_fields.update(set(_list_or_string(env.mapping[field_name])))
 
     # Check for rogues if strict is set
     rogue_fields = set(instance_or_dict) - set(all_fields)
-    if meta.strict and len(rogue_fields) > 0:
+    if env.strict and len(rogue_fields) > 0:
         for field in rogue_fields:
             errors[field] = 'Rogue field'
 
     for field_name, field in iteritems(cls._fields):
         serialized_field_name = field.serialized_name or field_name
         trial_keys = _list_or_string(field.deserialize_from)
-        trial_keys.extend(_list_or_string(meta.mapping.get(field_name, [])))
+        trial_keys.extend(_list_or_string(env.mapping.get(field_name, [])))
         trial_keys.append(serialized_field_name)
         if field_name != serialized_field_name:
             trial_keys.append(field_name)
@@ -104,13 +103,13 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
 
         try:
             if raw_value is None:
-                if field.required and not meta.partial:
+                if field.required and not env.partial:
                     errors[serialized_field_name] = [field.messages['required']]
             else:
-                model_mapping = meta.mapping.get('model_mapping', {}).get(field_name, {})
-                sub_meta = Container(meta)
-                sub_meta.mapping = model_mapping
-                raw_value = field_converter(field, raw_value, meta=sub_meta)
+                model_mapping = env.mapping.get('model_mapping', {}).get(field_name, {})
+                sub_env = env.copy()
+                sub_env.mapping = model_mapping
+                raw_value = field_converter(field, raw_value, env=sub_env)
 
             data[field_name] = raw_value
 
@@ -385,15 +384,15 @@ def blacklist(*field_list):
 
 
 def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
-            mapping=None, meta=None):
-    def field_converter(field, value, meta=None):
+            mapping=None, env=None):
+    def field_converter(field, value, env=None):
         if isinstance(field, MultiType):
-            return field.to_native(value, meta=meta)
+            return field.to_native(value, env=env)
         else:
             return field.to_native(value)
 
     data = import_loop(cls, instance_or_dict, field_converter, context=context,
-                       partial=partial, strict=strict, mapping=mapping, meta=meta)
+                       partial=partial, strict=strict, mapping=mapping, env=env)
     return data
 
 
