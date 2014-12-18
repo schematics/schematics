@@ -1,5 +1,6 @@
 from .exceptions import BaseError, ValidationError, ModelConversionError
 from .transforms import import_loop
+from .types.compound import MultiType
 
 
 def validate(cls, instance_or_dict, partial=False, strict=False, context=None, meta=None):
@@ -31,19 +32,14 @@ def validate(cls, instance_or_dict, partial=False, strict=False, context=None, m
 
     # Function for validating an individual field
     def field_converter(field, value, meta=None):
-        try:
+        if isinstance(field, MultiType):
             value = field.to_native(value, meta=meta)
-        except TypeError:
-            print("had to revert to_native on field", field)
-            value = field.to_native(value)
-        try:
             field.validate(value, meta=meta)
-        except TypeError:
-            print("had to revert validate on field", field)
+        else:
+            value = field.to_native(value)
             field.validate(value)
         return value
 
-    print("About to call import_loop from the main validate function")
     # Loop across fields and coerce values
     try:
         data = import_loop(cls, instance_or_dict, field_converter,

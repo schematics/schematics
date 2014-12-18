@@ -7,6 +7,7 @@ from six import iteritems
 
 from .datastructures import Container
 from .exceptions import ConversionError, ModelConversionError, ValidationError
+from .types.compound import MultiType
 
 try:
     basestring #PY2
@@ -59,15 +60,15 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     if not is_cls and not is_dict:
         error_msg = 'Model conversion requires a model or dict'
         raise ModelConversionError(error_msg)
+
     meta = meta or Container({
         'partial': partial,
         'strict': strict,
         'mapping': mapping or {}
     })
+
     data = dict(context) if context is not None else {}
     errors = {}
-
-    print("import_loop for model {} here, partial is {}".format(cls.__name__, meta.partial))
     # Determine all acceptable field input names
     all_fields = set(cls._fields) ^ set(cls._serializables)
     for field_name, field, in iteritems(cls._fields):
@@ -87,7 +88,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     for field_name, field in iteritems(cls._fields):
         serialized_field_name = field.serialized_name or field_name
         trial_keys = _list_or_string(field.deserialize_from)
-        trial_keys.extend(_list_or_string(mapping.get(field_name, [])))
+        trial_keys.extend(_list_or_string(meta.mapping.get(field_name, [])))
         trial_keys.append(serialized_field_name)
         if field_name != serialized_field_name:
             trial_keys.append(field_name)
@@ -106,13 +107,10 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
                 if field.required and not meta.partial:
                     errors[serialized_field_name] = [field.messages['required']]
             else:
-                model_mapping = meta.mapping.get('model_mapping', {}).get(field_name)
+                model_mapping = meta.mapping.get('model_mapping', {}).get(field_name, {})
                 sub_meta = Container(meta)
                 sub_meta.mapping = model_mapping
-                try:
-                    raw_value = field_converter(field, raw_value, meta=sub_meta)
-                except TypeError:
-                    raw_value = field_converter(field, raw_value)
+                raw_value = field_converter(field, raw_value, meta=sub_meta)
 
             data[field_name] = raw_value
 
@@ -389,9 +387,9 @@ def blacklist(*field_list):
 def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
             mapping=None, meta=None):
     def field_converter(field, value, meta=None):
-        try:
-            return field.to_native(value, mapping=mapping)
-        except TypeError:
+        if isinstance(field, MultiType):
+            return field.to_native(value, meta=meta)
+        else:
             return field.to_native(value)
 
     data = import_loop(cls, instance_or_dict, field_converter, context=context,
@@ -586,3 +584,4 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
     flattened = flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
 
     return flattened
+

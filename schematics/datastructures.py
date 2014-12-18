@@ -183,6 +183,7 @@ class OrderedDict(dict):
 
 
 class Container(dict):
+    """A dictionary that supports access to its elements via the attribute syntax"""
 
     def __init__(self, *args, **kwargs):
         if args and isinstance(args[0], basestring):
