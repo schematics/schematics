@@ -5,6 +5,11 @@ from six import PY3
 
 _missing = object()
 
+try:
+    basestring #PY2
+except NameError:
+    basestring = str #PY3
+
 
 class OrderedDict(dict):
 
@@ -175,3 +180,22 @@ class OrderedDict(dict):
 
     __copy__ = copy
     __iter__ = iterkeys
+
+
+class Container(dict):
+
+    def __init__(self, *args, **kwargs):
+        if args and isinstance(args[0], basestring):
+            self.update(zip(args, (None,) * len(args)))
+            args = ()
+        dict.__init__(self, *args, **kwargs)
+
+    def __getattr__(self, name):
+        return self[name]
+
+    def __setattr__(self, name, value):
+        self[name] = value
+
+    def __delattr__(self, name):
+        del self[name]
+

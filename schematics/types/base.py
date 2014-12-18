@@ -221,7 +221,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         else:
             return self.serialize_when_none
 
-    def validate(self, value):
+    def validate(self, value, meta=None):
         """
         Validate the field and return a clean value or raise a
         ``ValidationError`` with a list of errors raised by the validation
@@ -244,9 +244,9 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         if errors:
             raise ValidationError(errors)
 
-    def validate_required(self, value):
-        if self.required and value is None:
-            raise ValidationError(self.messages['required'])
+    # def validate_required(self, value):
+    #     if self.required and value is None:
+    #         raise ValidationError(self.messages['required'])
 
     def validate_choices(self, value):
         if self.choices is not None:

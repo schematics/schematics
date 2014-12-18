@@ -5,6 +5,7 @@ import itertools
 
 from six import iteritems
 
+from .datastructures import Container
 from .exceptions import ConversionError, ModelConversionError, ValidationError
 
 try:
@@ -30,7 +31,7 @@ except:
 ###
 
 def import_loop(cls, instance_or_dict, field_converter, context=None,
-                partial=False, strict=False, mapping=None):
+                partial=False, strict=False, mapping=None, meta=None):
     """
     The import loop is designed to take untrusted data and convert it into the
     native types, as described in ``cls``.  It does this by calling
@@ -58,11 +59,15 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     if not is_cls and not is_dict:
         error_msg = 'Model conversion requires a model or dict'
         raise ModelConversionError(error_msg)
-    if mapping is None:
-        mapping = {}
+    meta = meta or Container({
+        'partial': partial,
+        'strict': strict,
+        'mapping': mapping or {}
+    })
     data = dict(context) if context is not None else {}
     errors = {}
 
+    print("import_loop for model {} here, partial is {}".format(cls.__name__, meta.partial))
     # Determine all acceptable field input names
     all_fields = set(cls._fields) ^ set(cls._serializables)
     for field_name, field, in iteritems(cls._fields):
@@ -70,12 +75,12 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
             all_fields.add(field.serialized_name)
         if hasattr(field, 'deserialize_from'):
             all_fields.update(set(_list_or_string(field.deserialize_from)))
-        if field_name in mapping:
-            all_fields.update(set(_list_or_string(mapping[field_name])))
+        if field_name in meta.mapping:
+            all_fields.update(set(_list_or_string(meta.mapping[field_name])))
 
     # Check for rogues if strict is set
     rogue_fields = set(instance_or_dict) - set(all_fields)
-    if strict and len(rogue_fields) > 0:
+    if meta.strict and len(rogue_fields) > 0:
         for field in rogue_fields:
             errors[field] = 'Rogue field'
 
@@ -83,7 +88,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
         serialized_field_name = field.serialized_name or field_name
 
         trial_keys = _list_or_string(field.deserialize_from)
-        trial_keys.extend(mapping.get(field_name, []))
+        trial_keys.extend(meta.mapping.get(field_name, []))
         trial_keys.extend([serialized_field_name, field_name])
 
         raw_value = None
@@ -97,14 +102,15 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
 
         try:
             if raw_value is None:
-                if field.required and not partial:
+                if field.required and not meta.partial:
                     errors[serialized_field_name] = [field.messages['required']]
             else:
+                model_mapping = meta.mapping.get('model_mapping', {}).get(field_name)
+                sub_meta = Container(meta)
+                sub_meta.mapping = model_mapping
                 try:
-                    mapping_by_model = mapping.get('model_mapping', {})
-                    model_mapping = mapping_by_model.get(field_name, {})
-                    raw_value = field_converter(field, raw_value, mapping=model_mapping)
-                except Exception:
+                    raw_value = field_converter(field, raw_value, meta=sub_meta)
+                except TypeError:
                     raw_value = field_converter(field, raw_value)
 
             data[field_name] = raw_value
@@ -380,15 +386,15 @@ def blacklist(*field_list):
 
 
 def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
-            mapping=None):
-    def field_converter(field, value, mapping=None):
+            mapping=None, meta=None):
+    def field_converter(field, value, meta=None):
         try:
-            return field.to_native(value, mapping=mapping)
+            return field.to_native(value, meta=meta)
         except Exception:
             return field.to_native(value)
-#   field_converter = lambda field, value: field.to_native(value)
+
     data = import_loop(cls, instance_or_dict, field_converter, context=context,
-                       partial=partial, strict=strict, mapping=mapping)
+                       partial=partial, strict=strict, mapping=mapping, meta=meta)
     return data
 
 
