@@ -387,9 +387,9 @@ class PolyModelType(MultiType):
             matching_classes = []
             for cls in candidates:
                 match = None
-                if '_claim' in cls.__dict__:
-                    match = cls._claim(data)
-                elif not fallback: # The first model that doesn't define `_claim`
+                if '_claim_polymorphic' in cls.__dict__:
+                    match = cls._claim_polymorphic(data)
+                elif not fallback: # The first model that doesn't define the hook
                     fallback = cls # can be used as a default if there's no match.
                 if match:
                     matching_classes.append(cls)

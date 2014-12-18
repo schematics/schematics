@@ -5,7 +5,7 @@ from schematics.types import StringType
 from schematics.types.compound import PolyModelType
 
 
-class A(Model): # fallback model (doesn't define _claim)
+class A(Model): # fallback model (doesn't define a claim method)
     stringA = StringType()
 
 class Aaa(A):
@@ -14,13 +14,13 @@ class Aaa(A):
 class B(A):
     stringB = StringType()
     @classmethod
-    def _claim(cls, data):
+    def _claim_polymorphic(cls, data):
         return data.get('stringB') == 'bbb'
 
 class C(B):
     stringC = StringType()
     @classmethod
-    def _claim(cls, data):
+    def _claim_polymorphic(cls, data):
         return data.get('stringC') == 'ccc'
 
 class X(Model):
