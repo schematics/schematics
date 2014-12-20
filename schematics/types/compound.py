@@ -13,6 +13,25 @@ from six import iteritems
 from six import string_types as basestring
 from six import text_type as unicode
 
+
+def _resolve_option(name, field, env, default):
+    """Allow field-level options to override ``env``. The value of an option
+    (e.g., ``strict``) is resolved based on the following order of precedence:    
+    (1) Explicit value in the field definition
+    (2) ``env``
+    (3) Field's default value
+    """
+    if getattr(field, name) is None:
+        if env and name in env:
+            value = env[name]
+        else:
+            value = default
+    else:
+        value = getattr(field, name)
+        if env:
+            env[name] = value
+
+
 class MultiType(BaseType):
 
     def validate(self, value, env=None):
@@ -64,7 +83,7 @@ class ModelType(MultiType):
         self.fields = self.model_class.fields
 
         validators = kwargs.pop("validators", [])
-        self.strict = kwargs.pop("strict", True)
+        self.strict = kwargs.pop("strict", None)
 
         def validate_model(model_instance, env=None):
             model_instance.validate(env=env)
@@ -90,10 +109,12 @@ class ModelType(MultiType):
                     self.model_class.__name__,
                     type(value).__name__))
 
-        # partial submodels now available with import_data (ht ryanolson)
+        import_kwargs = dict(
+            mapping=mapping, context=context, env=env, 
+            strict=_resolve_option('strict', self, env, True))
+
         model = self.model_class()
-        return model.import_data(value, mapping=mapping, context=context,
-                                 strict=self.strict, env=env)
+        return model.import_data(value, **import_kwargs)
 
     def to_primitive(self, model_instance, context=None):
         primitive_data = {}
@@ -343,12 +364,12 @@ class PolyModelType(MultiType):
                             "must be a model or an iterable.")
 
         validators = kwargs.pop("validators", [])
-        self.strict = kwargs.pop("strict", True)
+        self.strict = kwargs.pop("strict", None)
         self.claim_function = kwargs.pop("claim_function", None)
         self.allow_subclasses = kwargs.pop("allow_subclasses", allow_subclasses)
 
-        def validate_model(model_instance):
-            model_instance.validate()
+        def validate_model(model_instance, env=None):
+            model_instance.validate(env=env)
             return model_instance
 
         MultiType.__init__(self, validators=[validate_model] + validators, **kwargs)
@@ -365,7 +386,7 @@ class PolyModelType(MultiType):
                 return True
         return False
 
-    def to_native(self, value, mapping=None, context=None):
+    def to_native(self, value, mapping=None, context=None, env=None):
 
         if mapping is None:
             mapping = {}
@@ -382,10 +403,13 @@ class PolyModelType(MultiType):
             raise ConversionError(u'Please use a mapping for this field or '
                                     'an instance of {}'.format(instanceof_msg))
 
+        import_kwargs = dict(
+            mapping=mapping, context=context, env=env, 
+            strict=_resolve_option('strict', self, env, True))
+
         model_class = self.find_model(value)
         model = model_class()
-        return model.import_data(value, mapping=mapping, context=context,
-                                 strict=self.strict)
+        return model.import_data(value, **import_kwargs)
 
     def find_model(self, data):
         """Finds the intended type by consulting potential classes or `claim_function`."""
