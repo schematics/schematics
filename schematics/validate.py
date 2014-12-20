@@ -1,3 +1,5 @@
+import functools
+
 from .exceptions import BaseError, ValidationError, ModelConversionError
 from .transforms import import_loop
 
@@ -32,8 +34,7 @@ def validate(cls, instance_or_dict, partial=False, strict=False, context=None):
     # Function for validating an individual field
     def field_converter(field, value):
         value = field.to_native(value)
-        field.validate(value)
-        return value
+        return field.validate(value)
 
     # Loop across fields and coerce values
     try:
@@ -76,8 +77,11 @@ def _validate_model(cls, data):
         if field_name in cls._validator_functions and field_name in data:
             value = data[field_name]
             try:
+                validator = cls._validator_functions[field_name]
                 context = data
-                cls._validator_functions[field_name](cls, context, value)
+                clean_value = validator(cls, context, value)
+                if getattr(validator, 'returns', False) is True:
+                    data[field_name] = clean_value
             except BaseError as exc:
                 field = cls._fields[field_name]
                 serialized_field_name = field.serialized_name or field_name
@@ -110,3 +114,13 @@ def _check_for_unknown_fields(cls, data):
         for field_name in rogues_found:
             errors[field_name] = [u'%s is an illegal field.' % field_name]
     return errors
+
+
+def returns(func):
+    """Decorator for validators that intend to return a sanitized value"""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    wrapper.returns = True
+    return wrapper
+

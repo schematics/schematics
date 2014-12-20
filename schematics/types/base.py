@@ -236,7 +236,9 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
 
         for validator in self.validators:
             try:
-                validator(value)
+                clean_value = validator(value)
+                if getattr(validator, 'returns', False) is True:
+                    value = clean_value
             except ValidationError as exc:
                 errors.extend(exc.messages)
 
@@ -245,6 +247,8 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
 
         if errors:
             raise ValidationError(errors)
+
+        return value
 
     def validate_required(self, value):
         if self.required and value is None:

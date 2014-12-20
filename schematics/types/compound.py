@@ -25,7 +25,9 @@ class MultiType(BaseType):
 
         for validator in self.validators:
             try:
-                validator(value)
+                clean_value = validator(value)
+                if getattr(validator, 'returns', False) is True:
+                    value = clean_value
             except ModelValidationError as exc:
                 errors.update(exc.messages)
             except StopValidation as exc:
