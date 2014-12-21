@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
+from schematics.exceptions import ModelConversionError
 from schematics.models import Model
 from schematics.types import StringType, LongType, IntType, MD5Type
 from schematics.types.compound import ModelType, DictType, ListType
@@ -72,6 +73,80 @@ def test_serializable_with_serializable_name():
 
     d = location_US.serialize()
     assert d == {"cc": "US", "cn": "United States"}
+
+
+def test_extended_serializable():
+
+    class Person(Model):
+        first_name = StringType()
+        last_name = StringType()
+    
+        @serializable
+        class full_name:
+
+            def serialize(self):
+                return '%s %s' % (self.first_name, self.last_name)
+
+            def deserialize(value):
+                first_name, last_name = value.split()
+                return {'first_name': first_name, 'last_name': last_name}
+
+    person = Person({'full_name': 'First Last'})
+    assert person._data == dict(first_name='First', last_name='Last')
+
+    assert person.to_primitive() == dict(first_name='First', last_name='Last',
+                                         full_name='First Last')
+
+
+def test_extended_serializable_without_deserialize():
+
+    class Person(Model):
+        first_name = StringType()
+        last_name = StringType()
+    
+        @serializable
+        class full_name:
+
+            def serialize(self):
+                return '%s %s' % (self.first_name, self.last_name)
+
+    person = Person({'full_name': 'First Last'})
+    assert person._data == dict(first_name=None, last_name=None)
+
+
+def test_serializable_with_default():
+
+    class Person(Model):
+        first_name = StringType()
+        last_name = StringType()
+    
+        @serializable(default='First Last')
+        class full_name:
+
+            def serialize(self):
+                return '%s %s' % (self.first_name, self.last_name)
+
+            def deserialize(value):
+                first_name, last_name = value.split()
+                return {'first_name': first_name, 'last_name': last_name}
+
+    person = Person()
+    assert person._data == dict(first_name='First', last_name='Last')
+
+
+def test_serializable_with_required():
+
+    class Person(Model):
+        first_name = StringType()
+        last_name = StringType()
+    
+        @serializable(required=True)
+        class full_name:
+            pass
+
+    person = Person()
+    with pytest.raises(ModelConversionError):
+        person.import_data({}, partial=False)
 
 
 def test_serializable_with_custom_serializable_class():

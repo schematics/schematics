@@ -6,6 +6,7 @@ import itertools
 from six import iteritems
 
 from .exceptions import ConversionError, ModelConversionError, ValidationError
+from .types.serializable import Serializable
 
 try:
     basestring #PY2
@@ -30,7 +31,7 @@ except:
 ###
 
 def import_loop(cls, instance_or_dict, field_converter, context=None,
-                partial=False, strict=False, mapping=None):
+                partial=False, strict=False, mapping=None, importing=False):
     """
     The import loop is designed to take untrusted data and convert it into the
     native types, as described in ``cls``.  It does this by calling
@@ -63,6 +64,19 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     data = dict(context) if context is not None else {}
     errors = {}
 
+    # Unmarshal
+    if importing:
+        for name, unmarshaller in cls._unmarshallers.items():
+            try:
+                data_, del_ = unmarshaller(cls, instance_or_dict)
+            except ConversionError as exc:
+                errors["Unmarshaller for '%s'" % name] = exc.messages
+            else:
+                for k, v in data_.items():
+                    instance_or_dict[k] = v
+                for k in del_:
+                    del instance_or_dict[k]
+
     # Determine all acceptable field input names
     all_fields = set(cls._fields) ^ set(cls._serializables)
     for field_name, field, in iteritems(cls._fields):
@@ -79,7 +93,13 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
         for field in rogue_fields:
             errors[field] = 'Rogue field'
 
-    for field_name, field in iteritems(cls._fields):
+    if importing:
+        fields = itertools.chain(iteritems(cls._fields),
+                                 iteritems(cls._serializables))
+    else:
+        fields = iteritems(cls._fields)
+
+    for field_name, field in fields:
         serialized_field_name = field.serialized_name or field_name
 
         trial_keys = _list_or_string(field.deserialize_from)
@@ -107,7 +127,11 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
                 except Exception:
                     raw_value = field_converter(field, raw_value)
 
-            data[field_name] = raw_value
+            if isinstance(field, Serializable):
+                if field.deserialize:
+                    data.update(field.deserialize(raw_value))
+            else:
+                data[field_name] = raw_value
 
         except ConversionError as exc:
             errors[serialized_field_name] = exc.messages
@@ -186,6 +210,16 @@ def export_loop(cls, instance_or_dict, field_converter,
             data[serialized_name] = value
         elif print_none:
             data[serialized_name] = value
+
+    # Marshal
+    for name, marshaller in cls._marshallers.items():
+        val = marshaller(cls, data)
+        if val:
+            data_, del_ = val
+            for k, v in data_.items():
+                data[k] = v
+            for k in del_:
+                del data[k]
 
     # Return data if the list contains anything
     if len(data) > 0:
@@ -380,7 +414,7 @@ def blacklist(*field_list):
 
 
 def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
-            mapping=None):
+            mapping=None, importing=False):
     def field_converter(field, value, mapping=None):
         try:
             return field.to_native(value, mapping=mapping)
@@ -388,7 +422,8 @@ def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
             return field.to_native(value)
 #   field_converter = lambda field, value: field.to_native(value)
     data = import_loop(cls, instance_or_dict, field_converter, context=context,
-                       partial=partial, strict=strict, mapping=mapping)
+                       partial=partial, strict=strict, mapping=mapping,
+                       importing=importing)
     return data
 
 
