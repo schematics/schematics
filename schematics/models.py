@@ -288,10 +288,11 @@ class Model(object):
         """
         return convert(self.__class__, raw_data, **kw)
 
-    def to_native(self, role=None, context=None):
-        return to_native(self.__class__, self, role=role, context=context)
+    def to_native(self, role=None, context=None, if_serialize=True):
+        return to_native(self.__class__, self, role=role, context=context,
+                         if_serialize=if_serialize)
 
-    def to_primitive(self, role=None, context=None):
+    def to_primitive(self, role=None, context=None, if_serialize=True):
         """Return data as it would be validated. No filtering of output unless
         role is defined.
 
@@ -299,10 +300,12 @@ class Model(object):
             Filter output by a specific role
 
         """
-        return to_primitive(self.__class__, self, role=role, context=context)
+        return to_primitive(self.__class__, self, role=role, context=context,
+                            if_serialize=if_serialize)
 
-    def serialize(self, role=None, context=None):
-        return self.to_primitive(role=role, context=context)
+    def serialize(self, role=None, context=None, if_serialize=True):
+        return self.to_primitive(role=role, context=context,
+                                 if_serialize=if_serialize)
 
     def flatten(self, role=None, prefix=""):
         """
@@ -421,7 +424,7 @@ class Model(object):
         return u"<%s: %s>" % (class_name, obj)
 
     def __str__(self):
-        return '%s object' % self.__class__.__name__        
+        return '%s object' % self.__class__.__name__
 
     def __unicode__(self):
         return '%s object' % self.__class__.__name__
