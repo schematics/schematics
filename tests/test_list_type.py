@@ -186,7 +186,7 @@ def test_list_model_field():
 
 
 def test_stop_validation():
-    def raiser(x):
+    def raiser(*args, **kwargs):
         raise StopValidation({'something': 'bad'})
 
     lst = ListType(StringType(), validators=[raiser])

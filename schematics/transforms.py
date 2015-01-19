@@ -5,7 +5,9 @@ import itertools
 
 from six import iteritems
 
+from .datastructures import Environment
 from .exceptions import ConversionError, ModelConversionError, ValidationError
+from .types.compound import MultiType
 
 try:
     basestring #PY2
@@ -30,7 +32,7 @@ except:
 ###
 
 def import_loop(cls, instance_or_dict, field_converter, context=None,
-                partial=False, strict=False, mapping=None):
+                partial=False, strict=False, mapping=None, env=None):
     """
     The import loop is designed to take untrusted data and convert it into the
     native types, as described in ``cls``.  It does this by calling
@@ -58,33 +60,37 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     if not is_cls and not is_dict:
         error_msg = 'Model conversion requires a model or dict'
         raise ModelConversionError(error_msg)
-    if mapping is None:
-        mapping = {}
+
+    env = env or Environment()
+    env.setdefault('partial', partial)
+    env.setdefault('strict', strict)
+    env.setdefault('mapping', mapping or {})
+
     data = dict(context) if context is not None else {}
     errors = {}
-
     # Determine all acceptable field input names
     all_fields = set(cls._fields) ^ set(cls._serializables)
     for field_name, field, in iteritems(cls._fields):
-        if hasattr(field, 'serialized_name'):
+        if field.serialized_name:
             all_fields.add(field.serialized_name)
-        if hasattr(field, 'deserialize_from'):
+        if field.deserialize_from:
             all_fields.update(set(_list_or_string(field.deserialize_from)))
-        if field_name in mapping:
-            all_fields.update(set(_list_or_string(mapping[field_name])))
+        if field_name in env.mapping:
+            all_fields.update(set(_list_or_string(env.mapping[field_name])))
 
     # Check for rogues if strict is set
     rogue_fields = set(instance_or_dict) - set(all_fields)
-    if strict and len(rogue_fields) > 0:
+    if env.strict and len(rogue_fields) > 0:
         for field in rogue_fields:
             errors[field] = 'Rogue field'
 
     for field_name, field in iteritems(cls._fields):
         serialized_field_name = field.serialized_name or field_name
-
         trial_keys = _list_or_string(field.deserialize_from)
-        trial_keys.extend(mapping.get(field_name, []))
-        trial_keys.extend([serialized_field_name, field_name])
+        trial_keys.extend(_list_or_string(env.mapping.get(field_name, [])))
+        trial_keys.append(serialized_field_name)
+        if field_name != serialized_field_name:
+            trial_keys.append(field_name)
 
         raw_value = None
         for key in trial_keys:
@@ -97,15 +103,13 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
 
         try:
             if raw_value is None:
-                if field.required and not partial:
+                if field.required and not env.partial:
                     errors[serialized_field_name] = [field.messages['required']]
             else:
-                try:
-                    mapping_by_model = mapping.get('model_mapping', {})
-                    model_mapping = mapping_by_model.get(field_name, {})
-                    raw_value = field_converter(field, raw_value, mapping=model_mapping)
-                except Exception:
-                    raw_value = field_converter(field, raw_value)
+                model_mapping = env.mapping.get('model_mapping', {}).get(field_name, {})
+                sub_env = env.copy()
+                sub_env.mapping = model_mapping
+                raw_value = field_converter(field, raw_value, env=sub_env)
 
             data[field_name] = raw_value
 
@@ -380,15 +384,15 @@ def blacklist(*field_list):
 
 
 def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
-            mapping=None):
-    def field_converter(field, value, mapping=None):
-        try:
-            return field.to_native(value, mapping=mapping)
-        except Exception:
+            mapping=None, env=None):
+    def field_converter(field, value, env=None):
+        if isinstance(field, MultiType):
+            return field.to_native(value, env=env)
+        else:
             return field.to_native(value)
-#   field_converter = lambda field, value: field.to_native(value)
+
     data = import_loop(cls, instance_or_dict, field_converter, context=context,
-                       partial=partial, strict=strict, mapping=mapping)
+                       partial=partial, strict=strict, mapping=mapping, env=env)
     return data
 
 
@@ -579,3 +583,4 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
     flattened = flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
 
     return flattened
+
