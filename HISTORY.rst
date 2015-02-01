@@ -1,3 +1,9 @@
+1.0.1 / 2015-02-01
+==================
+* [Bug](`#252 <https://github.com/schematics/schematics/pull/252>`_) Fixed project URL
+* [Feature] (`#259 <https://github.com/schematics/schematics/pull/259>`_) Give export loop to serializable when type has one
+* [Feature] (`#262 <https://github.com/schematics/schematics/pull/262>`_) Make copies of inherited meta attributes when setting up a Model
+
 1.0.0 / 2014-10-16
 ==================
 * [Documentation] (`#239 <https://github.com/schematics/schematics/issues/239>`_) Fix typo with wording suggestion
