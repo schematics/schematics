@@ -361,6 +361,11 @@ class Model(object):
 
     @classmethod
     def get_mock_object(cls, context=None, overrides=None):
+        """Get a mock object.
+
+        :param dict context:
+        :param dict overrides: overrides for the model
+        """
         if overrides is None:
             overrides = {}
         values = {}
@@ -421,7 +426,7 @@ class Model(object):
         return u"<%s: %s>" % (class_name, obj)
 
     def __str__(self):
-        return '%s object' % self.__class__.__name__        
+        return '%s object' % self.__class__.__name__
 
     def __unicode__(self):
         return '%s object' % self.__class__.__name__

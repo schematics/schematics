@@ -7,7 +7,7 @@ Install Guide
 
   $ pip install schematics
 
-Python 2.6 and 2.7 are supported. 
+Python 2.6 and 2.7 are supported.
 
 
 .. _install_dependencies:
@@ -26,11 +26,11 @@ Installing from Github
 ----------------------
 
 The canonical repository for Schematics is `on Github
-<https://github.com/j2labs/schematics>`_.
+<https://github.com/schematics/schematics>`_.
 
 ::
 
-  $ git clone https://github.com/j2labs/schematics.git
+  $ git clone https://github.com/schematics/schematics.git
 
 New releases are first released as a branch for feedback and then they are
 pushed into master around the same time the update is pushed to `Pypi

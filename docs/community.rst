@@ -17,7 +17,7 @@ Bugs & Features
 ---------------
 
 We track bugs, feature requests, and documentation requests with `Github Issues
-<https://github.com/j2labs/schematics/issues>`_.
+<https://github.com/schematics/schematics/issues>`_.
 
 
 Mailing list
@@ -33,5 +33,5 @@ looking for, you should reach out to us here too.
 Contributing
 ------------
 
-If you're interested in contributing code or documentation to Schematics, 
+If you're interested in contributing code or documentation to Schematics,
 please visit the :doc:`development` for instructions.
