@@ -1,3 +1,7 @@
+1.0.2 / 2015-02-12
+==================
+* [Bug](`#280 https://github.com/schematics/schematics/issues/280`_) Fix the circular import issue.
+
 1.0.1 / 2015-02-01
 ==================
 * [Bug](`#252 <https://github.com/schematics/schematics/pull/252>`_) Fixed project URL
@@ -17,7 +21,7 @@
 ==================
 
 * [Feature] (`#191 <https://github.com/schematics/schematics/pull/191>`_) Updated import_data to avoid overwriting existing data. deserialize_mapping can now support partial and nested models.
-* [Documentation] (`#192 <https://github.com/schematics/schematics/pull/192>`_) Document the creation of custom types 
+* [Documentation] (`#192 <https://github.com/schematics/schematics/pull/192>`_) Document the creation of custom types
 * [Feature] (`#193 <https://github.com/schematics/schematics/pull/193>`_) Add primitive types accepting values of any simple or compound primitive JSON type.
 * [Bug] (`#194 <https://github.com/schematics/schematics/pull/194>`_) Change standard coerce_key function to unicode
 * [Tests] (`#196 <https://github.com/schematics/schematics/pull/196>`_) Test fixes and cleanup
@@ -25,7 +29,7 @@
 * [Bug] (`#198 <https://github.com/schematics/schematics/pull/198>`_) Fixed typo in variable name in DateTimeType
 * [Feature] (`#200 <https://github.com/schematics/schematics/pull/200>`_) Added the option to turn of strict conversion when creating a Model from a dict
 * [Feature] (`#212 <https://github.com/schematics/schematics/pull/212>`_) Support exporting ModelType fields with subclassed model instances
-* [Feature] (`#214 <https://github.com/schematics/schematics/pull/214>`_) Create mock objects using a class's fields as a template 
+* [Feature] (`#214 <https://github.com/schematics/schematics/pull/214>`_) Create mock objects using a class's fields as a template
 * [Bug] (`#215 <https://github.com/schematics/schematics/pull/215>`_) PEP 8 FTW
 * [Feature] (`#216 <https://github.com/schematics/schematics/pull/216>`_) Datastructures cleanup
 * [Feature] (`#217 <https://github.com/schematics/schematics/pull/217>`_) Models cleanup pt 1
@@ -71,6 +75,3 @@
 * [Feature] Renamed ``check_value`` to ``validate_range``
 * [Feature] Changed ``serialize`` to ``to_native``
 * [Bug] (`#155 <https://github.com/schematics/schematics/pull/155>`_) NumberType number range validation bugfix
-
-
-
