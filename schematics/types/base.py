@@ -267,7 +267,7 @@ class UUIDType(BaseType):
     """A field that stores a valid UUID value.
     """
     MESSAGES = {
-        'convert': u"Couldn't interpret value as UUID.",
+        'convert': u"Couldn't interpret '{0}' value as UUID.",
     }
 
     def _mock(self, context=None):
@@ -278,7 +278,7 @@ class UUIDType(BaseType):
             try:
                 value = uuid.UUID(value)
             except (AttributeError, TypeError, ValueError):
-                raise ConversionError(self.messages['convert'])
+                raise ConversionError(self.messages['convert'].format(value))
         return value
 
     def to_primitive(self, value, context=None):
@@ -323,7 +323,7 @@ class StringType(BaseType):
     allow_casts = (int, str)
 
     MESSAGES = {
-        'convert': u"Couldn't interpret value as string.",
+        'convert': u"Couldn't interpret '{0}' as string.",
         'max_length': u"String value is too long.",
         'min_length': u"String value is too short.",
         'regex': u"String value did not match validation regex.",
@@ -349,7 +349,7 @@ class StringType(BaseType):
                     value = str(value)
                 value = utf8_decode(value) #unicode(value, 'utf-8')
             else:
-                raise ConversionError(self.messages['convert'])
+                raise ConversionError(self.messages['convert'].format(value))
 
         return value
 
@@ -444,7 +444,7 @@ class NumberType(BaseType):
     """
 
     MESSAGES = {
-        'number_coerce': u"Value is not {0}",
+        'number_coerce': u"Value '{0}' is not {1}",
         'number_min': u"{0} value should be greater than {1}",
         'number_max': u"{0} value should be less than {1}",
     }
@@ -466,7 +466,7 @@ class NumberType(BaseType):
             value = self.number_class(value)
         except (TypeError, ValueError):
             raise ConversionError(self.messages['number_coerce']
-                                  .format(self.number_type.lower()))
+                                  .format(value, self.number_type.lower()))
 
         return value
 
@@ -528,7 +528,7 @@ class DecimalType(BaseType):
     """
 
     MESSAGES = {
-        'number_coerce': 'Number failed to convert to a decimal',
+        'number_coerce': "Number '{0}' failed to convert to a decimal",
         'number_min': u"Value should be greater than {0}",
         'number_max': u"Value should be less than {0}",
     }
@@ -552,7 +552,7 @@ class DecimalType(BaseType):
                 value = decimal.Decimal(value)
 
             except (TypeError, decimal.InvalidOperation):
-                raise ConversionError(self.messages['number_coerce'])
+                raise ConversionError(self.messages['number_coerce'].format(value))
 
         return value
 
