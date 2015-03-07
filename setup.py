@@ -49,5 +49,8 @@ setup(
     cmdclass={
         'test': Tox,
     },
+    install_requires=[
+        'six>=1.7.3',
+    ],
     tests_require=tests_require,
 )
