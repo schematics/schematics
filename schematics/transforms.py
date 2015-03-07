@@ -120,7 +120,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     return data
 
 
-def export_loop(cls, instance_or_dict, field_converter,
+def export_loop(cls, instance_or_dict, field_converter, if_serialize=False,
                 role=None, raise_error_on_role=False, print_none=False):
     """
     The export_loop function is intended to be a general loop definition that
@@ -157,7 +157,12 @@ def export_loop(cls, instance_or_dict, field_converter,
     else:
         gottago = cls._options.roles.get("default", gottago)
 
-    for field_name, field, value in atoms(cls, instance_or_dict):
+    if if_serialize:
+        fields = atoms(cls, instance_or_dict)
+    else:
+        fields = noserialize_atoms(cls, instance_or_dict)
+
+    for field_name, field, value in fields:
         serialized_name = field.serialized_name or field_name
 
         # Skipping this field was requested
@@ -192,6 +197,25 @@ def export_loop(cls, instance_or_dict, field_converter,
         return data
     elif print_none:
         return data
+
+
+def noserialize_atoms(cls, instance_or_dict):
+    """
+    Iterator for the atomic components of a model definition and relevant data
+    that creates a threeple of the field's name, the instance of it's type, and
+    it's value. expect not use the serialized data
+
+    :param cls:
+        The model definition.
+    :param instance_or_dict:
+        The structure where fields from cls are mapped to values. The only
+        expectionation for this structure is that it implements a ``dict``
+        interface.
+    """
+    all_fields = iteritems(cls._fields)
+
+    return ((field_name, field, instance_or_dict[field_name])
+            for field_name, field in all_fields)
 
 
 def atoms(cls, instance_or_dict):
