@@ -15,6 +15,11 @@ from schematics.exceptions import (
 )
 
 
+def test_string_choices():
+    with pytest.raises(TypeError):
+        BaseType(choices='foo')
+
+
 def test_date():
     today = datetime.date(2013, 3, 1)
 
