@@ -1,10 +1,18 @@
 from datetime import datetime
 
-from dateutil.tz import gettz, tzutc
+import pytest
 
-from schematics.types.temporal import TimeStampType
+try:
+    from dateutil.tz import gettz, tzutc
+except ImportError:
+    gettz = tzutc = None
+else:
+    from schematics.types.temporal import TimeStampType
 
-EPOCH = datetime(1970, 1, 1, 0, 0, tzinfo=tzutc())
+    EPOCH = datetime(1970, 1, 1, 0, 0, tzinfo=tzutc())
+
+pytestmark = pytest.mark.skipif(tzutc is None,
+                                reason='requires python-dateutil')
 
 
 def test_timezone_to_date():

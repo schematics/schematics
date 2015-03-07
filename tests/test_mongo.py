@@ -1,10 +1,17 @@
 import pytest
-from bson.objectid import ObjectId
 
-from schematics.contrib.mongo import ObjectIdType
-from schematics.exceptions import ConversionError, ValidationError
+try:
+    from bson.objectid import ObjectId
+except ImportError:
+    ObjectId = None
+else:
+    from schematics.contrib.mongo import ObjectIdType
+    from schematics.exceptions import ConversionError, ValidationError
 
-FAKE_OID = ObjectId()
+    FAKE_OID = ObjectId()
+
+pytestmark = pytest.mark.skipif(ObjectId is None,
+                                reason='requires pymongo')
 
 
 def test_to_native():

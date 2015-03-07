@@ -408,7 +408,7 @@ class Model(object):
                 if self.get(k) != other.get(k):
                     return False
             return True
-        return False
+        return NotImplemented
 
     def __ne__(self, other):
         return not self == other
