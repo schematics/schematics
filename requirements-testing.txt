@@ -5,3 +5,4 @@ python-dateutil==2.2
 pymongo==2.7.1
 ordereddict==1.1
 tox==1.8
+mock==1.0.1
