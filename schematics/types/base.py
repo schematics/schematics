@@ -151,7 +151,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         searched to provide a value for the given field.  This only effects
         inbound data.
     :param choices:
-        An iterable of valid choices. This is the last step of the validator
+        A list of valid choices. This is the last step of the validator
         chain.
     :param validators:
         A list of callables. Each callable receives the value after it has been
@@ -180,6 +180,8 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         self.required = required
         self._default = default
         self.serialized_name = serialized_name
+        if choices and not isinstance(choices, (list, tuple)):
+            raise TypeError('"choices" must be a list or tuple')
         self.choices = choices
         self.deserialize_from = deserialize_from
 

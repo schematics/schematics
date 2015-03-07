@@ -1,9 +1,13 @@
-1.0.2 / 2015-03-07
+1.0.3 / 2015-03-07
 ==================
 * [Feature] (`#284 <https://github.com/schematics/schematics/pull/284>`_) Add missing requirement for `six`
 * [Feature] (`#283 <https://github.com/schematics/schematics/pull/283>`_) Update error msgs to print out invalid values in base.py
 * [Feature] (`#281 <https://github.com/schematics/schematics/pull/281>`_) Update Model.__eq__
 * [Feature] (`#267 <https://github.com/schematics/schematics/pull/267>_`) Type choices should be list or tuple
+
+1.0.2 / 2015-02-12
+==================
+* [Bug](`#280 https://github.com/schematics/schematics/issues/280`_) Fix the circular import issue.
 
 1.0.1 / 2015-02-01
 ==================

@@ -1,3 +1,5 @@
-version_info = ('1', '0', '2')
+# -*- coding: utf-8 -*-
 
-__version__ = '{0}.{1}-{2}'.format(*version_info)
+version_info = ('1', '0', '3')
+
+__version__ = '{0}.{1}.{2}'.format(*version_info)
