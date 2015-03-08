@@ -1,6 +1,6 @@
 #### Linkify
 
-`Linkify` is small app similar to `reddit/hackernews` with comments and votes features.
+`Linkify` is small app similar to `reddit/hackernews` without comments and votes features.
 App demonstrates how to use `Schematics` with `Django` to create APIs.
 
 #### Installation
