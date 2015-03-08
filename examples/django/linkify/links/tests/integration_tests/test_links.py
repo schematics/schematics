@@ -138,7 +138,7 @@ class TestDeleteLink(TestCase):
                                 data=json.dumps(self.data))
         self.link = json.loads(resp.content.decode())
 
-    def test_read(self):
+    def test_delete(self):
         resp = self.client.delete('/links/{}/'.format(self.link['id']))
 
         assert resp.status_code == 204
