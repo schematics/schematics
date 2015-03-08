@@ -1,0 +1,5 @@
+Django
+schematics
+requests
+pytest
+pytest-django

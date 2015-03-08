@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+run_tests() {
+    export PYTHONPATH='.'; py.test $*
+}
+
+run_tests $*

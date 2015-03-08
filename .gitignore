@@ -20,3 +20,4 @@ docs/_build
 /.Python
 /.cache
 .coverage
+*.sqlite3
