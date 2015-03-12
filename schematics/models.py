@@ -165,12 +165,16 @@ class ModelMeta(type):
 
         # Add reference to klass to each field instance
         def set_owner_model(field, klass):
-            field.owner_model = klass
-            if hasattr(field, 'field'):
+            try:
+                field.owner_model = klass
                 set_owner_model(field.field, klass)
+            except AttributeError:
+                pass
+
         for field_name, field in fields.items():
             set_owner_model(field, klass)
-            field.name = field_name
+            if hasattr(field, 'name'):
+                field.name = field_name
 
         # Register class on ancestor models
         klass._subclasses = []
@@ -421,7 +425,7 @@ class Model(object):
         return u"<%s: %s>" % (class_name, obj)
 
     def __str__(self):
-        return '%s object' % self.__class__.__name__        
+        return '%s object' % self.__class__.__name__
 
     def __unicode__(self):
         return '%s object' % self.__class__.__name__
