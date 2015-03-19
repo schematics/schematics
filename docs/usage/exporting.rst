@@ -334,7 +334,7 @@ override whitelist roles in this case.
 The ``password`` field will combined with the ``id``, ``name`` and ``email``
 fields when ``roles`` is set to both ``public`` and ``admin``.
 
- >>> favorites.to_primitive(roles=['public', 'admin'])
+ >>> user.to_primitive(roles=['public', 'admin'])
   {
       'id': 42,
       'name': 'Arthur',
@@ -345,7 +345,7 @@ fields when ``roles`` is set to both ``public`` and ``admin``.
 Adding in the ``no_private`` role will then blacklist the ``email`` and
 ``password`` fields.
 
- >>> favorites.to_primitive(roles=['public', 'admin', 'no_private'])
+ >>> user.to_primitive(roles=['public', 'admin', 'no_private'])
   {
       'id': 42,
       'name': 'Arthur'
