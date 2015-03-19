@@ -977,7 +977,7 @@ def test_multiple_roles():
     try:
         user.serialize(roles=['public', 'create', 'NOT_A_ROLE'])
     except ValueError as ve:
-        assert ve.message == 'User Model has no role "NOT_A_ROLE"'
+        assert ve.args[0] == 'User Model has no role "NOT_A_ROLE"'
 
     d = user.to_primitive(roles=['public', 'create', 'no_private'])
 
