@@ -312,6 +312,44 @@ results without having to specify ``role`` in the export function.
       }]
   }
 
+Optionally a list of roles can be provided for export instead. The combination
+of the all the roles will be made and used to filter fields. Blacklist roles
+override whitelist roles in this case.
+
+::
+
+    class User(Model):
+        id = IntType(default=42)
+        name = StringType()
+        email = StringType()
+        password = StringType()
+
+        class Options:
+            roles = {
+                'public': whitelist('id', 'name', 'email'),
+                'admin': whitelist('password')
+                'no_private': blacklist('password', 'email')
+            }
+
+The ``password`` field will combined with the ``id``, ``name`` and ``email``
+fields when ``roles`` is set to both ``public`` and ``admin``.
+
+ >>> favorites.to_primitive(roles=['public', 'admin'])
+  {
+      'id': 42,
+      'name': 'Arthur',
+      'email': 'adent@hitchhiker.gal',
+      'password': 'dolphins'
+  }
+
+Adding in the ``no_private`` role will then blacklist the ``email`` and
+``password`` fields.
+
+ >>> favorites.to_primitive(roles=['public', 'admin', 'no_private'])
+  {
+      'id': 42,
+      'name': 'Arthur'
+  }
 
 
 .. _exporting_serializable:

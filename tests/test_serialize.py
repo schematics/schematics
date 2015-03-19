@@ -911,3 +911,70 @@ def test_serializable_with_list_and_default_role():
             },
         ]
     }
+
+
+def test_multiple_roles():
+
+    class Child(Model):
+        id = IntType(default=84)
+        name = StringType()
+        ssn = StringType()
+
+        class Options:
+            roles = {
+                'create': whitelist('name', 'ssn'),
+                'public': whitelist('id', 'name'),
+                'no_private': blacklist('ssn')
+            }
+
+    class User(Model):
+        id = IntType(default=42)
+        name = StringType()
+        email = StringType()
+        password = StringType()
+        child = ModelType(Child)
+
+        class Options:
+            roles = {
+                'create': whitelist('name', 'email', 'password', 'child'),
+                'public': whitelist('id', 'name', 'email'),
+                'no_private': blacklist('email', 'password', 'child')
+            }
+
+    child = Child({'name': 'Random', 'ssn': '000-11-1212'})
+    user = User({'name': 'Arthur', 'email': 'adent@hitchhiker.gal',
+                 'password': 'dolphins', 'child': child})
+
+    d = user.serialize(roles=['public'])
+
+    assert d == {
+        'id': 42,
+        'name': 'Arthur',
+        'email': 'adent@hitchhiker.gal'
+    }
+
+    d = user.serialize(roles=['public', 'create'])
+
+    assert d == {
+        'id': 42,
+        'name': 'Arthur',
+        'email': 'adent@hitchhiker.gal',
+        'password': 'dolphins',
+        'child': {
+            'id': 84,
+            'name': 'Random',
+            'ssn': '000-11-1212'
+        }
+    }
+
+    d = user.serialize(roles=['public', 'create', 'no_private'])
+
+    assert d == {
+        'id': 42,
+        'name': 'Arthur'
+    }
+
+    try:
+        user.serialize(roles=['public', 'create', 'NOT_A_ROLE'])
+    except ValueError as ve:
+        assert ve.message == 'User Model has no role "NOT_A_ROLE"'

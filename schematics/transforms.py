@@ -121,7 +121,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
 
 
 def export_loop(cls, instance_or_dict, field_converter,
-                role=None, raise_error_on_role=False, print_none=False):
+                role=None, raise_error_on_role=False, print_none=False, roles=None):
     """
     The export_loop function is intended to be a general loop definition that
     can be used for any form of data shaping, such as application of roles or
@@ -144,12 +144,24 @@ def export_loop(cls, instance_or_dict, field_converter,
     :param print_none:
         This function overrides ``serialize_when_none`` values found either on
         ``cls`` or an instance.
+    :param roles:
+        A list of roles, will determine a dynamic role aggregated from a list of
+        individual roles. Blacklisted fields will override whitelisted fields.
+        Supplying this parameter supersedes the role parameter.
     """
     data = {}
 
     # Translate `role` into `gottago` function
     gottago = wholelist()
-    if hasattr(cls, '_options') and role in cls._options.roles:
+
+    if hasattr(cls, '_options') and roles:
+        if raise_error_on_role:
+            for r in roles:
+                if not cls._options.roles.get(r, None):
+                    error_msg = u'%s Model has no role "%s"'
+                    raise ValueError(error_msg % (cls.__name__, r))
+        gottago = combinedlist([cls._options.roles.get(r, None) for r in roles])
+    elif hasattr(cls, '_options') and role in cls._options.roles:
         gottago = cls._options.roles[role]
     elif role and raise_error_on_role:
         error_msg = u'%s Model has no role "%s"'
@@ -374,6 +386,31 @@ def blacklist(*field_list):
     return Role(Role.blacklist, field_list)
 
 
+def combinedlist(roles):
+    """
+    Returns a function that operates as a whitelist for the combined set of
+    fields in each of the specified roles. Blacklisted fields will override
+    whitelisted fields.
+
+    :param roles: list of Roles
+    """
+    combined_roles = None
+
+    for role in roles:
+        if role and role.function.func_name == "whitelist":
+            if combined_roles:
+                combined_roles = combined_roles + role
+            else:
+                combined_roles = role
+    if not combined_roles:
+        combined_roles = wholelist()
+    for role in roles:
+        if role and role.function.func_name == "blacklist":
+            combined_roles = combined_roles - role
+
+    return combined_roles
+
+
 ###
 # Import and export functions
 ###
@@ -393,16 +430,16 @@ def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
 
 
 def to_native(cls, instance_or_dict, role=None, raise_error_on_role=True,
-              context=None):
+              context=None, roles=None):
     field_converter = lambda field, value: field.to_native(value,
                                                            context=context)
     data = export_loop(cls, instance_or_dict, field_converter,
-                       role=role, raise_error_on_role=raise_error_on_role)
+                       role=role, raise_error_on_role=raise_error_on_role, roles=roles)
     return data
 
 
 def to_primitive(cls, instance_or_dict, role=None, raise_error_on_role=True,
-                 context=None):
+                 context=None, roles=None):
     """
     Implements serialization as a mechanism to convert ``Model`` instances into
     dictionaries keyed by field_names with the converted data as the values.
@@ -422,18 +459,19 @@ def to_primitive(cls, instance_or_dict, role=None, raise_error_on_role=True,
     :param raise_error_on_role:
         This parameter enforces strict behavior which requires substructures
         to have the same role definition as their parent structures.
+    :param roles: list of Roles to combine and use to filter fields.
     """
     field_converter = lambda field, value: field.to_primitive(value,
                                                               context=context)
     data = export_loop(cls, instance_or_dict, field_converter,
-                       role=role, raise_error_on_role=raise_error_on_role)
+                       role=role, raise_error_on_role=raise_error_on_role, roles=roles)
     return data
 
 
 def serialize(cls, instance_or_dict, role=None, raise_error_on_role=True,
-              context=None):
+              context=None, roles=None):
     return to_primitive(cls, instance_or_dict, role, raise_error_on_role,
-                        context)
+                        context, roles=roles)
 
 
 EMPTY_LIST = "[]"
