@@ -397,7 +397,10 @@ def combinedlist(roles):
     combined_roles = None
 
     for role in roles:
-        if role and role.function.func_name == "whitelist":
+        if role and ((hasattr(role.function, "func_name") and
+                      role.function.func_name == "whitelist")
+                     or (hasattr(role.function, "__name__") and
+                         role.function.__name__ == "whitelist")):
             if combined_roles:
                 combined_roles = combined_roles + role
             else:
@@ -405,7 +408,10 @@ def combinedlist(roles):
     if not combined_roles:
         combined_roles = wholelist()
     for role in roles:
-        if role and role.function.func_name == "blacklist":
+        if role and ((hasattr(role.function, "func_name") and
+                      role.function.func_name == "blacklist")
+                     or (hasattr(role.function, "__name__") and
+                         role.function.__name__ == "blacklist")):
             combined_roles = combined_roles - role
 
     return combined_roles
