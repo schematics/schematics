@@ -6,6 +6,7 @@ import itertools
 from six import iteritems
 
 from .exceptions import ConversionError, ModelConversionError, ValidationError
+from .datastructures import OrderedDict
 
 try:
     basestring #PY2
@@ -157,6 +158,9 @@ def export_loop(cls, instance_or_dict, field_converter,
     else:
         gottago = cls._options.roles.get("default", gottago)
 
+    fields_order = (getattr(cls._options, 'fields_order', None)
+                    if hasattr(cls, '_options') else None)
+
     for field_name, field, value in atoms(cls, instance_or_dict):
         serialized_name = field.serialized_name or field_name
 
@@ -189,9 +193,33 @@ def export_loop(cls, instance_or_dict, field_converter,
 
     # Return data if the list contains anything
     if len(data) > 0:
+        if fields_order:
+            return sort_dict(data, fields_order)
         return data
     elif print_none:
         return data
+
+
+def sort_dict(dct, based_on):
+    """
+    Sorts provided dictionary based on order of keys provided in ``based_on``
+    list.
+
+    Order is not guarantied in case if ``dct`` has keys that are not present
+    in ``based_on``
+
+    :param dct:
+        Dictionary to be sorted.
+    :param based_on:
+        List of keys in order that resulting dictionary should have.
+    :return:
+        OrderedDict with keys in the same order as provided ``based_on``.
+    """
+    return OrderedDict(
+        sorted(
+            dct.items(),
+            key=lambda el: based_on.index(el[0] if el[0] in based_on else -1))
+    )
 
 
 def atoms(cls, instance_or_dict):
