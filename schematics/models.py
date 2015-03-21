@@ -129,6 +129,12 @@ class ModelMeta(type):
         fields = OrderedDictWithSort()
         serializables = {}
         validator_functions = {}  # Model level
+        marshallers = OrderedDictWithSort()
+        unmarshallers = OrderedDictWithSort()
+
+        main_marshaller = attrs.get('marshal')
+        if callable(main_marshaller):
+            marshallers[name] = main_marshaller
 
         # Accumulate metas info from parent classes
         for base in reversed(bases):
@@ -138,15 +144,27 @@ class ModelMeta(type):
                 serializables.update(metacopy(base._serializables))
             if hasattr(base, '_validator_functions'):
                 validator_functions.update(base._validator_functions)
+            if hasattr(base, '_marshallers'):
+                marshallers.update(base._marshallers)
+            if hasattr(base, '_unmarshallers'):
+                unmarshallers.update(base._unmarshallers)
 
         # Parse this class's attributes into meta structures
         for key, value in iteritems(attrs):
             if key.startswith('validate_') and callable(value):
                 validator_functions[key[9:]] = value
+            if key.startswith('marshal_') and callable(value):
+                marshallers[key[8:]] = value
+            if key.startswith('unmarshal_') and callable(value):
+                unmarshallers[key[10:]] = value
             if isinstance(value, BaseType):
                 fields[key] = value
             if isinstance(value, Serializable):
                 serializables[key] = value
+
+        main_unmarshaller = attrs.get('unmarshal')
+        if callable(main_unmarshaller):
+            unmarshallers[name] = main_unmarshaller
 
         # Parse meta options
         options = mcs._read_options(name, bases, attrs)
@@ -160,6 +178,8 @@ class ModelMeta(type):
         attrs['_fields'] = fields
         attrs['_serializables'] = serializables
         attrs['_validator_functions'] = validator_functions
+        attrs['_marshallers'] = marshallers
+        attrs['_unmarshallers'] = unmarshallers
         attrs['_options'] = options
 
         klass = type.__new__(mcs, name, bases, attrs)
@@ -240,7 +260,7 @@ class Model(object):
         if raw_data is None:
             raw_data = {}
         self._initial = raw_data
-        self._data = self.convert(raw_data, strict=strict, mapping=deserialize_mapping)
+        self._data = self.convert(raw_data, strict=strict, mapping=deserialize_mapping, importing=True)
 
     def validate(self, partial=False, strict=False):
         """
@@ -270,6 +290,7 @@ class Model(object):
         :param raw_data:
             The data to be imported.
         """
+        kw.setdefault('importing', True)
         data = self.convert(raw_data, **kw)
         #[x * 2 if x % 2 == 0 else x for x in a_list]
         del_keys = [ k for k in data.keys() if data[k] is None]
