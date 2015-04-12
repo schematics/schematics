@@ -86,7 +86,7 @@ class ModelOptions(object):
     """
 
     def __init__(self, klass, namespace=None, roles=None,
-                 serialize_when_none=True):
+                 serialize_when_none=True, fields_order=None):
         """
         :param klass:
             The class which this options instance belongs to.
@@ -98,11 +98,15 @@ class ModelOptions(object):
         :param serialize_when_none:
             When ``False``, serialization skips fields that are None.
             Default: ``True``
+        :param fields_order:
+            List of field names that dictates in which order will keys
+            appear in serialized dictionary.
         """
         self.klass = klass
         self.namespace = namespace
         self.roles = roles or {}
         self.serialize_when_none = serialize_when_none
+        self.fields_order = fields_order
 
 
 class ModelMeta(type):
