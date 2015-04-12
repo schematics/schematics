@@ -1,3 +1,10 @@
+1.0.4 / 2015-04-13
+==================
+* [Example] (`#286 <https://github.com/schematics/schematics/pull/286>`_) Add schematics usage with Django
+* [Feature] (`#292 <https://github.com/schematics/schematics/pull/292>`_) increase domain length to 10 for .holiday, .vacations
+* [Feature] (`#297 <https://github.com/schematics/schematics/pull/297>`_) Support for fields order in serialized format
+* [Feature] (`#300 <https://github.com/schematics/schematics/pull/300>_`) increase domain length to 32
+
 1.0.3 / 2015-03-07
 ==================
 * [Feature] (`#284 <https://github.com/schematics/schematics/pull/284>`_) Add missing requirement for `six`
