@@ -185,6 +185,20 @@ def test_list_model_field():
     assert errors['users'] == [u'This field is required.']
 
 
+def test_list_model_field_exception_with_full_message():
+    class User(Model):
+        name = StringType(max_length=1)
+
+    class Group(Model):
+        users = ListType(ModelType(User))
+
+    g = Group({'users': [{'name': "ToLongName"}]})
+
+    with pytest.raises(ValidationError) as exception:
+        g.validate()
+    assert exception.value.messages == {'users': [{'name': ['String value is too long.']}]}
+
+
 def test_stop_validation():
     def raiser(x):
         raise StopValidation({'something': 'bad'})
