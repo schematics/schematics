@@ -161,6 +161,23 @@ def test_returns_nice_conversion_errors():
         }
 
 
+def test_returns_partial_data_with_conversion_errors():
+    class User(Model):
+        name = StringType(required=True)
+        age = IntType(required=True)
+        account_level = IntType()
+
+    with pytest.raises(ModelConversionError) as exception:
+        User({"name": "Jóhann", "age": "100 years", "account_level": "3"})
+
+    partial_data = exception.value.partial_data
+
+    assert partial_data == {
+        "name": u"Jóhann",
+        "account_level": 3,
+    }
+
+
 def test_field_default():
     class User(Model):
         name = StringType(default=u'Doggy')
