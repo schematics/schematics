@@ -116,7 +116,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
             errors[serialized_field_name] = exc.messages
 
     if errors:
-        raise ModelConversionError(errors)
+        raise ModelConversionError(errors, data)
 
     return data
 

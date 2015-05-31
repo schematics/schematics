@@ -35,7 +35,9 @@ class ConversionError(BaseError, TypeError):
 
 
 class ModelConversionError(ConversionError):
-    pass
+    def __init__(self, messages, partial_data=None):
+        super(ModelConversionError, self).__init__(messages)
+        self.partial_data = partial_data
 
 
 class ValidationError(BaseError, ValueError):
