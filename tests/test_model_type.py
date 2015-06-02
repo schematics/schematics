@@ -153,3 +153,11 @@ def test_export_loop_with_subclassed_model():
 
     native = product.to_native()
     assert 'bucket_name' in native['asset']
+
+
+def test_mock_object():
+    class User(Model):
+        name = StringType(required=True)
+        age = IntType(required=True)
+
+    assert ModelType(User, required=True).mock() is not None

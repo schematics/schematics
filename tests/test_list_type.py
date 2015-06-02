@@ -3,7 +3,8 @@ import pytest
 from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.types.compound import ModelType, ListType
-from schematics.exceptions import ValidationError, StopValidation
+from schematics.exceptions import (ValidationError, StopValidation,
+                                   MockCreationError)
 
 
 def test_list_field():
@@ -215,3 +216,18 @@ def test_compound_fields():
     comments = ListType(ListType, compound_field=StringType)
 
     assert isinstance(comments.field, ListType)
+
+
+def test_mock_object():
+    assert ListType(IntType, required=True).mock() is not None
+
+    with pytest.raises(MockCreationError) as exception:
+        ListType(IntType, min_size=10, max_size=1, required=True).mock()
+
+
+def test_mock_object_with_model_type():
+    class User(Model):
+        name = StringType(required=True)
+        age = IntType(required=True)
+
+    assert isinstance(ListType(ModelType(User), required=True).mock()[-1], User)
