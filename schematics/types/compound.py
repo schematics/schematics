@@ -5,7 +5,10 @@ from __future__ import division
 from collections import Iterable
 import itertools
 
-from ..exceptions import ValidationError, ConversionError, ModelValidationError, StopValidation
+from ..exceptions import (
+    ValidationError, ConversionError, ModelValidationError, StopValidation,
+    MockCreationError
+)
 from ..models import Model
 from ..transforms import export_loop, EMPTY_LIST, EMPTY_DICT
 from .base import BaseType, get_value_in
@@ -75,8 +78,7 @@ class ModelType(MultiType):
         return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
 
     def _mock(self, context=None):
-        model_class = self.model_class
-        return model_class.get_mock_object(context)
+        return self.model_class.get_mock_object(context)
 
     def to_native(self, value, mapping=None, context=None):
         # We have already checked if the field is required. If it is None it
@@ -166,10 +168,9 @@ class ListType(MultiType):
         random_length = get_value_in(min_size, max_size)
 
         if isinstance(self.field, ModelType):
-            model_class = self.model_class
-            return [model_class.get_mock_object(context) for _ in xrange(random_length)]
-
-        return [self.field._mock(context) for _ in xrange(random_length)]
+            return [self.field.model_class.get_mock_object(context) for _ in xrange(random_length)]
+        else:
+            return [self.field._mock(context) for _ in xrange(random_length)]
 
     def _force_list(self, value):
         if value is None or value == EMPTY_LIST:
