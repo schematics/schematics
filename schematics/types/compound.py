@@ -16,6 +16,7 @@ from .base import BaseType, get_value_in
 from six import iteritems
 from six import string_types as basestring
 from six import text_type as unicode
+from six.moves import xrange
 
 class MultiType(BaseType):
 
