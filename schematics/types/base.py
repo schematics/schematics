@@ -693,6 +693,7 @@ class DateTimeType(BaseType):
 
     MESSAGES = {
         'parse': u'Could not parse {0}. Should be ISO8601.',
+        'parse_formats': u'Could not parse {0}. Valid formats: {1}',
     }
 
     def __init__(self, formats=None, serialized_format=None, **kwargs):
@@ -729,7 +730,13 @@ class DateTimeType(BaseType):
                 return datetime.datetime.strptime(value, fmt)
             except (ValueError, TypeError):
                 continue
-        raise ConversionError(self.messages['parse'].format(value))
+        if self.formats == self.DEFAULT_FORMATS:
+            message = self.messages['parse'].format(value)
+        else:
+            message = self.messages['parse_formats'].format(
+                value, ", ".join(self.formats)
+            )
+        raise ConversionError(message)
 
     def to_primitive(self, value, context=None):
         if callable(self.serialized_format):
