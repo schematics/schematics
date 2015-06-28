@@ -237,7 +237,6 @@ class Model(object):
     possible to convert the raw data into richer Python constructs.
     """
 
-    #__metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
     def __init__(self, raw_data=None, deserialize_mapping=None, strict=True):
