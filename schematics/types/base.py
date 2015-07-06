@@ -447,8 +447,8 @@ class NumberType(BaseType):
 
     MESSAGES = {
         'number_coerce': u"Value '{0}' is not {1}",
-        'number_min': u"{0} value should be greater than {1}",
-        'number_max': u"{0} value should be less than {1}",
+        'number_min': u"{0} value should be greater than or equal to {1}",
+        'number_max': u"{0} value should be less than or equal to {1}",
     }
 
     def __init__(self, number_class, number_type,
