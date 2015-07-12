@@ -217,12 +217,6 @@ class ModelMeta(type):
     def fields(cls):
         return cls._fields
 
-#   def __iter__(self):
-#       return itertools.chain(
-#           self.fields.iteritems(),
-#           self._unbound_fields.iteritems(),
-#           self._unbound_serializables.iteritems()
-#       )
 
 @add_metaclass(ModelMeta)
 class Model(object):
@@ -237,7 +231,6 @@ class Model(object):
     possible to convert the raw data into richer Python constructs.
     """
 
-    #__metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
     def __init__(self, raw_data=None, deserialize_mapping=None, strict=True):

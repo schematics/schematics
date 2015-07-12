@@ -194,8 +194,7 @@ class ListType(MultiType):
             try:
                 self.field.validate(item)
             except ValidationError as exc:
-                errors += exc.messages
-
+                errors.append(exc.messages)
         if errors:
             raise ValidationError(errors)
 

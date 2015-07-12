@@ -384,7 +384,7 @@ class URLType(StringType):
 
     URL_REGEX = re.compile(
         r'^https?://'
-        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,2000}[A-Z0-9])?\.)+[A-Z]{2,63}\.?|'
         r'localhost|'
         r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
         r'(?::\d+)?'
@@ -427,7 +427,7 @@ class EmailType(StringType):
         r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-011\013\014\016'
         r'-\177])*"'
         # domain
-        r')@(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,32}\.?$',
+        r')@(?:[A-Z0-9](?:[A-Z0-9-]{0,2000}[A-Z0-9])?\.)+[A-Z]{2,63}\.?$',
         re.IGNORECASE
     )
 
@@ -678,16 +678,21 @@ class DateTimeType(BaseType):
 
     :param formats:
         A value or list of values suitable for ``datetime.datetime.strptime``
-        parsing. Default: `('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S')`
+        parsing. Default: `('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S',
+        '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%dT%H:%M:%SZ')`
     :param serialized_format:
         The output format suitable for Python ``strftime``. Default: ``'%Y-%m-%dT%H:%M:%S.%f'``
 
     """
 
-    DEFAULT_FORMATS = ('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S')
+    DEFAULT_FORMATS = (
+        '%Y-%m-%dT%H:%M:%S.%f',  '%Y-%m-%dT%H:%M:%S',
+        '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%dT%H:%M:%SZ',
+    )
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 
     MESSAGES = {
+        'parse_formats': u'Could not parse {0}. Valid formats: {1}',
         'parse': u"Could not parse {0}. Should be ISO8601.",
     }
 
@@ -725,7 +730,13 @@ class DateTimeType(BaseType):
                 return datetime.datetime.strptime(value, fmt)
             except (ValueError, TypeError):
                 continue
-        raise ConversionError(self.messages['parse'].format(value))
+        if self.formats == self.DEFAULT_FORMATS:
+            message = self.messages['parse'].format(value)
+        else:
+            message = self.messages['parse_formats'].format(
+                value, ", ".join(self.formats)
+            )
+        raise ConversionError(message)
 
     def to_primitive(self, value, context=None):
         if callable(self.serialized_format):
