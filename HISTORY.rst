@@ -7,7 +7,7 @@
 * [Feature] (`#309 <https://github.com/schematics/schematics/pull/309>`_) improves date_time_type error message for custom formats
 * [Feature] (`#310 <https://github.com/schematics/schematics/pull/310>`_) accept optional 'Z' suffix for UTC date_time_type format
 * [Feature] (`#311 <https://github.com/schematics/schematics/pull/311>`_) Remove commented lines from models.py
-* [Feature] (`#309 <https://github.com/schematics/schematics/pull/314>`_) Fix NumberType range validation messages
+* [Feature] (`#230 <https://github.com/schematics/schematics/pull/230>`_) Message normalization
 
 1.0.4 / 2015-04-13
 ==================
