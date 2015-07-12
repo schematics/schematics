@@ -1,3 +1,14 @@
+1.1.0 / 2015-07-12
+==================
+* [Feature] (`#303 <https://github.com/schematics/schematics/pull/303>`_) fix ListType, validate_items adds to errors list just field name without...
+* [Feature] (`#304 <https://github.com/schematics/schematics/pull/304>`_) Include Partial Data when Raising ModelConversionError
+* [Feature] (`#305 <https://github.com/schematics/schematics/pull/305>`_) Updated domain verifications to fit to RFC/working standards
+* [Feature] (`#308 <https://github.com/schematics/schematics/pull/308>`_) Grennady ordered validation
+* [Feature] (`#309 <https://github.com/schematics/schematics/pull/309>`_) improves date_time_type error message for custom formats
+* [Feature] (`#310 <https://github.com/schematics/schematics/pull/310>`_) accept optional 'Z' suffix for UTC date_time_type format
+* [Feature] (`#311 <https://github.com/schematics/schematics/pull/311>`_) Remove commented lines from models.py
+* [Feature] (`#309 <https://github.com/schematics/schematics/pull/314>`_) Fix NumberType range validation messages
+
 1.0.4 / 2015-04-13
 ==================
 * [Example] (`#286 <https://github.com/schematics/schematics/pull/286>`_) Add schematics usage with Django
