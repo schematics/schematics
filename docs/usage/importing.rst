@@ -53,6 +53,64 @@ data should be converted to model instances.
   u'Dillinger Escape Plan'
 
 
+On strictness
+=============
+
+When we're creating model instances from external data, we usually
+want to ensure that there are no extra, unexpected fields. Schematics
+calls these "rogue fields". By default, models raise a
+``ModelConversionError`` whenever rogue fields are present:
+
+::
+
+  class Inner(Model):
+      expected_key = StringType()
+
+  class Outer(Model):
+      inner = ModelType(Outer)
+
+  doc = {
+      'inner': {
+          'expected_key': 'expected value',
+          'rogue_key': 'unexpected value',
+      },
+  }
+
+  >>> Inner(doc['inner'])
+  [...]
+  schematics.exceptions.ModelConversionError: {'rogue_key': 'Rogue field'}
+
+We can modify that behavior by passing in a ``strict`` keyword argument:
+
+::
+
+  >>> Inner(doc['inner'], strict=False)
+  <Inner: Inner object>
+
+This also applies to models that contain other models:
+
+::
+
+  >>> Outer(doc)
+  [...]
+  schematics.exceptions.ModelConversionError: {'inner': {'rogue_key': 'Rogue field'}}
+
+  >>> Outer(doc, strict=False)
+  <Outer: Outer object>
+
+This is useful in lots of scenarios:
+
+- We've created a new API version that accepts new fields, but want to
+  maintain forward compatibility on the old API.
+- We have one customer who just can't make their enterprise document
+  system quit embedding extra metadata fields.
+- We want to use existing models pluck a few fields out of a large
+  document, but don't want to rewrite those tested, working models to
+  handle our one-time project.
+
+The default value for ``strict`` is ``None``, which means "don't
+override the model's own configuration".
+
 More Information
 ~~~~~~~~~~~~~~~~
 

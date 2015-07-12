@@ -411,21 +411,19 @@ def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
             mapping=None):
     def field_converter(field, value, mapping=None):
         try:
-            return field.to_native(value, mapping=mapping)
+            return field.to_native(value, mapping=mapping, strict=strict)
         except Exception:
-            return field.to_native(value)
-#   field_converter = lambda field, value: field.to_native(value)
+            return field.to_native(value, strict=strict)
     data = import_loop(cls, instance_or_dict, field_converter, context=context,
                        partial=partial, strict=strict, mapping=mapping)
     return data
 
 
 def to_native(cls, instance_or_dict, role=None, raise_error_on_role=True,
-              context=None):
-    field_converter = lambda field, value: field.to_native(value,
-                                                           context=context)
-    data = export_loop(cls, instance_or_dict, field_converter,
-                       role=role, raise_error_on_role=raise_error_on_role)
+              context=None, strict=None):
+    field_converter = lambda field, value: field.to_native(value, context=context, strict=strict)
+    data = export_loop(cls, instance_or_dict, field_converter, role=role,
+                       raise_error_on_role=raise_error_on_role)
     return data
 
 

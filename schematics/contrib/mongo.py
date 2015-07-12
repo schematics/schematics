@@ -30,7 +30,7 @@ class ObjectIdType(BaseType):
         self.auto_fill = auto_fill
         super(ObjectIdType, self).__init__(**kwargs)
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, context=None, strict=None):
         if not isinstance(value, bson.objectid.ObjectId):
             try:
                 value = bson.objectid.ObjectId(unicode(value))

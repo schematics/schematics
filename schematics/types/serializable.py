@@ -56,7 +56,7 @@ class Serializable(object):
     def __get__(self, instance, cls):
         return self.func(instance)
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, context=None, strict=None):
         return self.type.to_native(value, context)
 
     def to_primitive(self, value, context=None):

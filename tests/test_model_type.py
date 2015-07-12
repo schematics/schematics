@@ -3,7 +3,7 @@ import pytest
 from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.types.compound import ModelType, ListType
-from schematics.exceptions import ValidationError
+from schematics.exceptions import ModelConversionError, ValidationError
 
 
 def test_simple_embedded_models():
@@ -153,3 +153,122 @@ def test_export_loop_with_subclassed_model():
 
     native = product.to_native()
     assert 'bucket_name' in native['asset']
+
+
+def test_import_rogue_field_default():
+    class Inner(Model):
+        expected_key = StringType()
+
+    class Outer(Model):
+        inner = ModelType(Inner)
+
+    doc = {
+        'inner': {
+            'expected_key': 'expected value',
+            'rogue_key': 'unexpected value',
+        },
+    }
+
+    with pytest.raises(ModelConversionError) as exc:
+        Outer(doc)
+
+
+def test_flat_import_rogue_field_default():
+    class Inner(Model):
+        expected_key = StringType()
+
+    doc = {
+        'expected_key': 'expected value',
+        'rogue_key': 'unexpected value',
+    }
+
+    with pytest.raises(ModelConversionError) as exc:
+        Inner(doc)
+
+    assert exc.value.messages == {'rogue_key': 'Rogue field'}
+
+
+def test_flat_import_rogue_field_explicit_strictness():
+    class Inner(Model):
+        expected_key = StringType()
+
+    doc = {
+        'expected_key': 'expected value',
+        'rogue_key': 'unexpected value',
+    }
+
+    with pytest.raises(ModelConversionError) as exc:
+        Inner(doc, strict=True)
+
+    assert exc.value.messages == {'rogue_key': 'Rogue field'}
+
+
+def test_flat_import_rogue_field_explicit_unstrictness():
+    class Inner(Model):
+        expected_key = StringType()
+
+    doc = {
+        'expected_key': 'expected value',
+        'rogue_key': 'unexpected value',
+    }
+
+    data = Inner(doc, strict=False)
+    assert data.expected_key == 'expected value'
+
+
+def test_nested_import_rogue_field_default():
+    class Inner(Model):
+        expected_key = StringType()
+
+    class Outer(Model):
+        inner = ModelType(Inner, strict=True)
+
+    doc = {
+        'inner': {
+            'expected_key': 'expected value',
+            'rogue_key': 'unexpected value',
+        },
+    }
+
+    with pytest.raises(ModelConversionError) as exc:
+        Outer(doc)
+
+    assert exc.value.messages == {'inner': {'rogue_key': 'Rogue field'}}
+
+
+def test_nested_import_rogue_field_explicit_strictness():
+    class Inner(Model):
+        expected_key = StringType()
+
+    class Outer(Model):
+        inner = ModelType(Inner, strict=False)
+
+    doc = {
+        'inner': {
+            'expected_key': 'expected value',
+            'rogue_key': 'unexpected value',
+        },
+    }
+
+    with pytest.raises(ModelConversionError) as exc:
+        Outer(doc, strict=True)
+
+    assert exc.value.messages == {'inner': {'rogue_key': 'Rogue field'}}
+
+
+def test_nested_import_rogue_field_explicit_unstrictness():
+    class Inner(Model):
+        expected_key = StringType()
+
+    class Outer(Model):
+        inner = ModelType(Inner, strict=True)
+
+    doc = {
+        'inner': {
+            'expected_key': 'expected value',
+            'rogue_key': 'unexpected value',
+        },
+    }
+
+    data = Outer(doc, strict=False)
+    assert data.inner.expected_key == 'expected value'

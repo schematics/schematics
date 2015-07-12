@@ -74,9 +74,12 @@ class ModelType(MultiType):
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
 
-    def to_native(self, value, mapping=None, context=None):
+    def to_native(self, value, mapping=None, context=None, strict=None):
         # We have already checked if the field is required. If it is None it
         # should continue being None
+
+        use_strict = self.strict if strict is None else strict
+
         if mapping is None:
             mapping = {}
         if value is None:
@@ -91,9 +94,9 @@ class ModelType(MultiType):
                     type(value).__name__))
 
         # partial submodels now available with import_data (ht ryanolson)
-        model = self.model_class()
+        model = self.model_class(strict=use_strict)
         return model.import_data(value, mapping=mapping, context=context,
-                                 strict=self.strict)
+                                 strict=use_strict)
 
     def to_primitive(self, model_instance, context=None):
         primitive_data = {}
@@ -166,7 +169,7 @@ class ListType(MultiType):
         except TypeError:
             return [value]
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, context=None, strict=None):
         items = self._force_list(value)
 
         return [self.field.to_native(item, context) for item in items]
@@ -252,7 +255,7 @@ class DictType(MultiType):
     def model_class(self):
         return self.field.model_class
 
-    def to_native(self, value, safe=False, context=None):
+    def to_native(self, value, safe=False, context=None, strict=None):
         if value == EMPTY_DICT:
             value = {}
 
@@ -349,7 +352,7 @@ class PolyModelType(MultiType):
                 return True
         return False
 
-    def to_native(self, value, mapping=None, context=None):
+    def to_native(self, value, mapping=None, context=None, strict=None):
 
         if mapping is None:
             mapping = {}
@@ -420,4 +423,3 @@ class PolyModelType(MultiType):
             return shaped
         elif print_none:
             return shaped
-

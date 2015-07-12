@@ -211,7 +211,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         """
         return value
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, context=None, strict=None):
         """
         Convert untrusted data to a richer Python construct.
         """
@@ -275,7 +275,7 @@ class UUIDType(BaseType):
     def _mock(self, context=None):
         return uuid.uuid4()
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, context=None, strict=None):
         if not isinstance(value, uuid.UUID):
             try:
                 value = uuid.UUID(value)
@@ -341,7 +341,7 @@ class StringType(BaseType):
     def _mock(self, context=None):
         return random_string(get_value_in(self.min_length, self.max_length))
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, context=None, strict=None):
         if value is None:
             return None
 
@@ -463,7 +463,7 @@ class NumberType(BaseType):
     def _mock(self, context=None):
         return get_value_in(self.min_value, self.max_value)
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, context=None, strict=None):
         try:
             value = self.number_class(value)
         except (TypeError, ValueError):
@@ -546,7 +546,7 @@ class DecimalType(BaseType):
     def to_primitive(self, value, context=None):
         return unicode(value)
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, context=None, strict=None):
         if not isinstance(value, decimal.Decimal):
             if not isinstance(value, basestring):
                 value = unicode(value)
@@ -580,7 +580,7 @@ class HashType(BaseType):
     def _mock(self, context=None):
         return random_string(self.LENGTH, string.hexdigits)
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, context=None, strict=None):
         if len(value) != self.LENGTH:
             raise ValidationError(self.messages['hash_length'])
         try:
@@ -622,7 +622,7 @@ class BooleanType(BaseType):
     def _mock(self, context=None):
         return random.choice([True, False])
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, context=None, strict=None):
         if isinstance(value, basestring):
             if value in self.TRUE_VALUES:
                 value = True
@@ -659,7 +659,7 @@ class DateType(BaseType):
             day=random.randrange(28) + 1,
         )
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, context=None, strict=None):
         if isinstance(value, datetime.date):
             return value
 
@@ -721,7 +721,7 @@ class DateTimeType(BaseType):
             microsecond=random.randrange(1000000),
         )
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, context=None, strict=None):
         if isinstance(value, datetime.datetime):
             return value
 
@@ -752,7 +752,7 @@ class GeoPointType(BaseType):
     def _mock(self, context=None):
         return (random.randrange(-90, 90), random.randrange(-90, 90))
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, context=None, strict=None):
         """Make sure that a geo-value is of type (x, y)
         """
         if not len(value) == 2:
@@ -810,7 +810,7 @@ class MultilingualStringType(BaseType):
     def _mock(self, context=None):
         return random_string(get_value_in(self.min_length, self.max_length))
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, context=None, strict=None):
         """Make sure a MultilingualStringType value is a dict or None."""
 
         if not (value is None or isinstance(value, dict)):
