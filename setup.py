@@ -51,7 +51,6 @@ setup(
     },
     install_requires=[
         'six>=1.7.3',
-        'mock==1.0.1',
     ],
     tests_require=tests_require,
 )
