@@ -332,7 +332,7 @@ class StringType(BaseType):
     }
 
     def __init__(self, regex=None, max_length=None, min_length=None, **kwargs):
-        self.regex = re.compile(regex) if regex else None
+        self.regex = regex
         self.max_length = max_length
         self.min_length = min_length
 
@@ -365,7 +365,7 @@ class StringType(BaseType):
             raise ValidationError(self.messages['min_length'])
 
     def validate_regex(self, value):
-        if self.regex is not None and self.regex.match(value) is None:
+        if self.regex is not None and re.match(self.regex, value) is None:
             raise ValidationError(self.messages['regex'])
 
 
