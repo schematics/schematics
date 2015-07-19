@@ -67,7 +67,7 @@ calls these "rogue fields". By default, models raise a
       expected_key = StringType()
 
   class Outer(Model):
-      inner = ModelType(Outer)
+      inner = ModelType(Inner)
 
   doc = {
       'inner': {
