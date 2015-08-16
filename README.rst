@@ -88,21 +88,6 @@ Add the field and validation passes
   >>> person.validate()
   >>>
 
-What's with the fork?
-=====================
-
-At the top of this projects Github page is says "forked from
-exfm/dictshield".  James (@j2labs) started dictshield while working
-for exfm.  It was open sourced, so he forked it and continued work on
-it.
-
-Alas, the name, which was originally a 3am decision to make me James
-laugh turned into something that was awkward and a little crude, so it
-was renamed Schematics.
-
-DictShield still exists, but consider anything with that label to be
-a ghost from this project's early years.
-
 Testing & Coverage support
 ==========================
 Run coverage and check the missing statements.
