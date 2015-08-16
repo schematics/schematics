@@ -5,6 +5,7 @@ import itertools
 
 from six import iteritems
 
+from .types.base import _
 from .exceptions import ConversionError, ModelConversionError, ValidationError
 from .datastructures import OrderedDict
 
@@ -99,7 +100,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
         try:
             if raw_value is None:
                 if field.required and not partial:
-                    errors[serialized_field_name] = [field.messages['required']]
+                    errors[serialized_field_name] = [_(field.messages['required'])]
             else:
                 try:
                     mapping_by_model = mapping.get('model_mapping', {})
