@@ -8,7 +8,7 @@ import itertools
 from ..exceptions import ValidationError, ConversionError, ModelValidationError, StopValidation
 from ..models import Model
 from ..transforms import export_loop, EMPTY_LIST, EMPTY_DICT
-from .base import BaseType
+from .base import BaseType, _
 
 from six import iteritems
 from six import string_types as basestring
@@ -86,7 +86,7 @@ class ModelType(MultiType):
 
         if not isinstance(value, dict):
             raise ConversionError(
-                u'Please use a mapping for this field or {0} instance instead of {1}.'.format(
+                _(u'Please use a mapping for this field or {0} instance instead of {1}.').format(
                     self.model_class.__name__,
                     type(value).__name__))
 
@@ -176,15 +176,15 @@ class ListType(MultiType):
 
         if self.min_size is not None and list_length < self.min_size:
             message = ({
-                True: u'Please provide at least %d item.',
-                False: u'Please provide at least %d items.',
+                True: _(u'Please provide at least %d item.'),
+                False: _(u'Please provide at least %d items.'),
             }[self.min_size == 1]) % self.min_size
             raise ValidationError(message)
 
         if self.max_size is not None and list_length > self.max_size:
             message = ({
-                True: u'Please provide no more than %d item.',
-                False: u'Please provide no more than %d items.',
+                True: _(u'Please provide no more than %d item.'),
+                False: _(u'Please provide no more than %d items.'),
             }[self.max_size == 1]) % self.max_size
             raise ValidationError(message)
 
@@ -259,7 +259,7 @@ class DictType(MultiType):
         value = value or {}
 
         if not isinstance(value, dict):
-            raise ValidationError(u'Only dictionaries may be used in a DictType')
+            raise ValidationError(_(u'Only dictionaries may be used in a DictType'))
 
         return dict((self.coerce_key(k), self.field.to_native(v, context))
                     for k, v in iteritems(value))
