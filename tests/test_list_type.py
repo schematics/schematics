@@ -215,3 +215,14 @@ def test_compound_fields():
     comments = ListType(ListType, compound_field=StringType)
 
     assert isinstance(comments.field, ListType)
+
+def test_list_model_top_level():
+    class User(Model):
+        name = StringType()
+
+    class Group(Model):
+        users = ListType(ModelType(User), top_level=True)
+
+    g = Group([{'name': "ToLongName"}])
+    g.validate()
+    assert g.to_native() == [{'name': "ToLongName"}]

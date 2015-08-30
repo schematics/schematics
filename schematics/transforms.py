@@ -3,7 +3,7 @@
 import collections
 import itertools
 
-from six import iteritems
+from six import iteritems,itervalues
 
 from .exceptions import ConversionError, ModelConversionError, ValidationError
 from .datastructures import OrderedDict
@@ -54,10 +54,14 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     :param strict:
         Complain about unrecognized keys. Default: False
     """
-    is_dict = isinstance(instance_or_dict, dict)
-    is_cls = isinstance(instance_or_dict, cls)
-    if not is_cls and not is_dict:
-        error_msg = 'Model conversion requires a model or dict'
+    is_list_type = isinstance(instance_or_dict, list)
+    is_correct_type = isinstance(instance_or_dict, (dict, cls))
+    if is_list_type:
+        if len(cls._fields) != 1 or not getattr(next(itervalues(cls._fields)), 'top_level', False):
+            error_msg = 'Model conversion requires single ListType field'
+            raise ModelConversionError(error_msg)
+    elif not is_correct_type:
+        error_msg = 'Model conversion requires a model, dict or list'
         raise ModelConversionError(error_msg)
     if mapping is None:
         mapping = {}
@@ -75,7 +79,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
             all_fields.update(set(_list_or_string(mapping[field_name])))
 
     # Check for rogues if strict is set
-    rogue_fields = set(instance_or_dict) - set(all_fields)
+    rogue_fields = [] if is_list_type else set(instance_or_dict) - set(all_fields)
     if strict and len(rogue_fields) > 0:
         for field in rogue_fields:
             errors[field] = 'Rogue field'
@@ -88,13 +92,16 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
         trial_keys.extend([serialized_field_name, field_name])
 
         raw_value = None
-        for key in trial_keys:
-            if key and key in instance_or_dict:
-                raw_value = instance_or_dict[key]
-        if raw_value is None:
-            if field_name in data:
-                continue
-            raw_value = field.default
+        if is_list_type:
+            raw_value = instance_or_dict
+        else:
+            for key in trial_keys:
+                if key and key in instance_or_dict:
+                    raw_value = instance_or_dict[key]
+            if raw_value is None:
+                if field_name in data:
+                    continue
+                raw_value = field.default
 
         try:
             if raw_value is None:
@@ -191,9 +198,12 @@ def export_loop(cls, instance_or_dict, field_converter,
         elif print_none:
             data[serialized_name] = value
 
+    is_top_level_list = len(cls._fields) == 1 and getattr(next(itervalues(cls._fields)), 'top_level', False)
+    if is_top_level_list:
+        data = next(itervalues(data))
     # Return data if the list contains anything
     if len(data) > 0:
-        if fields_order:
+        if fields_order and not is_top_level_list:
             return sort_dict(data, fields_order)
         return data
     elif print_none:
