@@ -272,15 +272,15 @@ def test_deep_errors_with_lists():
     messages = exception.value.messages
 
     assert messages == {
-        'courses': [
-            {
-                'attending': [
-                    {
-                        'name': [u'This field is required.'],
-                    },
-                ],
+        'courses': {
+            0: {
+                'attending': {
+                    0: {
+                        'name': ['This field is required.']
+                    }
+                }
             }
-        ]
+        }
     }
 
 
@@ -326,13 +326,12 @@ def test_deep_errors_with_dicts():
 
     assert messages == {
         'courses': {
-            "ENG103":
-            {
-                'attending': [
-                    {
-                        'name': [u'This field is required.']
+            'ENG103': {
+                'attending': {
+                    0: {
+                        'name': ['This field is required.']
                     }
-                ]
+                }
             }
         }
     }
