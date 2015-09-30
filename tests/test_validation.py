@@ -64,8 +64,9 @@ def test_validation_none_fails():
     with pytest.raises(ValidationError) as exception:
         Player({"first_name": None}).validate()
 
-        assert len(exception.messages) == 1  # Only one failure
-        assert u'This field is required' in exception.messages["first_name"][0]
+    messages = exception.value.messages
+    assert len(messages) == 1  # Only one failure
+    assert u'This field is required' in messages["first_name"][0]
 
 
 def test_custom_validators():
@@ -87,7 +88,8 @@ def test_custom_validators():
             "title": "Old Man"
         }).validate()
 
-        assert future_error_msg in exception.messages['publish']
+    messages = exception.value.messages
+    assert future_error_msg in messages['publish']
 
 
 def test_messages_subclassing():
@@ -100,7 +102,8 @@ def test_messages_subclassing():
     with pytest.raises(ValidationError) as exception:
         TestDoc({'title': None}).validate()
 
-        assert u'Never forget' in exception.messages['title']
+    messages = exception.value.messages
+    assert u'Never forget' in messages['title']
 
 
 def test_messages_instance_level():
@@ -109,7 +112,8 @@ def test_messages_instance_level():
 
     with pytest.raises(ValidationError) as exception:
         TestDoc({'title': None}).validate()
-        assert u'Never forget' in exception.messages['title']
+    messages = exception.value.messages
+    assert u'Never forget' in messages['title']
 
 
 def test_model_validators():
@@ -204,10 +208,10 @@ def test_basic_error():
     with pytest.raises(ValidationError) as exception:
         school.validate()
 
-        errors = exception.messages
+    errors = exception.value.messages
 
-        assert "name" in errors
-        assert errors["name"] == ["This field is required."]
+    assert "name" in errors
+    assert errors["name"] == ["This field is required."]
 
 
 def test_deep_errors():
@@ -225,11 +229,11 @@ def test_deep_errors():
     with pytest.raises(ValidationError) as exception:
         school.validate()
 
-        errors = exception.messages
+    errors = exception.value.messages
 
-        assert "headmaster" in errors
-        assert "name" in errors["headmaster"]
-        assert errors["headmaster"]["name"] == ["This field is required."]
+    assert "headmaster" in errors
+    assert "name" in errors["headmaster"]
+    assert errors["headmaster"]["name"] == ["This field is required."]
 
 
 def test_deep_errors_with_lists():
@@ -265,19 +269,19 @@ def test_deep_errors_with_lists():
     with pytest.raises(ValidationError) as exception:
         school.validate()
 
-        messages = exception.messages
+    messages = exception.value.messages
 
-        assert messages == {
-            'courses': [
-                {
-                    'attending': [
-                        {
-                            'name': [u'This field is required.'],
-                        },
-                    ],
-                }
-            ]
-        }
+    assert messages == {
+        'courses': [
+            {
+                'attending': [
+                    {
+                        'name': [u'This field is required.'],
+                    },
+                ],
+            }
+        ]
+    }
 
 
 def test_deep_errors_with_dicts():
@@ -318,20 +322,20 @@ def test_deep_errors_with_dicts():
     with pytest.raises(ValidationError) as exception:
         school.validate()
 
-        messages = exception.messages
+    messages = exception.value.messages
 
-        assert messages == {
-            'courses': {
-                "ENG103":
-                {
-                    'attending': [
-                        {
-                            'name': [u'This field is required.']
-                        }
-                    ]
-                }
+    assert messages == {
+        'courses': {
+            "ENG103":
+            {
+                'attending': [
+                    {
+                        'name': [u'This field is required.']
+                    }
+                ]
             }
         }
+    }
 
 
 def test_clean_validation_messages():
