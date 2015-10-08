@@ -175,7 +175,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
 
     def __init__(self, required=False, default=None, serialized_name=None,
                  choices=None, validators=None, deserialize_from=None,
-                 serialize_when_none=None, messages=None):
+                 serialize_when_none=None, messages=None, **kwargs):
         super(BaseType, self).__init__()
         self.required = required
         self._default = default
@@ -184,6 +184,9 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
             raise TypeError('"choices" must be a list or tuple')
         self.choices = choices
         self.deserialize_from = deserialize_from
+
+        for key, val in kwargs:
+            setattr(self, key, val)
 
         self.validators = [functools.partial(v, self) for v in self._validators]
         if validators:

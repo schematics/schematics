@@ -293,3 +293,8 @@ def test_boolean_to_native():
     for bad_value in ['TrUe', 'foo', 2, None, 1.0]:
         with pytest.raises(ConversionError):
             bool_field.to_native(bad_value)
+
+def test_field_type_kwargs():
+    field = StringType(required=True, unique=True)
+
+    assert field.unique == True
