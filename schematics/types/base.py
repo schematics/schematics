@@ -185,7 +185,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         self.choices = choices
         self.deserialize_from = deserialize_from
 
-        for key, val in kwargs:
+        for key, val in kwargs.items():
             setattr(self, key, val)
 
         self.validators = [functools.partial(v, self) for v in self._validators]
