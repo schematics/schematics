@@ -7,6 +7,7 @@ import sys
 from six import iteritems
 from six import iterkeys
 from six import add_metaclass
+from six import string_types as basestring
 
 from .types import BaseType
 from .types.serializable import Serializable
@@ -169,6 +170,18 @@ class ModelMeta(type):
         attrs['_options'] = options
 
         klass = type.__new__(mcs, name, bases, attrs)
+
+        # Resolve name-based model references
+        def set_model_class(field):
+            if isinstance(field, ModelType) and isinstance(field.model_class, basestring):
+                if field.model_class == name:
+                    field.model_class = klass
+                else:
+                    raise Exception("Unable to resolve model '{}'".format(field.model_class))
+            if hasattr(field, 'field'):
+                set_model_class(field.field)
+        for field in fields.values():
+            set_model_class(field)
 
         # Add reference to klass to each field instance
         def set_owner_model(field, klass):

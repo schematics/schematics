@@ -57,9 +57,17 @@ class MultiType(BaseType):
 
 class ModelType(MultiType):
 
+    @property
+    def fields(self):
+        return self.model_class.fields
+
     def __init__(self, model_class, **kwargs):
+
+        if not isinstance(model_class, (ModelMeta, basestring)):
+            raise TypeError("The first argument to ModelType.__init__() "
+                            "must be a model or the name of a model.")
+
         self.model_class = model_class
-        self.fields = self.model_class.fields
 
         validators = kwargs.pop("validators", [])
         self.strict = kwargs.pop("strict", True)
@@ -401,4 +409,4 @@ class PolyModelType(MultiType):
             return shaped
 
 
-from ..models import Model
+from ..models import Model, ModelMeta

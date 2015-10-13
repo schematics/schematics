@@ -168,3 +168,17 @@ def test_export_loop_with_subclassed_model():
 
     native = product.to_native()
     assert 'bucket_name' in native['asset']
+
+
+def test_reference_model_by_name():
+
+    class M(Model):
+        to_one = ModelType('M')
+        to_many = ListType(ModelType('M'))
+        matrix = ListType(ListType(ModelType('M')))
+
+    assert M.to_one.model_class is M
+    assert M.to_many.field.model_class is M
+    assert M.matrix.field.field.model_class is M
+
+
