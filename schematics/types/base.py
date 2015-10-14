@@ -199,6 +199,13 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
     def _mock(self, context=None):
         return None
 
+    def _setup(self, field_name, owner_model):
+        """Perform late-stage setup tasks that are run after the containing model 
+        has been created.
+        """
+        self.name = field_name
+        self.owner_model = owner_model
+
     @property
     def default(self):
         default = self._default

@@ -15,6 +15,12 @@ from six import text_type as unicode
 
 class MultiType(BaseType):
 
+    def _setup(self, field_name, owner_model):
+        # Recursively set up inner fields.
+        if hasattr(self, 'field'):
+            self.field._setup(None, owner_model)
+        super(MultiType, self)._setup(field_name, owner_model)
+
     def validate(self, value):
         """Report dictionary of errors with lists of errors as values of each
         key. Used by ModelType and ListType.
@@ -80,6 +86,15 @@ class ModelType(MultiType):
 
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
+
+    def _setup(self, field_name, owner_model):
+        # Resolve possible name-based model reference.
+        if isinstance(self.model_class, basestring):
+            if self.model_class == owner_model.__name__:
+                self.model_class = owner_model
+            else:
+                raise Exception("Unable to resolve model '{}'".format(self.model_class))
+        super(ModelType, self)._setup(field_name, owner_model)
 
     def to_native(self, value, mapping=None, context=None):
         # We have already checked if the field is required. If it is None it
