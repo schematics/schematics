@@ -67,13 +67,17 @@ class ModelType(MultiType):
     def fields(self):
         return self.model_class.fields
 
-    def __init__(self, model_class, **kwargs):
+    def __init__(self, model_spec, **kwargs):
 
-        if not isinstance(model_class, (ModelMeta, basestring)):
-            raise TypeError("The first argument to ModelType.__init__() "
-                            "must be a model or the name of a model.")
-
-        self.model_class = model_class
+        if isinstance(model_spec, ModelMeta):
+            self.model_class = model_spec
+            self.model_name = self.model_class.__name__
+        elif isinstance(model_spec, basestring):
+            self.model_class = None
+            self.model_name = model_spec
+        else:
+            raise TypeError("ModelType: Expected a model, got an argument "
+                            "of the type '{}'.".format(model_spec.__class__.__name__))
 
         validators = kwargs.pop("validators", [])
         self.strict = kwargs.pop("strict", True)
@@ -89,11 +93,11 @@ class ModelType(MultiType):
 
     def _setup(self, field_name, owner_model):
         # Resolve possible name-based model reference.
-        if isinstance(self.model_class, basestring):
-            if self.model_class == owner_model.__name__:
+        if not self.model_class:
+            if self.model_name == owner_model.__name__:
                 self.model_class = owner_model
             else:
-                raise Exception("Unable to resolve model '{}'".format(self.model_class))
+                raise Exception("ModelType: Unable to resolve model '{}'.".format(self.model_name))
         super(ModelType, self)._setup(field_name, owner_model)
 
     def to_native(self, value, mapping=None, context=None):
@@ -315,14 +319,13 @@ class DictType(MultiType):
 
 class PolyModelType(MultiType):
 
-    def __init__(self, model_classes, **kwargs):
+    def __init__(self, model_spec, **kwargs):
 
-        if isinstance(model_classes, type) and issubclass(model_classes, Model):
-            self.model_classes = (model_classes,)
+        if isinstance(model_spec, (ModelMeta, basestring)):
+            self.model_classes = (model_spec,)
             allow_subclasses = True
-        elif isinstance(model_classes, Iterable) \
-          and not isinstance(model_classes, basestring):
-            self.model_classes = tuple(model_classes)
+        elif isinstance(model_spec, Iterable):
+            self.model_classes = tuple(model_spec)
             allow_subclasses = False
         else:
             raise Exception("The first argument to PolyModelType.__init__() "
@@ -341,6 +344,20 @@ class PolyModelType(MultiType):
 
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % str(self.model_classes)
+
+    def _setup(self, field_name, owner_model):
+        # Resolve possible name-based model references.
+        resolved_classes = []
+        for m in self.model_classes:
+            if isinstance(m, basestring):
+                if m == owner_model.__name__:
+                    resolved_classes.append(owner_model)
+                else:
+                    raise Exception("PolyModelType: Unable to resolve model '{}'.".format(m))
+            else:
+                resolved_classes.append(m)
+        self.model_classes = tuple(resolved_classes)
+        super(PolyModelType, self)._setup(field_name, owner_model)
 
     def is_allowed_model(self, model_instance):
         if self.allow_subclasses:

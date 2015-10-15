@@ -2,7 +2,7 @@ import pytest
 
 from schematics.models import Model
 from schematics.types import StringType
-from schematics.types.compound import PolyModelType
+from schematics.types.compound import PolyModelType, ListType
 
 
 class A(Model): # fallback model (doesn't define a claim method)
@@ -115,4 +115,16 @@ def test_refuse_unrelated_export():
         foo = Foo()
         foo.strict = Aaa()
         foo.to_primitive()
+
+
+def test_specify_model_by_name():
+
+    class M(Model):
+        single = PolyModelType('M')
+        multi = PolyModelType([A, 'M', C])
+        nested = ListType(ListType(PolyModelType('M')))
+
+    assert M.single.is_allowed_model(M())
+    assert M.multi.is_allowed_model(M())
+    assert M.nested.field.field.is_allowed_model(M())
 

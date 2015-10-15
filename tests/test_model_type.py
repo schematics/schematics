@@ -170,7 +170,7 @@ def test_export_loop_with_subclassed_model():
     assert 'bucket_name' in native['asset']
 
 
-def test_reference_model_by_name():
+def test_specify_model_by_name():
 
     class M(Model):
         to_one = ModelType('M')
