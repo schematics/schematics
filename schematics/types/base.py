@@ -885,3 +885,100 @@ class MultilingualStringType(BaseType):
             if self.locale_regex is not None and self.locale_regex.match(locale) is None:
                 raise ValidationError(
                     self.messages['regex_locale'].format(locale))
+
+
+class PolyType(BaseType):
+
+    def __init__(self, type_classes, **kwargs):
+        if isinstance(type_classes, (list, tuple)):
+            self.type_classes = tuple(type_classes)
+            allow_subclasses = False
+        else:
+            raise Exception("The first argument to PolyType.__init__() "
+                            "must be an iterable of types.")
+
+        validators = kwargs.pop("validators", [])
+        self.strict = kwargs.pop("strict", True)
+        self.claim_function = kwargs.pop("claim_function", None)
+        self.allow_subclasses = kwargs.pop("allow_subclasses", allow_subclasses)
+
+        def validate_type(type_instance):
+            type_instance.validate()
+            return type_instance
+
+        BaseType.__init__(self, validators=[validate_type] + validators, **kwargs)
+
+    def __repr__(self):
+        return object.__repr__(self)[:-1] + ' for %s>' % str(self.type_classes)
+
+    ###
+    ### Type Inspection
+    ###
+
+    def is_allowed_type(self, type_instance):
+        if self.allow_subclasses:
+            if isinstance(type_instance, self.type_classes):
+                return True
+        else:
+            # The type matches, but validation will catch error in it's shape
+            if type_instance.__class__ in [cls.__class__ for cls in self.type_classes]:
+                return True
+        return False
+
+    def find_type(self, data):
+        chosen_class = None
+        
+        if self.claim_function:
+            return self.claim_function(self, data)
+        else:
+            candidates = self.type_classes
+            if self.allow_subclasses:
+                candidates = itertools.chain.from_iterable(
+                                 ([m] + m._subclasses for m in candidates))
+                
+            matching_classes = []
+            for cls in candidates:
+                ### Find match by attempting validation
+                try:
+                    if isinstance(data, (list, tuple)):
+                        cls.validate(data[1])
+                        chosen_class = cls
+                        break
+                    else:
+                        cls.validate(data)
+                        chosen_class = cls
+                        break
+                except Exception as e:
+                    pass
+
+        if chosen_class:
+            return chosen_class
+        else:
+            raise Exception("Input for polymorphic field did not match any model")
+
+    ###
+    ### Converters
+    ###
+
+    def to_something(self, value, get_converter, context=None):
+
+        if value is None:
+            return None
+        
+        if self.is_allowed_type(value):
+            return value
+        
+        type = self.find_type(value)
+        converter = get_converter(type)
+
+        if isinstance(value, (list, tuple)):
+            return converter(value[1], context=context)
+        else:
+            return converter(value, context=context)
+
+    def to_primitive(self, value, context=None):
+        return self.to_something(value, lambda t: t.to_primitive, context=context)
+    
+    def to_native(self, value, context=None):
+        return self.to_something(value, lambda t: t.to_native, context=context)
+    
