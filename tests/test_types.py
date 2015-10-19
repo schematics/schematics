@@ -19,6 +19,12 @@ def test_string_choices():
     with pytest.raises(TypeError):
         BaseType(choices='foo')
 
+def test_int():
+    with pytest.raises(ConversionError):
+        IntType().validate('foo')
+
+    assert IntType.validate(5001) == None
+
 
 def test_date():
     today = datetime.date(2013, 3, 1)
