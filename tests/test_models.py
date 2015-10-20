@@ -18,6 +18,19 @@ def test_init_with_dict():
     p1 = Player({"id": 4})
     assert p1.id == 4
 
+def test_init_with_kwargs():
+    class Player(Model):
+        id = IntType()
+
+    p1 = Player(id=4)
+    assert p1.id == 4
+
+def test_init_with_kwargs_overrides_dict():
+    class Player(Model):
+        id = IntType()
+
+    p1 = Player({'id': 2}, id=4)
+    assert p1.id == 4
 
 def test_invalid_model_fail_validation():
     class Player(Model):

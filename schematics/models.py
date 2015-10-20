@@ -233,9 +233,13 @@ class Model(object):
 
     __optionsclass__ = ModelOptions
 
-    def __init__(self, raw_data=None, deserialize_mapping=None, strict=True):
+    def __init__(self, raw_data=None, deserialize_mapping=None, strict=True, **kwargs):
         if raw_data is None:
             raw_data = {}
+
+        if type(raw_data) is dict:
+            raw_data.update(kwargs)
+
         self._initial = raw_data
         self._data = self.convert(raw_data, strict=strict, mapping=deserialize_mapping)
 

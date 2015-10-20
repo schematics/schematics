@@ -44,6 +44,13 @@ And remember that ``DateTimeType`` we set a default callable for?
   >>> wr.taken_at
   datetime.datetime(2013, 8, 21, 13, 6, 38, 11883)
 
+We can also initialize a model using keyword arguments to its constructor.
+
+::
+  >>> wr = WeatherReport(city='NYC', temperature=80)
+  >>> wr.temperature
+  Decimal('80.0')
+
 
 .. _model_configuration:
 
