@@ -133,7 +133,7 @@ class ModelType(MultiType):
 
 class ListType(MultiType):
 
-    def __init__(self, field, min_size=None, max_size=None, **kwargs):
+    def __init__(self, field, min_size=None, max_size=None, top_level=False, **kwargs):
 
         if not isinstance(field, BaseType):
             compound_field = kwargs.pop('compound_field', None)
@@ -142,6 +142,7 @@ class ListType(MultiType):
         self.field = field
         self.min_size = min_size
         self.max_size = max_size
+        self.top_level = top_level
 
         validators = [self.check_length, self.validate_items] + kwargs.pop("validators", [])
 
