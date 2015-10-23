@@ -306,8 +306,8 @@ def test_geopoint_mock():
     geo_point = geo.mock()
     assert geo_point[0] >= -90
     assert geo_point[0] <= 90
-    assert geo_point[1] >= -90
-    assert geo_point[1] <= 90
+    assert geo_point[1] >= -180
+    assert geo_point[1] <= 180
 
 
 def test_geopoint_to_native():
