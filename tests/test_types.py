@@ -299,3 +299,39 @@ def test_boolean_to_native():
     for bad_value in ['TrUe', 'foo', 2, None, 1.0]:
         with pytest.raises(ConversionError):
             bool_field.to_native(bad_value)
+
+
+def test_geopoint_mock():
+    geo = GeoPointType(required=True)
+    geo_point = geo.mock()
+    assert geo_point[0] >= -90
+    assert geo_point[0] <= 90
+    assert geo_point[1] >= -90
+    assert geo_point[1] <= 90
+
+
+def test_geopoint_to_native():
+    geo = GeoPointType(required=True)
+
+    with pytest.raises(ValueError):
+        native = geo.to_native((10,))
+
+    with pytest.raises(ValueError):
+        native = geo.to_native({'1':'-20', '2': '18'})
+
+    with pytest.raises(ValueError):
+        native = geo.to_native(['-20',  '18'])
+
+    with pytest.raises(ValueError):
+        native = geo.to_native('-20, 18')
+
+    class Point(object):
+
+        def __len__(self):
+            return 2
+
+    with pytest.raises(ValueError):
+        native = geo.to_native(Point())
+
+    native = geo.to_native([89, -12])
+    assert native == [89, -12]
