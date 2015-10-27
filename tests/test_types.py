@@ -1,5 +1,6 @@
 import datetime
 import decimal
+import random
 import uuid
 
 import pytest
@@ -335,3 +336,10 @@ def test_geopoint_to_native():
 
     native = geo.to_native([89, -12])
     assert native == [89, -12]
+
+    latitude = random.uniform(-90, 90)
+    longitude = random.uniform(-180, 180)
+    point = [latitude, longitude]
+
+    native = geo.to_native(point)
+    assert native == point
