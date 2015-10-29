@@ -762,6 +762,11 @@ class GeoPointType(BaseType):
     """A list storing a latitude and longitude.
     """
 
+    MESSAGES = {
+        'point_min': u"{0} value {1} should be greater than {2}.",
+        'point_max': u"{0} value {1} should be less than {2}."
+    }
+
     def _mock(self, context=None):
         return (random.randrange(-90, 90), random.randrange(-180, 180))
 
@@ -782,6 +787,27 @@ class GeoPointType(BaseType):
             raise ValueError('GeoPointType can only accept tuples, lists, or dicts')
 
         return value
+
+    def validate_range(self, value):
+        latitude, longitude = value
+        if latitude < -90:
+            raise ValidationError(
+                self.messages['point_min'].format('Latitude', latitude, '-90')
+            )
+        if latitude > 90:
+            raise ValidationError(
+                self.messages['point_max'].format('Latitude', latitude, '90')
+            )
+
+        if longitude < -180:
+            raise ValidationError(
+                self.messages['point_min'].format('Longitude', longitude, -180)
+            )
+
+        if longitude > 180:
+            raise ValidationError(
+                self.messages['point_max'].format('Longitude', longitude, 180)
+            )
 
 
 class MultilingualStringType(BaseType):
