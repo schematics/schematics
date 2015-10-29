@@ -20,6 +20,7 @@ def test_string_choices():
     with pytest.raises(TypeError):
         BaseType(choices='foo')
 
+
 def test_int():
     with pytest.raises(ConversionError):
         IntType().validate('foo')
@@ -343,3 +344,19 @@ def test_geopoint_to_native():
 
     native = geo.to_native(point)
     assert native == point
+
+
+def test_geopoint_range():
+    geo = GeoPointType(required=True)
+
+    with pytest.raises(ValidationError) as ve:
+        geo.validate((-91, 110))
+
+    with pytest.raises(ValidationError) as ve:
+        geo.validate((90.12345, 65))
+
+    with pytest.raises(ValidationError) as ve:
+        geo.validate((23, -181))
+
+    with pytest.raises(ValidationError) as ve:
+        geo.validate((28.2342323, 181.123141))
