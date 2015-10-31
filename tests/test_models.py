@@ -486,13 +486,6 @@ def test_fielddescriptor_connectedness():
     with pytest.raises(AttributeError):
         inst.field1
 
-    inst = TestModel()
-    del inst._fields['field1']
-    with pytest.raises(AttributeError):
-        del inst.field1
-
-    del inst.field2
-
 
 def test_keys():
     class TestModel(Model):
