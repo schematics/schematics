@@ -110,10 +110,7 @@ class ModelType(MultiType):
                              field_converter,
                              role=role, print_none=print_none)
 
-        if shaped or print_none:
-            return shaped
-        else:
-            return None
+        return shaped
 
 
 class ListType(MultiType):

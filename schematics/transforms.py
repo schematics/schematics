@@ -190,11 +190,7 @@ def export_loop(cls, instance_or_dict, field_converter,
     if fields_order:
         data = sort_dict(data, fields_order)
 
-    # Return data if the list contains anything
-    if len(data) > 0 or print_none:
-        return data
-    else:
-        return None
+    return data
 
 
 def sort_dict(dct, based_on):
