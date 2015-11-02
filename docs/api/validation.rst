@@ -1,5 +1,6 @@
 .. _api_doc_validation:
 
+==========
 Validation
 ==========
 
@@ -8,7 +9,7 @@ Validation
 
 
 Usage
-~~~~~
+=====
 
 To learn more about how **Validation** is used, visit 
 :doc:`Using Validation <../usage/validation>`
