@@ -1,8 +1,4 @@
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict  # python2.6 fallback
-
+from schematics.datastructures import OrderedDict
 from schematics.transforms import expand, whitelist, flatten
 from schematics.models import Model
 from schematics.types.serializable import serializable
