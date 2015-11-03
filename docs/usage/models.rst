@@ -137,6 +137,6 @@ randomly-generated URL - then ``get_mock_object`` will raise a
   schematics.exceptions.MockCreationError: url: This field is too short to hold the mock data
 
 More Information
-~~~~~~~~~~~~~~~~
+================
 
 To learn more about **Models**, visit the :ref:`Models API <api_doc_models>`

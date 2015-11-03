@@ -175,3 +175,117 @@ class OrderedDict(dict):
 
     __copy__ = copy
     __iter__ = iterkeys
+
+
+class DataObject(object):
+    """
+    An object for holding data as attributes.
+
+    ``DataObject`` can be instantiated like ``dict``::
+
+        >>> d = DataObject({'one': 1, 'two': 2}, three=3)
+        >>> d.__dict__
+        {'one': 1, 'two': 2, 'three': 3}
+
+    Attributes are accessible via the regular dot notation (``d.x``) as well as
+    the subscription syntax (``d['x']``)::
+
+        >>> d.one == d['one'] == 1
+        True
+
+    Dictionaries stored as attributes will be automatically converted into
+    ``DataObject`` instances. Nested dictionaries will be converted recursively::
+
+        >>> e = DataObject({'f': {'g': {'x': 1, 'y': 2}}})
+        >>> e.f.g.x
+        1
+
+    To convert a ``DataObject`` structure into a dictionary, use ``d._to_dict()``.
+
+    ``DataObject`` implements the following collection-like operations:
+
+        * iteration through attributes as name-value pairs
+        * ``'x' in d`` for membership tests
+        * ``len(d)`` to get the number of attributes
+
+    Additionally, the following methods are equivalent to their ``dict` counterparts:
+    ``_clear``, ``_get``, ``_items``, ``_pop``, ``_setdefault``, ``_update``.
+
+    An advantage of ``DataObject`` over ``dict` subclasses is that every method name
+    in ``DataObject`` begins with an underscore, so attributes like ``"update"`` or
+    ``"values"`` are valid.
+    """
+
+    def __init__(self, *args, **kwargs):
+        source = args[0] if args else {}
+        self._update(source, **kwargs)
+
+    def __setattr__(self, name, value):
+        if isinstance(value, dict):
+            value = self.__class__(value)
+        self.__dict__[name] = value
+
+    __setitem__ = __setattr__
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(%s)' % repr(self.__dict__)
+
+    def _copy(self):
+        return self.__class__(self)
+
+    __copy__ = _copy
+
+    def __eq__(self, other):
+        return isinstance(other, DataObject) and self.__dict__ == other.__dict__
+
+    def __iter__(self):
+        return iter(self.__dict__.items())
+
+    def _update(self, source=(), **kwargs):
+        if isinstance(source, dict):
+            source = source.items()
+        for k, v in source:
+            self[k] = v
+        for k, v in kwargs.items():
+            self[k] = v
+
+    def _setdefault(self, name, value=None):
+        if name not in self:
+            self[name] = value
+        return self[name]
+
+    def _setdefaults(self, source):
+        if isinstance(source, dict):
+            source = source.items()
+        for k, v in source:
+            self._setdefault(k, v)
+
+    def _to_dict(self):
+        d = dict(self.__dict__)
+        for k, v in d.items():
+            if isinstance(v, DataObject):
+                d[k] = v._to_dict()
+        return d
+
+    def __getitem__(self, key): return self.__dict__[key]
+    def __delitem__(self, key): del self.__dict__[key]
+    def __len__(self): return len(self.__dict__)
+    def __contains__(self, key): return key in self.__dict__
+
+    def _clear(self): return self.__dict__.clear()
+    def _get(self, *args): return self.__dict__.get(*args)
+    def _items(self): return self.__dict__.items()
+    def _pop(self, *args): return self.__dict__.pop(*args)
+
+
+class ConfigObject(DataObject):
+    """
+    A variant of ``DataObject`` that returns ``None`` by default when a nonexistent
+    attribute is requested. That is, ``d.x`` is equivalent to ``d._get('x')``.
+    """
+
+    def __getattr__(self, name):
+        return None
+
+    __getitem__ = __getattr__
+

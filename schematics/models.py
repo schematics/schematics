@@ -61,7 +61,6 @@ class FieldDescriptor(object):
         """
         Checks the field name against a model and sets the value.
         """
-        from .types.compound import ModelType
         field = instance._fields[self.name]
         if all((
                 value is not None,
@@ -431,3 +430,6 @@ class Model(object):
 
     def __unicode__(self):
         return '%s object' % self.__class__.__name__
+
+
+from .types.compound import ModelType

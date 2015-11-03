@@ -23,7 +23,7 @@ class Tox(TestCommand):
 
 
 tests_require = open(
-    os.path.join(os.path.dirname(__file__), 'requirements-testing.txt')).read().split()
+    os.path.join(os.path.dirname(__file__), 'requirements.txt')).read().split()
 
 setup(
     name='schematics',
@@ -51,7 +51,6 @@ setup(
     },
     install_requires=[
         'six>=1.7.3',
-        'mock==1.0.1',
     ],
     tests_require=tests_require,
 )

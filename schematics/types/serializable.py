@@ -54,7 +54,10 @@ class Serializable(object):
             self.export_loop = make_export_loop(self.type)
 
     def __get__(self, instance, cls):
-        return self.func(instance)
+        if instance:
+            return self.func(instance)
+        else:
+            return self
 
     def to_native(self, value, context=None):
         return self.type.to_native(value, context)
