@@ -537,7 +537,7 @@ class DecimalType(BaseType):
     """
 
     MESSAGES = {
-        'number_coerce': "Number '{0}' failed to convert to a decimal.",
+        'number_coerce': u"Number '{0}' failed to convert to a decimal.",
         'number_min': u"Value should be greater than {0}.",
         'number_max': u"Value should be less than {0}.",
     }
@@ -559,7 +559,6 @@ class DecimalType(BaseType):
                 value = unicode(value)
             try:
                 value = decimal.Decimal(value)
-
             except (TypeError, decimal.InvalidOperation):
                 raise ConversionError(self.messages['number_coerce'].format(value))
 
