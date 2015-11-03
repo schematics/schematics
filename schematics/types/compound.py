@@ -6,7 +6,6 @@ from collections import Iterable
 import itertools
 
 from ..exceptions import ValidationError, ConversionError, ModelValidationError, StopValidation
-from ..models import Model
 from ..transforms import export_loop, EMPTY_LIST, EMPTY_DICT
 from .base import BaseType
 
@@ -401,3 +400,5 @@ class PolyModelType(MultiType):
         elif print_none:
             return shaped
 
+
+from ..models import Model
