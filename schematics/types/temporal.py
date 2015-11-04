@@ -31,4 +31,7 @@ class TimeStampType(DateTimeType):
         return (delta.days * 24 * 3600) + delta.seconds + delta.microseconds
 
     def to_primitive(self, value, context=None):
-        return TimeStampType.date_to_timestamp(value)
+        return self.date_to_timestamp(value)
+
+    def to_native(self, value, context=None):
+        return self.timestamp_to_date(value)
