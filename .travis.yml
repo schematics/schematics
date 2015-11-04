@@ -1,9 +1,14 @@
 language: python
-# command to install tox, tox env will install deps.
-install: pip install tox
-# command to run tests
+
+install:
+  - pip install tox
+  - pip install python-coveralls
+
 script: tox
 
 after_success:
-    coveralls
+  - coveralls
 
+cache:
+  - $HOME/.cache/pip
+  - $HOME/.tox
