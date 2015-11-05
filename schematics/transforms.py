@@ -100,13 +100,15 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
             if raw_value is None:
                 if field.required and not partial:
                     errors[serialized_field_name] = [field.messages['required']]
-            else:
+            elif mapping:
                 try:
                     mapping_by_model = mapping.get('model_mapping', {})
                     model_mapping = mapping_by_model.get(field_name, {})
                     raw_value = field_converter(field, raw_value, mapping=model_mapping)
                 except Exception:
                     raw_value = field_converter(field, raw_value)
+            else:
+                raw_value = field_converter(field, raw_value)
 
             data[field_name] = raw_value
 
