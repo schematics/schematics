@@ -170,20 +170,15 @@ class ModelMeta(type):
 
         klass = type.__new__(mcs, name, bases, attrs)
 
-        # Add reference to klass to each field instance
-        def set_owner_model(field, klass):
-            field.owner_model = klass
-            if hasattr(field, 'field'):
-                set_owner_model(field.field, klass)
-        for field_name, field in fields.items():
-            set_owner_model(field, klass)
-            field.name = field_name
-
         # Register class on ancestor models
         klass._subclasses = []
         for base in klass.__mro__[1:]:
             if isinstance(base, ModelMeta):
                 base._subclasses.append(klass)
+
+        # Finalize fields
+        for field_name, field in fields.items():
+            field._setup(field_name, klass)
 
         return klass
 
