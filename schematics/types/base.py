@@ -756,7 +756,7 @@ class GeoPointType(BaseType):
     """
 
     def _mock(self, context=None):
-        return (random.randrange(-90, 90), random.randrange(-90, 90))
+        return (random.randrange(-90, 90), random.randrange(-180, 180))
 
     def to_native(self, value, context=None):
         """Make sure that a geo-value is of type (x, y)
