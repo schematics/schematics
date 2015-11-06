@@ -174,17 +174,12 @@ class ListType(MultiType):
     def _mock(self, context=None):
         min_size = self.min_size or 1
         max_size = self.max_size or 1
-
         if min_size > max_size:
             message = u'Minimum list size is greater than maximum list size.'
             raise MockCreationError(message)
-
         random_length = get_value_in(min_size, max_size)
 
-        if isinstance(self.field, ModelType):
-            return [self.field.model_class.get_mock_object(context) for _ in xrange(random_length)]
-        else:
-            return [self.field._mock(context) for _ in xrange(random_length)]
+        return [self.field._mock(context) for _ in xrange(random_length)]
 
     def _force_list(self, value):
         if value is None or value == EMPTY_LIST:
