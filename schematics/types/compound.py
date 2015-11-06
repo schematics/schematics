@@ -5,13 +5,17 @@ from __future__ import division
 from collections import Iterable
 import itertools
 
-from ..exceptions import ValidationError, ConversionError, ModelValidationError, StopValidation
+from ..exceptions import (ValidationError, ConversionError,
+                          ModelValidationError, StopValidation,
+                          MockCreationError)
+from ..models import Model
 from ..transforms import export_loop, EMPTY_LIST, EMPTY_DICT
-from .base import BaseType
+from .base import BaseType, get_value_in
 
 from six import iteritems
 from six import string_types as basestring
 from six import text_type as unicode
+from six.moves import xrange
 
 class MultiType(BaseType):
 
@@ -91,6 +95,9 @@ class ModelType(MultiType):
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
 
+    def _mock(self, context=None):
+        return self.model_class.get_mock_object(context)
+
     def _setup(self, field_name, owner_model):
         # Resolve possible name-based model reference.
         if not self.model_class:
@@ -163,6 +170,16 @@ class ListType(MultiType):
     @property
     def model_class(self):
         return self.field.model_class
+
+    def _mock(self, context=None):
+        min_size = self.min_size or 1
+        max_size = self.max_size or 1
+        if min_size > max_size:
+            message = u'Minimum list size is greater than maximum list size.'
+            raise MockCreationError(message)
+        random_length = get_value_in(min_size, max_size)
+
+        return [self.field._mock(context) for _ in xrange(random_length)]
 
     def _force_list(self, value):
         if value is None or value == EMPTY_LIST:

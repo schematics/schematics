@@ -170,6 +170,14 @@ def test_export_loop_with_subclassed_model():
     assert 'bucket_name' in native['asset']
 
 
+def test_mock_object():
+    class User(Model):
+        name = StringType(required=True)
+        age = IntType(required=True)
+
+    assert ModelType(User, required=True).mock() is not None
+
+
 def test_specify_model_by_name():
 
     class M(Model):
@@ -180,5 +188,3 @@ def test_specify_model_by_name():
     assert M.to_one.model_class is M
     assert M.to_many.field.model_class is M
     assert M.matrix.field.field.model_class is M
-
-
