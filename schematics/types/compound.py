@@ -5,10 +5,9 @@ from __future__ import division
 from collections import Iterable
 import itertools
 
-from ..exceptions import (
-    ValidationError, ConversionError, ModelValidationError, StopValidation,
-    MockCreationError
-)
+from ..exceptions import (ValidationError, ConversionError,
+                          ModelValidationError, StopValidation,
+                          MockCreationError)
 from ..models import Model
 from ..transforms import export_loop, EMPTY_LIST, EMPTY_DICT
 from .base import BaseType, get_value_in
@@ -19,6 +18,12 @@ from six import text_type as unicode
 from six.moves import xrange
 
 class MultiType(BaseType):
+
+    def _setup(self, field_name, owner_model):
+        # Recursively set up inner fields.
+        if hasattr(self, 'field'):
+            self.field._setup(None, owner_model)
+        super(MultiType, self)._setup(field_name, owner_model)
 
     def validate(self, value):
         """Report dictionary of errors with lists of errors as values of each
@@ -62,9 +67,21 @@ class MultiType(BaseType):
 
 class ModelType(MultiType):
 
-    def __init__(self, model_class, **kwargs):
-        self.model_class = model_class
-        self.fields = self.model_class.fields
+    @property
+    def fields(self):
+        return self.model_class.fields
+
+    def __init__(self, model_spec, **kwargs):
+
+        if isinstance(model_spec, ModelMeta):
+            self.model_class = model_spec
+            self.model_name = self.model_class.__name__
+        elif isinstance(model_spec, basestring):
+            self.model_class = None
+            self.model_name = model_spec
+        else:
+            raise TypeError("ModelType: Expected a model, got an argument "
+                            "of the type '{}'.".format(model_spec.__class__.__name__))
 
         validators = kwargs.pop("validators", [])
         self.strict = kwargs.pop("strict", True)
@@ -80,6 +97,15 @@ class ModelType(MultiType):
 
     def _mock(self, context=None):
         return self.model_class.get_mock_object(context)
+
+    def _setup(self, field_name, owner_model):
+        # Resolve possible name-based model reference.
+        if not self.model_class:
+            if self.model_name == owner_model.__name__:
+                self.model_class = owner_model
+            else:
+                raise Exception("ModelType: Unable to resolve model '{}'.".format(self.model_name))
+        super(ModelType, self)._setup(field_name, owner_model)
 
     def to_native(self, value, mapping=None, context=None):
         # We have already checked if the field is required. If it is None it
@@ -101,19 +127,6 @@ class ModelType(MultiType):
         model = self.model_class()
         return model.import_data(value, mapping=mapping, context=context,
                                  strict=self.strict)
-
-    def to_primitive(self, model_instance, context=None):
-        primitive_data = {}
-        for field_name, field, value in model_instance.atoms():
-            serialized_name = field.serialized_name or field_name
-
-            if value is None and model_instance.allow_none(field):
-                primitive_data[serialized_name] = None
-            else:
-                primitive_data[serialized_name] = field.to_primitive(value,
-                                                                     context)
-
-        return primitive_data
 
     def export_loop(self, model_instance, field_converter,
                     role=None, print_none=False):
@@ -220,9 +233,6 @@ class ListType(MultiType):
         if errors:
             raise ValidationError(errors)
 
-    def to_primitive(self, value, context=None):
-        return [self.field.to_primitive(item, context) for item in value]
-
     def export_loop(self, list_instance, field_converter,
                     role=None, print_none=False):
         """Loops over each item in the model and applies either the field
@@ -297,10 +307,6 @@ class DictType(MultiType):
         if errors:
             raise ValidationError(errors)
 
-    def to_primitive(self, value, context=None):
-        return dict((unicode(k), self.field.to_primitive(v, context))
-                    for k, v in iteritems(value))
-
     def export_loop(self, dict_instance, field_converter,
                     role=None, print_none=False):
         """Loops over each item in the model and applies either the field
@@ -335,14 +341,13 @@ class DictType(MultiType):
 
 class PolyModelType(MultiType):
 
-    def __init__(self, model_classes, **kwargs):
+    def __init__(self, model_spec, **kwargs):
 
-        if isinstance(model_classes, type) and issubclass(model_classes, Model):
-            self.model_classes = (model_classes,)
+        if isinstance(model_spec, (ModelMeta, basestring)):
+            self.model_classes = (model_spec,)
             allow_subclasses = True
-        elif isinstance(model_classes, Iterable) \
-          and not isinstance(model_classes, basestring):
-            self.model_classes = tuple(model_classes)
+        elif isinstance(model_spec, Iterable):
+            self.model_classes = tuple(model_spec)
             allow_subclasses = False
         else:
             raise Exception("The first argument to PolyModelType.__init__() "
@@ -361,6 +366,20 @@ class PolyModelType(MultiType):
 
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % str(self.model_classes)
+
+    def _setup(self, field_name, owner_model):
+        # Resolve possible name-based model references.
+        resolved_classes = []
+        for m in self.model_classes:
+            if isinstance(m, basestring):
+                if m == owner_model.__name__:
+                    resolved_classes.append(owner_model)
+                else:
+                    raise Exception("PolyModelType: Unable to resolve model '{}'.".format(m))
+            else:
+                resolved_classes.append(m)
+        self.model_classes = tuple(resolved_classes)
+        super(PolyModelType, self)._setup(field_name, owner_model)
 
     def is_allowed_model(self, model_instance):
         if self.allow_subclasses:
@@ -443,3 +462,5 @@ class PolyModelType(MultiType):
         elif print_none:
             return shaped
 
+
+from ..models import Model, ModelMeta

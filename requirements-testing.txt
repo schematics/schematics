@@ -1,8 +1,0 @@
-pytest==2.5.1
-coverage
-python-coveralls
-python-dateutil==2.2
-pymongo==2.7.1
-ordereddict==1.1
-tox==1.9
-mock==1.0.1

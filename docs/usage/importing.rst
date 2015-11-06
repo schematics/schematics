@@ -54,6 +54,6 @@ data should be converted to model instances.
 
 
 More Information
-~~~~~~~~~~~~~~~~
+================
 
 To learn more about **Importing**, visit the :ref:`Transforms API <api_doc_transforms>`

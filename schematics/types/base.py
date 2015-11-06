@@ -14,10 +14,10 @@ from ..exceptions import (
     StopValidation, ValidationError, ConversionError, MockCreationError
 )
 
-try: 
+try:
     from string import ascii_letters # PY3
 except ImportError:
-    from string import letters as ascii_letters #PY2 
+    from string import letters as ascii_letters #PY2
 
 try:
     basestring #PY2
@@ -199,6 +199,13 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
     def _mock(self, context=None):
         return None
 
+    def _setup(self, field_name, owner_model):
+        """Perform late-stage setup tasks that are run after the containing model 
+        has been created.
+        """
+        self.name = field_name
+        self.owner_model = owner_model
+
     @property
     def default(self):
         default = self._default
@@ -332,7 +339,7 @@ class StringType(BaseType):
     }
 
     def __init__(self, regex=None, max_length=None, min_length=None, **kwargs):
-        self.regex = re.compile(regex) if regex else None
+        self.regex = regex
         self.max_length = max_length
         self.min_length = min_length
 
@@ -365,7 +372,7 @@ class StringType(BaseType):
             raise ValidationError(self.messages['min_length'])
 
     def validate_regex(self, value):
-        if self.regex is not None and self.regex.match(value) is None:
+        if self.regex is not None and re.match(self.regex, value) is None:
             raise ValidationError(self.messages['regex'])
 
 
@@ -446,9 +453,9 @@ class NumberType(BaseType):
     """
 
     MESSAGES = {
-        'number_coerce': u"Value '{0}' is not {1}",
-        'number_min': u"{0} value should be greater than {1}",
-        'number_max': u"{0} value should be less than {1}",
+        'number_coerce': u"Value '{0}' is not {1}.",
+        'number_min': u"{0} value should be greater than {1}.",
+        'number_max': u"{0} value should be less than {1}.",
     }
 
     def __init__(self, number_class, number_type,
@@ -471,6 +478,13 @@ class NumberType(BaseType):
                                   .format(value, self.number_type.lower()))
 
         return value
+
+    def validate_is_a_number(self, value):
+        try:
+            self.number_class(value)
+        except (TypeError, ValueError):
+            raise ConversionError(self.messages['number_coerce']
+                                  .format(value, self.number_type.lower()))
 
     def validate_range(self, value):
         if self.min_value is not None and value < self.min_value:
@@ -506,7 +520,7 @@ class LongType(NumberType):
             number_class = long #PY2
         except NameError:
             number_class = int #PY3
-        
+
 
         super(LongType, self).__init__(number_class=number_class,
                                        number_type='Long',
@@ -530,9 +544,9 @@ class DecimalType(BaseType):
     """
 
     MESSAGES = {
-        'number_coerce': "Number '{0}' failed to convert to a decimal",
-        'number_min': u"Value should be greater than {0}",
-        'number_max': u"Value should be less than {0}",
+        'number_coerce': u"Number '{0}' failed to convert to a decimal.",
+        'number_min': u"Value should be greater than {0}.",
+        'number_max': u"Value should be less than {0}.",
     }
 
     def __init__(self, min_value=None, max_value=None, **kwargs):
@@ -552,7 +566,6 @@ class DecimalType(BaseType):
                 value = unicode(value)
             try:
                 value = decimal.Decimal(value)
-
             except (TypeError, decimal.InvalidOperation):
                 raise ConversionError(self.messages['number_coerce'].format(value))
 
@@ -633,7 +646,7 @@ class BooleanType(BaseType):
             value = bool(value)
 
         if not isinstance(value, bool):
-            raise ConversionError(u'Must be either true or false.')
+            raise ConversionError(u"Must be either true or false.")
 
         return value
 
@@ -645,7 +658,7 @@ class DateType(BaseType):
 
     SERIALIZED_FORMAT = '%Y-%m-%d'
     MESSAGES = {
-        'parse': u'Could not parse {0}. Should be ISO8601 (YYYY-MM-DD).',
+        'parse': u"Could not parse {0}. Should be ISO8601 (YYYY-MM-DD).",
     }
 
     def __init__(self, **kwargs):
@@ -678,17 +691,22 @@ class DateTimeType(BaseType):
 
     :param formats:
         A value or list of values suitable for ``datetime.datetime.strptime``
-        parsing. Default: `('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S')`
+        parsing. Default: `('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S',
+        '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%dT%H:%M:%SZ')`
     :param serialized_format:
         The output format suitable for Python ``strftime``. Default: ``'%Y-%m-%dT%H:%M:%S.%f'``
 
     """
 
-    DEFAULT_FORMATS = ('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S')
+    DEFAULT_FORMATS = (
+        '%Y-%m-%dT%H:%M:%S.%f',  '%Y-%m-%dT%H:%M:%S',
+        '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%dT%H:%M:%SZ',
+    )
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 
     MESSAGES = {
-        'parse': u'Could not parse {0}. Should be ISO8601.',
+        'parse_formats': u'Could not parse {0}. Valid formats: {1}',
+        'parse': u"Could not parse {0}. Should be ISO8601.",
     }
 
     def __init__(self, formats=None, serialized_format=None, **kwargs):
@@ -725,7 +743,13 @@ class DateTimeType(BaseType):
                 return datetime.datetime.strptime(value, fmt)
             except (ValueError, TypeError):
                 continue
-        raise ConversionError(self.messages['parse'].format(value))
+        if self.formats == self.DEFAULT_FORMATS:
+            message = self.messages['parse'].format(value)
+        else:
+            message = self.messages['parse_formats'].format(
+                value, ", ".join(self.formats)
+            )
+        raise ConversionError(message)
 
     def to_primitive(self, value, context=None):
         if callable(self.serialized_format):
@@ -739,7 +763,7 @@ class GeoPointType(BaseType):
     """
 
     def _mock(self, context=None):
-        return (random.randrange(-90, 90), random.randrange(-90, 90))
+        return (random.randrange(-90, 90), random.randrange(-180, 180))
 
     def to_native(self, value, context=None):
         """Make sure that a geo-value is of type (x, y)
@@ -776,12 +800,12 @@ class MultilingualStringType(BaseType):
 
     MESSAGES = {
         'convert': u"Couldn't interpret value as string.",
-        'max_length': u"String value in locale %s is too long.",
-        'min_length': u"String value in locale %s is too short.",
+        'max_length': u"String value in locale {0} is too long.",
+        'min_length': u"String value in locale {0} is too short.",
         'locale_not_found': u"No requested locale was available.",
         'no_locale': u"No default or explicit locales were given.",
-        'regex_locale': u"Name of locale %s did not match validation regex.",
-        'regex_localized': u"String value in locale %s did not match validation regex.",
+        'regex_locale': u"Name of locale {0} did not match validation regex.",
+        'regex_localized': u"String value in locale {0} did not match validation regex.",
     }
 
     LOCALE_REGEX = r'^[a-z]{2}(:?_[A-Z]{2})?$'
@@ -857,10 +881,10 @@ class MultilingualStringType(BaseType):
             len_of_value = len(localized) if localized else 0
 
             if self.max_length is not None and len_of_value > self.max_length:
-                raise ValidationError(self.messages['max_length'] % locale)
+                raise ValidationError(self.messages['max_length'].format(locale))
 
             if self.min_length is not None and len_of_value < self.min_length:
-                raise ValidationError(self.messages['min_length'] % locale)
+                raise ValidationError(self.messages['min_length'].format(locale))
 
     def validate_regex(self, value):
         if self.regex is None and self.locale_regex is None:
@@ -869,8 +893,8 @@ class MultilingualStringType(BaseType):
         for locale, localized in value.items():
             if self.regex is not None and self.regex.match(localized) is None:
                 raise ValidationError(
-                    self.messages['regex_localized'] % locale)
+                    self.messages['regex_localized'].format(locale))
 
             if self.locale_regex is not None and self.locale_regex.match(locale) is None:
                 raise ValidationError(
-                    self.messages['regex_locale'] % locale)
+                    self.messages['regex_locale'].format(locale))

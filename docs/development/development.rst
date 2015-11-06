@@ -1,5 +1,6 @@
 .. _development:
 
+=================
 Developer's Guide
 =================
 
@@ -10,7 +11,7 @@ project is very much a sum of the work done by a community.
 .. _development_contributors:
 
 List of Contributors
---------------------
+====================
 
 ::
 
@@ -25,30 +26,28 @@ We ask that you honor those and make them known in this document.
 .. _development_get_the_code:
 
 Get the code
-------------
+============
 
-Please see the :ref:`install_from_github` section of the :doc:`install`
+Please see the :ref:`install_from_github` section of the :doc:`/basics/install`
 page for details on how to obtain the Schematics source code.
 
 
 .. _development_tests:
 
 Tests
------
+=====
 
-Using py.test
+Using pytest::
 
-::
-
-  $ py.test tests/
+  $ py.test
 
 
 .. _writing_documentation:
 
 Writing Documentation
----------------
+=====================
 
-:doc:`Documentation <index>` is essential to helping other people understand,
+:doc:`Documentation </index>` is essential to helping other people understand,
 learn, and use Schematics. We would appreciate any help you can offer in
 contributing documentation to our project.
 
@@ -60,7 +59,7 @@ page.
 .. _installing_documentation:
 
 Installing Documentation
----------------
+========================
 
 Just as you verify your code changes in your local environment before
 committing, you should also verify that your documentation builds and displays
@@ -90,3 +89,4 @@ refresh the page.
 Once the documentation is up to your standards, go ahead and commit it. As with
 code changes, please be descriptive in your documentation commit messages as it
 will help others understand the purpose of your adjustment.
+

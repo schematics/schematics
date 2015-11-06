@@ -45,7 +45,7 @@ A ``Model`` instance may be serialized with a particular `context`. A context
 is a ``dict`` passed through the model to each of its fields. A field may use
 values from the context to alter how it is serialized.
 
-.. _exporting_converting_data:  
+.. _exporting_converting_data:
 
 Converting Data
 ===============
@@ -440,6 +440,6 @@ Using it:
 
 
 More Information
-~~~~~~~~~~~~~~~~
+================
 
 To learn more about **Exporting**, visit the :ref:`Transforms API <api_doc_transforms>`

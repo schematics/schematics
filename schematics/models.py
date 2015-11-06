@@ -61,9 +61,11 @@ class FieldDescriptor(object):
         """
         Checks the field name against a model and sets the value.
         """
-        from .types.compound import ModelType
         field = instance._fields[self.name]
-        if not isinstance(value, Model) and isinstance(field, ModelType):
+        if all((
+                value is not None,
+                not isinstance(value, Model),
+                isinstance(field, ModelType))):
             value = field.model_class(value)
         instance._data[self.name] = value
 
@@ -168,20 +170,15 @@ class ModelMeta(type):
 
         klass = type.__new__(mcs, name, bases, attrs)
 
-        # Add reference to klass to each field instance
-        def set_owner_model(field, klass):
-            field.owner_model = klass
-            if hasattr(field, 'field'):
-                set_owner_model(field.field, klass)
-        for field_name, field in fields.items():
-            set_owner_model(field, klass)
-            field.name = field_name
-
         # Register class on ancestor models
         klass._subclasses = []
         for base in klass.__mro__[1:]:
             if isinstance(base, ModelMeta):
                 base._subclasses.append(klass)
+
+        # Finalize fields
+        for field_name, field in fields.items():
+            field._setup(field_name, klass)
 
         return klass
 
@@ -217,12 +214,6 @@ class ModelMeta(type):
     def fields(cls):
         return cls._fields
 
-#   def __iter__(self):
-#       return itertools.chain(
-#           self.fields.iteritems(),
-#           self._unbound_fields.iteritems(),
-#           self._unbound_serializables.iteritems()
-#       )
 
 @add_metaclass(ModelMeta)
 class Model(object):
@@ -237,7 +228,6 @@ class Model(object):
     possible to convert the raw data into richer Python constructs.
     """
 
-    #__metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
     def __init__(self, raw_data=None, deserialize_mapping=None, strict=True):
@@ -435,3 +425,6 @@ class Model(object):
 
     def __unicode__(self):
         return '%s object' % self.__class__.__name__
+
+
+from .types.compound import ModelType

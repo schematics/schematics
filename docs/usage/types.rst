@@ -190,6 +190,6 @@ type. When you do so, just ensure two things:
 
 
 More Information
-~~~~~~~~~~~~~~~~
+================
 
 To learn more about **Types**, visit the :ref:`Types API <api_doc_types>`

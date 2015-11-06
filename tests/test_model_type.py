@@ -45,6 +45,21 @@ def test_simple_embedded_models_is_none():
     assert p.location is None
 
 
+def test_simple_embedded_model_set_to_none():
+    class Location(Model):
+        country_code = StringType()
+
+    class Player(Model):
+        id = IntType()
+        location = ModelType(Location)
+
+    p = Player(dict(id=1))
+    p.location = None
+
+    assert p.id == 1
+    assert p.location is None
+
+
 def test_simple_embedded_model_is_none_within_listtype():
     class QuestionResources(Model):
         type = StringType()
@@ -161,3 +176,15 @@ def test_mock_object():
         age = IntType(required=True)
 
     assert ModelType(User, required=True).mock() is not None
+
+
+def test_specify_model_by_name():
+
+    class M(Model):
+        to_one = ModelType('M')
+        to_many = ListType(ModelType('M'))
+        matrix = ListType(ListType(ModelType('M')))
+
+    assert M.to_one.model_class is M
+    assert M.to_many.field.model_class is M
+    assert M.matrix.field.field.model_class is M

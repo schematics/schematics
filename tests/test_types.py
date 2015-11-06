@@ -1,5 +1,6 @@
 import datetime
 import decimal
+import random
 import uuid
 
 import pytest
@@ -18,6 +19,12 @@ from schematics.exceptions import (
 def test_string_choices():
     with pytest.raises(TypeError):
         BaseType(choices='foo')
+
+def test_int():
+    with pytest.raises(ConversionError):
+        IntType().validate('foo')
+
+    assert IntType.validate(5001) == None
 
 
 def test_date():
@@ -293,3 +300,46 @@ def test_boolean_to_native():
     for bad_value in ['TrUe', 'foo', 2, None, 1.0]:
         with pytest.raises(ConversionError):
             bool_field.to_native(bad_value)
+
+
+def test_geopoint_mock():
+    geo = GeoPointType(required=True)
+    geo_point = geo.mock()
+    assert geo_point[0] >= -90
+    assert geo_point[0] <= 90
+    assert geo_point[1] >= -180
+    assert geo_point[1] <= 180
+
+
+def test_geopoint_to_native():
+    geo = GeoPointType(required=True)
+
+    with pytest.raises(ValueError):
+        native = geo.to_native((10,))
+
+    with pytest.raises(ValueError):
+        native = geo.to_native({'1':'-20', '2': '18'})
+
+    with pytest.raises(ValueError):
+        native = geo.to_native(['-20',  '18'])
+
+    with pytest.raises(ValueError):
+        native = geo.to_native('-20, 18')
+
+    class Point(object):
+
+        def __len__(self):
+            return 2
+
+    with pytest.raises(ValueError):
+        native = geo.to_native(Point())
+
+    native = geo.to_native([89, -12])
+    assert native == [89, -12]
+
+    latitude = random.uniform(-90, 90)
+    longitude = random.uniform(-180, 180)
+    point = [latitude, longitude]
+
+    native = geo.to_native(point)
+    assert native == point

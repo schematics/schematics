@@ -39,12 +39,10 @@ Some common use cases:
 + Custom `persistence layers <https://schematics.readthedocs.org/en/latest/usage/models.html#model-configuration>`_
 
 
-Examples
---------
+Example
+=======
 
-This is a simple Model.
-
-::
+This is a simple Model. ::
 
   >>> from schematics.models import Model
   >>> from schematics.types import StringType, URLType
@@ -57,17 +55,13 @@ This is a simple Model.
   >>> person.name
   u'Joe Strummer'
 
-Serializing the data to JSON.
-
-::
+Serializing the data to JSON. ::
 
   >>> import json
   >>> json.dumps(person.to_primitive())
   {"name": "Joe Strummer", "website": "http://soundcloud.com/joestrummer"}
 
-Let's try validating without a name value, since it's required.
-
-::
+Let's try validating without a name value, since it's required. ::
 
   >>> person = Person()
   >>> person.website = 'http://www.amontobin.com/'
@@ -78,9 +72,7 @@ Let's try validating without a name value, since it's required.
       raise ModelValidationError(e.messages)
   schematics.exceptions.ModelValidationError: {'name': [u'This field is required.']}
 
-Add the field and validation passes
-
-::
+Add the field and validation passes::
 
   >>> person = Person()
   >>> person.name = 'Amon Tobin'
@@ -88,25 +80,13 @@ Add the field and validation passes
   >>> person.validate()
   >>>
 
-What's with the fork?
-=====================
 
-At the top of this projects Github page is says "forked from
-exfm/dictshield".  James (@j2labs) started dictshield while working
-for exfm.  It was open sourced, so he forked it and continued work on
-it.
-
-Alas, the name, which was originally a 3am decision to make me James
-laugh turned into something that was awkward and a little crude, so it
-was renamed Schematics.
-
-DictShield still exists, but consider anything with that label to be
-a ghost from this project's early years.
+.. _coverage:
 
 Testing & Coverage support
 ==========================
-Run coverage and check the missing statements.
 
-::
+Run coverage and check the missing statements. ::
 
   $ `coverage run --source schematics -m py.test && coverage report`
+
