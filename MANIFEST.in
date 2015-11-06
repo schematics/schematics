@@ -2,6 +2,7 @@ include README.rst
 include setup.py
 include requirements.txt
 include tox.ini
+include HISTORY.rst
 include LICENSE
 graft docs
 graft tests
