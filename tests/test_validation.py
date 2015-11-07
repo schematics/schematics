@@ -8,6 +8,7 @@ from schematics.exceptions import (
 )
 from schematics.types import StringType, DateTimeType, BooleanType
 from schematics.types.compound import ModelType, ListType, DictType
+from schematics.validate import returns
 
 
 future_error_msg = u'Future dates are not valid'
@@ -363,3 +364,42 @@ def test_builtin_validation_exception():
 
     with pytest.raises(ValueError):
         raise ModelValidationError('ValueError')
+
+
+def test_validator_return_value():
+
+    def basic_validator(value):
+        return 'whatever'
+
+    @returns
+    def returning_validator(value):
+        return 'sanitized by type'
+
+    def basic_model_validator(cls, data, value):
+        return 'whatever'
+
+    @returns
+    def returning_model_validator(cls, data, value):
+        return 'sanitized by model'
+
+    class M(Model):
+        field = StringType()
+
+    m = M({'field': 'initial'})
+
+    M.field.validators.append(basic_validator)
+    m.validate()
+    assert m.field == 'initial'
+
+    M.field.validators.append(returning_validator)
+    m.validate()
+    assert m.field == 'sanitized by type'
+
+    M._validator_functions['field'] = basic_model_validator
+    m.validate()
+    assert m.field == 'sanitized by type'
+
+    M._validator_functions['field'] = returning_model_validator
+    m.validate()
+    assert m.field == 'sanitized by model'
+
