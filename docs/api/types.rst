@@ -6,11 +6,9 @@ Types
 
 .. automodule:: schematics.types.base
    :members:
-   :undoc-members:
 
 .. automodule:: schematics.types.compound
    :members:
-   :undoc-members:
 
 
 Usage

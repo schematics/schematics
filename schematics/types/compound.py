@@ -8,7 +8,6 @@ import itertools
 from ..exceptions import (ValidationError, ConversionError,
                           ModelValidationError, StopValidation,
                           MockCreationError)
-from ..models import Model
 from ..transforms import export_loop, EMPTY_LIST, EMPTY_DICT
 from .base import BaseType, get_value_in
 
@@ -66,6 +65,7 @@ class MultiType(BaseType):
 
 
 class ModelType(MultiType):
+    """A field that can hold an instance of the specified model."""
 
     @property
     def fields(self):
@@ -152,6 +152,9 @@ class ModelType(MultiType):
 
 
 class ListType(MultiType):
+    """A field for storing a list of items, all of which must conform to the type
+    specified by the ``field`` parameter.
+    """
 
     def __init__(self, field, min_size=None, max_size=None, **kwargs):
 
@@ -262,6 +265,9 @@ class ListType(MultiType):
 
 
 class DictType(MultiType):
+    """A field for storing a mapping of items, the values of which must conform to the type
+    specified by the ``field`` parameter.
+    """
 
     def __init__(self, field, coerce_key=None, **kwargs):
         if not isinstance(field, BaseType):
@@ -335,6 +341,7 @@ class DictType(MultiType):
 
 
 class PolyModelType(MultiType):
+    """A field that accepts an instance of any of the specified models."""
 
     def __init__(self, model_spec, **kwargs):
 
