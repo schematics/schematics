@@ -143,12 +143,10 @@ class ModelType(MultiType):
                              field_converter,
                              role=role, print_none=print_none)
 
-        if shaped and len(shaped) == 0 and self.allow_none():
+        if shaped or print_none:
             return shaped
-        elif shaped:
-            return shaped
-        elif print_none:
-            return shaped
+        else:
+            return None
 
 
 class ListType(MultiType):
@@ -242,26 +240,23 @@ class ListType(MultiType):
             if hasattr(self.field, 'export_loop'):
                 shaped = self.field.export_loop(value, field_converter,
                                                 role=role)
-                feels_empty = shaped and len(shaped) == 0
+                feels_empty = shaped is None or len(shaped) == 0
             else:
                 shaped = field_converter(self.field, value)
                 feels_empty = shaped is None
 
             # Print if we want empty or found a value
-            if feels_empty and self.field.allow_none():
-                data.append(shaped)
-            elif shaped is not None:
-                data.append(shaped)
-            elif print_none:
+            if feels_empty:
+                if self.field.allow_none():
+                    data.append(shaped)
+            elif shaped is not None or print_none:
                 data.append(shaped)
 
         # Return data if the list contains anything
-        if len(data) > 0:
+        if len(data) > 0 or self.allow_none() or print_none:
             return data
-        elif len(data) == 0 and self.allow_none():
-            return data
-        elif print_none:
-            return data
+        else:
+            return None
 
 
 class DictType(MultiType):
@@ -320,24 +315,21 @@ class DictType(MultiType):
             if hasattr(self.field, 'export_loop'):
                 shaped = self.field.export_loop(value, field_converter,
                                                 role=role)
-                feels_empty = shaped and len(shaped) == 0
+                feels_empty = shaped is None or len(shaped) == 0
             else:
                 shaped = field_converter(self.field, value)
                 feels_empty = shaped is None
 
-            if feels_empty and self.field.allow_none():
-                data[key] = shaped
-            elif shaped is not None:
-                data[key] = shaped
-            elif print_none:
+            if feels_empty:
+                if self.field.allow_none():
+                    data[key] = shaped
+            elif shaped is not None or print_none:
                 data[key] = shaped
 
-        if len(data) > 0:
+        if len(data) > 0 or self.allow_none() or print_none:
             return data
-        elif len(data) == 0 and self.allow_none():
-            return data
-        elif print_none:
-            return data
+        else:
+            return None
 
 
 class PolyModelType(MultiType):
@@ -457,12 +449,10 @@ class PolyModelType(MultiType):
                              field_converter,
                              role=role, print_none=print_none)
 
-        if shaped and len(shaped) == 0 and self.allow_none():
+        if shaped or print_none:
             return shaped
-        elif shaped:
-            return shaped
-        elif print_none:
-            return shaped
+        else:
+            return None
 
 
 from ..models import Model, ModelMeta

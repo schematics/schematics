@@ -180,26 +180,23 @@ def export_loop(cls, instance_or_dict, field_converter,
                 shaped = field_converter(field, value)
 
             # Print if we want none or found a value
-            if shaped is None and allow_none(cls, field):
-                data[serialized_name] = shaped
-            elif shaped is not None:
-                data[serialized_name] = shaped
-            elif print_none:
+            if shaped is not None \
+              or allow_none(cls, field) \
+              or print_none:
                 data[serialized_name] = shaped
 
         # Store None if reqeusted
-        elif value is None and allow_none(cls, field):
-            data[serialized_name] = value
-        elif print_none:
+        elif allow_none(cls, field) or print_none:
             data[serialized_name] = value
 
+    if fields_order:
+        data = sort_dict(data, fields_order)
+
     # Return data if the list contains anything
-    if len(data) > 0:
-        if fields_order:
-            return sort_dict(data, fields_order)
+    if len(data) > 0 or print_none:
         return data
-    elif print_none:
-        return data
+    else:
+        return None
 
 
 def sort_dict(dct, based_on):
