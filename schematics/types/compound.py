@@ -198,9 +198,9 @@ class ListType(MultiType):
 
             # Print if we want empty or found a value
             if feels_empty:
-                if self.field.allow_none():
+                if self.field.allow_none() or print_none:
                     data.append(shaped)
-            elif shaped is not None or print_none:
+            elif shaped is not None:
                 data.append(shaped)
 
         return data
@@ -265,9 +265,9 @@ class DictType(MultiType):
                 feels_empty = shaped is None
 
             if feels_empty:
-                if self.field.allow_none():
+                if self.field.allow_none() or print_none:
                     data[key] = shaped
-            elif shaped is not None or print_none:
+            elif shaped is not None:
                 data[key] = shaped
 
         return data

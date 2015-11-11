@@ -174,13 +174,16 @@ def export_loop(cls, instance_or_dict, field_converter,
                 shaped = field.export_loop(value, field_converter,
                                            role=role,
                                            print_none=print_none)
+                feels_empty = shaped is None or len(shaped) == 0
             else:
                 shaped = field_converter(field, value)
+                feels_empty = shaped is None
 
             # Print if we want none or found a value
-            if shaped is not None \
-              or allow_none(cls, field) \
-              or print_none:
+            if feels_empty:
+                if allow_none(cls, field) or print_none:
+                    data[serialized_name] = shaped
+            elif shaped is not None:
                 data[serialized_name] = shaped
 
         # Store None if reqeusted
