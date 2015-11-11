@@ -71,12 +71,12 @@ class FieldDescriptor(object):
 
     def __delete__(self, instance):
         """
-        Checks the field name against a model and deletes the field.
+        Checks the field name against a model and deletes the value.
         """
-        if self.name not in instance._fields:
-            raise AttributeError('%r has no attribute %r' %
-                                 (type(instance).__name__, self.name))
-        del instance._fields[self.name]
+        try:
+            instance._data[self.name] = None
+        except KeyError:
+            raise AttributeError(self.name)
 
 
 class ModelOptions(object):
@@ -377,8 +377,7 @@ class Model(object):
         try:
             return getattr(self, name)
         except AttributeError:
-            pass
-        raise KeyError(name)
+            raise KeyError(name)
 
     def __setitem__(self, name, value):
         if name not in self._data:
@@ -386,9 +385,10 @@ class Model(object):
         return setattr(self, name, value)
 
     def __delitem__(self, name):
-        if name not in self._data:
+        try:
+            return delattr(self, name)
+        except AttributeError:
             raise KeyError(name)
-        return setattr(self, name, None)
 
     def __contains__(self, name):
         return name in self._data or name in self._serializables
