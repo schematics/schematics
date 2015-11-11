@@ -203,11 +203,7 @@ class ListType(MultiType):
             elif shaped is not None or print_none:
                 data.append(shaped)
 
-        # Return data if the list contains anything
-        if len(data) > 0 or self.allow_none() or print_none:
-            return data
-        else:
-            return None
+        return data
 
 
 class DictType(MultiType):
@@ -274,10 +270,7 @@ class DictType(MultiType):
             elif shaped is not None or print_none:
                 data[key] = shaped
 
-        if len(data) > 0 or self.allow_none() or print_none:
-            return data
-        else:
-            return None
+        return data
 
 
 class PolyModelType(MultiType):
@@ -383,8 +376,5 @@ class PolyModelType(MultiType):
                              field_converter,
                              role=role, print_none=print_none)
 
-        if shaped or print_none:
-            return shaped
-        else:
-            return None
+        return shaped
 
