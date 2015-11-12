@@ -143,10 +143,7 @@ class ModelType(MultiType):
                              field_converter,
                              role=role, print_none=print_none)
 
-        if shaped or print_none:
-            return shaped
-        else:
-            return None
+        return shaped
 
 
 class ListType(MultiType):
@@ -247,16 +244,12 @@ class ListType(MultiType):
 
             # Print if we want empty or found a value
             if feels_empty:
-                if self.field.allow_none():
+                if self.field.allow_none() or print_none:
                     data.append(shaped)
-            elif shaped is not None or print_none:
+            elif shaped is not None:
                 data.append(shaped)
 
-        # Return data if the list contains anything
-        if len(data) > 0 or self.allow_none() or print_none:
-            return data
-        else:
-            return None
+        return data
 
 
 class DictType(MultiType):
@@ -321,15 +314,12 @@ class DictType(MultiType):
                 feels_empty = shaped is None
 
             if feels_empty:
-                if self.field.allow_none():
+                if self.field.allow_none() or print_none:
                     data[key] = shaped
-            elif shaped is not None or print_none:
+            elif shaped is not None:
                 data[key] = shaped
 
-        if len(data) > 0 or self.allow_none() or print_none:
-            return data
-        else:
-            return None
+        return data
 
 
 class PolyModelType(MultiType):
@@ -449,10 +439,7 @@ class PolyModelType(MultiType):
                              field_converter,
                              role=role, print_none=print_none)
 
-        if shaped or print_none:
-            return shaped
-        else:
-            return None
+        return shaped
 
 
 from ..models import Model, ModelMeta

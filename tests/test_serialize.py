@@ -823,7 +823,7 @@ def test_role_set_operations():
 
     d = user.serialize(role='empty')
 
-    assert d is None
+    assert d == {}
 
     d = user.serialize(role='everything')
 
