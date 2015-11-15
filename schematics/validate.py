@@ -1,10 +1,10 @@
 from .exceptions import BaseError, ValidationError, ModelConversionError
 
 
-def validate(cls, instance_or_dict, partial=False, strict=False, context=None, env=None):
+def validate(cls, instance_or_dict, partial=False, strict=False, trusted_data=None, env=None):
     """
     Validate some untrusted data using a model. Trusted data can be passed in
-    the `context` parameter.
+    the `trusted_data` parameter.
 
     :param cls:
         The model class to use as source for validation. If given an instance,
@@ -17,11 +17,11 @@ def validate(cls, instance_or_dict, partial=False, strict=False, context=None, e
         definitions. Default: False
     :param strict:
         Complain about unrecognized keys. Default: False
-    :param context:
+    :param trusted_data:
         A ``dict``-like structure that may contain already validated data.
 
     :returns: data
-        data dict contains the valid raw_data plus the context data.
+        ``dict`` containing the valid raw_data plus ``trusted_data``.
         If errors are found, they are raised as a ValidationError with a list
         of errors attached.
     """
@@ -41,7 +41,7 @@ def validate(cls, instance_or_dict, partial=False, strict=False, context=None, e
     # Loop across fields and coerce values
     try:
         data = import_loop(cls, instance_or_dict, field_converter,
-                           context=context, partial=partial, strict=strict, env=env)
+                           trusted_data=trusted_data, partial=partial, strict=strict, env=env)
     except ModelConversionError as mce:
         errors = mce.messages
 
@@ -79,8 +79,7 @@ def _validate_model(cls, data):
         if field_name in cls._validator_functions and field_name in data:
             value = data[field_name]
             try:
-                context = data
-                cls._validator_functions[field_name](cls, context, value)
+                cls._validator_functions[field_name](cls, data, value)
             except BaseError as exc:
                 field = cls._fields[field_name]
                 serialized_field_name = field.serialized_name or field_name

@@ -8,6 +8,7 @@ import uuid
 
 import pytest
 
+from schematics.datastructures import ConfigObject
 from schematics.models import Model
 from schematics.types import (
     BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
@@ -266,7 +267,7 @@ def test_multilingual_string_should_emit_string_with_explicit_locale():
 
     assert mls.to_primitive(
         {'en_US': 'snake', 'fr_FR': 'serpent'},
-        context={'locale': 'fr_FR'}) == 'serpent'
+        env=ConfigObject({'context': {'locale': 'fr_FR'}})) == 'serpent'
 
 
 def test_multilingual_string_should_require_a_locale():
@@ -283,7 +284,7 @@ def test_multilingual_string_without_matching_locale_should_explode():
         mls.to_primitive({'fr_FR': 'serpent'})
 
     with pytest.raises(ConversionError):
-        mls.to_primitive({'en_US': 'snake'}, context={'locale': 'fr_FR'})
+        mls.to_primitive({'en_US': 'snake'}, env=ConfigObject({'context': {'locale': 'fr_FR'}}))
 
 
 def test_multilingual_string_should_accept_lists_of_locales():
@@ -296,11 +297,11 @@ def test_multilingual_string_should_accept_lists_of_locales():
     mls = MultilingualStringType(default_locale=['foo', 'fr_FR', 'es_MX'])
 
     assert mls.to_primitive(strings) == 'serpent'
-    assert mls.to_primitive(strings, context={'locale': ['es_MX', 'bar']}) == 'serpiente'
+    assert mls.to_primitive(strings, env=ConfigObject({'context': {'locale': ['es_MX', 'bar']}})) == 'serpiente'
 
     mls = MultilingualStringType()
 
-    assert mls.to_primitive(strings, context={'locale': ['foo', 'es_MX', 'fr_FR']}) == 'serpiente'
+    assert mls.to_primitive(strings, env=ConfigObject({'context': {'locale': ['foo', 'es_MX', 'fr_FR']}})) == 'serpiente'
 
 
 def test_boolean_to_native():

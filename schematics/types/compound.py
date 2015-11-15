@@ -99,8 +99,8 @@ class ModelType(MultiType):
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
 
-    def _mock(self, context=None):
-        return self.model_class.get_mock_object(context)
+    def _mock(self, env=None):
+        return self.model_class.get_mock_object(env)
 
     def _setup(self, field_name, owner_model):
         # Resolve possible name-based model reference.
@@ -114,7 +114,7 @@ class ModelType(MultiType):
     def validate_model(self, model_instance, env=None):
         model_instance.validate(env=env)
 
-    def to_native(self, value, mapping=None, context=None, env=None):
+    def to_native(self, value, mapping=None, env=None):
         # We have already checked if the field is required. If it is None it
         # should continue being None
         mapping = mapping or {}
@@ -131,7 +131,7 @@ class ModelType(MultiType):
 
         # partial submodels now available with import_data (ht ryanolson)
         model = self.model_class()
-        return model.import_data(value, mapping=mapping, context=context, env=env)
+        return model.import_data(value, mapping=mapping, env=env)
 
     def export_loop(self, model_instance, field_converter,
                     role=None, print_none=False):
@@ -174,7 +174,7 @@ class ListType(MultiType):
     def model_class(self):
         return self.field.model_class
 
-    def _mock(self, context=None):
+    def _mock(self, env=None):
         min_size = self.min_size or 1
         max_size = self.max_size or 1
         if min_size > max_size:
@@ -182,7 +182,7 @@ class ListType(MultiType):
             raise MockCreationError(message)
         random_length = get_value_in(min_size, max_size)
 
-        return [self.field._mock(context) for _ in xrange(random_length)]
+        return [self.field._mock(env) for _ in xrange(random_length)]
 
     def _force_list(self, value):
         if value is None or value == EMPTY_LIST:
@@ -199,14 +199,14 @@ class ListType(MultiType):
         except TypeError:
             return [value]
 
-    def to_native(self, value, context=None, env=None):
+    def to_native(self, value, env=None):
         items = self._force_list(value)
         if isinstance(self.field, MultiType):
             to_native = functools.partial(self.field.to_native, env=env)
         else:
             to_native = self.field.to_native
 
-        return [to_native(item, context) for item in items]
+        return [to_native(item, env) for item in items]
 
     def check_length(self, value, env=None):
         list_length = len(value) if value else 0
@@ -286,19 +286,14 @@ class DictType(MultiType):
     def model_class(self):
         return self.field.model_class
 
-    def to_native(self, value, safe=False, context=None, env=None):
+    def to_native(self, value, safe=False, env=None):
         if value == EMPTY_DICT:
             value = {}
         value = value or {}
         if not isinstance(value, dict):
             raise ConversionError(u'Only dictionaries may be used in a DictType')
 
-        if isinstance(self.field, MultiType):
-            to_native = functools.partial(self.field.to_native, env=env)
-        else:
-            to_native = self.field.to_native
-
-        return dict((self.coerce_key(k), to_native(v, context))
+        return dict((self.coerce_key(k), self.field.to_native(v, env))
                     for k, v in iteritems(value))
 
     def validate_items(self, items, env=None):
@@ -391,7 +386,7 @@ class PolyModelType(MultiType):
                 return True
         return False
 
-    def to_native(self, value, mapping=None, context=None, env=None):
+    def to_native(self, value, mapping=None, env=None):
 
         if mapping is None:
             mapping = {}
@@ -410,7 +405,7 @@ class PolyModelType(MultiType):
 
         model_class = self.find_model(value)
         model = model_class()
-        return model.import_data(value, mapping=mapping, context=context, env=env)
+        return model.import_data(value, mapping=mapping, env=env)
 
     def find_model(self, data):
         """Finds the intended type by consulting potential classes or `claim_function`."""

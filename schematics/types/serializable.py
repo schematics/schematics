@@ -59,8 +59,8 @@ class Serializable(object):
         else:
             return self
 
-    def to_native(self, value, context=None):
-        return self.type.to_native(value, context)
+    def to_native(self, value, env=None):
+        return self.type.to_native(value, env)
 
-    def to_primitive(self, value, context=None):
-        return self.type.to_primitive(value, context)
+    def to_primitive(self, value, env=None):
+        return self.type.to_primitive(value, env)

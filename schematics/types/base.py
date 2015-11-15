@@ -179,7 +179,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
     def __call__(self, value):
         return self.to_native(value)
 
-    def _mock(self, context=None):
+    def _mock(self, env=None):
         return None
 
     def _setup(self, field_name, owner_model):
@@ -196,12 +196,12 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
             default = self._default()
         return default
 
-    def to_primitive(self, value, context=None):
+    def to_primitive(self, value, env=None):
         """Convert internal data to a value safe to serialize.
         """
         return value
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, env=None):
         """
         Convert untrusted data to a richer Python construct.
         """
@@ -241,12 +241,12 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
                 raise ValidationError(self.messages['choices']
                                       .format(unicode(self.choices)))
 
-    def mock(self, context=None, env=None):
+    def mock(self, env=None):
         if not self.required and not random.choice([True, False]):
             return self.default
         if self.choices is not None:
             return random.choice(self.choices)
-        return self._mock(context)
+        return self._mock(env)
 
 
 class UUIDType(BaseType):
@@ -257,10 +257,10 @@ class UUIDType(BaseType):
         'convert': u"Couldn't interpret '{0}' value as UUID.",
     }
 
-    def _mock(self, context=None):
+    def _mock(self, env=None):
         return uuid.uuid4()
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, env=None):
         if not isinstance(value, uuid.UUID):
             try:
                 value = uuid.UUID(value)
@@ -268,7 +268,7 @@ class UUIDType(BaseType):
                 raise ConversionError(self.messages['convert'].format(value))
         return value
 
-    def to_primitive(self, value, context=None):
+    def to_primitive(self, value, env=None):
         return str(value)
 
 
@@ -276,7 +276,7 @@ class IPv4Type(BaseType):
 
     """ A field that stores a valid IPv4 address """
 
-    def _mock(self, context=None):
+    def _mock(self, env=None):
         return '.'.join(str(random.randrange(256)) for _ in range(4))
 
     @classmethod
@@ -323,10 +323,10 @@ class StringType(BaseType):
 
         super(StringType, self).__init__(**kwargs)
 
-    def _mock(self, context=None):
+    def _mock(self, env=None):
         return random_string(get_value_in(self.min_length, self.max_length))
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, env=None):
         if value is None:
             return None
 
@@ -381,7 +381,7 @@ class URLType(StringType):
         self.verify_exists = verify_exists
         super(URLType, self).__init__(**kwargs)
 
-    def _mock(self, context=None):
+    def _mock(self, env=None):
         return fill_template('http://a%s.ZZ', self.min_length,
                              self.max_length)
 
@@ -417,7 +417,7 @@ class EmailType(StringType):
         re.IGNORECASE
     )
 
-    def _mock(self, context=None):
+    def _mock(self, env=None):
         return fill_template('%s@example.com', self.min_length,
                              self.max_length)
 
@@ -446,10 +446,10 @@ class NumberType(BaseType):
 
         super(NumberType, self).__init__(**kwargs)
 
-    def _mock(self, context=None):
+    def _mock(self, env=None):
         return get_value_in(self.min_value, self.max_value)
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, env=None):
         try:
             value = self.number_class(value)
         except (TypeError, ValueError):
@@ -533,13 +533,13 @@ class DecimalType(BaseType):
 
         super(DecimalType, self).__init__(**kwargs)
 
-    def _mock(self, context=None):
+    def _mock(self, env=None):
         return get_value_in(self.min_value, self.max_value)
 
-    def to_primitive(self, value, context=None):
+    def to_primitive(self, value, env=None):
         return unicode(value)
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, env=None):
         if not isinstance(value, decimal.Decimal):
             if not isinstance(value, basestring):
                 value = unicode(value)
@@ -569,10 +569,10 @@ class HashType(BaseType):
         'hash_hex': u"Hash value is not hexadecimal.",
     }
 
-    def _mock(self, context=None):
+    def _mock(self, env=None):
         return random_string(self.LENGTH, string.hexdigits)
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, env=None):
         if len(value) != self.LENGTH:
             raise ValidationError(self.messages['hash_length'])
         try:
@@ -611,10 +611,10 @@ class BooleanType(BaseType):
     TRUE_VALUES = ('True', 'true', '1')
     FALSE_VALUES = ('False', 'false', '0')
 
-    def _mock(self, context=None):
+    def _mock(self, env=None):
         return random.choice([True, False])
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, env=None):
         if isinstance(value, basestring):
             if value in self.TRUE_VALUES:
                 value = True
@@ -644,14 +644,14 @@ class DateType(BaseType):
         self.serialized_format = self.SERIALIZED_FORMAT
         super(DateType, self).__init__(**kwargs)
 
-    def _mock(self, context=None):
+    def _mock(self, env=None):
         return datetime.datetime(
             year=random.randrange(600) + 1900,
             month=random.randrange(12) + 1,
             day=random.randrange(28) + 1,
         )
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, env=None):
         if isinstance(value, datetime.date):
             return value
 
@@ -660,7 +660,7 @@ class DateType(BaseType):
         except (ValueError, TypeError):
             raise ConversionError(self.messages['parse'].format(value))
 
-    def to_primitive(self, value, context=None):
+    def to_primitive(self, value, env=None):
         return value.strftime(self.serialized_format)
 
 
@@ -771,7 +771,7 @@ class DateTimeType(BaseType):
 
         super(DateTimeType, self).__init__(**kwargs)
 
-    def _mock(self, context=None):
+    def _mock(self, env=None):
         return datetime.datetime(
             year=random.randrange(600) + 1900,
             month=random.randrange(12) + 1,
@@ -782,7 +782,7 @@ class DateTimeType(BaseType):
             microsecond=random.randrange(1000000),
         )
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, env=None):
 
         if isinstance(value, datetime.datetime):
             if value.tzinfo is None:
@@ -873,7 +873,7 @@ class DateTimeType(BaseType):
         except (ValueError, TypeError):
             return None
 
-    def to_primitive(self, value, context=None):
+    def to_primitive(self, value, env=None):
         if callable(self.serialized_format):
             return self.serialized_format(value)
         return value.strftime(self.serialized_format)
@@ -928,10 +928,10 @@ class GeoPointType(BaseType):
         'point_max': u"{0} value {1} should be less than {2}."
     }
 
-    def _mock(self, context=None):
+    def _mock(self, env=None):
         return (random.randrange(-90, 90), random.randrange(-180, 180))
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, env=None):
         """Make sure that a geo-value is of type (x, y)
         """
         if not len(value) == 2:
@@ -978,7 +978,7 @@ class MultilingualStringType(BaseType):
 
     Minimum and maximum lengths apply to each of the localized values.
 
-    At least one of ``default_locale`` or ``context['locale']`` must be defined
+    At least one of ``default_locale`` or ``env.context['locale']`` must be defined
     when calling ``.to_primitive``.
 
     """
@@ -1007,10 +1007,10 @@ class MultilingualStringType(BaseType):
 
         super(MultilingualStringType, self).__init__(**kwargs)
 
-    def _mock(self, context=None):
+    def _mock(self, env=None):
         return random_string(get_value_in(self.min_length, self.max_length))
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, env=None):
         """Make sure a MultilingualStringType value is a dict or None."""
 
         if not (value is None or isinstance(value, dict)):
@@ -1018,9 +1018,9 @@ class MultilingualStringType(BaseType):
 
         return value
 
-    def to_primitive(self, value, context=None):
+    def to_primitive(self, value, env=None):
         """
-        Use a combination of ``default_locale`` and ``context['locale']`` to return
+        Use a combination of ``default_locale`` and ``env.context['locale']`` to return
         the best localized string.
 
         """
@@ -1028,8 +1028,8 @@ class MultilingualStringType(BaseType):
             return None
 
         context_locale = None
-        if context is not None and 'locale' in context:
-            context_locale = context['locale']
+        if env and env.context is not None and 'locale' in env.context:
+            context_locale = env.context['locale']
 
         # Build a list of all possible locales to try
         possible_locales = []

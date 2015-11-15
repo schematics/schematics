@@ -282,10 +282,10 @@ class Model(object):
         """
         return convert(self.__class__, raw_data, **kw)
 
-    def to_native(self, role=None, context=None):
-        return to_native(self.__class__, self, role=role, context=context)
+    def to_native(self, role=None, env=None):
+        return to_native(self.__class__, self, role=role, env=env)
 
-    def to_primitive(self, role=None, context=None):
+    def to_primitive(self, role=None, env=None):
         """Return data as it would be validated. No filtering of output unless
         role is defined.
 
@@ -293,10 +293,10 @@ class Model(object):
             Filter output by a specific role
 
         """
-        return to_primitive(self.__class__, self, role=role, context=context)
+        return to_primitive(self.__class__, self, role=role, env=env)
 
-    def serialize(self, role=None, context=None):
-        return self.to_primitive(role=role, context=context)
+    def serialize(self, role=None, env=None):
+        return self.to_primitive(role=role, env=env)
 
     def flatten(self, role=None, prefix=""):
         """
@@ -354,10 +354,10 @@ class Model(object):
             return default
 
     @classmethod
-    def get_mock_object(cls, context=None, overrides=None):
+    def get_mock_object(cls, env=None, overrides=None):
         """Get a mock object.
 
-        :param dict context:
+        :param dict env:
         :param dict overrides: overrides for the model
         """
         if overrides is None:
@@ -366,7 +366,7 @@ class Model(object):
         for name, field in cls.fields.items():
             if name not in overrides:
                 try:
-                    values[name] = field.mock(context)
+                    values[name] = field.mock(env)
                 except MockCreationError as exc:
                     raise MockCreationError('%s: %s' % (name, exc.message))
         values.update(overrides)

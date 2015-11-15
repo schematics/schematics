@@ -30,7 +30,7 @@ except:
 # Transform Loops
 ###
 
-def import_loop(cls, instance_or_dict, field_converter, context=None,
+def import_loop(cls, instance_or_dict, field_converter, trusted_data=None,
                 partial=False, strict=False, mapping=None, env=None):
     """
     The import loop is designed to take untrusted data and convert it into the
@@ -45,7 +45,7 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
         A dict of data to be converted into types according to ``cls``.
     :param field_convert:
         This function is applied to every field found in ``instance_or_dict``.
-    :param context:
+    :param trusted_data:
         A ``dict``-like structure that may contain already validated data.
     :param partial:
         Allow partial data to validate; useful for PATCH requests.
@@ -57,12 +57,15 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
     if not isinstance(instance_or_dict, (cls, dict)):
         raise ModelConversionError('Model conversion requires a model or dict')
 
-    env = env or ConfigObject()
+    if not env:
+        env = ConfigObject()
+    elif not isinstance(env, ConfigObject):
+        env = ConfigObject(env)
     env._setdefault('partial', partial)
     env._setdefault('strict', strict)
     env._setdefault('mapping', mapping or {})
 
-    data = dict(context) if context is not None else {}
+    data = dict(trusted_data) if trusted_data else {}
     errors = {}
     # Determine all acceptable field input names
     all_fields = set(cls._fields) ^ set(cls._serializables)
@@ -407,7 +410,7 @@ def blacklist(*field_list):
 ###
 
 
-def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
+def convert(cls, instance_or_dict, trusted_data=None, partial=True, strict=False,
             mapping=None, env=None):
     def field_converter(field, value, env=None):
         if isinstance(field, MultiType):
@@ -415,22 +418,19 @@ def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
         else:
             return field.to_native(value)
 
-    data = import_loop(cls, instance_or_dict, field_converter, context=context,
+    data = import_loop(cls, instance_or_dict, field_converter, trusted_data=trusted_data,
                        partial=partial, strict=strict, mapping=mapping, env=env)
     return data
 
 
-def to_native(cls, instance_or_dict, role=None, raise_error_on_role=True,
-              context=None):
-    field_converter = lambda field, value: field.to_native(value,
-                                                           context=context)
+def to_native(cls, instance_or_dict, role=None, raise_error_on_role=True, env=None):
+    field_converter = lambda field, value: field.to_native(value, env=env)
     data = export_loop(cls, instance_or_dict, field_converter,
                        role=role, raise_error_on_role=raise_error_on_role)
     return data
 
 
-def to_primitive(cls, instance_or_dict, role=None, raise_error_on_role=True,
-                 context=None):
+def to_primitive(cls, instance_or_dict, role=None, raise_error_on_role=True, env=None):
     """
     Implements serialization as a mechanism to convert ``Model`` instances into
     dictionaries keyed by field_names with the converted data as the values.
@@ -451,37 +451,32 @@ def to_primitive(cls, instance_or_dict, role=None, raise_error_on_role=True,
         This parameter enforces strict behavior which requires substructures
         to have the same role definition as their parent structures.
     """
-    field_converter = lambda field, value: field.to_primitive(value,
-                                                              context=context)
+    field_converter = lambda field, value: field.to_primitive(value, env=env)
     data = export_loop(cls, instance_or_dict, field_converter,
                        role=role, raise_error_on_role=raise_error_on_role)
     return data
 
 
-def serialize(cls, instance_or_dict, role=None, raise_error_on_role=True,
-              context=None):
-    return to_primitive(cls, instance_or_dict, role, raise_error_on_role,
-                        context)
+def serialize(cls, instance_or_dict, role=None, raise_error_on_role=True, env=None):
+    return to_primitive(cls, instance_or_dict, role, raise_error_on_role, env)
 
 
 EMPTY_LIST = "[]"
 EMPTY_DICT = "{}"
 
 
-def expand(data, context=None):
+def expand(data, expanded_data=None):
     """
     Expands a flattened structure into it's corresponding layers.  Essentially,
     it is the counterpart to ``flatten_to_dict``.
 
     :param data:
         The data to expand.
-    :param context:
+    :param expanded_data:
         Existing expanded data that this function use for output
     """
     expanded_dict = {}
-
-    if context is None:
-        context = expanded_dict
+    context = expanded_data or expanded_dict
 
     for key, value in iteritems(data):
         try:
@@ -559,7 +554,7 @@ def flatten_to_dict(instance_or_dict, prefix=None, ignore_none=True):
 
 
 def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
-            ignore_none=True, prefix=None, context=None):
+            ignore_none=True, prefix=None, env=None):
     """
     Produces a flat dictionary representation of the model.  Flat, in this
     context, means there is only one level to the dictionary.  Multiple layers
@@ -598,8 +593,7 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
         This puts a prefix in front of the field names during flattening.
         Default: None
     """
-    field_converter = lambda field, value: field.to_primitive(value,
-                                                              context=context)
+    field_converter = lambda field, value: field.to_primitive(value, env=env)
 
     data = export_loop(cls, instance_or_dict, field_converter,
                        role=role, print_none=True)
