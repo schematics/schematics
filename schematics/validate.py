@@ -29,13 +29,9 @@ def validate(cls, instance_or_dict, partial=False, strict=False, trusted_data=No
     errors = {}
 
     # Function for validating an individual field
-    def field_converter(field, value, env=None):
-        if isinstance(field, MultiType):
-            value = field.to_native(value, env=env)
-            field.validate(value, env=env)
-        else:
-            value = field.to_native(value)
-            field.validate(value)
+    def field_converter(field, value, env):
+        value = field.to_native(value, env)
+        field.validate(value, env)
         return value
 
     # Loop across fields and coerce values
@@ -51,7 +47,7 @@ def validate(cls, instance_or_dict, partial=False, strict=False, trusted_data=No
         errors.update(rogue_field_errors)
 
     # Model level validation
-    instance_errors = _validate_model(cls, data)
+    instance_errors = _validate_model(cls, data, env)
     errors.update(instance_errors)
 
     if errors:
@@ -60,7 +56,7 @@ def validate(cls, instance_or_dict, partial=False, strict=False, trusted_data=No
     return data
 
 
-def _validate_model(cls, data):
+def _validate_model(cls, data, env):
     """
     Validate data using model level methods.
 
@@ -79,7 +75,7 @@ def _validate_model(cls, data):
         if field_name in cls._validator_functions and field_name in data:
             value = data[field_name]
             try:
-                cls._validator_functions[field_name](cls, data, value)
+                cls._validator_functions[field_name](cls, data, value, env)
             except BaseError as exc:
                 field = cls._fields[field_name]
                 serialized_field_name = field.serialized_name or field_name
@@ -114,5 +110,4 @@ def _check_for_unknown_fields(cls, data):
     return errors
 
 
-from .types.compound import MultiType
 from .transforms import import_loop

@@ -56,8 +56,7 @@ class MultiType(BaseType):
 
         return value
 
-    def export_loop(self, shape_instance, field_converter,
-                    role=None, print_none=False):
+    def export_loop(self, shape_instance, field_converter, env):
         raise NotImplementedError
 
     def init_compound_field(self, field, compound_field, **kwargs):
@@ -114,10 +113,9 @@ class ModelType(MultiType):
     def validate_model(self, model_instance, env=None):
         model_instance.validate(env=env)
 
-    def to_native(self, value, mapping=None, env=None):
+    def to_native(self, value, env):
         # We have already checked if the field is required. If it is None it
         # should continue being None
-        mapping = mapping or {}
         if value is None:
             return None
         if isinstance(value, self.model_class):
@@ -131,10 +129,9 @@ class ModelType(MultiType):
 
         # partial submodels now available with import_data (ht ryanolson)
         model = self.model_class()
-        return model.import_data(value, mapping=mapping, env=env)
+        return model.import_data(value, env=env)
 
-    def export_loop(self, model_instance, field_converter,
-                    role=None, print_none=False):
+    def export_loop(self, model_instance, field_converter, env):
         """
         Calls the main `export_loop` implementation because they are both
         supposed to operate on models.
@@ -144,9 +141,7 @@ class ModelType(MultiType):
         else:
             model_class = self.model_class
 
-        shaped = export_loop(model_class, model_instance,
-                             field_converter,
-                             role=role, print_none=print_none)
+        shaped = export_loop(model_class, model_instance, field_converter, env=env)
 
         return shaped
 
@@ -199,14 +194,9 @@ class ListType(MultiType):
         except TypeError:
             return [value]
 
-    def to_native(self, value, env=None):
+    def to_native(self, value, env):
         items = self._force_list(value)
-        if isinstance(self.field, MultiType):
-            to_native = functools.partial(self.field.to_native, env=env)
-        else:
-            to_native = self.field.to_native
-
-        return [to_native(item, env) for item in items]
+        return [self.field.to_native(item, env) for item in items]
 
     def check_length(self, value, env=None):
         list_length = len(value) if value else 0
@@ -226,21 +216,16 @@ class ListType(MultiType):
             raise ValidationError(message)
 
     def validate_items(self, items, env=None):
-        if isinstance(self.field, MultiType):
-            validate = functools.partial(self.field.validate, env=env)
-        else:
-            validate = self.field.validate
         errors = []
         for item in items:
             try:
-                validate(item)
+                self.field.validate(item, env)
             except ValidationError as exc:
                 errors.append(exc.messages)
         if errors:
             raise ValidationError(errors)
 
-    def export_loop(self, list_instance, field_converter,
-                    role=None, print_none=False):
+    def export_loop(self, list_instance, field_converter, env):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
         as `transforms.export_loop`.
@@ -248,16 +233,15 @@ class ListType(MultiType):
         data = []
         for value in list_instance:
             if hasattr(self.field, 'export_loop'):
-                shaped = self.field.export_loop(value, field_converter,
-                                                role=role)
+                shaped = self.field.export_loop(value, field_converter, env)
                 feels_empty = shaped is None or len(shaped) == 0
             else:
-                shaped = field_converter(self.field, value)
+                shaped = field_converter(self.field, value, env)
                 feels_empty = shaped is None
 
             # Print if we want empty or found a value
             if feels_empty:
-                if self.field.allow_none() or print_none:
+                if self.field.allow_none() or env.print_none:
                     data.append(shaped)
             elif shaped is not None:
                 data.append(shaped)
@@ -286,7 +270,7 @@ class DictType(MultiType):
     def model_class(self):
         return self.field.model_class
 
-    def to_native(self, value, safe=False, env=None):
+    def to_native(self, value, env, safe=False):
         if value == EMPTY_DICT:
             value = {}
         value = value or {}
@@ -297,22 +281,17 @@ class DictType(MultiType):
                     for k, v in iteritems(value))
 
     def validate_items(self, items, env=None):
-        if isinstance(self.field, MultiType):
-            validate = functools.partial(self.field.validate, env=env)
-        else:
-            validate = self.field.validate
         errors = {}
         for key, value in iteritems(items):
             try:
-                validate(value)
+                self.field.validate(value, env)
             except ValidationError as exc:
                 errors[key] = exc
 
         if errors:
             raise ValidationError(errors)
 
-    def export_loop(self, dict_instance, field_converter,
-                    role=None, print_none=False):
+    def export_loop(self, dict_instance, field_converter, env):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
         as `transforms.export_loop`.
@@ -321,15 +300,14 @@ class DictType(MultiType):
 
         for key, value in iteritems(dict_instance):
             if hasattr(self.field, 'export_loop'):
-                shaped = self.field.export_loop(value, field_converter,
-                                                role=role)
+                shaped = self.field.export_loop(value, field_converter, env)
                 feels_empty = shaped is None or len(shaped) == 0
             else:
-                shaped = field_converter(self.field, value)
+                shaped = field_converter(self.field, value, env)
                 feels_empty = shaped is None
 
             if feels_empty:
-                if self.field.allow_none() or print_none:
+                if self.field.allow_none() or env.print_none:
                     data[key] = shaped
             elif shaped is not None:
                 data[key] = shaped
@@ -386,10 +364,8 @@ class PolyModelType(MultiType):
                 return True
         return False
 
-    def to_native(self, value, mapping=None, env=None):
+    def to_native(self, value, env):
 
-        if mapping is None:
-            mapping = {}
         if value is None:
             return None
         if self.is_allowed_model(value):
@@ -405,7 +381,7 @@ class PolyModelType(MultiType):
 
         model_class = self.find_model(value)
         model = model_class()
-        return model.import_data(value, mapping=mapping, env=env)
+        return model.import_data(value, env=env)
 
     def find_model(self, data):
         """Finds the intended type by consulting potential classes or `claim_function`."""
@@ -439,16 +415,13 @@ class PolyModelType(MultiType):
         else:
             raise Exception("Input for polymorphic field did not match any model")
 
-    def export_loop(self, model_instance, field_converter,
-                    role=None, print_none=False):
+    def export_loop(self, model_instance, field_converter, env):
 
         model_class = model_instance.__class__
         if not self.is_allowed_model(model_instance):
             raise Exception("Cannot export: {} is not an allowed type".format(model_class))
 
-        shaped = export_loop(model_class, model_instance,
-                             field_converter,
-                             role=role, print_none=print_none)
+        shaped = export_loop(model_class, model_instance, field_converter, env=env)
 
         return shaped
 

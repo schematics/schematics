@@ -113,7 +113,7 @@ def import_loop(cls, instance_or_dict, field_converter, trusted_data=None,
                     sub_env.mapping = sub_mapping
                 else:
                     sub_env = env
-                raw_value = field_converter(field, raw_value, env=sub_env)
+                raw_value = field_converter(field, raw_value, sub_env)
 
             data[field_name] = raw_value
 
@@ -128,8 +128,8 @@ def import_loop(cls, instance_or_dict, field_converter, trusted_data=None,
     return data
 
 
-def export_loop(cls, instance_or_dict, field_converter,
-                role=None, raise_error_on_role=False, print_none=False):
+def export_loop(cls, instance_or_dict, field_converter, role=None, 
+                raise_error_on_role=False, print_none=False, env=None):
     """
     The export_loop function is intended to be a general loop definition that
     can be used for any form of data shaping, such as application of roles or
@@ -153,15 +153,23 @@ def export_loop(cls, instance_or_dict, field_converter,
         This function overrides ``serialize_when_none`` values found either on
         ``cls`` or an instance.
     """
+    if not env:
+        env = ConfigObject()
+    elif not isinstance(env, ConfigObject):
+        env = ConfigObject(env)
+    env._setdefault('role', role)
+    env._setdefault('raise_error_on_role', raise_error_on_role)
+    env._setdefault('print_none', print_none)
+
     data = {}
 
     # Translate `role` into `gottago` function
     gottago = wholelist()
-    if hasattr(cls, '_options') and role in cls._options.roles:
-        gottago = cls._options.roles[role]
-    elif role and raise_error_on_role:
+    if hasattr(cls, '_options') and env.role in cls._options.roles:
+        gottago = cls._options.roles[env.role]
+    elif env.role and env.raise_error_on_role:
         error_msg = u'%s Model has no role "%s"'
-        raise ValueError(error_msg % (cls.__name__, role))
+        raise ValueError(error_msg % (cls.__name__, env.role))
     else:
         gottago = cls._options.roles.get("default", gottago)
 
@@ -178,23 +186,21 @@ def export_loop(cls, instance_or_dict, field_converter,
         # Value found, apply transformation and store it
         elif value is not None:
             if hasattr(field, 'export_loop'):
-                shaped = field.export_loop(value, field_converter,
-                                           role=role,
-                                           print_none=print_none)
+                shaped = field.export_loop(value, field_converter, env)
                 feels_empty = shaped is None or len(shaped) == 0
             else:
-                shaped = field_converter(field, value)
+                shaped = field_converter(field, value, env)
                 feels_empty = shaped is None
 
             # Print if we want none or found a value
             if feels_empty:
-                if allow_none(cls, field) or print_none:
+                if allow_none(cls, field) or env.print_none:
                     data[serialized_name] = shaped
             elif shaped is not None:
                 data[serialized_name] = shaped
 
         # Store None if reqeusted
-        elif allow_none(cls, field) or print_none:
+        elif allow_none(cls, field) or env.print_none:
             data[serialized_name] = value
 
     if fields_order:
@@ -412,21 +418,16 @@ def blacklist(*field_list):
 
 def convert(cls, instance_or_dict, trusted_data=None, partial=True, strict=False,
             mapping=None, env=None):
-    def field_converter(field, value, env=None):
-        if isinstance(field, MultiType):
-            return field.to_native(value, env=env)
-        else:
-            return field.to_native(value)
-
+    field_converter = lambda field, value, env: field.to_native(value, env)
     data = import_loop(cls, instance_or_dict, field_converter, trusted_data=trusted_data,
                        partial=partial, strict=strict, mapping=mapping, env=env)
     return data
 
 
 def to_native(cls, instance_or_dict, role=None, raise_error_on_role=True, env=None):
-    field_converter = lambda field, value: field.to_native(value, env=env)
-    data = export_loop(cls, instance_or_dict, field_converter,
-                       role=role, raise_error_on_role=raise_error_on_role)
+    field_converter = lambda field, value, env: field.to_native(value, env)
+    data = export_loop(cls, instance_or_dict, field_converter, role=role,
+                       raise_error_on_role=raise_error_on_role, env=env)
     return data
 
 
@@ -451,9 +452,9 @@ def to_primitive(cls, instance_or_dict, role=None, raise_error_on_role=True, env
         This parameter enforces strict behavior which requires substructures
         to have the same role definition as their parent structures.
     """
-    field_converter = lambda field, value: field.to_primitive(value, env=env)
-    data = export_loop(cls, instance_or_dict, field_converter,
-                       role=role, raise_error_on_role=raise_error_on_role)
+    field_converter = lambda field, value, env: field.to_primitive(value, env)
+    data = export_loop(cls, instance_or_dict, field_converter, role=role,
+                       raise_error_on_role=raise_error_on_role, env=env)
     return data
 
 
@@ -593,10 +594,10 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
         This puts a prefix in front of the field names during flattening.
         Default: None
     """
-    field_converter = lambda field, value: field.to_primitive(value, env=env)
+    field_converter = lambda field, value, env: field.to_primitive(value, env)
 
-    data = export_loop(cls, instance_or_dict, field_converter,
-                       role=role, print_none=True)
+    data = export_loop(cls, instance_or_dict, field_converter, role=role,
+                       raise_error_on_role=raise_error_on_role, print_none=True, env=env)
 
     flattened = flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
 

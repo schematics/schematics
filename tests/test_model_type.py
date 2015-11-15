@@ -1,5 +1,6 @@
 import pytest
 
+from schematics.datastructures import ConfigObject
 from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.types.compound import ModelType, ListType
@@ -28,7 +29,7 @@ def test_simple_embedded_models():
     assert isinstance(p.location, Location)
     assert p.location.country_code == "IS"
 
-    assert Player.location.to_native(None) is None
+    assert Player.location.to_native(None, ConfigObject()) is None
 
 
 def test_simple_embedded_models_is_none():

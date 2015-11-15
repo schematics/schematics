@@ -66,7 +66,7 @@ def test_validate_with_instance_level_validators():
     class Player(Model):
         id = IntType()
 
-        def validate_id(self, context, value):
+        def validate_id(self, context, value, env):
             if p1._initial['id'] != value:
                 p1._data['id'] = p1._initial['id']
                 raise ValidationError('Cannot change id')
