@@ -21,13 +21,6 @@ def test_string_choices():
         BaseType(choices='foo')
 
 
-def test_int():
-    with pytest.raises(ConversionError):
-        IntType().validate('foo')
-
-    assert IntType.validate(5001) == None
-
-
 def test_date():
     today = datetime.date(2013, 3, 1)
 
@@ -84,6 +77,12 @@ def test_int():
     with pytest.raises(ConversionError):
         IntType()('a')
     assert IntType()(1) == 1
+
+
+def test_int_validation():
+    with pytest.raises(ConversionError):
+        IntType().validate('foo')
+    assert IntType().validate(5001) == None
 
 
 def test_custom_validation_functions():
