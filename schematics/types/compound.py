@@ -62,6 +62,9 @@ class MultiType(BaseType):
     def export_loop(self, shape_instance, field_converter, context):
         raise NotImplementedError
 
+    def to_primitive(self, value, context):
+        return self.export_loop(value, context.field_converter, context)
+
     def init_compound_field(self, field, compound_field, **kwargs):
         """
         Some of non-BaseType fields requires `field` arg.
@@ -235,12 +238,8 @@ class ListType(MultiType):
         """
         data = []
         for value in list_instance:
-            if hasattr(self.field, 'export_loop'):
-                shaped = self.field.export_loop(value, field_converter, context)
-                feels_empty = shaped is None or len(shaped) == 0
-            else:
-                shaped = field_converter(self.field, value, context)
-                feels_empty = shaped is None
+            shaped = field_converter(self.field, value, context)
+            feels_empty = shaped is None or isinstance(self.field, MultiType) and len(shaped) == 0
 
             # Print if we want empty or found a value
             if feels_empty:
@@ -302,12 +301,8 @@ class DictType(MultiType):
         data = {}
 
         for key, value in iteritems(dict_instance):
-            if hasattr(self.field, 'export_loop'):
-                shaped = self.field.export_loop(value, field_converter, context)
-                feels_empty = shaped is None or len(shaped) == 0
-            else:
-                shaped = field_converter(self.field, value, context)
-                feels_empty = shaped is None
+            shaped = field_converter(self.field, value, context)
+            feels_empty = shaped is None or isinstance(self.field, MultiType) and len(shaped) == 0
 
             if feels_empty:
                 if self.field.allow_none() or context.print_none:

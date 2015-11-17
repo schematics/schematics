@@ -195,12 +195,8 @@ def export_loop(cls, instance_or_dict, field_converter, role=None,
 
         # Value found, apply transformation and store it
         elif value is not None:
-            if hasattr(field, 'export_loop'):
-                shaped = field.export_loop(value, field_converter, context)
-                feels_empty = shaped is None or len(shaped) == 0
-            else:
-                shaped = field_converter(field, value, context)
-                feels_empty = shaped is None
+            shaped = field_converter(field, value, context)
+            feels_empty = shaped is None or isinstance(field, MultiType) and len(shaped) == 0
 
             # Print if we want none or found a value
             if feels_empty:
