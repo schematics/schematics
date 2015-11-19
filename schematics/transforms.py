@@ -5,7 +5,7 @@ import itertools
 
 from six import iteritems
 
-from .datastructures import OrderedDict, ConfigObject
+from .datastructures import OrderedDict, get_context_factory
 from .exceptions import ConversionError, ModelConversionError, ValidationError
 
 try:
@@ -26,12 +26,20 @@ except:
     import codecs
     unicode = str #PY3
 
+
 ###
 # Transform Loops
 ###
 
+ImportContext = get_context_factory('ImportContext',
+                    'partial, strict, mapping, app_data')
+
+ExportContext = get_context_factory('ExportContext',
+                    'role, raise_error_on_role, print_none, app_data')
+
+
 def import_loop(cls, instance_or_dict, field_converter, trusted_data=None,
-                partial=False, strict=False, mapping=None, env=None):
+                partial=False, strict=False, mapping=None, app_data=None, env=None):
     """
     The import loop is designed to take untrusted data and convert it into the
     native types, as described in ``cls``.  It does this by calling
@@ -57,13 +65,9 @@ def import_loop(cls, instance_or_dict, field_converter, trusted_data=None,
     if not isinstance(instance_or_dict, (cls, dict)):
         raise ModelConversionError('Model conversion requires a model or dict')
 
-    if not env:
-        env = ConfigObject()
-    elif not isinstance(env, ConfigObject):
-        env = ConfigObject(env)
-    env._setdefault('partial', partial)
-    env._setdefault('strict', strict)
-    env._setdefault('mapping', mapping or {})
+    mapping = mapping or {}
+    app_data = app_data if app_data is not None else {}
+    env = env or ImportContext(partial, strict, mapping, app_data)
 
     data = dict(trusted_data) if trusted_data else {}
     errors = {}
@@ -79,13 +83,13 @@ def import_loop(cls, instance_or_dict, field_converter, trusted_data=None,
 
     # Check for rogues if strict is set
     rogue_fields = set(instance_or_dict) - all_fields
-    if strict and len(rogue_fields) > 0:
+    if env.strict and len(rogue_fields) > 0:
         for field in rogue_fields:
             errors[field] = 'Rogue field'
 
     for field_name, field in iteritems(cls._fields):
         trial_keys = _listify(field.deserialize_from)
-        trial_keys.extend(_listify(env.mapping._get(field_name, [])))
+        trial_keys.extend(_listify(env.mapping.get(field_name, [])))
         if field.serialized_name:
             serialized_field_name = field.serialized_name
             trial_keys.extend((serialized_field_name, field_name))
@@ -107,13 +111,10 @@ def import_loop(cls, instance_or_dict, field_converter, trusted_data=None,
                 if field.required and not env.partial:
                     errors[serialized_field_name] = [field.messages['required']]
             else:
-                sub_mapping = env.mapping._get('model_mapping', ConfigObject())._get(field_name, {})
-                if sub_mapping:
-                    sub_env = env._copy()
-                    sub_env.mapping = sub_mapping
-                else:
-                    sub_env = env
-                raw_value = field_converter(field, raw_value, sub_env)
+                field_params = {
+                    'mapping': env.mapping.get('model_mapping', {}).get(field_name, None)
+                }
+                raw_value = field_converter(field, raw_value, env._branch(**field_params))
 
             data[field_name] = raw_value
 
@@ -129,7 +130,7 @@ def import_loop(cls, instance_or_dict, field_converter, trusted_data=None,
 
 
 def export_loop(cls, instance_or_dict, field_converter, role=None, 
-                raise_error_on_role=False, print_none=False, env=None):
+                raise_error_on_role=False, print_none=False, app_data=None, env=None):
     """
     The export_loop function is intended to be a general loop definition that
     can be used for any form of data shaping, such as application of roles or
@@ -153,13 +154,8 @@ def export_loop(cls, instance_or_dict, field_converter, role=None,
         This function overrides ``serialize_when_none`` values found either on
         ``cls`` or an instance.
     """
-    if not env:
-        env = ConfigObject()
-    elif not isinstance(env, ConfigObject):
-        env = ConfigObject(env)
-    env._setdefault('role', role)
-    env._setdefault('raise_error_on_role', raise_error_on_role)
-    env._setdefault('print_none', print_none)
+    app_data = app_data if app_data is not None else {}
+    env = env or ExportContext(role, raise_error_on_role, print_none, app_data)
 
     data = {}
 
@@ -417,21 +413,21 @@ def blacklist(*field_list):
 
 
 def convert(cls, instance_or_dict, trusted_data=None, partial=True, strict=False,
-            mapping=None, env=None):
+            mapping=None, app_data=None, env=None):
     field_converter = lambda field, value, env: field.to_native(value, env)
     data = import_loop(cls, instance_or_dict, field_converter, trusted_data=trusted_data,
-                       partial=partial, strict=strict, mapping=mapping, env=env)
+                       partial=partial, strict=strict, mapping=mapping, app_data=app_data, env=env)
     return data
 
 
-def to_native(cls, instance_or_dict, role=None, raise_error_on_role=True, env=None):
+def to_native(cls, instance_or_dict, role=None, raise_error_on_role=True, app_data=None, env=None):
     field_converter = lambda field, value, env: field.to_native(value, env)
     data = export_loop(cls, instance_or_dict, field_converter, role=role,
-                       raise_error_on_role=raise_error_on_role, env=env)
+                       raise_error_on_role=raise_error_on_role, app_data=app_data, env=env)
     return data
 
 
-def to_primitive(cls, instance_or_dict, role=None, raise_error_on_role=True, env=None):
+def to_primitive(cls, instance_or_dict, role=None, raise_error_on_role=True, app_data=None, env=None):
     """
     Implements serialization as a mechanism to convert ``Model`` instances into
     dictionaries keyed by field_names with the converted data as the values.
@@ -454,12 +450,12 @@ def to_primitive(cls, instance_or_dict, role=None, raise_error_on_role=True, env
     """
     field_converter = lambda field, value, env: field.to_primitive(value, env)
     data = export_loop(cls, instance_or_dict, field_converter, role=role,
-                       raise_error_on_role=raise_error_on_role, env=env)
+                       raise_error_on_role=raise_error_on_role, app_data=app_data, env=env)
     return data
 
 
-def serialize(cls, instance_or_dict, role=None, raise_error_on_role=True, env=None):
-    return to_primitive(cls, instance_or_dict, role, raise_error_on_role, env)
+def serialize(cls, instance_or_dict, role=None, raise_error_on_role=True, app_data=None, env=None):
+    return to_primitive(cls, instance_or_dict, role, raise_error_on_role, app_data, env)
 
 
 EMPTY_LIST = "[]"
@@ -555,7 +551,7 @@ def flatten_to_dict(instance_or_dict, prefix=None, ignore_none=True):
 
 
 def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
-            ignore_none=True, prefix=None, env=None):
+            ignore_none=True, prefix=None, app_data=None, env=None):
     """
     Produces a flat dictionary representation of the model.  Flat, in this
     context, means there is only one level to the dictionary.  Multiple layers
@@ -597,7 +593,8 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
     field_converter = lambda field, value, env: field.to_primitive(value, env)
 
     data = export_loop(cls, instance_or_dict, field_converter, role=role,
-                       raise_error_on_role=raise_error_on_role, print_none=True, env=env)
+                       raise_error_on_role=raise_error_on_role, print_none=True,
+                       app_data=app_data, env=env)
 
     flattened = flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
 

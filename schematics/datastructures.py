@@ -1,3 +1,4 @@
+from collections import namedtuple
 from copy import deepcopy
 from six.moves import zip
 from six import iteritems
@@ -289,4 +290,35 @@ class ConfigObject(DataObject):
 
     def __getitem__(self, key):
         return getattr(self, key)
+
+
+def autofill_namedtuple(typename, fields):
+
+    cls = namedtuple(typename, fields)
+
+    def __new__(cls, *args, **kwargs):
+        d = len(cls._fields) - len(args)
+        if d < 0:
+            raise TypeError('Expected %d arguments, got %d' % (len(cls._fields), len(args)))
+        values = tuple(map(kwargs.pop, cls._fields, args + (None,) * d))
+        if kwargs:
+            raise ValueError('Got unexpected field names: %r' % list(kwargs.keys()))
+        return tuple.__new__(cls, values)
+
+    cls.__new__ = staticmethod(__new__)
+    return cls
+
+
+def get_context_factory(typename, fields):
+
+    def _branch(self, **params):
+        _params = dict(((name, value) for name, value in params.items() if value is not None))
+        if _params:
+            return self._replace(**_params)
+        else:
+            return self
+
+    cls = autofill_namedtuple(typename, fields)
+    cls._branch = _branch
+    return cls
 

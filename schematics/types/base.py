@@ -978,7 +978,7 @@ class MultilingualStringType(BaseType):
 
     Minimum and maximum lengths apply to each of the localized values.
 
-    At least one of ``default_locale`` or ``env.context['locale']`` must be defined
+    At least one of ``default_locale`` or ``env.app_data['locale']`` must be defined
     when calling ``.to_primitive``.
 
     """
@@ -1020,7 +1020,7 @@ class MultilingualStringType(BaseType):
 
     def to_primitive(self, value, env=None):
         """
-        Use a combination of ``default_locale`` and ``env.context['locale']`` to return
+        Use a combination of ``default_locale`` and ``env.app_data['locale']`` to return
         the best localized string.
 
         """
@@ -1028,8 +1028,8 @@ class MultilingualStringType(BaseType):
             return None
 
         context_locale = None
-        if env and env.context is not None and 'locale' in env.context:
-            context_locale = env.context['locale']
+        if env and 'locale' in env.app_data:
+            context_locale = env.app_data['locale']
 
         # Build a list of all possible locales to try
         possible_locales = []

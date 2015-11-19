@@ -28,6 +28,7 @@ def test_nested_mapping():
 
     assert m1.modelfield.subfield == 'qweasd'
 
+
 def test_nested_mapping_with_required():
 
     mapping = {
@@ -44,9 +45,10 @@ def test_nested_mapping_with_required():
     class MainModel(Model):
         modelfield = ModelType(SubModel)
 
-    m1 = MainModel({ # Note partial=False here!
+    m1 = MainModel({
         'modelfield': {'importfield':'qweasd'},
         }, partial=False, deserialize_mapping=mapping)
+
 
 def test_submodel_required_field():
 
@@ -72,4 +74,24 @@ def test_submodel_required_field():
         m1.validate()
 
     m1.validate(partial=True)
+
+
+def test_strict_propagation():
+
+    class SubModel(Model):
+        subfield = StringType()
+
+    class MainModel(Model):
+        modelfield = ModelType(SubModel)
+
+    with pytest.raises(ModelConversionError):
+        m1 = MainModel({
+            'modelfield': {'extrafield':'qweasd'},
+            }, strict=True)
+
+    m1 = MainModel({
+        'modelfield': {'extrafield':'qweasd'},
+        }, strict=False)
+
+    assert m1.modelfield._data == {'subfield': None}
 

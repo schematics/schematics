@@ -228,14 +228,14 @@ class Model(object):
     __optionsclass__ = ModelOptions
 
     def __init__(self, raw_data=None, deserialize_mapping=None,
-                 partial=True, strict=True, env=None):
+                 partial=True, strict=True, app_data=None, env=None):
         if raw_data is None:
             raw_data = {}
         self._initial = raw_data
         self._data = self.convert(raw_data, strict=strict, partial=partial,
-                                  mapping=deserialize_mapping, env=env)
+                                  mapping=deserialize_mapping, app_data=app_data, env=env)
 
-    def validate(self, partial=False, strict=False, env=None):
+    def validate(self, partial=False, strict=False, app_data=None, env=None):
         """
         Validates the state of the model and adding additional untrusted data
         as well. If the models is invalid, raises ValidationError with error
@@ -250,7 +250,7 @@ class Model(object):
         """
         try:
             data = validate(self.__class__, self._data, partial=partial,
-                            strict=strict, env=env)
+                            strict=strict, app_data=app_data, env=env)
             self._data.update(**data)
         except BaseError as exc:
             raise ModelValidationError(exc.messages)
@@ -282,10 +282,10 @@ class Model(object):
         """
         return convert(self.__class__, raw_data, **kw)
 
-    def to_native(self, role=None, env=None):
-        return to_native(self.__class__, self, role=role, env=env)
+    def to_native(self, role=None, app_data=None, env=None):
+        return to_native(self.__class__, self, role=role, app_data=app_data, env=env)
 
-    def to_primitive(self, role=None, env=None):
+    def to_primitive(self, role=None, app_data=None, env=None):
         """Return data as it would be validated. No filtering of output unless
         role is defined.
 
@@ -293,12 +293,12 @@ class Model(object):
             Filter output by a specific role
 
         """
-        return to_primitive(self.__class__, self, role=role, env=env)
+        return to_primitive(self.__class__, self, role=role, app_data=app_data, env=env)
 
-    def serialize(self, role=None, env=None):
-        return self.to_primitive(role=role, env=env)
+    def serialize(self, role=None, app_data=None, env=None):
+        return self.to_primitive(role=role, app_data=app_data, env=env)
 
-    def flatten(self, role=None, prefix=""):
+    def flatten(self, role=None, prefix="", app_data=None, env=None):
         """
         Return data as a pure key-value dictionary, where the values are
         primitive types (string, bool, int, long).
@@ -308,7 +308,8 @@ class Model(object):
         :param prefix:
             A prefix to use for keynames during flattening.
         """
-        return flatten(self.__class__, self, role=role, prefix=prefix)
+        return flatten(self.__class__, self, role=role, prefix=prefix,
+                       app_data=app_data, env=env)
 
     @classmethod
     def from_flat(cls, data):
