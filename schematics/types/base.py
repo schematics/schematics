@@ -15,6 +15,7 @@ import string
 import six
 from six import iteritems
 
+from ..common import NATIVE, PRIMITIVE
 from ..exceptions import (
     StopValidation, ValidationError, ConversionError, MockCreationError
 )
@@ -154,6 +155,11 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         'choices': u"Value must be one of {0}.",
     }
 
+    EXPORT_METHODS = {
+        NATIVE: 'to_native',
+        PRIMITIVE: 'to_primitive',
+    }
+
     def __init__(self, required=False, default=None, serialized_name=None,
                  choices=None, validators=None, deserialize_from=None,
                  serialize_when_none=None, messages=None):
@@ -177,6 +183,11 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         self.name = None
         self.owner_model = None
         self.parent_field = None
+        self.typeclass = self.__class__
+        self.is_compound = False
+
+        self.export_mapping = dict(
+            (format, getattr(self, fname)) for format, fname in self.EXPORT_METHODS.items())
 
     def __call__(self, value):
         return self.to_native(value)
@@ -200,6 +211,12 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         if callable(self._default):
             default = self._default()
         return default
+
+    def convert(self, value, context=None):
+        return self.to_native(value, context)
+
+    def export(self, value, format, context=None):
+        return self.export_mapping[format](value, context)
 
     def to_primitive(self, value, context=None):
         """Convert internal data to a value safe to serialize.
@@ -227,7 +244,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
 
         """
         if convert:
-            value = self.to_native(value)
+            value = self.convert(value, context)
 
         errors = []
 
@@ -1117,3 +1134,4 @@ class MultilingualStringType(BaseType):
             if self.locale_regex is not None and self.locale_regex.match(locale) is None:
                 raise ValidationError(
                     self.messages['regex_locale'].format(locale))
+

@@ -15,7 +15,7 @@ def test_serialize_field_orders_one_two_three():
 
     p1 = Example({'one': 'a', 'two': 2, 'three': '3'})
     order = [('one', 'a'), ('two', 2), ('three', '3')]
-    serialized = p1.to_native()
+    serialized = p1.to_dict()
     assert serialized.items() == order
 
 
@@ -29,7 +29,7 @@ def test_serialize_field_orders_three_two_one():
             fields_order = ['three', 'two', 'one']
 
     p1 = Example({'one': 'a', 'two': 2, 'three': '3'})
-    serialized = p1.to_native()
+    serialized = p1.to_dict()
     order = [('three', '3'), ('two', 2), ('one', 'a')]
     assert serialized.items() == order
 
@@ -44,6 +44,6 @@ def test_serialize_field_orders_one_three_two():
             fields_order = ['one', 'three', 'two']
 
     p1 = Example({'one': 'a', 'two': 2, 'three': '3'})
-    serialized = p1.to_native()
+    serialized = p1.to_dict()
     order = [('one', 'a'), ('three', '3'), ('two', 2)]
     assert serialized.items() == order

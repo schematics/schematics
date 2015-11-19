@@ -30,7 +30,7 @@ def test_serializable():
     d = location_US.serialize()
     assert d == {"country_code": "US", "country_name": "United States"}
 
-    d = location_US.to_native()
+    d = location_US.to_dict()
     assert d == {"country_code": u"US", "country_name": "United States"}
 
     location_IS = Location({"country_code": "IS"})
@@ -40,11 +40,11 @@ def test_serializable():
     d = location_IS.serialize()
     assert d == {"country_code": "IS", "country_name": "Unknown"}
 
-    d = location_IS.to_native()
+    d = location_IS.to_dict()
     assert d == {"country_code": "IS", "country_name": "Unknown"}
 
 
-def test_serializable_to_native():
+def test_serializable_to_dict():
     class Location(Model):
         country_code = StringType()
 
@@ -54,7 +54,7 @@ def test_serializable_to_native():
 
     loc = Location({'country_code': 'US'})
 
-    d = loc.to_native()
+    d = loc.to_dict()
     assert d == {'country_code': 'US', 'country_name': 'United States'}
 
 
@@ -116,7 +116,7 @@ def test_serializable_with_model():
     assert d == {"total_points": 2, "xp_level": {"level": 4, "title": "Best"}}
 
 
-def test_serializable_with_model_to_native():
+def test_serializable_with_model_to_dict():
     class ExperienceLevel(Model):
         level = IntType()
         title = StringType()
@@ -132,7 +132,7 @@ def test_serializable_with_model_to_native():
 
     assert player.xp_level.level == 4
 
-    d = player.to_native()
+    d = player.to_dict()
     assert d == {"total_points": 2, "xp_level": {"level": 4, "title": "Best"}}
 
 

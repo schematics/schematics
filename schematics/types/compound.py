@@ -6,6 +6,7 @@ from collections import Iterable
 import itertools
 import functools
 
+from ..common import NATIVE, PRIMITIVE, EMPTY_LIST, EMPTY_DICT
 from ..exceptions import (ValidationError, ConversionError,
                           ModelValidationError, StopValidation,
                           MockCreationError)
@@ -29,7 +30,9 @@ class MultiType(BaseType):
             self.field.parent_field = self
 
         super(MultiType, self).__init__(**kwargs)
-            
+
+        self.is_compound = True
+
     def _setup(self, field_name, owner_model):
         # Recursively set up inner fields.
         if hasattr(self, 'field'):
@@ -42,7 +45,7 @@ class MultiType(BaseType):
 
         """
         if convert:
-            value = self.to_native(value, context)
+            value = self.convert(value, context)
 
         errors = {}
 
@@ -59,11 +62,11 @@ class MultiType(BaseType):
 
         return value
 
-    def export_loop(self, shape_instance, field_converter, context):
+    def convert(self, value, context):
         raise NotImplementedError
 
-    def to_primitive(self, value, context):
-        return self.export_loop(value, context.field_converter, context)
+    def export(self, shape_instance, format, context):
+        raise NotImplementedError
 
     def init_compound_field(self, field, compound_field, **kwargs):
         """
@@ -119,7 +122,7 @@ class ModelType(MultiType):
     def validate_model(self, model_instance, context=None):
         model_instance.validate(context=context)
 
-    def to_native(self, value, context):
+    def convert(self, value, context):
         # We have already checked if the field is required. If it is None it
         # should continue being None
         if value is None:
@@ -137,19 +140,8 @@ class ModelType(MultiType):
         model = self.model_class()
         return model.import_data(value, context=context)
 
-    def export_loop(self, model_instance, field_converter, context):
-        """
-        Calls the main `export_loop` implementation because they are both
-        supposed to operate on models.
-        """
-        if isinstance(model_instance, self.model_class):
-            model_class = model_instance.__class__
-        else:
-            model_class = self.model_class
-
-        shaped = export_loop(model_class, model_instance, field_converter, context=context)
-
-        return shaped
+    def export(self, model_instance, format, context):
+        return model_instance.export(format=format, context=context)
 
 
 class ListType(MultiType):
@@ -200,9 +192,9 @@ class ListType(MultiType):
         except TypeError:
             return [value]
 
-    def to_native(self, value, context):
+    def convert(self, value, context):
         items = self._force_list(value)
-        return [self.field.to_native(item, context) for item in items]
+        return [self.field.convert(item, context) for item in items]
 
     def check_length(self, value, context=None):
         list_length = len(value) if value else 0
@@ -231,14 +223,14 @@ class ListType(MultiType):
         if errors:
             raise ValidationError(errors)
 
-    def export_loop(self, list_instance, field_converter, context):
+    def export(self, list_instance, format, context):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
         as `transforms.export_loop`.
         """
         data = []
         for value in list_instance:
-            shaped = field_converter(self.field, value, context)
+            shaped = self.field.export(value, format, context)
             feels_empty = shaped is None or isinstance(self.field, MultiType) and len(shaped) == 0
 
             # Print if we want empty or found a value
@@ -272,14 +264,14 @@ class DictType(MultiType):
     def model_class(self):
         return self.field.model_class
 
-    def to_native(self, value, context, safe=False):
+    def convert(self, value, context, safe=False):
         if value == EMPTY_DICT:
             value = {}
         value = value or {}
         if not isinstance(value, dict):
             raise ConversionError(u'Only dictionaries may be used in a DictType')
 
-        return dict((self.coerce_key(k), self.field.to_native(v, context))
+        return dict((self.coerce_key(k), self.field.convert(v, context))
                     for k, v in iteritems(value))
 
     def validate_items(self, items, context=None):
@@ -293,7 +285,7 @@ class DictType(MultiType):
         if errors:
             raise ValidationError(errors)
 
-    def export_loop(self, dict_instance, field_converter, context):
+    def export(self, dict_instance, format, context):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
         as `transforms.export_loop`.
@@ -301,7 +293,7 @@ class DictType(MultiType):
         data = {}
 
         for key, value in iteritems(dict_instance):
-            shaped = field_converter(self.field, value, context)
+            shaped = self.field.export(value, format, context)
             feels_empty = shaped is None or isinstance(self.field, MultiType) and len(shaped) == 0
 
             if feels_empty:
@@ -362,7 +354,7 @@ class PolyModelType(MultiType):
                 return True
         return False
 
-    def to_native(self, value, context):
+    def convert(self, value, context):
 
         if value is None:
             return None
@@ -413,16 +405,13 @@ class PolyModelType(MultiType):
         else:
             raise Exception("Input for polymorphic field did not match any model")
 
-    def export_loop(self, model_instance, field_converter, context):
+    def export(self, model_instance, format, context):
 
         model_class = model_instance.__class__
         if not self.is_allowed_model(model_instance):
             raise Exception("Cannot export: {} is not an allowed type".format(model_class))
 
-        shaped = export_loop(model_class, model_instance, field_converter, context=context)
-
-        return shaped
+        return model_instance.export(format=format, context=context)
 
 
-from ..models import Model, ModelMeta
-from ..transforms import export_loop, EMPTY_LIST, EMPTY_DICT
+from ..models import ModelMeta
