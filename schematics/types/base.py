@@ -459,11 +459,12 @@ class NumberType(BaseType):
     }
 
     def __init__(self, number_class, number_type,
-                 min_value=None, max_value=None, **kwargs):
+                 min_value=None, max_value=None, coerce=False, **kwargs):
         self.number_class = number_class
         self.number_type = number_type
         self.min_value = min_value
         self.max_value = max_value
+        self.coerce = coerce
 
         super(NumberType, self).__init__(**kwargs)
 
@@ -471,13 +472,21 @@ class NumberType(BaseType):
         return get_value_in(self.min_value, self.max_value)
 
     def to_native(self, value, context=None):
+        if type(value) is self.number_class:
+            return value
         try:
-            value = self.number_class(value)
+            native_value = self.number_class(value)
         except (TypeError, ValueError):
-            raise ConversionError(self.messages['number_coerce']
-                                  .format(value, self.number_type.lower()))
+            pass
+        else:
+            if (self.number_class is float  # Float conversion is strict enough.
+              or native_value == value      # Match numeric types.
+              or str(native_value) == value # Match numeric strings.
+              or self.coerce):
+                return native_value
 
-        return value
+        raise ConversionError(self.messages['number_coerce']
+                              .format(value, self.number_type.lower()))
 
     def validate_is_a_number(self, value):
         try:
