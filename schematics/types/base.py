@@ -104,23 +104,23 @@ class TypeMeta(type):
 
     def __new__(mcs, name, bases, attrs):
         messages = {}
-        validators = []
+        validators = set()
 
         for base in reversed(bases):
             if hasattr(base, 'MESSAGES'):
                 messages.update(base.MESSAGES)
 
             if hasattr(base, "_validators"):
-                validators.extend(base._validators)
+                validators.update(base._validators)
 
         if 'MESSAGES' in attrs:
             messages.update(attrs['MESSAGES'])
 
         attrs['MESSAGES'] = messages
 
-        for attr_name, attr in iteritems(attrs):
+        for attr_name in attrs:
             if attr_name.startswith("validate_"):
-                validators.append(attr)
+                validators.add(attr_name)
 
         attrs["_validators"] = validators
 
@@ -185,7 +185,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         self.choices = choices
         self.deserialize_from = deserialize_from
 
-        self.validators = [functools.partial(v, self) for v in self._validators]
+        self.validators = [getattr(self, validator_name) for validator_name in self._validators]
         if validators:
             self.validators += validators
 

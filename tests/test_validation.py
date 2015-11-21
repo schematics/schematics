@@ -6,7 +6,7 @@ from schematics.exceptions import (
     BaseError, ValidationError, ConversionError,
     ModelValidationError, ModelConversionError,
 )
-from schematics.types import StringType, DateTimeType, BooleanType
+from schematics.types import StringType, DateTimeType, BooleanType, IntType
 from schematics.types.compound import ModelType, ListType, DictType
 
 
@@ -332,6 +332,31 @@ def test_deep_errors_with_dicts():
                 }
             }
         }
+
+
+def test_field_validator_override():
+
+    class CustomIntType(IntType):
+        def validate_range(self, value):
+            pass
+
+    CustomIntType(max_value=1).validate(9)
+
+
+def test_model_validator_override():
+
+    class Base(Model):
+        def validate_foo(self, data, value):
+            pass
+        def validate_bar(self, data, value):
+            pass
+
+    class Child(Base):
+        def validate_bar(self, data, value):
+            pass
+
+    assert Child._validator_functions['foo'] is Base._validator_functions['foo']
+    assert Child._validator_functions['bar'] is not Base._validator_functions['bar']
 
 
 def test_clean_validation_messages():
