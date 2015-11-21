@@ -161,7 +161,7 @@ class ListType(MultiType):
         self.min_size = min_size
         self.max_size = max_size
 
-        validators = [self.check_length, self.validate_items] + kwargs.pop("validators", [])
+        validators = [self.check_length] + kwargs.pop("validators", [])
 
         super(ListType, self).__init__(validators=validators, **kwargs)
 
