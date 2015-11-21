@@ -41,6 +41,8 @@ class MultiType(BaseType):
         key. Used by ModelType and ListType.
 
         """
+        value = self.to_native(value, context)
+
         errors = {}
 
         for validator in self.validators:

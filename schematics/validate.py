@@ -31,9 +31,7 @@ def validate(cls, instance_or_dict, partial=False, strict=False, trusted_data=No
 
     # Function for validating an individual field
     def field_converter(field, value, context):
-        value = field.to_native(value, context)
-        field.validate(value, context)
-        return value
+        return field.validate(value, context)
 
     # Loop across fields and coerce values
     try:
