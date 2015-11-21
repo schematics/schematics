@@ -280,7 +280,7 @@ class DictType(MultiType):
         value = value or {}
 
         if not isinstance(value, dict):
-            raise ValidationError(u'Only dictionaries may be used in a DictType')
+            raise ConversionError(u'Only dictionaries may be used in a DictType')
 
         return dict((self.coerce_key(k), self.field.to_native(v, context))
                     for k, v in iteritems(value))
