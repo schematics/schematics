@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
+
 import datetime
 import decimal
 import random
+import sys
 import uuid
 
 import pytest
@@ -8,7 +11,7 @@ import pytest
 from schematics.types import (
     BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
     URLType, MultilingualStringType, UUIDType, IPv4Type, MD5Type, BooleanType,
-    GeoPointType, FloatType, DecimalType, force_unicode
+    GeoPointType, FloatType, DecimalType
 )
 from schematics.types.base import get_range_endpoints
 from schematics.exceptions import (
@@ -173,8 +176,16 @@ def test_string_regex():
 
 
 def test_string_to_native():
+
     with pytest.raises(ConversionError):
         StringType().to_native(3.14)
+
+    if sys.version_info[0] == 2:
+        assert StringType().to_native(u'abc éíçßµ') == u'abc éíçßµ'
+        assert StringType().to_native('\xC3\xA4') == u'ä'
+    else:
+        assert StringType().to_native('abc éíçßµ') == 'abc éíçßµ'
+        assert StringType().to_native(b'\xC3\xA4') == 'ä'
 
 
 def test_string_max_length_is_enforced():
