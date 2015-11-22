@@ -1,5 +1,10 @@
 language: python
 
+python:
+  - 3.5
+
+sudo: false
+
 install:
   - pip install tox
   - pip install python-coveralls
@@ -10,5 +15,6 @@ after_success:
   - coveralls
 
 cache:
-  - $HOME/.cache/pip
-  - $HOME/.tox
+  directories:
+    - $HOME/.cache/pip
+    - $HOME/.tox

@@ -1,6 +1,6 @@
 include README.rst
 include setup.py
-include requirements.txt
+include test-requirements.txt
 include tox.ini
 include HISTORY.rst
 include LICENSE

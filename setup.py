@@ -23,7 +23,7 @@ class Tox(TestCommand):
 
 
 tests_require = open(
-    os.path.join(os.path.dirname(__file__), 'requirements.txt')).read().split()
+    os.path.join(os.path.dirname(__file__), 'test-requirements.txt')).read().split()
 
 setup(
     name='schematics',
@@ -44,6 +44,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
     ],
     cmdclass={
         'test': Tox,

@@ -1,0 +1,5 @@
+pytest
+python-dateutil
+pymongo
+mock
+coverage==3.7.1
