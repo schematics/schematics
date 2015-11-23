@@ -17,4 +17,4 @@ after_success:
 cache:
   directories:
     - $HOME/.cache/pip
-    - $HOME/.tox
+    - .tox
