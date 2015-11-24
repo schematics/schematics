@@ -209,7 +209,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         else:
             return self.serialize_when_none
 
-    def validate(self, value):
+    def validate(self, value, env=None):
         """
         Validate the field and return a clean value or raise a
         ``ValidationError`` with a list of errors raised by the validation
@@ -225,24 +225,23 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
                 validator(value)
             except ValidationError as exc:
                 errors.extend(exc.messages)
-
                 if isinstance(exc, StopValidation):
                     break
 
         if errors:
             raise ValidationError(errors)
 
-    def validate_required(self, value):
-        if self.required and value is None:
+    def validate_required(self, value, env=None):
+        if self.required and value is None and not (env and env.partial):
             raise ValidationError(self.messages['required'])
 
-    def validate_choices(self, value):
+    def validate_choices(self, value, env=None):
         if self.choices is not None:
             if value not in self.choices:
                 raise ValidationError(self.messages['choices']
                                       .format(unicode(self.choices)))
 
-    def mock(self, context=None):
+    def mock(self, context=None, env=None):
         if not self.required and not random.choice([True, False]):
             return self.default
         if self.choices is not None:

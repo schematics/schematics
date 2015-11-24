@@ -8,13 +8,10 @@ from six import iteritems
 from six import iterkeys
 from six import add_metaclass
 
+from .datastructures import OrderedDict as OrderedDictWithSort
+from .exceptions import BaseError, ModelValidationError, MockCreationError
 from .types import BaseType
 from .types.serializable import Serializable
-from .exceptions import BaseError, ModelValidationError, MockCreationError
-from .transforms import allow_none, atoms, flatten, expand
-from .transforms import to_primitive, to_native, convert
-from .validate import validate
-from .datastructures import OrderedDict as OrderedDictWithSort
 
 try:
     unicode #PY2
@@ -230,13 +227,15 @@ class Model(object):
 
     __optionsclass__ = ModelOptions
 
-    def __init__(self, raw_data=None, deserialize_mapping=None, strict=True):
+    def __init__(self, raw_data=None, deserialize_mapping=None,
+                 partial=True, strict=True, env=None):
         if raw_data is None:
             raw_data = {}
         self._initial = raw_data
-        self._data = self.convert(raw_data, strict=strict, mapping=deserialize_mapping)
+        self._data = self.convert(raw_data, strict=strict, partial=partial,
+                                  mapping=deserialize_mapping, env=env)
 
-    def validate(self, partial=False, strict=False):
+    def validate(self, partial=False, strict=False, env=None):
         """
         Validates the state of the model and adding additional untrusted data
         as well. If the models is invalid, raises ValidationError with error
@@ -251,7 +250,7 @@ class Model(object):
         """
         try:
             data = validate(self.__class__, self._data, partial=partial,
-                            strict=strict)
+                            strict=strict, env=env)
             self._data.update(**data)
         except BaseError as exc:
             raise ModelValidationError(exc.messages)
@@ -427,4 +426,7 @@ class Model(object):
         return '%s object' % self.__class__.__name__
 
 
+from .transforms import allow_none, atoms, flatten, expand
+from .transforms import to_primitive, to_native, convert
 from .types.compound import ModelType
+from .validate import validate

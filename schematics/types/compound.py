@@ -4,17 +4,18 @@ from __future__ import division
 
 from collections import Iterable
 import itertools
+import functools
 
 from ..exceptions import (ValidationError, ConversionError,
                           ModelValidationError, StopValidation,
                           MockCreationError)
-from ..transforms import export_loop, EMPTY_LIST, EMPTY_DICT
 from .base import BaseType, get_value_in
 
 from six import iteritems
 from six import string_types as basestring
 from six import text_type as unicode
 from six.moves import xrange
+
 
 class MultiType(BaseType):
 
@@ -24,7 +25,7 @@ class MultiType(BaseType):
             self.field._setup(None, owner_model)
         super(MultiType, self)._setup(field_name, owner_model)
 
-    def validate(self, value):
+    def validate(self, value, env=None):
         """Report dictionary of errors with lists of errors as values of each
         key. Used by ModelType and ListType.
 
@@ -33,12 +34,11 @@ class MultiType(BaseType):
 
         for validator in self.validators:
             try:
-                validator(value)
+                validator(value, env=env)
             except ModelValidationError as exc:
                 errors.update(exc.messages)
-            except StopValidation as exc:
-                errors.update(exc.messages)
-                break
+                if isinstance(exc, StopValidation):
+                    break
 
         if errors:
             raise ValidationError(errors)
@@ -86,8 +86,8 @@ class ModelType(MultiType):
         validators = kwargs.pop("validators", [])
         self.strict = kwargs.pop("strict", True)
 
-        def validate_model(model_instance):
-            model_instance.validate()
+        def validate_model(model_instance, env=None):
+            model_instance.validate(env=env)
             return model_instance
 
         super(ModelType, self).__init__(validators=[validate_model] + validators, **kwargs)
@@ -107,11 +107,10 @@ class ModelType(MultiType):
                 raise Exception("ModelType: Unable to resolve model '{}'.".format(self.model_name))
         super(ModelType, self)._setup(field_name, owner_model)
 
-    def to_native(self, value, mapping=None, context=None):
+    def to_native(self, value, mapping=None, context=None, env=None):
         # We have already checked if the field is required. If it is None it
         # should continue being None
-        if mapping is None:
-            mapping = {}
+        mapping = mapping or {}
         if value is None:
             return None
         if isinstance(value, self.model_class):
@@ -126,7 +125,7 @@ class ModelType(MultiType):
         # partial submodels now available with import_data (ht ryanolson)
         model = self.model_class()
         return model.import_data(value, mapping=mapping, context=context,
-                                 strict=self.strict)
+                                 strict=self.strict, env=env)
 
     def export_loop(self, model_instance, field_converter,
                     role=None, print_none=False):
@@ -194,12 +193,16 @@ class ListType(MultiType):
         except TypeError:
             return [value]
 
-    def to_native(self, value, context=None):
+    def to_native(self, value, context=None, env=None):
         items = self._force_list(value)
+        if isinstance(self.field, MultiType):
+            to_native = functools.partial(self.field.to_native, env=env)
+        else:
+            to_native = self.field.to_native
 
-        return [self.field.to_native(item, context) for item in items]
+        return [to_native(item, context) for item in items]
 
-    def check_length(self, value):
+    def check_length(self, value, env=None):
         list_length = len(value) if value else 0
 
         if self.min_size is not None and list_length < self.min_size:
@@ -216,11 +219,15 @@ class ListType(MultiType):
             }[self.max_size == 1]) % self.max_size
             raise ValidationError(message)
 
-    def validate_items(self, items):
+    def validate_items(self, items, env=None):
+        if isinstance(self.field, MultiType):
+            validate = functools.partial(self.field.validate, env=env)
+        else:
+            validate = self.field.validate
         errors = []
         for item in items:
             try:
-                self.field.validate(item)
+                validate(item)
             except ValidationError as exc:
                 errors.append(exc.messages)
         if errors:
@@ -273,23 +280,30 @@ class DictType(MultiType):
     def model_class(self):
         return self.field.model_class
 
-    def to_native(self, value, safe=False, context=None):
+    def to_native(self, value, safe=False, context=None, env=None):
         if value == EMPTY_DICT:
             value = {}
-
         value = value or {}
-
         if not isinstance(value, dict):
             raise ConversionError(u'Only dictionaries may be used in a DictType')
 
-        return dict((self.coerce_key(k), self.field.to_native(v, context))
+        if isinstance(self.field, MultiType):
+            to_native = functools.partial(self.field.to_native, env=env)
+        else:
+            to_native = self.field.to_native
+
+        return dict((self.coerce_key(k), to_native(v, context))
                     for k, v in iteritems(value))
 
-    def validate_items(self, items):
+    def validate_items(self, items, env=None):
+        if isinstance(self.field, MultiType):
+            validate = functools.partial(self.field.validate, env=env)
+        else:
+            validate = self.field.validate
         errors = {}
         for key, value in iteritems(items):
             try:
-                self.field.validate(value)
+                validate(value)
             except ValidationError as exc:
                 errors[key] = exc
 
@@ -342,8 +356,8 @@ class PolyModelType(MultiType):
         self.claim_function = kwargs.pop("claim_function", None)
         self.allow_subclasses = kwargs.pop("allow_subclasses", allow_subclasses)
 
-        def validate_model(model_instance):
-            model_instance.validate()
+        def validate_model(model_instance, env=None):
+            model_instance.validate(env=env)
             return model_instance
 
         MultiType.__init__(self, validators=[validate_model] + validators, **kwargs)
@@ -374,7 +388,7 @@ class PolyModelType(MultiType):
                 return True
         return False
 
-    def to_native(self, value, mapping=None, context=None):
+    def to_native(self, value, mapping=None, context=None, env=None):
 
         if mapping is None:
             mapping = {}
@@ -394,7 +408,7 @@ class PolyModelType(MultiType):
         model_class = self.find_model(value)
         model = model_class()
         return model.import_data(value, mapping=mapping, context=context,
-                                 strict=self.strict)
+                                 strict=self.strict, env=env)
 
     def find_model(self, data):
         """Finds the intended type by consulting potential classes or `claim_function`."""
@@ -443,3 +457,4 @@ class PolyModelType(MultiType):
 
 
 from ..models import Model, ModelMeta
+from ..transforms import export_loop, EMPTY_LIST, EMPTY_DICT
