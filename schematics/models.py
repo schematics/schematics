@@ -228,14 +228,14 @@ class Model(object):
     __optionsclass__ = ModelOptions
 
     def __init__(self, raw_data=None, deserialize_mapping=None,
-                 partial=True, strict=True, app_data=None, env=None):
+                 partial=True, strict=True, app_data=None, context=None):
         if raw_data is None:
             raw_data = {}
         self._initial = raw_data
         self._data = self.convert(raw_data, strict=strict, partial=partial,
-                                  mapping=deserialize_mapping, app_data=app_data, env=env)
+                                  mapping=deserialize_mapping, app_data=app_data, context=context)
 
-    def validate(self, partial=False, strict=False, app_data=None, env=None):
+    def validate(self, partial=False, strict=False, app_data=None, context=None):
         """
         Validates the state of the model and adding additional untrusted data
         as well. If the models is invalid, raises ValidationError with error
@@ -250,7 +250,7 @@ class Model(object):
         """
         try:
             data = validate(self.__class__, self._data, partial=partial,
-                            strict=strict, app_data=app_data, env=env)
+                            strict=strict, app_data=app_data, context=context)
             self._data.update(**data)
         except BaseError as exc:
             raise ModelValidationError(exc.messages)
@@ -282,10 +282,10 @@ class Model(object):
         """
         return convert(self.__class__, raw_data, **kw)
 
-    def to_native(self, role=None, app_data=None, env=None):
-        return to_native(self.__class__, self, role=role, app_data=app_data, env=env)
+    def to_native(self, role=None, app_data=None, context=None):
+        return to_native(self.__class__, self, role=role, app_data=app_data, context=context)
 
-    def to_primitive(self, role=None, app_data=None, env=None):
+    def to_primitive(self, role=None, app_data=None, context=None):
         """Return data as it would be validated. No filtering of output unless
         role is defined.
 
@@ -293,12 +293,12 @@ class Model(object):
             Filter output by a specific role
 
         """
-        return to_primitive(self.__class__, self, role=role, app_data=app_data, env=env)
+        return to_primitive(self.__class__, self, role=role, app_data=app_data, context=context)
 
-    def serialize(self, role=None, app_data=None, env=None):
-        return self.to_primitive(role=role, app_data=app_data, env=env)
+    def serialize(self, role=None, app_data=None, context=None):
+        return self.to_primitive(role=role, app_data=app_data, context=context)
 
-    def flatten(self, role=None, prefix="", app_data=None, env=None):
+    def flatten(self, role=None, prefix="", app_data=None, context=None):
         """
         Return data as a pure key-value dictionary, where the values are
         primitive types (string, bool, int, long).
@@ -309,7 +309,7 @@ class Model(object):
             A prefix to use for keynames during flattening.
         """
         return flatten(self.__class__, self, role=role, prefix=prefix,
-                       app_data=app_data, env=env)
+                       app_data=app_data, context=context)
 
     @classmethod
     def from_flat(cls, data):
@@ -355,10 +355,10 @@ class Model(object):
             return default
 
     @classmethod
-    def get_mock_object(cls, env=None, overrides=None):
+    def get_mock_object(cls, context=None, overrides=None):
         """Get a mock object.
 
-        :param dict env:
+        :param dict context:
         :param dict overrides: overrides for the model
         """
         if overrides is None:
@@ -367,7 +367,7 @@ class Model(object):
         for name, field in cls.fields.items():
             if name not in overrides:
                 try:
-                    values[name] = field.mock(env)
+                    values[name] = field.mock(context)
                 except MockCreationError as exc:
                     raise MockCreationError('%s: %s' % (name, exc.message))
         values.update(overrides)

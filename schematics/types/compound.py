@@ -22,7 +22,7 @@ class MultiType(BaseType):
     def __init__(self, **kwargs):
 
         if hasattr(self, 'field'):
-            def validate_required(value, env=None):
+            def validate_required(value, context=None):
                 if self.field.required and value is None:
                     raise ValidationError(self.field.messages['required'])
             self.field.validators.append(validate_required)
@@ -36,7 +36,7 @@ class MultiType(BaseType):
             self.field._setup(None, owner_model)
         super(MultiType, self)._setup(field_name, owner_model)
 
-    def validate(self, value, env=None):
+    def validate(self, value, context=None):
         """Report dictionary of errors with lists of errors as values of each
         key. Used by ModelType and ListType.
 
@@ -45,7 +45,7 @@ class MultiType(BaseType):
 
         for validator in self.validators:
             try:
-                validator(value, env=env)
+                validator(value, context=context)
             except ModelValidationError as exc:
                 errors.update(exc.messages)
                 if isinstance(exc, StopValidation):
@@ -56,7 +56,7 @@ class MultiType(BaseType):
 
         return value
 
-    def export_loop(self, shape_instance, field_converter, env):
+    def export_loop(self, shape_instance, field_converter, context):
         raise NotImplementedError
 
     def init_compound_field(self, field, compound_field, **kwargs):
@@ -98,8 +98,8 @@ class ModelType(MultiType):
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
 
-    def _mock(self, env=None):
-        return self.model_class.get_mock_object(env)
+    def _mock(self, context=None):
+        return self.model_class.get_mock_object(context)
 
     def _setup(self, field_name, owner_model):
         # Resolve possible name-based model reference.
@@ -110,10 +110,10 @@ class ModelType(MultiType):
                 raise Exception("ModelType: Unable to resolve model '{}'.".format(self.model_name))
         super(ModelType, self)._setup(field_name, owner_model)
 
-    def validate_model(self, model_instance, env=None):
-        model_instance.validate(env=env)
+    def validate_model(self, model_instance, context=None):
+        model_instance.validate(context=context)
 
-    def to_native(self, value, env):
+    def to_native(self, value, context):
         # We have already checked if the field is required. If it is None it
         # should continue being None
         if value is None:
@@ -129,9 +129,9 @@ class ModelType(MultiType):
 
         # partial submodels now available with import_data (ht ryanolson)
         model = self.model_class()
-        return model.import_data(value, env=env)
+        return model.import_data(value, context=context)
 
-    def export_loop(self, model_instance, field_converter, env):
+    def export_loop(self, model_instance, field_converter, context):
         """
         Calls the main `export_loop` implementation because they are both
         supposed to operate on models.
@@ -141,7 +141,7 @@ class ModelType(MultiType):
         else:
             model_class = self.model_class
 
-        shaped = export_loop(model_class, model_instance, field_converter, env=env)
+        shaped = export_loop(model_class, model_instance, field_converter, context=context)
 
         return shaped
 
@@ -169,7 +169,7 @@ class ListType(MultiType):
     def model_class(self):
         return self.field.model_class
 
-    def _mock(self, env=None):
+    def _mock(self, context=None):
         min_size = self.min_size or 1
         max_size = self.max_size or 1
         if min_size > max_size:
@@ -177,7 +177,7 @@ class ListType(MultiType):
             raise MockCreationError(message)
         random_length = get_value_in(min_size, max_size)
 
-        return [self.field._mock(env) for _ in xrange(random_length)]
+        return [self.field._mock(context) for _ in xrange(random_length)]
 
     def _force_list(self, value):
         if value is None or value == EMPTY_LIST:
@@ -194,11 +194,11 @@ class ListType(MultiType):
         except TypeError:
             return [value]
 
-    def to_native(self, value, env):
+    def to_native(self, value, context):
         items = self._force_list(value)
-        return [self.field.to_native(item, env) for item in items]
+        return [self.field.to_native(item, context) for item in items]
 
-    def check_length(self, value, env=None):
+    def check_length(self, value, context=None):
         list_length = len(value) if value else 0
 
         if self.min_size is not None and list_length < self.min_size:
@@ -215,17 +215,17 @@ class ListType(MultiType):
             }[self.max_size == 1]) % self.max_size
             raise ValidationError(message)
 
-    def validate_items(self, items, env=None):
+    def validate_items(self, items, context=None):
         errors = []
         for item in items:
             try:
-                self.field.validate(item, env)
+                self.field.validate(item, context)
             except ValidationError as exc:
                 errors.append(exc.messages)
         if errors:
             raise ValidationError(errors)
 
-    def export_loop(self, list_instance, field_converter, env):
+    def export_loop(self, list_instance, field_converter, context):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
         as `transforms.export_loop`.
@@ -233,15 +233,15 @@ class ListType(MultiType):
         data = []
         for value in list_instance:
             if hasattr(self.field, 'export_loop'):
-                shaped = self.field.export_loop(value, field_converter, env)
+                shaped = self.field.export_loop(value, field_converter, context)
                 feels_empty = shaped is None or len(shaped) == 0
             else:
-                shaped = field_converter(self.field, value, env)
+                shaped = field_converter(self.field, value, context)
                 feels_empty = shaped is None
 
             # Print if we want empty or found a value
             if feels_empty:
-                if self.field.allow_none() or env.print_none:
+                if self.field.allow_none() or context.print_none:
                     data.append(shaped)
             elif shaped is not None:
                 data.append(shaped)
@@ -270,28 +270,28 @@ class DictType(MultiType):
     def model_class(self):
         return self.field.model_class
 
-    def to_native(self, value, env, safe=False):
+    def to_native(self, value, context, safe=False):
         if value == EMPTY_DICT:
             value = {}
         value = value or {}
         if not isinstance(value, dict):
             raise ConversionError(u'Only dictionaries may be used in a DictType')
 
-        return dict((self.coerce_key(k), self.field.to_native(v, env))
+        return dict((self.coerce_key(k), self.field.to_native(v, context))
                     for k, v in iteritems(value))
 
-    def validate_items(self, items, env=None):
+    def validate_items(self, items, context=None):
         errors = {}
         for key, value in iteritems(items):
             try:
-                self.field.validate(value, env)
+                self.field.validate(value, context)
             except ValidationError as exc:
                 errors[key] = exc
 
         if errors:
             raise ValidationError(errors)
 
-    def export_loop(self, dict_instance, field_converter, env):
+    def export_loop(self, dict_instance, field_converter, context):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
         as `transforms.export_loop`.
@@ -300,14 +300,14 @@ class DictType(MultiType):
 
         for key, value in iteritems(dict_instance):
             if hasattr(self.field, 'export_loop'):
-                shaped = self.field.export_loop(value, field_converter, env)
+                shaped = self.field.export_loop(value, field_converter, context)
                 feels_empty = shaped is None or len(shaped) == 0
             else:
-                shaped = field_converter(self.field, value, env)
+                shaped = field_converter(self.field, value, context)
                 feels_empty = shaped is None
 
             if feels_empty:
-                if self.field.allow_none() or env.print_none:
+                if self.field.allow_none() or context.print_none:
                     data[key] = shaped
             elif shaped is not None:
                 data[key] = shaped
@@ -352,8 +352,8 @@ class PolyModelType(MultiType):
         self.model_classes = tuple(resolved_classes)
         super(PolyModelType, self)._setup(field_name, owner_model)
 
-    def validate_model(self, model_instance, env=None):
-        model_instance.validate(env=env)
+    def validate_model(self, model_instance, context=None):
+        model_instance.validate(context=context)
 
     def is_allowed_model(self, model_instance):
         if self.allow_subclasses:
@@ -364,7 +364,7 @@ class PolyModelType(MultiType):
                 return True
         return False
 
-    def to_native(self, value, env):
+    def to_native(self, value, context):
 
         if value is None:
             return None
@@ -381,7 +381,7 @@ class PolyModelType(MultiType):
 
         model_class = self.find_model(value)
         model = model_class()
-        return model.import_data(value, env=env)
+        return model.import_data(value, context=context)
 
     def find_model(self, data):
         """Finds the intended type by consulting potential classes or `claim_function`."""
@@ -415,13 +415,13 @@ class PolyModelType(MultiType):
         else:
             raise Exception("Input for polymorphic field did not match any model")
 
-    def export_loop(self, model_instance, field_converter, env):
+    def export_loop(self, model_instance, field_converter, context):
 
         model_class = model_instance.__class__
         if not self.is_allowed_model(model_instance):
             raise Exception("Cannot export: {} is not an allowed type".format(model_class))
 
-        shaped = export_loop(model_class, model_instance, field_converter, env=env)
+        shaped = export_loop(model_class, model_instance, field_converter, context=context)
 
         return shaped
 
