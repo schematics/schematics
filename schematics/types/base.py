@@ -24,23 +24,11 @@ except ImportError:
 
 try:
     basestring #PY2
+    bytes = str
 except NameError:
     basestring = str #PY3
+    unicode = str
 
-try:
-    unicode #PY2
-except:
-    import codecs
-    unicode = str #PY3
-
-def utf8_decode(s):
-
-    if six.PY3:
-        s = str(s) #todo: right thing to do?
-    else:
-        s = unicode(s, 'utf-8')
-
-    return s
 
 def fill_template(template, min_length, max_length):
     return template % random_string(
@@ -49,18 +37,6 @@ def fill_template(template, min_length, max_length):
             max_length,
             padding=len(template) - 2,
             required_length=1))
-
-
-def force_unicode(obj, encoding='utf-8'):
-    if isinstance(obj, basestring):
-        if not isinstance(obj, unicode):
-            #obj = unicode(obj, encoding)
-            obj = utf8_decode(obj)
-    elif not obj is None:
-        #obj = unicode(obj)
-        obj = utf8_decode(obj)
-
-    return obj
 
 
 def get_range_endpoints(min_length, max_length, padding=0, required_length=0):
@@ -332,7 +308,7 @@ class StringType(BaseType):
     accept empty strings, init with ``min_length`` 0.
     """
 
-    allow_casts = (int, str)
+    allow_casts = (int, bytes)
 
     MESSAGES = {
         'convert': u"Couldn't interpret '{0}' as string.",
@@ -357,9 +333,10 @@ class StringType(BaseType):
 
         if not isinstance(value, unicode):
             if isinstance(value, self.allow_casts):
-                if not isinstance(value, str):
-                    value = str(value)
-                value = utf8_decode(value) #unicode(value, 'utf-8')
+                if isinstance(value, bytes):
+                    value = unicode(value, 'utf-8')
+                else:
+                    value = unicode(value)
             else:
                 raise ConversionError(self.messages['convert'].format(value))
 
@@ -1007,7 +984,7 @@ class MultilingualStringType(BaseType):
 
     """
 
-    allow_casts = (int, str)
+    allow_casts = (int, bytes)
 
     MESSAGES = {
         'convert': u"Couldn't interpret value as string.",
@@ -1078,10 +1055,10 @@ class MultilingualStringType(BaseType):
 
         if not isinstance(localized, unicode):
             if isinstance(localized, self.allow_casts):
-                if not isinstance(localized, str):
-                    localized = str(localized)
-                #localized = unicode(localized, 'utf-8')
-                localized = utf8_decode(localized)
+                if isinstance(localized, bytes):
+                    localized = unicode(localized, 'utf-8')
+                else:
+                    localized = unicode(localized)
             else:
                 raise ConversionError(self.messages['convert'])
 
