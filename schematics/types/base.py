@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+
+import math
 import uuid
 import re
 import datetime
@@ -687,40 +690,109 @@ class DateType(BaseType):
 
 class DateTimeType(BaseType):
 
-    """Defaults to converting to and from ISO8601 datetime values.
+    """A field that holds a combined date and time value.
+
+    The built-in parser accepts input values conforming to the ISO 8601 format
+    ``<YYYY>-<MM>-<DD>T<hh>:<mm>[:<ss.ssssss>][<z>]``. A space may be substituted
+    for the delimiter ``T``. The time zone designator ``<z>`` may be either ``Z``
+    or ``±<hh>[:][<mm>]``.
+
+    Values are stored as standard ``datetime.datetime`` instances with the time zone
+    offset in the ``tzinfo`` component if available. Raw values that do not specify a time
+    zone will be converted to naive ``datetime`` objects unless ``tzd='utc'`` is in effect.
+
+    Unix timestamps are also valid input values and will be converted to UTC datetimes.
 
     :param formats:
-        A value or list of values suitable for ``datetime.datetime.strptime``
-        parsing. Default: `('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S',
-        '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%dT%H:%M:%SZ')`
+        (Optional) A value or iterable of values suitable as ``datetime.datetime.strptime`` format
+        strings, for example ``('%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f')``. If the parameter is
+        present, ``strptime()`` will be used for parsing instead of the built-in parser.
     :param serialized_format:
-        The output format suitable for Python ``strftime``. Default: ``'%Y-%m-%dT%H:%M:%S.%f'``
-
+        The output format suitable for Python ``strftime``. Default: ``'%Y-%m-%dT%H:%M:%S.%f%z'``
+    :param parser:
+        (Optional) An external function to use for parsing instead of the built-in parser. It should
+        return a ``datetime.datetime`` instance.
+    :param tzd:
+        Sets the time zone policy.
+        Default: ``'allow'``
+            ============== ======================================================================
+            ``'require'``  Values must specify a time zone.
+            ``'allow'``    Values both with and without a time zone designator are allowed.
+            ``'utc'``      Like ``allow``, but values with no time zone information are assumed
+                           to be in UTC.
+            ``'reject'``   Values must not specify a time zone. This also prohibits timestamps.
+            ============== ======================================================================
+    :param convert_tz:
+        Indicates whether values with a time zone designator should be automatically converted to UTC.
+        Default: ``False``
+            * ``True``:  Convert the datetime to UTC based on its time zone offset.
+            * ``False``: Don't convert. Keep the original time and offset intact.
+    :param drop_tzinfo:
+        Can be set to automatically remove the ``tzinfo`` objects. This option should generally
+        be used in conjunction with the ``convert_tz`` option unless you only care about local
+        wall clock times. Default: ``False``
+            * ``True``:  Discard the ``tzinfo`` components and make naive ``datetime`` objects instead.
+            * ``False``: Preserve the ``tzinfo`` components if present.
     """
 
-    DEFAULT_FORMATS = (
-        '%Y-%m-%dT%H:%M:%S.%f',  '%Y-%m-%dT%H:%M:%S',
-        '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%dT%H:%M:%SZ',
-    )
-    SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
+    SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%f%z'
 
     MESSAGES = {
+        'parse': u'Could not parse {0}. Should be ISO 8601 or timestamp.',
         'parse_formats': u'Could not parse {0}. Valid formats: {1}',
-        'parse': u"Could not parse {0}. Should be ISO8601.",
+        'parse_external': u'Could not parse {0}.',
+        'parse_tzd_require': u'Could not parse {0}. Time zone offset required.',
+        'parse_tzd_reject': u'Could not parse {0}. Time zone offsets not allowed.',
+        'tzd_require': u'Could not convert {0}. Time zone required but not found.',
+        'tzd_reject': u'Could not convert {0}. Time zone offsets not allowed.',
     }
 
-    def __init__(self, formats=None, serialized_format=None, **kwargs):
-        """
+    REGEX = (u'(?P<year>\d{4})-(?P<month>\d\d)-(?P<day>\d\d)(?:T|\ )'
+             u'(?P<hour>\d\d):(?P<minute>\d\d)'
+             u'(?::(?P<second>\d\d)(?:(?:\.|,)(?P<sec_frac>\d{1,6}))?)?'
+             u'(?:(?P<tzd_offset>(?P<tzd_sign>[+−-])(?P<tzd_hour>\d\d):?(?P<tzd_minute>\d\d)?)'
+             u'|(?P<tzd_utc>Z))?$')
 
-        """
+    TD_0 = datetime.timedelta(0)
+
+    class fixed_timezone(datetime.tzinfo):
+        def utcoffset(self, dt): return self.offset
+        def fromutc(self, dt): return dt + self.offset
+        def dst(self, dt): return None
+        def tzname(self, dt): return self.str
+        def __str__(self): return self.str
+        def __repr__(self, info=''): return '{0}({1})'.format(type(self).__name__, info)
+
+    class utc_timezone(fixed_timezone):
+        offset = datetime.timedelta(0)
+        name = 'UTC'
+
+    class offset_timezone(fixed_timezone):
+        def __init__(self, hours=0, minutes=0):
+            self.offset = datetime.timedelta(hours=hours, minutes=minutes)
+            total_seconds = self.offset.days * 86400 + self.offset.seconds
+            self.str = '{0:s}{1:02d}:{2:02d}'.format(
+                           '+' if total_seconds >= 0 else '-',
+                           int(abs(total_seconds) / 3600),
+                           int(abs(total_seconds) % 3600 / 60))
+        def __repr__(self):
+            return DateTimeType.fixed_timezone.__repr__(self, self.str)
+
+    UTC = utc_timezone()
+    EPOCH = datetime.datetime(1970, 1, 1, tzinfo=UTC)
+
+    def __init__(self, formats=None, serialized_format=None, parser=None, 
+                 tzd='allow', convert_tz=False, drop_tzinfo=False, **kwargs):
+
         if isinstance(formats, basestring):
             formats = [formats]
-        if formats is None:
-            formats = self.DEFAULT_FORMATS
-        if serialized_format is None:
-            serialized_format = self.SERIALIZED_FORMAT
         self.formats = formats
-        self.serialized_format = serialized_format
+        self.serialized_format = serialized_format or self.SERIALIZED_FORMAT
+        self.parser = parser
+        self.tzd = tzd
+        self.convert_tz = convert_tz
+        self.drop_tzinfo = drop_tzinfo
+
         super(DateTimeType, self).__init__(**kwargs)
 
     def _mock(self, context=None):
@@ -735,26 +807,139 @@ class DateTimeType(BaseType):
         )
 
     def to_native(self, value, context=None):
+
         if isinstance(value, datetime.datetime):
+            if value.tzinfo is None:
+                if not self.drop_tzinfo:
+                    if self.tzd == 'require':
+                        raise ConversionError(self.messages['tzd_require'].format(value))
+                    if self.tzd == 'utc':
+                        value = value.replace(tzinfo=self.UTC)
+            else:
+                if self.tzd == 'reject':
+                    raise ConversionError(self.messages['tzd_reject'].format(value))
+                if self.convert_tz:
+                    value = value.astimezone(self.UTC)
+                if self.drop_tzinfo:
+                    value = value.replace(tzinfo=None)
             return value
 
-        for fmt in self.formats:
+        if self.formats:
+            # Delegate to datetime.datetime.strptime() using provided format strings.
+            for fmt in self.formats:
+                try:
+                    dt = datetime.datetime.strptime(value, fmt)
+                    break
+                except (ValueError, TypeError):
+                    continue
+            else:
+                raise ConversionError(self.messages['parse_formats'].format(value, ", ".join(self.formats)))
+        elif self.parser:
+            # Delegate to external parser.
             try:
-                return datetime.datetime.strptime(value, fmt)
-            except (ValueError, TypeError):
-                continue
-        if self.formats == self.DEFAULT_FORMATS:
-            message = self.messages['parse'].format(value)
+                dt = self.parser(value)
+            except:
+                raise ConversionError(self.messages['parse_external'].format(value))
         else:
-            message = self.messages['parse_formats'].format(
-                value, ", ".join(self.formats)
-            )
-        raise ConversionError(message)
+            # Use built-in parser.
+            try:
+                value = float(value)
+            except ValueError:
+                dt = self.from_string(value)
+            else:
+                dt = self.from_timestamp(value)
+            if not dt:
+                raise ConversionError(self.messages['parse'].format(value))
+
+        if dt.tzinfo is None:
+            if self.tzd == 'require':
+                raise ConversionError(self.messages['parse_tzd_require'].format(value))
+            if self.tzd == 'utc' and not self.drop_tzinfo:
+                dt = dt.replace(tzinfo=self.UTC)
+        else:
+            if self.tzd == 'reject':
+                raise ConversionError(self.messages['parse_tzd_reject'].format(value))
+            if self.convert_tz:
+                dt = dt.astimezone(self.UTC)
+            if self.drop_tzinfo:
+                dt = dt.replace(tzinfo=None)
+
+        return dt
+
+    def from_string(self, value):
+            match = re.match(self.REGEX, value, re.U + re.X)
+            if not match:
+                return None
+            parts = dict(((k, v) for k, v in match.groupdict().items() if v is not None))
+            p = lambda name: int(parts.get(name, 0))
+            microsecond = p('sec_frac') and p('sec_frac') * 10 ** (6 - len(parts['sec_frac']))
+            if 'tzd_utc' in parts:
+                tz = self.UTC
+            elif 'tzd_offset' in parts:
+                tz_sign = 1 if parts['tzd_sign'] == '+' else -1
+                tz_offset = (p('tzd_hour') * 60 + p('tzd_minute')) * tz_sign
+                if tz_offset == 0:
+                    tz = self.UTC
+                else:
+                    tz = self.offset_timezone(minutes=tz_offset)
+            else:
+                tz = None
+            try:
+                return datetime.datetime(p('year'), p('month'), p('day'),
+                                         p('hour'), p('minute'), p('second'),
+                                         microsecond, tz)
+            except (ValueError, TypeError):
+                return None
+
+    def from_timestamp(self, value):
+        try:
+            return datetime.datetime(1970, 1, 1, tzinfo=self.UTC) + datetime.timedelta(seconds=value)
+        except (ValueError, TypeError):
+            return None
 
     def to_primitive(self, value, context=None):
         if callable(self.serialized_format):
             return self.serialized_format(value)
         return value.strftime(self.serialized_format)
+
+
+class UTCDateTimeType(DateTimeType):
+
+    """A variant of ``DateTimeType`` that normalizes everything to UTC and stores values
+    as naive ``datetime`` instances. By default sets ``tzd='utc'``, ``convert_tz=True``,
+    and ``drop_tzinfo=True``. The standard export format always includes the UTC time
+    zone designator ``"Z"``.
+    """
+
+    SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
+
+    def __init__(self, formats=None, parser=None, tzd='utc', convert_tz=True, drop_tzinfo=True):    
+        super(UTCDateTimeType, self).__init__(formats=formats, parser=parser, tzd=tzd, 
+                                            convert_tz=convert_tz, drop_tzinfo=drop_tzinfo)
+
+
+class TimestampType(DateTimeType):
+
+    """A variant of ``DateTimeType`` that exports itself as a Unix timestamp
+    instead of an ISO 8601 string. Always sets ``tzd='require'`` and
+    ``convert_tz=True``.
+    """
+
+    def __init__(self, formats=None, parser=None, drop_tzinfo=False):
+        super(TimestampType, self).__init__(formats=formats, parser=parser, tzd='require', 
+                                            convert_tz=True, drop_tzinfo=drop_tzinfo)
+
+    def to_primitive(self, value):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=self.UTC)
+        else:
+            value = value.astimezone(self.UTC)
+        delta = value - self.EPOCH
+        ts = (delta.days * 24 * 3600) + delta.seconds + delta.microseconds / 1E6
+        if delta.microseconds:
+            return ts
+        else:
+            return int(ts)
 
 
 class GeoPointType(BaseType):
