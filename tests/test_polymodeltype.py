@@ -39,7 +39,7 @@ class Foo(Model):
     base   = PolyModelType(A)       # accepts any subclass for import and export
     strict = PolyModelType([A, B])  # accepts [A, B] for import and export
     nfb    = PolyModelType([B, C])  # no fallback since A not present
-    cfn    = PolyModelType([B, C], claim_function=claim_func, strict=False)
+    cfn    = PolyModelType([B, C], claim_function=claim_func)
 
 
 def test_subclass_registry():
@@ -83,7 +83,7 @@ def test_enumerated_polymorphic(): # strict
 
 def test_external_claim_function(): # cfn
 
-    foo = Foo({'cfn': {'stringB': 'bbb', 'stringC': 'ccc'}})
+    foo = Foo({'cfn': {'stringB': 'bbb', 'stringC': 'ccc'}}, strict=False)
     assert type(foo.cfn) is B
 
 def test_multiple_matches():

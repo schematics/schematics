@@ -8,6 +8,7 @@ import uuid
 
 import pytest
 
+from schematics.models import Model
 from schematics.types import (
     BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
     URLType, MultilingualStringType, UUIDType, IPv4Type, MD5Type, BooleanType,
@@ -147,19 +148,22 @@ def test_url_type_with_unreachable_url():
 
 
 def test_string_type_required():
-    field = StringType(required=True)
+    class M(Model):
+        field = StringType(required=True)
     with pytest.raises(ValidationError):
-        field.validate(None)
+        M({'field': None}).validate()
 
 
 def test_string_type_accepts_none():
-    field = StringType()
-    field.validate(None)
+    class M(Model):
+        field = StringType()
+    M({'field': None}).validate()
 
 
 def test_string_required_accepts_empty_string():
-    field = StringType(required=True)
-    field.validate('')
+    class M(Model):
+        field = StringType()
+    M({'field': ''}).validate()
 
 
 def test_string_min_length_doesnt_accept_empty_string():

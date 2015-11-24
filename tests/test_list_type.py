@@ -151,6 +151,9 @@ def test_list_field_required():
         "ids": []
     })
 
+    c.ids = []
+    c.validate()
+
     c.ids = [1]
     c.validate()
 

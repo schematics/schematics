@@ -19,6 +19,17 @@ from six.moves import xrange
 
 class MultiType(BaseType):
 
+    def __init__(self, **kwargs):
+
+        if hasattr(self, 'field'):
+            def validate_required(value, env=None):
+                if self.field.required and value is None:
+                    raise ValidationError(self.field.messages['required'])
+            self.field.validators.append(validate_required)
+            self.field.parent_field = self
+
+        super(MultiType, self).__init__(**kwargs)
+            
     def _setup(self, field_name, owner_model):
         # Recursively set up inner fields.
         if hasattr(self, 'field'):
@@ -83,14 +94,7 @@ class ModelType(MultiType):
             raise TypeError("ModelType: Expected a model, got an argument "
                             "of the type '{}'.".format(model_spec.__class__.__name__))
 
-        validators = kwargs.pop("validators", [])
-        self.strict = kwargs.pop("strict", True)
-
-        def validate_model(model_instance, env=None):
-            model_instance.validate(env=env)
-            return model_instance
-
-        super(ModelType, self).__init__(validators=[validate_model] + validators, **kwargs)
+        super(ModelType, self).__init__(**kwargs)
 
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
@@ -106,6 +110,9 @@ class ModelType(MultiType):
             else:
                 raise Exception("ModelType: Unable to resolve model '{}'.".format(self.model_name))
         super(ModelType, self)._setup(field_name, owner_model)
+
+    def validate_model(self, model_instance, env=None):
+        model_instance.validate(env=env)
 
     def to_native(self, value, mapping=None, context=None, env=None):
         # We have already checked if the field is required. If it is None it
@@ -124,8 +131,7 @@ class ModelType(MultiType):
 
         # partial submodels now available with import_data (ht ryanolson)
         model = self.model_class()
-        return model.import_data(value, mapping=mapping, context=context,
-                                 strict=self.strict, env=env)
+        return model.import_data(value, mapping=mapping, context=context, env=env)
 
     def export_loop(self, model_instance, field_converter,
                     role=None, print_none=False):
@@ -351,16 +357,10 @@ class PolyModelType(MultiType):
             raise Exception("The first argument to PolyModelType.__init__() "
                             "must be a model or an iterable.")
 
-        validators = kwargs.pop("validators", [])
-        self.strict = kwargs.pop("strict", True)
         self.claim_function = kwargs.pop("claim_function", None)
         self.allow_subclasses = kwargs.pop("allow_subclasses", allow_subclasses)
 
-        def validate_model(model_instance, env=None):
-            model_instance.validate(env=env)
-            return model_instance
-
-        MultiType.__init__(self, validators=[validate_model] + validators, **kwargs)
+        MultiType.__init__(self, **kwargs)
 
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % str(self.model_classes)
@@ -378,6 +378,9 @@ class PolyModelType(MultiType):
                 resolved_classes.append(m)
         self.model_classes = tuple(resolved_classes)
         super(PolyModelType, self)._setup(field_name, owner_model)
+
+    def validate_model(self, model_instance, env=None):
+        model_instance.validate(env=env)
 
     def is_allowed_model(self, model_instance):
         if self.allow_subclasses:
@@ -407,8 +410,7 @@ class PolyModelType(MultiType):
 
         model_class = self.find_model(value)
         model = model_class()
-        return model.import_data(value, mapping=mapping, context=context,
-                                 strict=self.strict, env=env)
+        return model.import_data(value, mapping=mapping, context=context, env=env)
 
     def find_model(self, data):
         """Finds the intended type by consulting potential classes or `claim_function`."""

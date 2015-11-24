@@ -172,6 +172,10 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         self.messages = dict(self.MESSAGES, **(messages or {}))
         self._position_hint = next(_next_position_hint)  # For ordering of fields
 
+        self.name = None
+        self.owner_model = None
+        self.parent_field = None
+
     def __call__(self, value):
         return self.to_native(value)
 
@@ -204,7 +208,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         return value
 
     def allow_none(self):
-        if hasattr(self, 'owner_model'):
+        if self.owner_model:
             return self.owner_model.allow_none(self)
         else:
             return self.serialize_when_none
@@ -230,10 +234,6 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
 
         if errors:
             raise ValidationError(errors)
-
-    def validate_required(self, value, env=None):
-        if self.required and value is None and not (env and env.partial):
-            raise ValidationError(self.messages['required'])
 
     def validate_choices(self, value, env=None):
         if self.choices is not None:
