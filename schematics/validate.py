@@ -1,11 +1,11 @@
 from .exceptions import BaseError, ValidationError, ModelConversionError
-from .transforms import import_loop
 
 
-def validate(cls, instance_or_dict, partial=False, strict=False, context=None):
+def validate(cls, instance_or_dict, partial=False, strict=False, trusted_data=None,
+             app_data=None, context=None):
     """
     Validate some untrusted data using a model. Trusted data can be passed in
-    the `context` parameter.
+    the `trusted_data` parameter.
 
     :param cls:
         The model class to use as source for validation. If given an instance,
@@ -18,11 +18,11 @@ def validate(cls, instance_or_dict, partial=False, strict=False, context=None):
         definitions. Default: False
     :param strict:
         Complain about unrecognized keys. Default: False
-    :param context:
+    :param trusted_data:
         A ``dict``-like structure that may contain already validated data.
 
     :returns: data
-        data dict contains the valid raw_data plus the context data.
+        ``dict`` containing the valid raw_data plus ``trusted_data``.
         If errors are found, they are raised as a ValidationError with a list
         of errors attached.
     """
@@ -30,15 +30,16 @@ def validate(cls, instance_or_dict, partial=False, strict=False, context=None):
     errors = {}
 
     # Function for validating an individual field
-    def field_converter(field, value):
-        value = field.to_native(value)
-        field.validate(value)
+    def field_converter(field, value, context):
+        value = field.to_native(value, context)
+        field.validate(value, context)
         return value
 
     # Loop across fields and coerce values
     try:
         data = import_loop(cls, instance_or_dict, field_converter,
-                           context=context, partial=partial, strict=strict)
+                           trusted_data=trusted_data, partial=partial, strict=strict,
+                           app_data=app_data, context=context)
     except ModelConversionError as mce:
         errors = mce.messages
 
@@ -48,7 +49,7 @@ def validate(cls, instance_or_dict, partial=False, strict=False, context=None):
         errors.update(rogue_field_errors)
 
     # Model level validation
-    instance_errors = _validate_model(cls, data)
+    instance_errors = _validate_model(cls, data, context)
     errors.update(instance_errors)
 
     if errors:
@@ -57,7 +58,7 @@ def validate(cls, instance_or_dict, partial=False, strict=False, context=None):
     return data
 
 
-def _validate_model(cls, data):
+def _validate_model(cls, data, context):
     """
     Validate data using model level methods.
 
@@ -76,8 +77,7 @@ def _validate_model(cls, data):
         if field_name in cls._validator_functions and field_name in data:
             value = data[field_name]
             try:
-                context = data
-                cls._validator_functions[field_name](cls, context, value)
+                cls._validator_functions[field_name](cls, data, value, context)
             except BaseError as exc:
                 field = cls._fields[field_name]
                 serialized_field_name = field.serialized_name or field_name
@@ -110,3 +110,6 @@ def _check_for_unknown_fields(cls, data):
         for field_name in rogues_found:
             errors[field_name] = [u'%s is an illegal field.' % field_name]
     return errors
+
+
+from .transforms import import_loop

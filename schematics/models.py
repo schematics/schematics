@@ -8,13 +8,10 @@ from six import iteritems
 from six import iterkeys
 from six import add_metaclass
 
+from .datastructures import OrderedDict as OrderedDictWithSort
+from .exceptions import BaseError, ModelValidationError, MockCreationError
 from .types import BaseType
 from .types.serializable import Serializable
-from .exceptions import BaseError, ModelValidationError, MockCreationError
-from .transforms import allow_none, atoms, flatten, expand
-from .transforms import to_primitive, to_native, convert
-from .validate import validate
-from .datastructures import OrderedDict as OrderedDictWithSort
 
 try:
     unicode #PY2
@@ -230,13 +227,15 @@ class Model(object):
 
     __optionsclass__ = ModelOptions
 
-    def __init__(self, raw_data=None, deserialize_mapping=None, strict=True):
+    def __init__(self, raw_data=None, deserialize_mapping=None,
+                 partial=True, strict=True, app_data=None, context=None):
         if raw_data is None:
             raw_data = {}
         self._initial = raw_data
-        self._data = self.convert(raw_data, strict=strict, mapping=deserialize_mapping)
+        self._data = self.convert(raw_data, strict=strict, partial=partial,
+                                  mapping=deserialize_mapping, app_data=app_data, context=context)
 
-    def validate(self, partial=False, strict=False):
+    def validate(self, partial=False, strict=False, app_data=None, context=None):
         """
         Validates the state of the model and adding additional untrusted data
         as well. If the models is invalid, raises ValidationError with error
@@ -251,7 +250,7 @@ class Model(object):
         """
         try:
             data = validate(self.__class__, self._data, partial=partial,
-                            strict=strict)
+                            strict=strict, app_data=app_data, context=context)
             self._data.update(**data)
         except BaseError as exc:
             raise ModelValidationError(exc.messages)
@@ -283,10 +282,10 @@ class Model(object):
         """
         return convert(self.__class__, raw_data, **kw)
 
-    def to_native(self, role=None, context=None):
-        return to_native(self.__class__, self, role=role, context=context)
+    def to_native(self, role=None, app_data=None, context=None):
+        return to_native(self.__class__, self, role=role, app_data=app_data, context=context)
 
-    def to_primitive(self, role=None, context=None):
+    def to_primitive(self, role=None, app_data=None, context=None):
         """Return data as it would be validated. No filtering of output unless
         role is defined.
 
@@ -294,12 +293,12 @@ class Model(object):
             Filter output by a specific role
 
         """
-        return to_primitive(self.__class__, self, role=role, context=context)
+        return to_primitive(self.__class__, self, role=role, app_data=app_data, context=context)
 
-    def serialize(self, role=None, context=None):
-        return self.to_primitive(role=role, context=context)
+    def serialize(self, role=None, app_data=None, context=None):
+        return self.to_primitive(role=role, app_data=app_data, context=context)
 
-    def flatten(self, role=None, prefix=""):
+    def flatten(self, role=None, prefix="", app_data=None, context=None):
         """
         Return data as a pure key-value dictionary, where the values are
         primitive types (string, bool, int, long).
@@ -309,7 +308,8 @@ class Model(object):
         :param prefix:
             A prefix to use for keynames during flattening.
         """
-        return flatten(self.__class__, self, role=role, prefix=prefix)
+        return flatten(self.__class__, self, role=role, prefix=prefix,
+                       app_data=app_data, context=context)
 
     @classmethod
     def from_flat(cls, data):
@@ -427,4 +427,7 @@ class Model(object):
         return '%s object' % self.__class__.__name__
 
 
+from .transforms import allow_none, atoms, flatten, expand
+from .transforms import to_primitive, to_native, convert
 from .types.compound import ModelType
+from .validate import validate

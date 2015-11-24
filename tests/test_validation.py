@@ -122,7 +122,7 @@ def test_model_validators():
         can_future = BooleanType()
         publish = DateTimeType()
 
-        def validate_publish(self, data, dt):
+        def validate_publish(self, data, dt, context):
             if dt > datetime.datetime(2012, 1, 1, 0, 0) and not data['can_future']:
                 raise ValidationError(future_error_msg)
 
@@ -140,7 +140,7 @@ def test_multi_key_validation():
         should_raise = BooleanType(default=True)
         publish = DateTimeType()
 
-        def validate_publish(self, data, dt):
+        def validate_publish(self, data, dt, context):
             if data['should_raise'] is True:
                 raise ValidationError(u'')
             return dt
@@ -159,7 +159,7 @@ def test_multi_key_validation_part_two():
         name = StringType()
         call_me = BooleanType(default=False)
 
-        def validate_call_me(self, data, value):
+        def validate_call_me(self, data, value, context):
             if data['name'] == u'Brad' and value is True:
                 raise ValidationError(u'I\'m sorry I never call people who\'s name is Brad')
             return value
@@ -176,14 +176,14 @@ def test_multi_key_validation_fields_order():
         name = StringType()
         call_me = BooleanType(default=False)
 
-        def validate_name(self, data, value):
+        def validate_name(self, data, value, context):
             if data['name'] == u'Brad':
                 value = u'Joe'
                 data['name'] = value
                 return value
             return value
 
-        def validate_call_me(self, data, value):
+        def validate_call_me(self, data, value, context):
             if data['name'] == u'Joe':
                 raise ValidationError(u"Don't try to decept me! You're Joe!")
             return value

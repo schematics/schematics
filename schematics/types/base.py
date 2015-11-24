@@ -172,6 +172,10 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         self.messages = dict(self.MESSAGES, **(messages or {}))
         self._position_hint = next(_next_position_hint)  # For ordering of fields
 
+        self.name = None
+        self.owner_model = None
+        self.parent_field = None
+
     def __call__(self, value):
         return self.to_native(value)
 
@@ -204,12 +208,12 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         return value
 
     def allow_none(self):
-        if hasattr(self, 'owner_model'):
+        if self.owner_model:
             return self.owner_model.allow_none(self)
         else:
             return self.serialize_when_none
 
-    def validate(self, value):
+    def validate(self, value, context=None):
         """
         Validate the field and return a clean value or raise a
         ``ValidationError`` with a list of errors raised by the validation
@@ -225,18 +229,13 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
                 validator(value)
             except ValidationError as exc:
                 errors.extend(exc.messages)
-
                 if isinstance(exc, StopValidation):
                     break
 
         if errors:
             raise ValidationError(errors)
 
-    def validate_required(self, value):
-        if self.required and value is None:
-            raise ValidationError(self.messages['required'])
-
-    def validate_choices(self, value):
+    def validate_choices(self, value, context=None):
         if self.choices is not None:
             if value not in self.choices:
                 raise ValidationError(self.messages['choices']
@@ -979,7 +978,7 @@ class MultilingualStringType(BaseType):
 
     Minimum and maximum lengths apply to each of the localized values.
 
-    At least one of ``default_locale`` or ``context['locale']`` must be defined
+    At least one of ``default_locale`` or ``context.app_data['locale']`` must be defined
     when calling ``.to_primitive``.
 
     """
@@ -1021,7 +1020,7 @@ class MultilingualStringType(BaseType):
 
     def to_primitive(self, value, context=None):
         """
-        Use a combination of ``default_locale`` and ``context['locale']`` to return
+        Use a combination of ``default_locale`` and ``context.app_data['locale']`` to return
         the best localized string.
 
         """
@@ -1029,8 +1028,8 @@ class MultilingualStringType(BaseType):
             return None
 
         context_locale = None
-        if context is not None and 'locale' in context:
-            context_locale = context['locale']
+        if context and 'locale' in context.app_data:
+            context_locale = context.app_data['locale']
 
         # Build a list of all possible locales to try
         possible_locales = []

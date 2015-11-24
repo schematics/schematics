@@ -151,6 +151,9 @@ def test_list_field_required():
         "ids": []
     })
 
+    c.ids = []
+    c.validate()
+
     c.ids = [1]
     c.validate()
 
@@ -201,7 +204,7 @@ def test_list_model_field_exception_with_full_message():
 
 
 def test_stop_validation():
-    def raiser(x):
+    def raiser(*args, **kwargs):
         raise StopValidation({'something': 'bad'})
 
     lst = ListType(StringType(), validators=[raiser])
