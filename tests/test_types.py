@@ -87,7 +87,7 @@ def test_int():
 def test_int_validation():
     with pytest.raises(ConversionError):
         IntType().validate('foo')
-    assert IntType().validate(5001) == None
+    assert IntType().validate(5001) == 5001
 
 
 def test_custom_validation_functions():

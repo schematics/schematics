@@ -2,7 +2,7 @@ from .exceptions import BaseError, ValidationError, ModelConversionError
 
 
 def validate(cls, instance_or_dict, partial=False, strict=False, trusted_data=None,
-             app_data=None, context=None):
+             convert=True, app_data=None, context=None):
     """
     Validate some untrusted data using a model. Trusted data can be passed in
     the `trusted_data` parameter.
@@ -20,6 +20,11 @@ def validate(cls, instance_or_dict, partial=False, strict=False, trusted_data=No
         Complain about unrecognized keys. Default: False
     :param trusted_data:
         A ``dict``-like structure that may contain already validated data.
+    :param convert:
+        Controls whether to perform import conversion before validating.
+        Can be turned off to skip an unnecessary conversion step if all values
+        are known to have the right datatypes (e.g., when validating immediately
+        after the initial import). Default: True
 
     :returns: data
         ``dict`` containing the valid raw_data plus ``trusted_data``.
@@ -31,9 +36,7 @@ def validate(cls, instance_or_dict, partial=False, strict=False, trusted_data=No
 
     # Function for validating an individual field
     def field_converter(field, value, context):
-        value = field.to_native(value, context)
-        field.validate(value, context)
-        return value
+        return field.validate(value, convert, context)
 
     # Loop across fields and coerce values
     try:

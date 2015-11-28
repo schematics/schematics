@@ -41,10 +41,3 @@ class ObjectIdType(BaseType):
     def to_primitive(self, value, context=None):
         return str(value)
 
-    def validate_id(self, value):
-        if not isinstance(value, bson.objectid.ObjectId):
-            try:
-                value = bson.objectid.ObjectId(unicode(value))
-            except Exception:
-                raise ValidationError('Invalid ObjectId')
-        return True

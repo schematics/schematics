@@ -235,7 +235,7 @@ class Model(object):
         self._data = self.convert(raw_data, strict=strict, partial=partial,
                                   mapping=deserialize_mapping, app_data=app_data, context=context)
 
-    def validate(self, partial=False, strict=False, app_data=None, context=None):
+    def validate(self, partial=False, strict=False, convert=True, app_data=None, context=None):
         """
         Validates the state of the model and adding additional untrusted data
         as well. If the models is invalid, raises ValidationError with error
@@ -247,10 +247,15 @@ class Model(object):
             definitions. Default: False
         :param strict:
             Complain about unrecognized keys. Default: False
+        :param convert:
+            Controls whether to perform import conversion before validating.
+            Can be turned off to skip an unnecessary conversion step if all values
+            are known to have the right datatypes (e.g., when validating immediately
+            after the initial import). Default: True
         """
         try:
-            data = validate(self.__class__, self._data, partial=partial,
-                            strict=strict, app_data=app_data, context=context)
+            data = validate(self.__class__, self._data, partial=partial, strict=strict,
+                            convert=convert, app_data=app_data, context=context)
             self._data.update(**data)
         except BaseError as exc:
             raise ModelValidationError(exc.messages)

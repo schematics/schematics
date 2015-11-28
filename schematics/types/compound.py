@@ -36,11 +36,14 @@ class MultiType(BaseType):
             self.field._setup(None, owner_model)
         super(MultiType, self)._setup(field_name, owner_model)
 
-    def validate(self, value, context=None):
+    def validate(self, value, convert=True, context=None):
         """Report dictionary of errors with lists of errors as values of each
         key. Used by ModelType and ListType.
 
         """
+        if convert:
+            value = self.to_native(value, context)
+
         errors = {}
 
         for validator in self.validators:

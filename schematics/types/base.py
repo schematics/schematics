@@ -213,7 +213,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         else:
             return self.serialize_when_none
 
-    def validate(self, value, context=None):
+    def validate(self, value, convert=True, context=None):
         """
         Validate the field and return a clean value or raise a
         ``ValidationError`` with a list of errors raised by the validation
@@ -221,6 +221,8 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         validators by raising ``StopValidation`` instead of ``ValidationError``.
 
         """
+        if convert:
+            value = self.to_native(value)
 
         errors = []
 
@@ -234,6 +236,8 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
 
         if errors:
             raise ValidationError(errors)
+
+        return value
 
     def validate_choices(self, value, context=None):
         if self.choices is not None:
@@ -457,13 +461,6 @@ class NumberType(BaseType):
                                   .format(value, self.number_type.lower()))
 
         return value
-
-    def validate_is_a_number(self, value):
-        try:
-            self.number_class(value)
-        except (TypeError, ValueError):
-            raise ConversionError(self.messages['number_coerce']
-                                  .format(value, self.number_type.lower()))
 
     def validate_range(self, value):
         if self.min_value is not None and value < self.min_value:
