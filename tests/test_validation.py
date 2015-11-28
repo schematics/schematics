@@ -359,6 +359,12 @@ def test_model_validator_override():
     assert Child._validator_functions['bar'] is not Base._validator_functions['bar']
 
 
+def test_validate_convert():
+
+    assert IntType().validate("1") == 1
+    assert IntType().validate("foo", convert=False) == "foo"
+
+
 def test_clean_validation_messages():
     error = BaseError(["A"])
     assert error.messages == ["A"]

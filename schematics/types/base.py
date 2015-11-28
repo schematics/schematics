@@ -213,7 +213,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         else:
             return self.serialize_when_none
 
-    def validate(self, value, context=None):
+    def validate(self, value, convert=True, context=None):
         """
         Validate the field and return a clean value or raise a
         ``ValidationError`` with a list of errors raised by the validation
@@ -221,7 +221,8 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         validators by raising ``StopValidation`` instead of ``ValidationError``.
 
         """
-        value = self.to_native(value)
+        if convert:
+            value = self.to_native(value)
 
         errors = []
 
