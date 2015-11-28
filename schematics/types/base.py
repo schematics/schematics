@@ -6,6 +6,7 @@ import re
 import datetime
 import decimal
 import itertools
+import numbers
 import functools
 import random
 import string
@@ -442,11 +443,12 @@ class NumberType(BaseType):
     }
 
     def __init__(self, number_class, number_type,
-                 min_value=None, max_value=None, **kwargs):
+                 min_value=None, max_value=None, strict=False, **kwargs):
         self.number_class = number_class
         self.number_type = number_type
         self.min_value = min_value
         self.max_value = max_value
+        self.strict = strict
 
         super(NumberType, self).__init__(**kwargs)
 
@@ -454,13 +456,22 @@ class NumberType(BaseType):
         return get_value_in(self.min_value, self.max_value)
 
     def to_native(self, value, context=None):
+        if type(value) is self.number_class:
+            return value
         try:
-            value = self.number_class(value)
+            native_value = self.number_class(value)
         except (TypeError, ValueError):
-            raise ConversionError(self.messages['number_coerce']
-                                  .format(value, self.number_type.lower()))
+            pass
+        else:
+            if self.number_class is float:  # Float conversion is strict enough.
+                return native_value
+            if not self.strict and native_value == value: # Match numeric types.
+                return native_value
+            if isinstance(value, (basestring, numbers.Integral)):
+                return native_value
 
-        return value
+        raise ConversionError(self.messages['number_coerce']
+                              .format(value, self.number_type.lower()))
 
     def validate_range(self, value):
         if self.min_value is not None and value < self.min_value:

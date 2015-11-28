@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import datetime
-import decimal
+from decimal import Decimal
+from fractions import Fraction
 import random
 import sys
 import uuid
@@ -19,6 +20,9 @@ from schematics.types.base import get_range_endpoints
 from schematics.exceptions import (
     ValidationError, ConversionError, MockCreationError
 )
+
+
+_uuid = uuid.UUID('3ce85e48-3028-409c-a07c-c8ee3d16d5c4')
 
 
 def test_string_choices():
@@ -79,9 +83,80 @@ def test_datetime_accepts_datetime():
 
 
 def test_int():
+    intfield = IntType()
+    i = lambda x: (intfield(x), type(intfield(x)))
+    # from int
+    assert i(3) == (3, int)
+    # from float
+    assert i(3.0) == (3, int)
     with pytest.raises(ConversionError):
-        IntType()('a')
-    assert IntType()(1) == 1
+        i(3.2)
+    # from string
+    assert i("3") == (3, int)
+    with pytest.raises(ConversionError):
+        i("3.0")
+    with pytest.raises(ConversionError):
+        i("a")
+    # from decimal
+    assert i(Decimal("3")) == (3, int)
+    assert i(Decimal("3.0")) == (3, int)
+    with pytest.raises(ConversionError):
+        i(Decimal("3.2"))
+    # from fraction
+    assert i(Fraction(30, 10)) == (3, int)
+    with pytest.raises(ConversionError):
+        i(Fraction(7, 2))
+    # from uuid
+    with pytest.raises(ConversionError):
+        i(_uuid)
+
+
+def test_int_strict():
+    intfield = IntType(strict=True)
+    i = lambda x: (intfield(x), type(intfield(x)))
+    # from int
+    assert i(3) == (3, int)
+    # from float
+    with pytest.raises(ConversionError):
+        i(3.0)
+    # from string
+    assert i("3") == (3, int)
+    with pytest.raises(ConversionError):
+        i("3.0")
+    # from decimal
+    with pytest.raises(ConversionError):
+        assert i(Decimal("3")) == (3, int)
+    with pytest.raises(ConversionError):
+        assert i(Decimal("3.0")) == (3, int)
+    # from fraction
+    with pytest.raises(ConversionError):
+        assert i(Fraction(30, 10)) == (3, int)
+    # from uuid
+    with pytest.raises(ConversionError):
+        i(_uuid)
+
+
+def test_float():
+    floatfield = FloatType()
+    f = lambda x: (floatfield(x), type(floatfield(x)))
+    # from int
+    assert f(3) == (3.0, float)
+    # from float
+    assert f(3.2) == (3.2, float)
+    # from string
+    assert f("3") == (3.0, float)
+    assert f("3.2") == (3.2, float)
+    assert f("3.210987e6") == (3210987, float)
+    with pytest.raises(ConversionError):
+        f("a")
+    # from decimal
+    assert f(Decimal("3")) == (3.0, float)
+    assert f(Decimal("3.2")) == (3.2, float)
+    # from fraction
+    assert f(Fraction(7, 2)) == (3.5, float)
+    # from uuid
+    with pytest.raises(ConversionError):
+        f(_uuid)
 
 
 def test_int_validation():
