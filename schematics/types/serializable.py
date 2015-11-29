@@ -1,5 +1,8 @@
+import copy
 
-from schematics.types.base import BaseType
+from ..util import setdefault
+
+from .base import BaseType
 
 
 def serializable(*args, **kwargs):
@@ -24,11 +27,19 @@ def serializable(*args, **kwargs):
         The name of this field in the serialized output.
     """
     def wrapper(func):
-        serialized_type = kwargs.pop("type", BaseType())  # pylint: disable=no-value-for-parameter
-        serialized_name = kwargs.pop("serialized_name", None)
-        serialize_when_none = kwargs.pop("serialize_when_none", True)
-        return Serializable(func, type=serialized_type, serialized_name=serialized_name,
-                            serialize_when_none=serialize_when_none)
+
+        serialized_type = kwargs.pop("type", BaseType)
+
+        if isinstance(serialized_type, BaseType):
+            # If `serialized_type` is already an instance, update it with the options
+            # found in `kwargs`. This is necessary because historically certain options
+            # were stored on the `Serializable` itself instead of the underlying field.
+            for name, value in kwargs.items():
+                setdefault(serialized_type, name, value, overwrite_none=True)
+        else:
+            serialized_type = serialized_type(**kwargs)
+
+        return Serializable(func, serialized_type)
 
     if len(args) == 1 and callable(args[0]):
         # No arguments, this is the decorator
@@ -40,13 +51,12 @@ def serializable(*args, **kwargs):
 
 class Serializable(object):
 
-    def __init__(self, func, type=None, serialized_name=None, serialize_when_none=True):
+    def __init__(self, func, type):
         self.func = func
         self.type = type
-        self.typeclass = type.__class__
-        self.serialized_name = serialized_name
-        self.serialize_when_none = serialize_when_none
-        self.is_compound = self.type.is_compound
+
+    def __getattr__(self, name):
+        return getattr(self.type, name)
 
     def __get__(self, instance, cls):
         if instance:
@@ -54,9 +64,6 @@ class Serializable(object):
         else:
             return self
 
-    def convert(self, value, context=None):
-        return self.type.convert(value, context)
-
-    def export(self, value, target, context=None):
-        return self.type.export(value, target, context)
+    def __deepcopy__(self, memo):
+        return self.__class__(self.func, copy.deepcopy(self.type))
 

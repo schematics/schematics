@@ -172,6 +172,8 @@ class ModelMeta(type):
         # Finalize fields
         for field_name, field in fields.items():
             field._setup(field_name, klass)
+        for field_name, field in serializables.items():
+            field._setup(field_name, klass)
 
         return klass
 
