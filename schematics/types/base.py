@@ -229,7 +229,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
 
         for validator in self.validators:
             try:
-                validator(value)
+                validator(value, context=context)
             except ValidationError as exc:
                 errors.extend(exc.messages)
                 if isinstance(exc, StopValidation):
@@ -295,7 +295,7 @@ class IPv4Type(BaseType):
         except ValueError:
             return False
 
-    def validate(self, value):
+    def validate(self, value, context=None):
         """
           Make sure the value is a IPv4 address:
           http://stackoverflow.com/questions/9948833/validate-ip-address-from-list
@@ -346,7 +346,7 @@ class StringType(BaseType):
 
         return value
 
-    def validate_length(self, value):
+    def validate_length(self, value, context=None):
         len_of_value = len(value) if value else 0
 
         if self.max_length is not None and len_of_value > self.max_length:
@@ -355,7 +355,7 @@ class StringType(BaseType):
         if self.min_length is not None and len_of_value < self.min_length:
             raise ValidationError(self.messages['min_length'])
 
-    def validate_regex(self, value):
+    def validate_regex(self, value, context=None):
         if self.regex is not None and re.match(self.regex, value) is None:
             raise ValidationError(self.messages['regex'])
 
@@ -390,7 +390,7 @@ class URLType(StringType):
         return fill_template('http://a%s.ZZ', self.min_length,
                              self.max_length)
 
-    def validate_url(self, value):
+    def validate_url(self, value, context=None):
         if not URLType.URL_REGEX.match(value):
             raise StopValidation(self.messages['invalid_url'])
         if self.verify_exists:
@@ -426,7 +426,7 @@ class EmailType(StringType):
         return fill_template('%s@example.com', self.min_length,
                              self.max_length)
 
-    def validate_email(self, value):
+    def validate_email(self, value, context=None):
         if not EmailType.EMAIL_REGEX.match(value):
             raise StopValidation(self.messages['email'])
 
@@ -473,7 +473,7 @@ class NumberType(BaseType):
         raise ConversionError(self.messages['number_coerce']
                               .format(value, self.number_type.lower()))
 
-    def validate_range(self, value):
+    def validate_range(self, value, context=None):
         if self.min_value is not None and value < self.min_value:
             raise ValidationError(self.messages['number_min']
                                   .format(self.number_type, self.min_value))
@@ -558,7 +558,7 @@ class DecimalType(BaseType):
 
         return value
 
-    def validate_range(self, value):
+    def validate_range(self, value, context=None):
         if self.min_value is not None and value < self.min_value:
             error_msg = self.messages['number_min'].format(self.min_value)
             raise ValidationError(error_msg)
@@ -977,7 +977,7 @@ class GeoPointType(BaseType):
 
         return value
 
-    def validate_range(self, value):
+    def validate_range(self, value, context=None):
         latitude, longitude = value
         if latitude < -90:
             raise ValidationError(
@@ -1091,7 +1091,7 @@ class MultilingualStringType(BaseType):
 
         return localized
 
-    def validate_length(self, value):
+    def validate_length(self, value, context=None):
         for locale, localized in value.items():
             len_of_value = len(localized) if localized else 0
 
@@ -1101,7 +1101,7 @@ class MultilingualStringType(BaseType):
             if self.min_length is not None and len_of_value < self.min_length:
                 raise ValidationError(self.messages['min_length'].format(locale))
 
-    def validate_regex(self, value):
+    def validate_regex(self, value, context=None):
         if self.regex is None and self.locale_regex is None:
             return
 

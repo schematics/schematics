@@ -168,7 +168,7 @@ def test_int_validation():
 def test_custom_validation_functions():
     class UppercaseType(BaseType):
 
-        def validate_uppercase(self, value):
+        def validate_uppercase(self, value, context=None):
             if value.upper() != value:
                 raise ValidationError("Value must be uppercase!")
 
@@ -181,7 +181,7 @@ def test_custom_validation_functions():
 def test_custom_validation_function_and_inheritance():
     class UppercaseType(StringType):
 
-        def validate_uppercase(self, value):
+        def validate_uppercase(self, value, context=None):
             if value.upper() != value:
                 raise ValidationError("Value must be uppercase!")
 
@@ -192,7 +192,7 @@ def test_custom_validation_function_and_inheritance():
 
             super(MUppercaseType, self).__init__(**kwargs)
 
-        def validate_contains_m_chars(self, value):
+        def validate_contains_m_chars(self, value, context=None):
             if value.count("M") != self.number_of_m_chars:
                 raise ValidationError(
                     "Value must contain {0} 'm' characters".format(self.number_of_m_chars))

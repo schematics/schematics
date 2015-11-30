@@ -71,7 +71,7 @@ def test_validation_none_fails():
 def test_custom_validators():
     now = datetime.datetime(2012, 1, 1, 0, 0)
 
-    def is_not_future(dt, *args):
+    def is_not_future(dt, context=None):
         if dt > now:
             raise ValidationError(future_error_msg)
 
@@ -337,7 +337,7 @@ def test_deep_errors_with_dicts():
 def test_field_validator_override():
 
     class CustomIntType(IntType):
-        def validate_range(self, value):
+        def validate_range(self, value, context=None):
             pass
 
     CustomIntType(max_value=1).validate(9)
@@ -346,13 +346,13 @@ def test_field_validator_override():
 def test_model_validator_override():
 
     class Base(Model):
-        def validate_foo(self, data, value):
+        def validate_foo(self, data, value, context=None):
             pass
-        def validate_bar(self, data, value):
+        def validate_bar(self, data, value, context=None):
             pass
 
     class Child(Base):
-        def validate_bar(self, data, value):
+        def validate_bar(self, data, value, context=None):
             pass
 
     assert Child._validator_functions['foo'] is Base._validator_functions['foo']
