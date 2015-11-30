@@ -4,7 +4,7 @@ import sys
 from dateutil.tz import gettz, tzutc
 import pytest
 
-from schematics.exceptions import ConversionError
+from schematics.exceptions import ConversionError, ValidationError
 from schematics.types import DateTimeType, UTCDateTimeType, TimestampType
 
 
@@ -232,4 +232,61 @@ def test_timestamp():
     assert field.to_primitive(EPOCH) == 0
     assert field.to_native(0) == EPOCH
 
+
+def test_validate_tz():
+
+    dt_naive_utc = datetime(2015, 6, 1, 14, 00)
+    dt_utc = datetime(2015, 6, 1, 14, 00, tzinfo=UTC)
+    dt_plustwo = datetime(2015, 6, 1, 16, 00, tzinfo=DateTimeType.offset_timezone(2))
+    dt_nyc = datetime(2015, 6, 1, 10, 00, tzinfo=NYC)
+
+    field = DateTimeType(tzd='allow')
+    field.validate_tz(dt_naive_utc)
+    field.validate_tz(dt_utc)
+    field.validate_tz(dt_plustwo)
+    field.validate_tz(dt_nyc)
+
+    field = DateTimeType(tzd='utc')
+    field.validate_tz(dt_utc)
+    with pytest.raises(ValidationError):
+        field.validate_tz(dt_naive_utc)
+    with pytest.raises(ValidationError):
+        field.validate_tz(dt_plustwo)
+    with pytest.raises(ValidationError):
+        field.validate_tz(dt_nyc)
+
+    field = DateTimeType(tzd='reject')
+    field.validate_tz(dt_naive_utc)
+    with pytest.raises(ValidationError):
+        field.validate_tz(dt_utc)
+
+    field = DateTimeType(tzd='require')
+    field.validate_tz(dt_utc)
+    field.validate_tz(dt_plustwo)
+    with pytest.raises(ValidationError):
+        field.validate_tz(dt_naive_utc)
+
+    field = DateTimeType(tzd='require', convert_tz=True, drop_tzinfo=True)
+    field.validate_tz(dt_naive_utc)
+    with pytest.raises(ValidationError):
+        field.validate_tz(dt_utc)
+    with pytest.raises(ValidationError):
+        field.validate_tz(dt_plustwo)
+
+    field = DateTimeType(convert_tz=True)
+    field.validate_tz(dt_naive_utc)
+    field.validate_tz(dt_utc)
+    with pytest.raises(ValidationError):
+        field.validate_tz(dt_plustwo)
+    with pytest.raises(ValidationError):
+        field.validate_tz(dt_nyc)
+
+    field = DateTimeType(convert_tz=True, drop_tzinfo=True)
+    field.validate_tz(dt_naive_utc)
+    with pytest.raises(ValidationError):
+        field.validate_tz(dt_utc)
+    with pytest.raises(ValidationError):
+        field.validate_tz(dt_plustwo)
+    with pytest.raises(ValidationError):
+        field.validate_tz(dt_nyc)
 

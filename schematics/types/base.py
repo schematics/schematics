@@ -726,9 +726,13 @@ class DateTimeType(BaseType):
         'parse_formats': u'Could not parse {0}. Valid formats: {1}',
         'parse_external': u'Could not parse {0}.',
         'parse_tzd_require': u'Could not parse {0}. Time zone offset required.',
-        'parse_tzd_reject': u'Could not parse {0}. Time zone offsets not allowed.',
+        'parse_tzd_reject': u'Could not parse {0}. Time zone offset not allowed.',
         'tzd_require': u'Could not convert {0}. Time zone required but not found.',
         'tzd_reject': u'Could not convert {0}. Time zone offsets not allowed.',
+        'validate_tzd_require': u'Time zone information required but not found.',
+        'validate_tzd_reject': u'Time zone information not allowed.',
+        'validate_utc_none': u'Time zone must be UTC but was None.',
+        'validate_utc_wrong': u'Time zone must be UTC.',
     }
 
     REGEX = (u'(?P<year>\d{4})-(?P<month>\d\d)-(?P<day>\d\d)(?:T|\ )'
@@ -737,7 +741,7 @@ class DateTimeType(BaseType):
              u'(?:(?P<tzd_offset>(?P<tzd_sign>[+−-])(?P<tzd_hour>\d\d):?(?P<tzd_minute>\d\d)?)'
              u'|(?P<tzd_utc>Z))?$')
 
-    TD_0 = datetime.timedelta(0)
+    TIMEDELTA_ZERO = datetime.timedelta(0)
 
     class fixed_timezone(datetime.tzinfo):
         def utcoffset(self, dt): return self.offset
@@ -885,6 +889,22 @@ class DateTimeType(BaseType):
         if callable(self.serialized_format):
             return self.serialized_format(value)
         return value.strftime(self.serialized_format)
+
+    def validate_tz(self, value, context=None):
+        if value.tzinfo is None:
+            if not self.drop_tzinfo:
+                if self.tzd == 'require':
+                    raise ValidationError(self.messages['validate_tzd_require'])
+                if self.tzd == 'utc':
+                    raise ValidationError(self.messages['validate_utc_none'])
+        else:
+            if self.drop_tzinfo:
+                raise ValidationError(self.messages['validate_tzd_reject'])
+            if self.tzd == 'reject':
+                raise ValidationError(self.messages['validate_tzd_reject'])
+            if (self.tzd == 'utc' or self.convert_tz) \
+              and value.tzinfo.utcoffset(value) != self.TIMEDELTA_ZERO:
+                raise ValidationError(self.messages['validate_utc_wrong'])
 
 
 class UTCDateTimeType(DateTimeType):
