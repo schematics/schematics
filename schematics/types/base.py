@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import copy
 import math
 import uuid
 import re
@@ -179,6 +180,9 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
 
     def __call__(self, value):
         return self.to_native(value)
+
+    def __deepcopy__(self, memo):
+        return copy.copy(self)
 
     def _mock(self, context=None):
         return None
