@@ -154,6 +154,8 @@ class ModelMeta(type):
         fields.sort(key=lambda i: i[1]._position_hint)
         for key, field in iteritems(fields):
             attrs[key] = FieldDescriptor(key)
+        for key, serializable in iteritems(serializables):
+            attrs[key] = serializable
 
         # Ready meta data to be klass attributes
         attrs['_fields'] = fields
