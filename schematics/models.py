@@ -8,6 +8,7 @@ from six import iteritems
 from six import iterkeys
 from six import add_metaclass
 
+from .common import NATIVE, PRIMITIVE
 from .datastructures import OrderedDict as OrderedDictWithSort
 from .exceptions import BaseError, ModelValidationError, MockCreationError
 from .types import BaseType
@@ -222,13 +223,13 @@ class Model(object):
 
     __optionsclass__ = ModelOptions
 
-    def __init__(self, raw_data=None, deserialize_mapping=None,
+    def __init__(self, raw_data=None, trusted_data=None, deserialize_mapping=None,
                  partial=True, strict=True, app_data=None, context=None):
-        if raw_data is None:
-            raw_data = {}
-        self._initial = raw_data
-        self._data = self.convert(raw_data, strict=strict, partial=partial,
-                                  mapping=deserialize_mapping, app_data=app_data, context=context)
+
+        self._initial = raw_data = raw_data or {}
+        self._data = self.convert(raw_data, trusted_data=trusted_data, strict=strict,
+                                  partial=partial, mapping=deserialize_mapping,
+                                  app_data=app_data, context=context)
 
     def validate(self, partial=False, strict=False, convert=True, app_data=None, context=None):
         """
@@ -282,21 +283,26 @@ class Model(object):
         """
         return convert(self.__class__, raw_data, **kw)
 
-    def to_native(self, role=None, app_data=None, context=None):
-        return to_native(self.__class__, self, role=role, app_data=app_data, context=context)
+    def export(self, format, field_converter=None, role=None, app_data=None, **kwargs):
+        data = export_loop(self.__class__, self, field_converter=field_converter,
+                           role=role, app_data=app_data, **kwargs)
+        if format == NATIVE:
+            return self.__class__(trusted_data=data)
+        else:
+            return data
 
-    def to_primitive(self, role=None, app_data=None, context=None):
-        """Return data as it would be validated. No filtering of output unless
-        role is defined.
+    def to_native(self, role=None, app_data=None, **kwargs):
+        data = to_native(self.__class__, self, role=role, app_data=app_data, **kwargs)
+        return self.__class__(trusted_data=data)
 
-        :param role:
-            Filter output by a specific role
+    def to_dict(self, role=None, app_data=None, **kwargs):
+        return to_dict(self.__class__, self, role=role, app_data=app_data, **kwargs)
 
-        """
-        return to_primitive(self.__class__, self, role=role, app_data=app_data, context=context)
+    def to_primitive(self, role=None, app_data=None, **kwargs):
+        return to_primitive(self.__class__, self, role=role, app_data=app_data, **kwargs)
 
-    def serialize(self, role=None, app_data=None, context=None):
-        return self.to_primitive(role=role, app_data=app_data, context=context)
+    def serialize(self, role=None, app_data=None, **kwargs):
+        return self.to_primitive(role=role, app_data=app_data, **kwargs)
 
     def flatten(self, role=None, prefix="", app_data=None, context=None):
         """
@@ -428,6 +434,6 @@ class Model(object):
 
 
 from .transforms import allow_none, atoms, flatten, expand
-from .transforms import to_primitive, to_native, convert
+from .transforms import convert, to_native, to_dict, to_primitive, export_loop
 from .types.compound import ModelType
 from .validate import validate

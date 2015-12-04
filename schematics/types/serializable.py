@@ -43,15 +43,10 @@ class Serializable(object):
     def __init__(self, func, type=None, serialized_name=None, serialize_when_none=True):
         self.func = func
         self.type = type
+        self.typeclass = type.__class__
         self.serialized_name = serialized_name
         self.serialize_when_none = serialize_when_none
-
-        if hasattr(type, 'export_loop'):
-            def make_export_loop(_type):
-                def export_loop(*args, **kwargs):
-                    return _type.export_loop(*args, **kwargs)
-                return export_loop
-            self.export_loop = make_export_loop(self.type)
+        self.is_compound = self.type.is_compound
 
     def __get__(self, instance, cls):
         if instance:
@@ -59,8 +54,9 @@ class Serializable(object):
         else:
             return self
 
-    def to_native(self, value, context=None):
-        return self.type.to_native(value, context)
+    def convert(self, value, context=None):
+        return self.type.convert(value, context)
 
-    def to_primitive(self, value, context=None):
-        return self.type.to_primitive(value, context)
+    def export(self, value, target, context=None):
+        return self.type.export(value, target, context)
+

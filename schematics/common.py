@@ -1,0 +1,6 @@
+
+NATIVE, PRIMITIVE = 0, 1
+
+EMPTY_LIST = "[]"
+EMPTY_DICT = "{}"
+

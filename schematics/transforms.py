@@ -5,8 +5,10 @@ import itertools
 
 from six import iteritems
 
-from .datastructures import OrderedDict, get_context_factory
+from .common import NATIVE, PRIMITIVE, EMPTY_LIST, EMPTY_DICT
+from .datastructures import OrderedDict, get_context_factory, DataObject
 from .exceptions import ConversionError, ModelConversionError, ValidationError
+from .types.compound import ModelType
 
 try:
     basestring #PY2
@@ -32,13 +34,13 @@ except:
 ###
 
 ImportContext = get_context_factory('ImportContext',
-                    'partial, strict, mapping, app_data')
+                    'field_converter, partial, strict, mapping, app_data')
 
 ExportContext = get_context_factory('ExportContext',
-                    'role, raise_error_on_role, print_none, app_data')
+                    'field_converter, role, raise_error_on_role, print_none, app_data')
 
 
-def import_loop(cls, instance_or_dict, field_converter, trusted_data=None,
+def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
                 partial=False, strict=False, mapping=None, app_data=None, context=None):
     """
     The import loop is designed to take untrusted data and convert it into the
@@ -74,7 +76,7 @@ def import_loop(cls, instance_or_dict, field_converter, trusted_data=None,
 
     mapping = mapping or {}
     app_data = app_data if app_data is not None else {}
-    context = context or ImportContext(partial, strict, mapping, app_data)
+    context = context or ImportContext(field_converter, partial, strict, mapping, app_data)
 
     data = dict(trusted_data) if trusted_data else {}
     errors = {}
@@ -136,8 +138,8 @@ def import_loop(cls, instance_or_dict, field_converter, trusted_data=None,
     return data
 
 
-def export_loop(cls, instance_or_dict, field_converter, role=None, 
-                raise_error_on_role=False, print_none=False, app_data=None, context=None):
+def export_loop(cls, instance_or_dict, field_converter=None, role=None,
+                raise_error_on_role=True, print_none=False, app_data=None, context=None):
     """
     The export_loop function is intended to be a general loop definition that
     can be used for any form of data shaping, such as application of roles or
@@ -169,7 +171,7 @@ def export_loop(cls, instance_or_dict, field_converter, role=None,
         of ``export_loop`` and is then propagated through the entire process.
     """
     app_data = app_data if app_data is not None else {}
-    context = context or ExportContext(role, raise_error_on_role, print_none, app_data)
+    context = context or ExportContext(field_converter, role, raise_error_on_role, print_none, app_data)
 
     data = {}
 
@@ -195,12 +197,8 @@ def export_loop(cls, instance_or_dict, field_converter, role=None,
 
         # Value found, apply transformation and store it
         elif value is not None:
-            if hasattr(field, 'export_loop'):
-                shaped = field.export_loop(value, field_converter, context)
-                feels_empty = shaped is None or len(shaped) == 0
-            else:
-                shaped = field_converter(field, value, context)
-                feels_empty = shaped is None
+            shaped = context.field_converter(field, value, context)
+            feels_empty = shaped is None or field.is_compound and len(shaped) == 0
 
             # Print if we want none or found a value
             if feels_empty:
@@ -426,54 +424,48 @@ def blacklist(*field_list):
 ###
 
 
-def convert(cls, instance_or_dict, trusted_data=None, partial=True, strict=False,
-            mapping=None, app_data=None, context=None):
-    field_converter = lambda field, value, context: field.to_native(value, context)
-    data = import_loop(cls, instance_or_dict, field_converter, trusted_data=trusted_data,
-                       partial=partial, strict=strict, mapping=mapping, app_data=app_data, context=context)
-    return data
+class FieldConverter(object):
+
+    def __call__(self, field, value, context):
+        raise NotImplementedError
 
 
-def to_native(cls, instance_or_dict, role=None, raise_error_on_role=True, app_data=None, context=None):
-    field_converter = lambda field, value, context: field.to_native(value, context)
-    data = export_loop(cls, instance_or_dict, field_converter, role=role,
-                       raise_error_on_role=raise_error_on_role, app_data=app_data, context=context)
-    return data
+class ExportConverter(FieldConverter):
+
+    def __init__(self, format, exceptions=None):
+        self.primary = format
+        self.secondary = not format
+        self.exceptions = set(exceptions) if exceptions else None
+
+    def __call__(self, field, value, context):
+        format = self.primary
+        if self.exceptions:
+            if any((issubclass(field.typeclass, cls) for cls in self.exceptions)):
+                format = self.secondary
+        return field.export(value, format, context)
 
 
-def to_primitive(cls, instance_or_dict, role=None, raise_error_on_role=True, app_data=None, context=None):
-    """
-    Implements serialization as a mechanism to convert ``Model`` instances into
-    dictionaries keyed by field_names with the converted data as the values.
+_import_converter = lambda field, value, context: field.convert(value, context)
 
-    The conversion is done by calling ``to_primitive`` on both model and field
-    instances.
-
-    :param cls:
-        The model definition.
-    :param instance_or_dict:
-        The structure where fields from cls are mapped to values. The only
-        expectionation for this structure is that it implements a ``dict``
-        interface.
-    :param role:
-        The role used to determine if fields should be left out of the
-        transformation.
-    :param raise_error_on_role:
-        This parameter enforces strict behavior which requires substructures
-        to have the same role definition as their parent structures.
-    """
-    field_converter = lambda field, value, context: field.to_primitive(value, context)
-    data = export_loop(cls, instance_or_dict, field_converter, role=role,
-                       raise_error_on_role=raise_error_on_role, app_data=app_data, context=context)
-    return data
+_to_native_converter = ExportConverter(NATIVE)
+_to_dict_converter = ExportConverter(NATIVE, [ModelType])
+_to_primitive_converter = ExportConverter(PRIMITIVE)
 
 
-def serialize(cls, instance_or_dict, role=None, raise_error_on_role=True, app_data=None, context=None):
-    return to_primitive(cls, instance_or_dict, role, raise_error_on_role, app_data, context)
+def convert(cls, instance_or_dict, **kwargs):
+    return import_loop(cls, instance_or_dict, _import_converter, **kwargs)
 
 
-EMPTY_LIST = "[]"
-EMPTY_DICT = "{}"
+def to_native(cls, instance_or_dict, **kwargs):
+    return export_loop(cls, instance_or_dict, _to_native_converter, **kwargs)
+
+
+def to_dict(cls, instance_or_dict, **kwargs):
+    return export_loop(cls, instance_or_dict, _to_dict_converter, **kwargs)
+
+
+def to_primitive(cls, instance_or_dict, **kwargs):
+    return export_loop(cls, instance_or_dict, _to_primitive_converter, **kwargs)
 
 
 def expand(data, expanded_data=None):
@@ -604,15 +596,10 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
         This puts a prefix in front of the field names during flattening.
         Default: None
     """
-    field_converter = lambda field, value, context: field.to_primitive(value, context)
-
-    data = export_loop(cls, instance_or_dict, field_converter, role=role,
-                       raise_error_on_role=raise_error_on_role, print_none=True,
-                       app_data=app_data, context=context)
+    data = to_primitive(cls, instance_or_dict, role=role, raise_error_on_role=raise_error_on_role,
+                        print_none=True, app_data=app_data, context=context)
 
     flattened = flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
 
     return flattened
 
-
-from .types.compound import MultiType
