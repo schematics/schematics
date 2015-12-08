@@ -68,6 +68,14 @@ class MultiType(BaseType):
     def export(self, shape_instance, format, context):
         raise NotImplementedError
 
+    def to_native(self, *_, **__):
+        raise RuntimeError("This method is no longer implemented by the standard compound types. " \
+                           "Please use 'convert()' or 'export()' instead.")
+
+    def to_primitive(self, *_, **__):
+        raise RuntimeError("This method is no longer implemented by the standard compound types. " \
+                           "Please use 'export()' instead.")
+
     def init_compound_field(self, field, compound_field, **kwargs):
         """
         Some of non-BaseType fields requires `field` arg.

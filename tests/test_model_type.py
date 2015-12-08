@@ -29,8 +29,6 @@ def test_simple_embedded_models():
     assert isinstance(p.location, Location)
     assert p.location.country_code == "IS"
 
-    assert Player.location.to_native(None, ConfigObject()) is None
-
 
 def test_simple_embedded_models_is_none():
     class Location(Model):
