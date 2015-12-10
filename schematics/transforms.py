@@ -34,7 +34,7 @@ except:
 def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
                 mapping=None, partial=False, strict=False, init_values=False,
                 apply_defaults=False, convert=True, validate=False, new=False,
-                app_data=None, context=None):
+                recursive=False, app_data=None, context=None):
     """
     The import loop is designed to take untrusted data and convert it into the
     native types, as described in ``cls``.  It does this by calling
@@ -81,6 +81,7 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
         context._setdefaults({
             'initialized': True,
             'field_converter': field_converter,
+            'trusted_data': trusted_data or {},
             'mapping': mapping or {},
             'partial': partial,
             'strict': strict,
@@ -89,12 +90,13 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
             'convert': convert,
             'validate': validate,
             'new': new,
+            'recursive': recursive,
             'app_data': app_data if app_data is not None else {}
         })
 
     _model_mapping = context.mapping.get('model_mapping')
 
-    data = dict(trusted_data) if trusted_data else {}
+    data = dict(context.trusted_data) if context.trusted_data else {}
     errors = {}
     # Determine all acceptable field input names
     all_fields = set(cls._fields) ^ set(cls._serializables)
@@ -139,11 +141,15 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
 
         if got_data:
             if field.is_compound:
+                if context.trusted_data and context.recursive:
+                    td = context.trusted_data.get(field_name)
+                else:
+                    td = {}
                 if _model_mapping:
                     submap = _model_mapping.get(field_name)
                 else:
                     submap = {}
-                field_context = context._branch(mapping=submap)
+                field_context = context._branch(trusted_data=td, mapping=submap)
             else:
                 field_context = context
             try:

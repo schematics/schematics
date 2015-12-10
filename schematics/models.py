@@ -263,19 +263,14 @@ class Model(object):
         if convert:
             self._data.update(**data)
 
-    def import_data(self, raw_data, **kw):
+    def import_data(self, raw_data, recursive=False, **kwargs):
         """
         Converts and imports the raw data into an existing model instance.
 
         :param raw_data:
             The data to be imported.
         """
-        data = self.convert(raw_data, **kw)
-        del_keys = [k for k in data.keys() if data[k] is Undefined]
-        for k in del_keys:
-            del data[k]
-
-        self._data.update(data)
+        self._data = self.convert(raw_data, trusted_data=self, recursive=recursive, **kwargs)
         return self
 
     def convert(self, raw_data, **kw):
