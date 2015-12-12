@@ -3,6 +3,7 @@ import inspect
 
 from .datastructures import Context
 from .exceptions import FieldError, DataError
+from .transforms import import_loop, validation_converter
 from .undefined import Undefined
 
 
@@ -36,8 +37,6 @@ def validate(cls, instance_or_dict, trusted_data=None, partial=False, strict=Fal
         If errors are found, they are raised as a ValidationError with a list
         of errors attached.
     """
-    from .transforms import import_loop
-
     context = context or get_validation_context(partial=partial, strict=strict, convert=convert)
 
     errors = {}
@@ -92,7 +91,6 @@ def _validate_model(cls, data, partial_data, context):
 
 
 def get_validation_context(**options):
-    from .transforms import validation_converter
     validation_options = {
         'field_converter': validation_converter,
         'partial': False,

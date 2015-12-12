@@ -236,5 +236,5 @@ def test_custom_converter():
 
     m = M(dict(x=1, y=None, z=3))
 
-    assert m.export(PRIMITIVE, field_converter=converter, export_level=DEFAULT) == {'x': 1, 'y': None}
+    assert m.export(field_converter=converter, export_level=DEFAULT) == {'x': 1, 'y': None}
 

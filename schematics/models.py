@@ -297,17 +297,12 @@ class Model(object):
                 obj._data.update(data)
             return obj
 
-    def export(self, format, field_converter=None, role=None, app_data=None, **kwargs):
-        data = export_loop(self.__class__, self, field_converter=field_converter,
+    def export(self, field_converter=None, role=None, app_data=None, **kwargs):
+        return export_loop(self.__class__, self, field_converter=field_converter,
                            role=role, app_data=app_data, **kwargs)
-        if format == NATIVE:
-            return self.__class__(data, init=False)
-        else:
-            return data
 
     def to_native(self, role=None, app_data=None, **kwargs):
-        data = to_native(self.__class__, self, role=role, app_data=app_data, **kwargs)
-        return self.__class__(data, init=False)
+        return to_native(self.__class__, self, role=role, app_data=app_data, **kwargs)
 
     def to_dict(self, role=None, app_data=None, **kwargs):
         return to_dict(self.__class__, self, role=role, app_data=app_data, **kwargs)
@@ -315,8 +310,8 @@ class Model(object):
     def to_primitive(self, role=None, app_data=None, **kwargs):
         return to_primitive(self.__class__, self, role=role, app_data=app_data, **kwargs)
 
-    def serialize(self, role=None, app_data=None, **kwargs):
-        return self.to_primitive(role=role, app_data=app_data, **kwargs)
+    def serialize(self, *args, **kwargs):
+        return self.to_primitive(*args, **kwargs)
 
     def flatten(self, role=None, prefix="", app_data=None, context=None):
         """

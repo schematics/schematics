@@ -117,7 +117,7 @@ class ModelType(MultiType):
         return model_class._convert(value, context=context)
 
     def export(self, model_instance, format, context):
-        return model_instance.export(format=format, context=context)
+        return model_instance.export(context=context)
 
 
 class ListType(MultiType):
@@ -379,5 +379,5 @@ class PolyModelType(MultiType):
         if not self.is_allowed_model(model_instance):
             raise Exception("Cannot export: {} is not an allowed type".format(model_class))
 
-        return model_instance.export(format=format, context=context)
+        return model_instance.export(context=context)
 

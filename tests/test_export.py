@@ -73,22 +73,23 @@ def test_to_primitive():
     assert m.to_primitive() == input
 
 
+class Foo(object):
+    def __init__(self, x, y):
+        self.x, self.y = x, y
+    def __eq__(self, other):
+        return type(self) == type(other) \
+                 and self.x == other.x and self.y == other.y
+
+class FooType(BaseType):
+    def to_native(self, value, context):
+        if isinstance(value, Foo):
+            return value
+        return Foo(value['x'], value['y'])
+    def to_primitive(self, value, context):
+        return dict(x=value.x, y=value.y)
+
+
 def test_custom_exporter():
-
-    class Foo(object):
-        def __init__(self, x, y):
-            self.x, self.y = x, y
-        def __eq__(self, other):
-            return type(self) == type(other) \
-                     and self.x == other.x and self.y == other.y
-
-    class FooType(BaseType):
-        def to_native(self, value, context):
-            if isinstance(value, Foo):
-                return value
-            return Foo(value['x'], value['y'])
-        def to_primitive(self, value, context):
-            return dict(x=value.x, y=value.y)
 
     class X(Model):
         id = UUIDType()
@@ -106,8 +107,24 @@ def test_custom_exporter():
 
     exporter = ExportConverter(PRIMITIVE, [UTCDateTimeType, UUIDType])
 
-    assert x.export(PRIMITIVE, field_converter=exporter) == {
+    assert x.export(field_converter=exporter) == {
         'id': uuid.UUID('54020382-291e-4192-b370-4850493ac5bc'),
         'dt': datetime.datetime(2015, 11, 26, 7),
         'foo': {'x': 1, 'y': 2} }
+
+
+def test_converter_function():
+
+    class X(Model):
+        id = UUIDType()
+        dt = UTCDateTimeType()
+        foo = FooType()
+
+    x = X({ 'id': '54020382-291e-4192-b370-4850493ac5bc',
+            'dt': '2015-11-26T07:00',
+            'foo': {'x': 1, 'y': 2} })
+
+    exporter = lambda field, value, context: field.export(value, PRIMITIVE, context)
+
+    assert x.export(field_converter=exporter) == x.to_primitive()
 

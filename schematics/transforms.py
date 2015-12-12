@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
 import collections
 import itertools
 import operator
+import types
 
 from six import iteritems
 
 from .common import *
 from .datastructures import OrderedDict, Context
 from .exceptions import *
-from .types.compound import ModelType
 from .undefined import Undefined
 from .util import listify
 
@@ -78,6 +80,8 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
     try:
         context.initialized
     except:
+        if type(field_converter) is types.FunctionType:
+            field_converter = BasicConverter(field_converter)
         context._setdefaults({
             'initialized': True,
             'field_converter': field_converter,
@@ -93,6 +97,8 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
             'recursive': recursive,
             'app_data': app_data if app_data is not None else {}
         })
+
+    instance_or_dict = context.field_converter.pre(cls, instance_or_dict, context)
 
     _model_mapping = context.mapping.get('model_mapping')
 
@@ -166,6 +172,8 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
         partial_data = dict(((key, value) for key, value in data.items() if value is not Undefined))
         raise DataError(errors, partial_data)
 
+    data = context.field_converter.post(cls, data, context)
+
     return data
 
 
@@ -202,6 +210,8 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
     try:
         context.initialized
     except:
+        if type(field_converter) is types.FunctionType:
+            field_converter = BasicConverter(field_converter)
         context._setdefaults({
             'initialized': True,
             'field_converter': field_converter,
@@ -210,6 +220,8 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
             'export_level': export_level,
             'app_data': app_data if app_data is not None else {}
         })
+
+    instance_or_dict = context.field_converter.pre(cls, instance_or_dict, context)
 
     data = {}
 
@@ -258,6 +270,8 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
 
     if fields_order:
         data = sort_dict(data, fields_order)
+
+    data = context.field_converter.post(cls, data, context)
 
     return data
 
@@ -451,10 +465,26 @@ def blacklist(*field_list):
 # Field converter interface
 ###
 
+
 class FieldConverter(object):
 
     def __call__(self, field, value, context):
         raise NotImplementedError
+
+    def pre(self, model_class, instance_or_dict, context):
+        return instance_or_dict
+
+    def post(self, model_class, data, context):
+        return data
+
+
+class BasicConverter(FieldConverter):
+
+    def __init__(self, func):
+        self.func = func
+
+    def __call__(self, *args):
+        return self.func(*args)
 
 
 
@@ -478,11 +508,18 @@ class ExportConverter(FieldConverter):
         return field.export(value, format, context)
 
 
-_to_native_converter = ExportConverter(NATIVE)
+class NativeConverter(ExportConverter):
 
-_to_dict_converter = ExportConverter(NATIVE, [ModelType])
+    def __init__(self, exceptions=None):
+        ExportConverter.__init__(self, NATIVE, exceptions)
 
-_to_primitive_converter = ExportConverter(PRIMITIVE)
+    def post(self, model_class, data, context):
+        return model_class(data, init=False)
+
+
+to_native_converter = NativeConverter()
+to_dict_converter = ExportConverter(NATIVE)
+to_primitive_converter = ExportConverter(PRIMITIVE)
 
 
 
@@ -503,10 +540,16 @@ class ImportConverter(FieldConverter):
             return value
         return self.method(field)(value, context)
 
+    def pre(self, model_class, instance_or_dict, context):
+        return instance_or_dict
+
+    def post(self, model_class, data, context):
+        return data
+
 
 import_converter = ImportConverter('convert')
-
 validation_converter = ImportConverter('validate')
+
 
 
 ###
@@ -537,15 +580,15 @@ def convert(cls, instance_or_dict, **kwargs):
 
 
 def to_native(cls, instance_or_dict, **kwargs):
-    return export_loop(cls, instance_or_dict, _to_native_converter, **kwargs)
+    return export_loop(cls, instance_or_dict, to_native_converter, **kwargs)
 
 
 def to_dict(cls, instance_or_dict, **kwargs):
-    return export_loop(cls, instance_or_dict, _to_dict_converter, **kwargs)
+    return export_loop(cls, instance_or_dict, to_dict_converter, **kwargs)
 
 
 def to_primitive(cls, instance_or_dict, **kwargs):
-    return export_loop(cls, instance_or_dict, _to_primitive_converter, **kwargs)
+    return export_loop(cls, instance_or_dict, to_primitive_converter, **kwargs)
 
 
 EMPTY_LIST = "[]"
