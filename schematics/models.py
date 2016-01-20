@@ -10,7 +10,10 @@ from six import add_metaclass
 
 from .common import NATIVE, PRIMITIVE
 from .datastructures import OrderedDict as OrderedDictWithSort
-from .exceptions import BaseError, ModelValidationError, MockCreationError
+from .exceptions import (
+    BaseError, ModelValidationError, MockCreationError,
+    MissingValueError, UnknownFieldError
+)
 from .types import BaseType
 from .types.serializable import Serializable
 from .undefined import Undefined
@@ -44,12 +47,14 @@ class FieldDescriptor(object):
         the corresponding data for valid fields or raises the appropriate error
         for fields missing from a class.
         """
-        try:
-            if instance is None:
-                return cls._fields[self.name]
-            return instance._data[self.name]
-        except KeyError:
-            raise AttributeError(self.name)
+        if instance is None:
+            return cls._fields[self.name]
+        else:
+            value = instance._data[self.name]
+            if value is Undefined:
+                raise MissingValueError
+            else:
+                return value
 
     def __set__(self, instance, value):
         """
@@ -67,10 +72,7 @@ class FieldDescriptor(object):
         """
         Checks the field name against a model and deletes the value.
         """
-        try:
-            instance._data[self.name] = None
-        except KeyError:
-            raise AttributeError(self.name)
+        instance._data[self.name] = Undefined
 
 
 class ModelOptions(object):
@@ -342,22 +344,19 @@ class Model(object):
         return self.iter()
 
     def iter(self):
-        return iter(self._fields)
+        return iter(self.keys())
 
     def keys(self):
-        return self._fields.keys()
+        return [k for k in self._fields if self._data[k] is not Undefined]
 
     def items(self):
-        return [(k, self.get(k)) for k in iterkeys(self._fields)]
+        return [(k, self._data[k]) for k in self.keys()]
 
     def values(self):
-        return [self.get(k) for k in iterkeys(self._fields)]
+        return [self._data[k] for k in self.keys()]
 
     def get(self, key, default=None):
-        try:
-            return self[key]
-        except KeyError:
-            return default
+        return getattr(self, key, default)
 
     @classmethod
     def get_mock_object(cls, context=None, overrides=None):
@@ -379,32 +378,33 @@ class Model(object):
         return cls(values)
 
     def __getitem__(self, name):
-        try:
+        if name in self._fields or name in self._serializables:
             return getattr(self, name)
-        except AttributeError:
-            raise KeyError(name)
+        else:
+            raise UnknownFieldError
 
     def __setitem__(self, name, value):
-        if name not in self._data:
-            raise KeyError(name)
-        return setattr(self, name, value)
+        if name in self._fields:
+            return setattr(self, name, value)
+        else:
+            raise UnknownFieldError
 
     def __delitem__(self, name):
-        try:
+        if name in self._fields:
             return delattr(self, name)
-        except AttributeError:
-            raise KeyError(name)
+        else:
+            raise UnknownFieldError
 
     def __contains__(self, name):
-        return name in self._data or name in self._serializables
+        return name in self.keys() or name in self._serializables
 
     def __len__(self):
-        return len(self._data)
+        return len(self.keys())
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             for k in self._fields:
-                if self.get(k) != other.get(k):
+                if self._data[k] != other._data[k]:
                     return False
             return True
         return NotImplemented

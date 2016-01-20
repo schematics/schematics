@@ -43,12 +43,7 @@ natives = { 'intfield': 3,
 def test_to_native():
 
     m = M(input)
-
     assert m.to_native() == m
-
-    _natives = natives.copy()
-    assert m._data.pop('modelfield')._data == _natives.pop('modelfield')
-    assert m._data == _natives
 
 
 def test_to_dict():

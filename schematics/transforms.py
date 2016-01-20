@@ -264,7 +264,7 @@ def atoms(cls, instance_or_dict):
     all_fields = itertools.chain(iteritems(cls._fields),
                                  iteritems(cls._serializables))
 
-    return ((field_name, field, instance_or_dict[field_name])
+    return ((field_name, field, instance_or_dict.get(field_name, Undefined))
             for field_name, field in all_fields)
 
 
