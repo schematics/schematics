@@ -50,7 +50,7 @@ def test_invalid_model_fail_validation():
     p = Player()
     assert p.name is None
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(DataError):
         p.validate()
 
 
@@ -66,7 +66,7 @@ def test_model_with_rogue_field_throws_exception():
     class User(Model):
         name = StringType()
 
-    with pytest.raises(ModelConversionError):
+    with pytest.raises(DataError):
         User({'foo': 'bar'})
 
 
@@ -115,9 +115,9 @@ def test_raises_validation_error_on_non_partial_validate():
 
     u = User(dict(name="Joe"))
 
-    with pytest.raises(ValidationError) as exception:
+    with pytest.raises(DataError) as exception:
         u.validate()
-        assert exception.messages, {"bio": [u"This field is required."]}
+    assert exception.value.messages, {"bio": [u"This field is required."]}
 
 
 def test_model_inheritance():
@@ -158,13 +158,13 @@ def test_validation_fails_if_internal_state_is_invalid():
         age = IntType(required=True)
 
     u = User()
-    with pytest.raises(ValidationError) as exception:
+    with pytest.raises(DataError) as exception:
         u.validate()
 
-        assert exception.messages, {
-            "name": ["This field is required."],
-            "age": ["This field is required."],
-        }
+    assert exception.value.messages, {
+        "name": ["This field is required."],
+        "age": ["This field is required."],
+    }
 
     assert u.name is None
     assert u.age is None
@@ -175,14 +175,14 @@ def test_returns_nice_conversion_errors():
         name = StringType(required=True)
         age = IntType(required=True)
 
-    with pytest.raises(ModelConversionError) as exception:
+    with pytest.raises(DataError) as exception:
         User({"name": "Jóhann", "age": "100 years"})
 
-        errors = exception.messages
+    errors = exception.value.messages
 
-        assert errors == {
-            "age": [u'Value is not int'],
-        }
+    assert errors == {
+        "age": [u'Value \'100 years\' is not int.'],
+    }
 
 
 def test_returns_partial_data_with_conversion_errors():
@@ -191,7 +191,7 @@ def test_returns_partial_data_with_conversion_errors():
         age = IntType(required=True)
         account_level = IntType()
 
-    with pytest.raises(ModelConversionError) as exception:
+    with pytest.raises(DataError) as exception:
         User({"name": "Jóhann", "age": "100 years", "account_level": "3"})
 
     partial_data = exception.value.partial_data
@@ -393,8 +393,8 @@ def test_as_field_validate():
 
     with pytest.raises(ConversionError):
         c.user = [1]
-        c.validate()
 
+    c.validate()
     assert c.user.name == u'Doggy', u'Validation should not remove or modify existing data'
 
 
@@ -405,7 +405,7 @@ def test_model_field_validate_structure():
     class Card(Model):
         user = ModelType(User)
 
-    with pytest.raises(ConversionError):
+    with pytest.raises(DataError):
         Card({'user': [1, 2]})
 
 

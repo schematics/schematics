@@ -194,14 +194,7 @@ class DataObject(object):
         >>> d.one == d['one'] == 1
         True
 
-    Dictionaries stored as attributes will be automatically converted into
-    ``DataObject`` instances. Nested dictionaries will be converted recursively::
-
-        >>> e = DataObject({'f': {'g': {'x': 1, 'y': 2}}})
-        >>> e.f.g.x
-        1
-
-    To convert a ``DataObject`` structure into a dictionary, use ``d._to_dict()``.
+    To convert a ``DataObject`` into a dictionary, use ``d._to_dict()``.
 
     ``DataObject`` implements the following collection-like operations:
 
@@ -210,7 +203,7 @@ class DataObject(object):
         * ``len(d)`` to get the number of attributes
 
     Additionally, the following methods are equivalent to their ``dict` counterparts:
-    ``_clear``, ``_get``, ``_items``, ``_pop``, ``_setdefault``, ``_update``.
+    ``_clear``, ``_get``, ``_keys``, ``_items``, ``_pop``, ``_setdefault``, ``_update``.
 
     An advantage of ``DataObject`` over ``dict` subclasses is that every method name
     in ``DataObject`` begins with an underscore, so attributes like ``"update"`` or
@@ -220,13 +213,6 @@ class DataObject(object):
     def __init__(self, *args, **kwargs):
         source = args[0] if args else {}
         self._update(source, **kwargs)
-
-    def __setattr__(self, name, value):
-        if isinstance(value, dict):
-            value = self.__class__(value)
-        self.__dict__[name] = value
-
-    __setitem__ = __setattr__
 
     def __repr__(self):
         return self.__class__.__name__ + '(%s)' % repr(self.__dict__)
@@ -242,24 +228,17 @@ class DataObject(object):
     def __iter__(self):
         return iter(self.__dict__.items())
 
-    def _update(self, source=(), **kwargs):
-        if isinstance(source, dict):
-            source = source.items()
-        for k, v in source:
-            self[k] = v
-        for k, v in kwargs.items():
-            self[k] = v
-
-    def _setdefault(self, name, value=None):
-        if name not in self:
-            self[name] = value
-        return self[name]
+    def _update(self, source=None, **kwargs):
+        if isinstance(source, DataObject):
+            source = source.__dict__
+        self.__dict__.update(source, **kwargs)
 
     def _setdefaults(self, source):
         if isinstance(source, dict):
             source = source.items()
-        for k, v in source:
-            self._setdefault(k, v)
+        for name, value in source:
+            self._setdefault(name, value)
+        return self
 
     def _to_dict(self):
         d = dict(self.__dict__)
@@ -268,6 +247,7 @@ class DataObject(object):
                 d[k] = v._to_dict()
         return d
 
+    def __setitem__(self, key, value): self.__dict__[key] = value
     def __getitem__(self, key): return self.__dict__[key]
     def __delitem__(self, key): del self.__dict__[key]
     def __len__(self): return len(self.__dict__)
@@ -276,49 +256,61 @@ class DataObject(object):
     def _clear(self): return self.__dict__.clear()
     def _get(self, *args): return self.__dict__.get(*args)
     def _items(self): return self.__dict__.items()
+    def _keys(self): return self.__dict__.keys()
     def _pop(self, *args): return self.__dict__.pop(*args)
+    def _setdefault(self, *args): return self.__dict__.setdefault(*args)
 
 
-class ConfigObject(DataObject):
-    """
-    A variant of ``DataObject`` that returns ``None`` by default when a nonexistent
-    attribute is requested. That is, ``d.x`` is equivalent to ``d._get('x')``.
-    """
+class Context(DataObject):
 
-    def __getattr__(self, name):
-        return None
+    _fields = ()
 
-    def __getitem__(self, key):
-        return getattr(self, key)
+    def __init__(self, *args, **kwargs):
+        super(Context, self).__init__(*args, **kwargs)
+        if self._fields:
+            unknowns = [name for name in self._keys() if name not in self._fields]
+            if unknowns:
+                raise ValueError('Unexpected field names: %r' % unknowns)
 
+    @classmethod
+    def _new(cls, *args, **kwargs):
+        if len(args) > len(cls._fields):
+            raise TypeError('Too many positional arguments')
+        return cls(zip(cls._fields, args), **kwargs)
 
-def autofill_namedtuple(typename, fields):
+    @classmethod
+    def _make(cls, obj):
+        if obj is None:
+            return cls()
+        elif isinstance(obj, cls):
+            return obj
+        else:
+            return cls(obj)
 
-    cls = namedtuple(typename, fields)
+    def __setattr__(self, name, value):
+        if name in self:
+            raise TypeError("Field '{0}' already set".format(name))
+        super(Context, self).__setattr__(name, value)
 
-    def __new__(cls, *args, **kwargs):
-        d = len(cls._fields) - len(args)
-        if d < 0:
-            raise TypeError('Expected %d arguments, got %d' % (len(cls._fields), len(args)))
-        values = tuple(map(kwargs.pop, cls._fields, args + (None,) * d))
-        if kwargs:
-            raise ValueError('Got unexpected field names: %r' % list(kwargs.keys()))
-        return tuple.__new__(cls, values)
-
-    cls.__new__ = staticmethod(__new__)
-    return cls
-
-
-def get_context_factory(typename, fields):
-
-    def _branch(self, **params):
-        _params = dict(((name, value) for name, value in params.items() if value is not None))
-        if _params:
-            return self._replace(**_params)
+    def _branch(self, **kwargs):
+        if not kwargs:
+            return self
+        items = dict(((k, v) for k, v in kwargs.items() if v is not None and v != self[k]))
+        if items:
+            return self.__class__(self, **items)
         else:
             return self
 
-    cls = autofill_namedtuple(typename, fields)
-    cls._branch = _branch
-    return cls
+    def _setdefaults(self, source):
+        if not isinstance(source, dict):
+            source = source.__dict__
+        new_values = source.copy()
+        new_values.update(self.__dict__)
+        self.__dict__.update(new_values)
+        return self
+
+    def __bool__(self):
+        return True
+
+    __nonzero__ = __bool__
 

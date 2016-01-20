@@ -7,9 +7,7 @@ import itertools
 import functools
 
 from ..common import *
-from ..exceptions import (ValidationError, ConversionError,
-                          ModelValidationError, StopValidation,
-                          MockCreationError)
+from ..exceptions import *
 from ..models import Model, ModelMeta
 from ..undefined import Undefined
 from .base import BaseType, get_value_in
@@ -33,33 +31,6 @@ class MultiType(BaseType):
         if hasattr(self, 'field'):
             self.field._setup(None, owner_model)
         super(MultiType, self)._setup(field_name, owner_model)
-
-    def validate(self, value, convert=True, context=None):
-        """Report dictionary of errors with lists of errors as values of each
-        key. Used by ModelType and ListType.
-
-        """
-        self.check_required(value, context)
-        if value in (None, Undefined):
-            return value
-
-        if convert:
-            value = self.convert(value, context)
-
-        errors = {}
-
-        for validator in self.validators:
-            try:
-                validator(value, context=context)
-            except ModelValidationError as exc:
-                errors.update(exc.messages)
-                if isinstance(exc, StopValidation):
-                    break
-
-        if errors:
-            raise ValidationError(errors)
-
-        return value
 
     def convert(self, value, context):
         raise NotImplementedError
@@ -132,22 +103,18 @@ class ModelType(MultiType):
             value = self.model_class(value)
         return value
 
-    def validate_model(self, model_instance, context=None):
-        model_instance.validate(context=context)
-
     def convert(self, value, context):
 
         if isinstance(value, self.model_class):
             model_class = type(value)
-        elif not isinstance(value, dict):
+        elif isinstance(value, dict):
+            model_class = self.model_class
+        else:
             raise ConversionError(
                 u'Please use a mapping for this field or {0} instance instead of {1}.'.format(
                     self.model_class.__name__,
                     type(value).__name__))
-        else:
-            model_class = self.model_class
-
-        return model_class(value, context=context)
+        return model_class._convert(value, context=context)
 
     def export(self, model_instance, format, context):
         return model_instance.export(format=format, context=context)
@@ -187,7 +154,7 @@ class ListType(MultiType):
         return [self.field._mock(context) for _ in xrange(random_length)]
 
     def _force_list(self, value):
-        if value is None or value == EMPTY_LIST:
+        if value == EMPTY_LIST:
             return []
 
         try:
@@ -202,10 +169,19 @@ class ListType(MultiType):
             return [value]
 
     def convert(self, value, context):
-        items = self._force_list(value)
-        return [self.field.convert(item, context) for item in items]
+        value = self._force_list(value)
+        data = []
+        errors = {}
+        for index, item in enumerate(value):
+            try:
+                data.append(context.field_converter(self.field, item, context))
+            except BaseError as exc:
+                errors[index] = exc
+        if errors:
+            raise CompoundError(errors)
+        return data
 
-    def check_length(self, value, context=None):
+    def check_length(self, value, context):
         list_length = len(value) if value else 0
 
         if self.min_size is not None and list_length < self.min_size:
@@ -221,17 +197,6 @@ class ListType(MultiType):
                 False: u'Please provide no more than %d items.',
             }[self.max_size == 1]) % self.max_size
             raise ValidationError(message)
-
-    def validate_items(self, items, context=None):
-        errors = {}
-        for index, value in enumerate(items):
-            try:
-                self.field.validate(value, context)
-            except ValidationError as exc:
-                errors[index] = exc
-
-        if errors:
-            raise ValidationError(errors)
 
     def export(self, list_instance, format, context):
         """Loops over each item in the model and applies either the field
@@ -267,9 +232,7 @@ class DictType(MultiType):
         self.coerce_key = coerce_key or unicode
         self.field = field
 
-        validators = [self.validate_items] + kwargs.pop("validators", [])
-
-        super(DictType, self).__init__(validators=validators, **kwargs)
+        super(DictType, self).__init__(**kwargs)
 
     @property
     def model_class(self):
@@ -278,23 +241,19 @@ class DictType(MultiType):
     def convert(self, value, context, safe=False):
         if value == EMPTY_DICT:
             value = {}
-        value = value or {}
         if not isinstance(value, dict):
             raise ConversionError(u'Only dictionaries may be used in a DictType')
 
-        return dict((self.coerce_key(k), self.field.convert(v, context))
-                    for k, v in iteritems(value))
-
-    def validate_items(self, items, context=None):
+        data = {}
         errors = {}
-        for key, value in iteritems(items):
+        for k, v in iteritems(value):
             try:
-                self.field.validate(value, context)
-            except ValidationError as exc:
-                errors[key] = exc
-
+                data[self.coerce_key(k)] = context.field_converter(self.field, v, context)
+            except BaseError as exc:
+                errors[k] = exc
         if errors:
-            raise ValidationError(errors)
+            raise CompoundError(errors)
+        return data
 
     def export(self, dict_instance, format, context):
         """Loops over each item in the model and applies either the field
@@ -353,9 +312,6 @@ class PolyModelType(MultiType):
                 resolved_classes.append(m)
         self.model_classes = tuple(resolved_classes)
         super(PolyModelType, self)._setup(field_name, owner_model)
-
-    def validate_model(self, model_instance, context=None):
-        model_instance.validate(context=context)
 
     def is_allowed_model(self, model_instance):
         if self.allow_subclasses:

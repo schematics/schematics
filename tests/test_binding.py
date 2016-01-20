@@ -5,7 +5,7 @@ from schematics.models import Model
 from schematics.types.base import StringType
 from schematics.types.compound import ListType, ModelType
 from schematics.types.serializable import serializable
-from schematics.exceptions import ValidationError
+from schematics.exceptions import DataError
 
 
 def test_reason_why_we_must_bind_fields():
@@ -23,7 +23,7 @@ def test_reason_why_we_must_bind_fields():
 
     p1.name = "Jóhann"
     p1.validate()
-    with pytest.raises(ValidationError):
+    with pytest.raises(DataError):
         p2.validate()
 
     assert p1 != p2
@@ -55,7 +55,7 @@ def test_reason_why_we_must_bind_fields_model_field():
 
     p2.location = {}
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(DataError):
         p2.validate()
 
     assert p1 != p2

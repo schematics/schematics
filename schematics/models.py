@@ -11,7 +11,7 @@ from six import add_metaclass
 from .common import *
 from .datastructures import OrderedDict as OrderedDictWithSort
 from .exceptions import (
-    BaseError, ModelValidationError, MockCreationError,
+    BaseError, DataError, MockCreationError,
     MissingValueError, UnknownFieldError
 )
 from .types import BaseType
@@ -230,7 +230,8 @@ class Model(object):
     __optionsclass__ = ModelOptions
 
     def __init__(self, raw_data=None, trusted_data=None, deserialize_mapping=None,
-                 init=True, partial=True, strict=True, app_data=None, **kwargs):
+                 init=True, partial=True, strict=True, validate=False, app_data=None,
+                 **kwargs):
 
         self._initial = raw_data or {}
 
@@ -239,11 +240,12 @@ class Model(object):
 
         self._data = self.convert(raw_data,
                                   trusted_data=trusted_data, mapping=deserialize_mapping,
-                                  partial=partial, strict=strict, app_data=app_data, **kwargs)
+                                  partial=partial, strict=strict, validate=validate, new=True,
+                                  app_data=app_data, **kwargs)
 
-    def validate(self, partial=False, strict=False, convert=True, app_data=None, **kwargs):
+    def validate(self, partial=False, convert=True, app_data=None, **kwargs):
         """
-        Validates the state of the model. If the data is invalid, raises a ``ModelValidationError``
+        Validates the state of the model. If the data is invalid, raises a ``DataError``
         with error messages.
 
         :param bool partial:
@@ -255,11 +257,8 @@ class Model(object):
             are known to have the right datatypes (e.g., when validating immediately
             after the initial import). Default: True
         """
-        try:
-            data = validate(self.__class__, self._data, partial=partial, strict=strict,
-                            convert=convert, app_data=app_data, **kwargs)
-        except BaseError as exc:
-            raise ModelValidationError(exc.messages)
+        data = validate(self.__class__, self._data, partial=partial, convert=convert,
+                        app_data=app_data, **kwargs)
 
         if convert:
             self._data.update(**data)
@@ -287,7 +286,21 @@ class Model(object):
         :param raw_data:
             The data to be converted
         """
-        return convert(self.__class__, raw_data, **kw)
+        _validate = getattr(kw.get('context'), 'validate', kw.get('validate', False))
+        if _validate:
+            return validate(self.__class__, raw_data, **kw)
+        else:
+            return convert(self.__class__, raw_data, **kw)
+
+    @classmethod
+    def _convert(cls, obj, context):
+        if context.new or not isinstance(obj, Model):
+            return cls(obj, context=context)
+        else:
+            data = obj.convert(obj._data, context=context)
+            if context.convert:
+                obj._data.update(data)
+            return obj
 
     def export(self, format, field_converter=None, role=None, app_data=None, **kwargs):
         data = export_loop(self.__class__, self, field_converter=field_converter,
@@ -427,6 +440,9 @@ class Model(object):
         return '%s object' % self.__class__.__name__
 
 
-from .transforms import atoms, flatten, expand
-from .transforms import convert, to_native, to_dict, to_primitive, export_loop
+from .transforms import (
+    atoms, export_loop,
+    convert, to_native, to_dict, to_primitive,
+    flatten, expand,
+)
 from .validate import validate, prepare_validator

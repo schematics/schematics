@@ -9,7 +9,7 @@ import uuid
 
 import pytest
 
-from schematics.transforms import ExportContext
+from schematics.datastructures import Context
 from schematics.models import Model
 from schematics.types import (
     BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
@@ -17,9 +17,7 @@ from schematics.types import (
     GeoPointType, FloatType, DecimalType
 )
 from schematics.types.base import get_range_endpoints
-from schematics.exceptions import (
-    ValidationError, ConversionError, MockCreationError
-)
+from schematics.exceptions import ConversionError, ValidationError, DataError
 
 
 _uuid = uuid.UUID('3ce85e48-3028-409c-a07c-c8ee3d16d5c4')
@@ -231,7 +229,7 @@ def test_url_type_with_unreachable_url():
 def test_string_type_required():
     class M(Model):
         field = StringType(required=True)
-    with pytest.raises(ValidationError):
+    with pytest.raises(DataError):
         M({'field': None}).validate()
 
 
@@ -347,7 +345,7 @@ def test_multilingual_string_should_emit_string_with_explicit_locale():
 
     assert mls.to_primitive(
         {'en_US': 'snake', 'fr_FR': 'serpent'},
-        context=ExportContext(app_data={'locale': 'fr_FR'})) == 'serpent'
+        context=Context(app_data={'locale': 'fr_FR'})) == 'serpent'
 
 
 def test_multilingual_string_should_require_a_locale():
@@ -364,7 +362,7 @@ def test_multilingual_string_without_matching_locale_should_explode():
         mls.to_primitive({'fr_FR': 'serpent'})
 
     with pytest.raises(ConversionError):
-        mls.to_primitive({'en_US': 'snake'}, context=ExportContext(app_data={'locale': 'fr_FR'}))
+        mls.to_primitive({'en_US': 'snake'}, context=Context(app_data={'locale': 'fr_FR'}))
 
 
 def test_multilingual_string_should_accept_lists_of_locales():
@@ -377,11 +375,11 @@ def test_multilingual_string_should_accept_lists_of_locales():
     mls = MultilingualStringType(default_locale=['foo', 'fr_FR', 'es_MX'])
 
     assert mls.to_primitive(strings) == 'serpent'
-    assert mls.to_primitive(strings, context=ExportContext(app_data={'locale': ['es_MX', 'bar']})) == 'serpiente'
+    assert mls.to_primitive(strings, context=Context(app_data={'locale': ['es_MX', 'bar']})) == 'serpiente'
 
     mls = MultilingualStringType()
 
-    assert mls.to_primitive(strings, context=ExportContext(app_data={'locale': ['foo', 'es_MX', 'fr_FR']})) == 'serpiente'
+    assert mls.to_primitive(strings, context=Context(app_data={'locale': ['foo', 'es_MX', 'fr_FR']})) == 'serpiente'
 
 
 def test_boolean_to_native():
