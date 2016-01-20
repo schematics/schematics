@@ -367,7 +367,7 @@ class StringType(BaseType):
     }
 
     def __init__(self, regex=None, max_length=None, min_length=None, **kwargs):
-        self.regex = regex
+        self.regex = re.compile(regex) if regex else None
         self.max_length = max_length
         self.min_length = min_length
 
@@ -401,7 +401,7 @@ class StringType(BaseType):
             raise ValidationError(self.messages['min_length'])
 
     def validate_regex(self, value, context=None):
-        if self.regex is not None and re.match(self.regex, value) is None:
+        if self.regex is not None and self.regex.match(value) is None:
             raise ValidationError(self.messages['regex'])
 
 
@@ -780,11 +780,12 @@ class DateTimeType(BaseType):
         'validate_utc_wrong': u'Time zone must be UTC.',
     }
 
-    REGEX = (u'(?P<year>\d{4})-(?P<month>\d\d)-(?P<day>\d\d)(?:T|\ )'
+    REGEX = re.compile(
+             u'(?P<year>\d{4})-(?P<month>\d\d)-(?P<day>\d\d)(?:T|\ )'
              u'(?P<hour>\d\d):(?P<minute>\d\d)'
              u'(?::(?P<second>\d\d)(?:(?:\.|,)(?P<sec_frac>\d{1,6}))?)?'
              u'(?:(?P<tzd_offset>(?P<tzd_sign>[+−-])(?P<tzd_hour>\d\d):?(?P<tzd_minute>\d\d)?)'
-             u'|(?P<tzd_utc>Z))?$')
+             u'|(?P<tzd_utc>Z))?$', re.U + re.X)
 
     TIMEDELTA_ZERO = datetime.timedelta(0)
 
@@ -900,7 +901,7 @@ class DateTimeType(BaseType):
         return dt
 
     def from_string(self, value):
-            match = re.match(self.REGEX, value, re.U + re.X)
+            match = self.REGEX.match(value)
             if not match:
                 return None
             parts = dict(((k, v) for k, v in match.groupdict().items() if v is not None))
