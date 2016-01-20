@@ -19,6 +19,7 @@ from ..common import NATIVE, PRIMITIVE
 from ..exceptions import (
     StopValidation, ValidationError, ConversionError, MockCreationError
 )
+from ..undefined import Undefined
 
 try:
     from string import ascii_letters # PY3
@@ -160,9 +161,10 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         PRIMITIVE: 'to_primitive',
     }
 
-    def __init__(self, required=False, default=None, serialized_name=None,
+    def __init__(self, required=False, default=Undefined, serialized_name=None,
                  choices=None, validators=None, deserialize_from=None,
-                 serialize_when_none=None, messages=None):
+                 export_level=None, serialize_when_none=None,
+                 messages=None, **kwargs):
         super(BaseType, self).__init__()
         self.required = required
         self._default = default
@@ -176,7 +178,8 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         if validators:
             self.validators += validators
 
-        self.serialize_when_none = serialize_when_none
+        self._set_export_level(export_level, serialize_when_none)
+
         self.messages = dict(self.MESSAGES, **(messages or {}))
         self._position_hint = next(_next_position_hint)  # For ordering of fields
 
@@ -205,11 +208,29 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         self.name = field_name
         self.owner_model = owner_model
 
+    def _set_export_level(self, export_level, serialize_when_none):
+        if export_level is not None:
+            self.export_level = export_level
+        elif serialize_when_none is True:
+            self.export_level = 3
+        elif serialize_when_none is False:
+            self.export_level = 1
+        else:
+            self.export_level = None
+
+    def get_export_level(self, context):
+        level = self.owner_model._options.export_level
+        if self.export_level is not None:
+            level = self.export_level
+        if context.export_level is not None:
+            level = context.export_level
+        return level
+
     @property
     def default(self):
         default = self._default
-        if callable(self._default):
-            default = self._default()
+        if callable(default):
+            default = default()
         return default
 
     def convert(self, value, context=None):
@@ -228,12 +249,6 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         Convert untrusted data to a richer Python construct.
         """
         return value
-
-    def allow_none(self):
-        if self.owner_model:
-            return self.owner_model.allow_none(self)
-        else:
-            return self.serialize_when_none
 
     def validate(self, value, convert=True, context=None):
         """

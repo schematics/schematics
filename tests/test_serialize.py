@@ -485,7 +485,7 @@ def test_serialize_none_fields_if_export_loop_says_so():
 
     q = TestModel({'inst_id': 1})
 
-    d = export_loop(TestModel, q, lambda field, value, context: None, print_none=True)
+    d = export_loop(TestModel, q, lambda field, value, context: None, export_level=3)
     assert d == {'inst_id': None}
 
 
@@ -495,7 +495,7 @@ def test_serialize_print_none_always_gets_you_something():
 
     q = TestModel()
 
-    d = export_loop(TestModel, q, lambda field, value, context: None, print_none=True)
+    d = export_loop(TestModel, q, lambda field, value, context: None, export_level=3)
     assert d == {}
 
 

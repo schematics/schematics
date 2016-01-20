@@ -8,7 +8,7 @@ from six import iteritems
 from .common import NATIVE, PRIMITIVE, EMPTY_LIST, EMPTY_DICT
 from .datastructures import OrderedDict, get_context_factory, DataObject
 from .exceptions import ConversionError, ModelConversionError, ValidationError
-from .types.compound import ModelType
+from .undefined import Undefined
 
 try:
     basestring #PY2
@@ -34,14 +34,15 @@ except:
 ###
 
 ImportContext = get_context_factory('ImportContext',
-                    'field_converter, partial, strict, mapping, app_data')
+    'field_converter, mapping, partial, strict, init_values, apply_defaults, app_data')
 
 ExportContext = get_context_factory('ExportContext',
-                    'field_converter, role, raise_error_on_role, print_none, app_data')
+    'field_converter, role, raise_error_on_role, export_level, app_data')
 
 
 def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
-                partial=False, strict=False, mapping=None, app_data=None, context=None):
+                mapping=None, partial=False, strict=False, init_values=False,
+                apply_defaults=None, app_data=None, context=None):
     """
     The import loop is designed to take untrusted data and convert it into the
     native types, as described in ``cls``.  It does this by calling
@@ -63,6 +64,9 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
         definitions. Default: False
     :param strict:
         Complain about unrecognized keys. Default: False
+    :param apply_defaults:
+        Whether to set fields to their default values when not present in input data.
+        If this parameter is not provided, defaults are applied when ``partial=False``.
     :param app_data:
         An arbitrary container for application-specific data that needs to
         be available during the conversion.
@@ -76,7 +80,14 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
 
     mapping = mapping or {}
     app_data = app_data if app_data is not None else {}
-    context = context or ImportContext(field_converter, partial, strict, mapping, app_data)
+    context = context or ImportContext(field_converter, mapping, partial, strict,
+                                       init_values, apply_defaults, app_data)
+
+    if context.apply_defaults is None:
+        _apply_defaults = context.init_values
+    else:
+        _apply_defaults = context.apply_defaults
+
 
     data = dict(trusted_data) if trusted_data else {}
     errors = {}
@@ -106,26 +117,29 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
             serialized_field_name = field_name
             trial_keys.append(field_name)
 
-        raw_value = None
+        value = Undefined
         for key in trial_keys:
             if key and key in instance_or_dict:
-                raw_value = instance_or_dict[key]
-        if raw_value is None:
+                value = instance_or_dict[key]
+        if value is Undefined:
             if field_name in data:
                 continue
-            raw_value = field.default
+            if _apply_defaults:
+                value = field.default
+        if value is Undefined and context.init_values:
+            value = None
 
         try:
-            if raw_value is None:
+            if value in (None, Undefined):
                 if field.required and not context.partial:
                     errors[serialized_field_name] = [field.messages['required']]
             else:
                 field_params = {
                     'mapping': context.mapping.get('model_mapping', {}).get(field_name, None)
                 }
-                raw_value = field_converter(field, raw_value, context._branch(**field_params))
+                value = field_converter(field, value, context._branch(**field_params))
 
-            data[field_name] = raw_value
+            data[field_name] = value
 
         except ConversionError as exc:
             errors[serialized_field_name] = exc.messages
@@ -138,8 +152,8 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
     return data
 
 
-def export_loop(cls, instance_or_dict, field_converter=None, role=None,
-                raise_error_on_role=True, print_none=False, app_data=None, context=None):
+def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_error_on_role=True,
+                export_level=None, app_data=None, context=None):
     """
     The export_loop function is intended to be a general loop definition that
     can be used for any form of data shaping, such as application of roles or
@@ -159,9 +173,6 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None,
     :param raise_error_on_role:
         This parameter enforces strict behavior which requires substructures
         to have the same role definition as their parent structures.
-    :param print_none:
-        This function overrides ``serialize_when_none`` values found either on
-        ``cls`` or an instance.
     :param app_data:
         An arbitrary container for application-specific data that needs to
         be available during the conversion.
@@ -171,7 +182,7 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None,
         of ``export_loop`` and is then propagated through the entire process.
     """
     app_data = app_data if app_data is not None else {}
-    context = context or ExportContext(field_converter, role, raise_error_on_role, print_none, app_data)
+    context = context or ExportContext(field_converter, role, raise_error_on_role, export_level, app_data)
 
     data = {}
 
@@ -195,21 +206,19 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None,
         if gottago(field_name, value):
             continue
 
-        # Value found, apply transformation and store it
-        elif value is not None:
-            shaped = context.field_converter(field, value, context)
-            feels_empty = shaped is None or field.is_compound and len(shaped) == 0
+        if field.get_export_level(context) == 0:
+            continue
 
-            # Print if we want none or found a value
-            if feels_empty:
-                if allow_none(cls, field) or context.print_none:
-                    data[serialized_name] = shaped
-            elif shaped is not None:
-                data[serialized_name] = shaped
+        elif value not in (None, Undefined):
+            value = context.field_converter(field, value, context)
 
-        # Store None if reqeusted
-        elif allow_none(cls, field) or context.print_none:
-            data[serialized_name] = value
+        if export_filter(field, value, context):
+            continue
+
+        if value is Undefined:
+            value = None
+
+        data[serialized_name] = value
 
     if fields_order:
         data = sort_dict(data, fields_order)
@@ -257,25 +266,6 @@ def atoms(cls, instance_or_dict):
 
     return ((field_name, field, instance_or_dict[field_name])
             for field_name, field in all_fields)
-
-
-def allow_none(cls, field):
-    """
-    This function inspects a model and a field for a setting either at the
-    model or field level for the ``serialize_when_none`` setting.
-
-    The setting defaults to the value of the class.  A field can override the
-    class setting with it's own ``serialize_when_none`` setting.
-
-    :param cls:
-        The model definition.
-    :param field:
-        The field in question.
-    """
-    allowed = cls._options.serialize_when_none
-    if field.serialize_when_none is not None:
-        allowed = field.serialize_when_none
-    return allowed
 
 
 ###
@@ -419,9 +409,30 @@ def blacklist(*field_list):
     return Role(Role.blacklist, field_list)
 
 
+def export_filter(field, value, context):
+
+    export_level = field.get_export_level(context)
+    if export_level == 0:
+        return True
+
+    if value is Undefined:
+        if export_level <= 3:
+            return True
+    elif value is None:
+        if export_level <= 2:
+            return True
+    elif field.is_compound and len(value) == 0:
+        if export_level <= 1:
+            return True
+
+    return False
+
+
 ###
 # Import and export functions
 ###
+
+from .types.compound import ModelType
 
 
 class FieldConverter(object):
@@ -597,7 +608,7 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
         Default: None
     """
     data = to_primitive(cls, instance_or_dict, role=role, raise_error_on_role=raise_error_on_role,
-                        print_none=True, app_data=app_data, context=context)
+                        export_level=3, app_data=app_data, context=context)
 
     flattened = flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
 

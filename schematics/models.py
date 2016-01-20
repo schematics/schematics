@@ -13,6 +13,7 @@ from .datastructures import OrderedDict as OrderedDictWithSort
 from .exceptions import BaseError, ModelValidationError, MockCreationError
 from .types import BaseType
 from .types.serializable import Serializable
+from .undefined import Undefined
 
 try:
     unicode #PY2
@@ -80,8 +81,8 @@ class ModelOptions(object):
     instance of a model.
     """
 
-    def __init__(self, klass, namespace=None, roles=None,
-                 serialize_when_none=True, fields_order=None):
+    def __init__(self, klass, namespace=None, roles=None, export_level=3,
+                 serialize_when_none=None, fields_order=None):
         """
         :param klass:
             The class which this options instance belongs to.
@@ -100,7 +101,11 @@ class ModelOptions(object):
         self.klass = klass
         self.namespace = namespace
         self.roles = roles or {}
-        self.serialize_when_none = serialize_when_none
+        self.export_level = export_level
+        if serialize_when_none is True:
+            self.export_level = 3
+        elif serialize_when_none is False:
+            self.export_level = 1
         self.fields_order = fields_order
 
 
@@ -228,14 +233,15 @@ class Model(object):
     __optionsclass__ = ModelOptions
 
     def __init__(self, raw_data=None, trusted_data=None, deserialize_mapping=None,
-                 partial=True, strict=True, app_data=None, context=None):
+                 partial=True, strict=True, init_values=True, app_data=None, **kwargs):
 
         self._initial = raw_data = raw_data or {}
-        self._data = self.convert(raw_data, trusted_data=trusted_data, strict=strict,
-                                  partial=partial, mapping=deserialize_mapping,
-                                  app_data=app_data, context=context)
+        self._data = self.convert(raw_data,
+                                  trusted_data=trusted_data, mapping=deserialize_mapping,
+                                  partial=partial, strict=strict, init_values=init_values,
+                                  app_data=app_data, **kwargs)
 
-    def validate(self, partial=False, strict=False, convert=True, app_data=None, context=None):
+    def validate(self, partial=False, strict=False, convert=True, app_data=None, **kwargs):
         """
         Validates the state of the model and adding additional untrusted data
         as well. If the models is invalid, raises ValidationError with error
@@ -255,7 +261,7 @@ class Model(object):
         """
         try:
             data = validate(self.__class__, self._data, partial=partial, strict=strict,
-                            convert=convert, app_data=app_data, context=context)
+                            convert=convert, app_data=app_data, **kwargs)
             self._data.update(**data)
         except BaseError as exc:
             raise ModelValidationError(exc.messages)
@@ -269,8 +275,7 @@ class Model(object):
             The data to be imported.
         """
         data = self.convert(raw_data, **kw)
-        #[x * 2 if x % 2 == 0 else x for x in a_list]
-        del_keys = [ k for k in data.keys() if data[k] is None]
+        del_keys = [k for k in data.keys() if data[k] is Undefined]
         for k in del_keys:
             del data[k]
 
@@ -332,16 +337,6 @@ class Model(object):
         type, and it's value.
         """
         return atoms(self.__class__, self)
-
-    @classmethod
-    def allow_none(cls, field):
-        """
-        Inspects a field and class for ``serialize_when_none`` setting.
-
-        The setting defaults to the value of the class.  A field can override
-        the class setting with it's own ``serialize_when_none`` setting.
-        """
-        return allow_none(cls, field)
 
     def __iter__(self):
         return self.iter()
@@ -437,7 +432,7 @@ class Model(object):
         return '%s object' % self.__class__.__name__
 
 
-from .transforms import allow_none, atoms, flatten, expand
+from .transforms import atoms, flatten, expand
 from .transforms import convert, to_native, to_dict, to_primitive, export_loop
 from .types.compound import ModelType
 from .validate import validate

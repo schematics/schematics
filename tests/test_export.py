@@ -69,7 +69,8 @@ def test_custom_exporter():
         def __init__(self, x, y):
             self.x, self.y = x, y
         def __eq__(self, other):
-            return self.x == other.x and self.y == other.y
+            return type(self) == type(other) \
+                     and self.x == other.x and self.y == other.y
 
     class FooType(BaseType):
         def to_native(self, value, context):

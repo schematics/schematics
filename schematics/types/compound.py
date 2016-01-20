@@ -144,9 +144,7 @@ class ModelType(MultiType):
                     self.model_class.__name__,
                     type(value).__name__))
 
-        # partial submodels now available with import_data (ht ryanolson)
-        model = self.model_class()
-        return model.import_data(value, context=context)
+        return self.model_class(value, context=context)
 
     def export(self, model_instance, format, context):
         return model_instance.export(format=format, context=context)
@@ -239,15 +237,9 @@ class ListType(MultiType):
         data = []
         for value in list_instance:
             shaped = self.field.export(value, format, context)
-            feels_empty = shaped is None or isinstance(self.field, MultiType) and len(shaped) == 0
-
-            # Print if we want empty or found a value
-            if feels_empty:
-                if self.field.allow_none() or context.print_none:
-                    data.append(shaped)
-            elif shaped is not None:
-                data.append(shaped)
-
+            if export_filter(self.field, shaped, context):
+                continue
+            data.append(shaped)
         return data
 
 
@@ -299,17 +291,11 @@ class DictType(MultiType):
         as `transforms.export_loop`.
         """
         data = {}
-
         for key, value in iteritems(dict_instance):
             shaped = self.field.export(value, format, context)
-            feels_empty = shaped is None or isinstance(self.field, MultiType) and len(shaped) == 0
-
-            if feels_empty:
-                if self.field.allow_none() or context.print_none:
-                    data[key] = shaped
-            elif shaped is not None:
-                data[key] = shaped
-
+            if export_filter(self.field, shaped, context):
+                continue
+            data[key] = shaped
         return data
 
 
@@ -378,8 +364,7 @@ class PolyModelType(MultiType):
                                     'an instance of {}'.format(instanceof_msg))
 
         model_class = self.find_model(value)
-        model = model_class()
-        return model.import_data(value, context=context)
+        return model_class(value, context=context)
 
     def find_model(self, data):
         """Finds the intended type by consulting potential classes or `claim_function`."""
@@ -423,3 +408,4 @@ class PolyModelType(MultiType):
 
 
 from ..models import ModelMeta
+from ..transforms import export_filter
