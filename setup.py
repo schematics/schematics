@@ -32,7 +32,7 @@ setup(
     description='Structured Data for Humans',
     author=u'James Dennis, Jökull Sólberg, Jóhann Þorvaldur Bergþórsson',
     author_email='jdennis@gmail.com, jokull@plainvanillagames.com, johann@plainvanillagames.com',
-    url='https://github.com/schematics/schematics',
+    url='https://github.com/devnoop/schematics',
     packages=['schematics', 'schematics.types', 'schematics.contrib'],
     classifiers=[
         'Intended Audience :: Developers',

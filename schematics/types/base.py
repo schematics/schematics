@@ -199,7 +199,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         return None
 
     def _setup(self, field_name, owner_model):
-        """Perform late-stage setup tasks that are run after the containing model 
+        """Perform late-stage setup tasks that are run after the containing model
         has been created.
         """
         self.name = field_name
@@ -790,7 +790,7 @@ class DateTimeType(BaseType):
     UTC = utc_timezone()
     EPOCH = datetime.datetime(1970, 1, 1, tzinfo=UTC)
 
-    def __init__(self, formats=None, serialized_format=None, parser=None, 
+    def __init__(self, formats=None, serialized_format=None, parser=None,
                  tzd='allow', convert_tz=False, drop_tzinfo=False, **kwargs):
 
         if isinstance(formats, basestring):
@@ -938,8 +938,8 @@ class UTCDateTimeType(DateTimeType):
 
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
-    def __init__(self, formats=None, parser=None, tzd='utc', convert_tz=True, drop_tzinfo=True):    
-        super(UTCDateTimeType, self).__init__(formats=formats, parser=parser, tzd=tzd, 
+    def __init__(self, formats=None, parser=None, tzd='utc', convert_tz=True, drop_tzinfo=True):
+        super(UTCDateTimeType, self).__init__(formats=formats, parser=parser, tzd=tzd,
                                             convert_tz=convert_tz, drop_tzinfo=drop_tzinfo)
 
 
@@ -951,7 +951,7 @@ class TimestampType(DateTimeType):
     """
 
     def __init__(self, formats=None, parser=None, drop_tzinfo=False):
-        super(TimestampType, self).__init__(formats=formats, parser=parser, tzd='require', 
+        super(TimestampType, self).__init__(formats=formats, parser=parser, tzd='require',
                                             convert_tz=True, drop_tzinfo=drop_tzinfo)
 
     def to_primitive(self, value):
@@ -1048,11 +1048,11 @@ class MultilingualStringType(BaseType):
 
     def __init__(self, regex=None, max_length=None, min_length=None,
                  default_locale=None, locale_regex=LOCALE_REGEX, **kwargs):
-        self.regex = re.compile(regex) if regex else None
+        self.regex = regex
         self.max_length = max_length
         self.min_length = min_length
         self.default_locale = default_locale
-        self.locale_regex = re.compile(locale_regex) if locale_regex else None
+        self.locale_regex = locale_regex
 
         super(MultilingualStringType, self).__init__(**kwargs)
 
@@ -1127,11 +1127,10 @@ class MultilingualStringType(BaseType):
             return
 
         for locale, localized in value.items():
-            if self.regex is not None and self.regex.match(localized) is None:
+            if self.regex is not None and re.match(self.regex, localized) is None:
                 raise ValidationError(
                     self.messages['regex_localized'].format(locale))
 
-            if self.locale_regex is not None and self.locale_regex.match(locale) is None:
+            if self.locale_regex is not None and re.match(self.locale_regex, locale) is None:
                 raise ValidationError(
                     self.messages['regex_locale'].format(locale))
-
