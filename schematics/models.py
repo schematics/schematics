@@ -56,11 +56,7 @@ class FieldDescriptor(object):
         Sets the field's value.
         """
         field = instance._fields[self.name]
-        if all((
-                value is not None,
-                not isinstance(value, Model),
-                isinstance(field, ModelType))):
-            value = field.model_class(value)
+        value = field.pre_setattr(value)
         instance._data[self.name] = value
 
     def __delete__(self, instance):
@@ -433,5 +429,4 @@ class Model(object):
 
 from .transforms import atoms, flatten, expand
 from .transforms import convert, to_native, to_dict, to_primitive, export_loop
-from .types.compound import ModelType
 from .validate import validate, prepare_validator

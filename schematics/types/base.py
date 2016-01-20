@@ -235,6 +235,9 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
             default = default()
         return default
 
+    def pre_setattr(self, value):
+        return value
+
     def convert(self, value, context=None):
         return self.to_native(value, context)
 

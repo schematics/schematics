@@ -10,6 +10,7 @@ from ..common import *
 from ..exceptions import (ValidationError, ConversionError,
                           ModelValidationError, StopValidation,
                           MockCreationError)
+from ..models import Model, ModelMeta
 from ..undefined import Undefined
 from .base import BaseType, get_value_in
 
@@ -124,6 +125,12 @@ class ModelType(MultiType):
             else:
                 raise Exception("ModelType: Unable to resolve model '{}'.".format(self.model_name))
         super(ModelType, self)._setup(field_name, owner_model)
+
+    def pre_setattr(self, value):
+        if value is not None \
+          and not isinstance(value, Model):
+            value = self.model_class(value)
+        return value
 
     def validate_model(self, model_instance, context=None):
         model_instance.validate(context=context)
@@ -417,5 +424,3 @@ class PolyModelType(MultiType):
 
         return model_instance.export(format=format, context=context)
 
-
-from ..models import ModelMeta
