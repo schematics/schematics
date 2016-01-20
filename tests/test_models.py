@@ -1,22 +1,46 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from schematics.models import Model
+from schematics.models import Model, ModelOptions
 from schematics.transforms import whitelist, blacklist
-from schematics.models import ModelOptions
+from schematics.undefined import Undefined
 
 from schematics.types.base import StringType, IntType
 from schematics.types.compound import ModelType
-from schematics.exceptions import ValidationError, ConversionError, ModelConversionError
+from schematics.exceptions import *
 
 from six import PY3
 
-def test_init_with_dict():
-    class Player(Model):
-        id = IntType()
 
-    p1 = Player({"id": 4})
-    assert p1.id == 4
+def test_init_with_dict():
+
+    class M(Model):
+        a, b, c, d = IntType(), IntType(), IntType(), IntType(default=0)
+
+    m = M({'a': 1, 'b': None})
+    assert m._data == {'a': 1, 'b': None, 'c': None, 'd': 0}
+    assert m.a == 1
+    assert m.b == None
+    assert m.c == None
+    assert m.d == 0
+
+    m = M({'a': 1, 'b': None}, apply_defaults=False)
+    assert m._data == {'a': 1, 'b': None, 'c': None, 'd': None}
+
+    m = M({'a': 1, 'b': None}, init_values=False)
+    assert m._data == {'a': 1, 'b': None, 'c': Undefined, 'd': 0}
+
+    m = M({'a': 1, 'b': None}, init=False)
+    assert m._data == {'a': 1, 'b': None, 'c': Undefined, 'd': Undefined}
+
+    m = M({'a': 1, 'b': None}, init=False, apply_defaults=True)
+    assert m._data == {'a': 1, 'b': None, 'c': Undefined, 'd': 0}
+
+    m = M({'a': 1, 'b': None}, init=False, init_values=True)
+    assert m._data == {'a': 1, 'b': None, 'c': None, 'd': None}
+
+    m = M({'a': 1, 'b': None}, init=False, apply_defaults=True, init_values=True)
+    assert m._data == {'a': 1, 'b': None, 'c': None, 'd': 0}
 
 
 def test_invalid_model_fail_validation():
@@ -476,62 +500,85 @@ def test_nested_model_import_data_with_mappings():
     assert root.nxt_level.nested_attr == 'nested value'
 
 
-def test_fielddescriptor_connectedness():
-    class TestModel(Model):
-        field1 = StringType()
-        field2 = StringType()
-
-    inst = TestModel()
-    inst._data = {}
-    with pytest.raises(AttributeError):
-        inst.field1
+class SimpleModel(Model):
+    field1 = StringType()
+    field2 = StringType()
 
 
 def test_keys():
-    class TestModel(Model):
-        field1 = StringType()
-        field2 = StringType()
-
-    inst = TestModel({'field1': 'foo', 'field2': 'bar'})
+    inst = SimpleModel({'field1': 'foo',
+                        'field2': 'bar'})
 
     assert inst.keys() == ['field1', 'field2']
+    del inst.field2
+    assert inst.keys() == ['field1']
 
 
 def test_values():
-    class TestModel(Model):
-        field1 = StringType()
-        field2 = StringType()
-
-    inst = TestModel({'field1': 'foo', 'field2': 'bar'})
+    inst = SimpleModel({'field1': 'foo',
+                        'field2': 'bar'})
 
     assert inst.values() == ['foo', 'bar']
+    del inst.field2
+    assert inst.values() == ['foo']
 
 
 def test_items():
-    class TestModel(Model):
-        field1 = StringType()
-        field2 = StringType()
-
-    inst = TestModel({'field1': 'foo', 'field2': 'bar'})
+    inst = SimpleModel({'field1': 'foo',
+                        'field2': 'bar'})
 
     assert inst.items() == [('field1', 'foo'), ('field2', 'bar')]
+    del inst.field2
+    assert inst.items() == [('field1', 'foo')]
+
+
+def test_iter():
+    inst = SimpleModel({'field1': 'foo',
+                        'field2': 'bar'})
+
+    assert [x for x in inst] == ['field1', 'field2']
+    del inst.field2
+    assert [x for x in inst] == ['field1']
+
+
+def test_membership():
+    inst = SimpleModel({'field1': 'foo',
+                        'field2': 'bar'})
+
+    assert 'field1' in inst and 'field2' in inst
+    del inst.field2
+    assert 'field1' in inst and 'field2' not in inst
 
 
 def test_get():
-    class TestModel(Model):
-        field1 = StringType()
 
-    inst = TestModel({'field1': 'foo'})
+    inst = SimpleModel({'field1': 'foo'})
     assert inst.get('field1') == 'foo'
     assert inst.get('foo') is None
     assert inst.get('foo', 'bar') == 'bar'
 
+    inst = SimpleModel({'field1': 'foo'}, init=False)
+    assert inst.get('foo') is None
+
+
+def test_getitem():
+
+    inst = SimpleModel({'field1': 'foo'})
+    assert inst['field1'] == 'foo'
+    assert inst['field2'] is None
+    with pytest.raises(KeyError):
+        inst['foo']
+
+    inst = SimpleModel({'field1': 'foo'}, init=False)
+    assert inst['field1'] == 'foo'
+    with pytest.raises(MissingValueError):
+        inst['field2']
+    with pytest.raises(UnknownFieldError):
+        inst['foo']
+
 
 def test_setitem():
-    class TestModel(Model):
-        field1 = StringType()
-
-    inst = TestModel()
+    inst = SimpleModel()
 
     with pytest.raises(KeyError):
         inst['foo'] = 1
@@ -541,33 +588,26 @@ def test_setitem():
 
 
 def test_delitem():
-    class TestModel(Model):
-        field1 = StringType()
-
-    inst = TestModel({'field1': 'foo'})
+    inst = SimpleModel({'field1': 'foo'})
 
     with pytest.raises(KeyError):
         del inst['foo']
 
     del inst['field1']
-    assert inst.field1 is None
+    with pytest.raises(AttributeError):
+        inst.field1
 
 
 def test_eq():
-    class TestModel(Model):
-        field1 = StringType()
-
-    inst = TestModel({'field1': 'foo'})
+    inst = SimpleModel({'field1': 'foo'})
     assert inst != 'foo'
 
 
 def test_repr():
-    class TestModel(Model):
-        field1 = StringType()
-
-    inst = TestModel({'field1': 'foo'})
-    assert repr(inst) == '<TestModel: TestModel object>'
+    inst = SimpleModel({'field1': 'foo'})
+    assert repr(inst) == '<SimpleModel: SimpleModel object>'
 
     if not PY3: #todo: make this work for PY3
         inst.__class__.__name__ = '\x80'
         assert repr(inst) == '<[Bad Unicode class name]: [Bad Unicode data]>'
+

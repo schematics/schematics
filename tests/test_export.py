@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
+from schematics.common import *
 from schematics.models import Model
 from schematics.transforms import ExportConverter
 from schematics.types import *
@@ -22,7 +23,6 @@ class M(BaseModel):
     utcfield = UTCDateTimeType()
     modelfield = ModelType(N)
 
-
 input = { 'intfield': 3,
           'stringfield': 'foobar',
           'dtfield': '2015-11-26T09:00:00.000000',
@@ -43,12 +43,22 @@ natives = { 'intfield': 3,
 def test_to_native():
 
     m = M(input)
-
     assert m.to_native() == m
 
-    _natives = natives.copy()
-    assert m._data.pop('modelfield')._data == _natives.pop('modelfield')
-    assert m._data == _natives
+    m = M({'modelfield': {}})
+    result = m.to_native()
+    assert result.intfield is None
+    assert result.modelfield.floatfield is None
+
+    m = M({'modelfield': {}})
+    del m.intfield
+    del m.modelfield.floatfield
+    result = m.to_native()
+    assert 'intfield' not in result
+    assert 'floatfield' not in result.modelfield
+    result = m.to_native(export_level=ALL)
+    assert result.intfield is None
+    assert result.modelfield.floatfield is None
 
 
 def test_to_dict():
@@ -69,7 +79,8 @@ def test_custom_exporter():
         def __init__(self, x, y):
             self.x, self.y = x, y
         def __eq__(self, other):
-            return self.x == other.x and self.y == other.y
+            return type(self) == type(other) \
+                     and self.x == other.x and self.y == other.y
 
     class FooType(BaseType):
         def to_native(self, value, context):
@@ -79,25 +90,24 @@ def test_custom_exporter():
         def to_primitive(self, value, context):
             return dict(x=value.x, y=value.y)
 
-    class M(Model):
+    class X(Model):
         id = UUIDType()
         dt = UTCDateTimeType()
         foo = FooType()
 
-    m = M({ 'id': '54020382-291e-4192-b370-4850493ac5bc',
+    x = X({ 'id': '54020382-291e-4192-b370-4850493ac5bc',
             'dt': '2015-11-26T07:00',
             'foo': {'x': 1, 'y': 2} })
 
-    assert m.to_dict() == {
+    assert x.to_dict() == {
         'id': uuid.UUID('54020382-291e-4192-b370-4850493ac5bc'),
         'dt': datetime.datetime(2015, 11, 26, 7),
         'foo': Foo(1, 2) }
 
     exporter = ExportConverter(PRIMITIVE, [UTCDateTimeType, UUIDType])
 
-    assert m.export(PRIMITIVE, field_converter=exporter) == {
+    assert x.export(PRIMITIVE, field_converter=exporter) == {
         'id': uuid.UUID('54020382-291e-4192-b370-4850493ac5bc'),
         'dt': datetime.datetime(2015, 11, 26, 7),
         'foo': {'x': 1, 'y': 2} }
-
 

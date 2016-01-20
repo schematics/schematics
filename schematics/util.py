@@ -23,3 +23,17 @@ def setdefault(obj, attr, value, search_mro=False, overwrite_none=False):
         setattr(obj, attr, value)
     return value
 
+
+class Constant(int):
+
+    def __new__(cls, name, value):
+        return int.__new__(cls, value)
+
+    def __init__(self, name, value):
+        self.name = name
+
+    def __repr__(self):
+        return self.name
+
+    __str__ = __repr__
+

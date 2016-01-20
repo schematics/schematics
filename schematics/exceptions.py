@@ -59,3 +59,14 @@ class StopValidation(ValidationError):
 class MockCreationError(ValueError):
     """Exception raised when a mock value cannot be generated."""
     pass
+
+
+class MissingValueError(AttributeError, KeyError):
+    """Exception raised when accessing an undefined value on an instance."""
+    pass
+
+
+class UnknownFieldError(KeyError):
+    """Exception raised when attempting to set a nonexistent field using the subscription syntax."""
+    pass
+

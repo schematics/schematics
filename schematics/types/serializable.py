@@ -34,6 +34,8 @@ def serializable(*args, **kwargs):
             # If `serialized_type` is already an instance, update it with the options
             # found in `kwargs`. This is necessary because historically certain options
             # were stored on the `Serializable` itself instead of the underlying field.
+            serialized_type._set_export_level(
+                kwargs.pop('export_level', None), kwargs.pop("serialize_when_none", None))
             for name, value in kwargs.items():
                 setdefault(serialized_type, name, value, overwrite_none=True)
         else:

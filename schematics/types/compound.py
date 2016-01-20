@@ -6,10 +6,11 @@ from collections import Iterable
 import itertools
 import functools
 
-from ..common import NATIVE, PRIMITIVE, EMPTY_LIST, EMPTY_DICT
+from ..common import *
 from ..exceptions import (ValidationError, ConversionError,
                           ModelValidationError, StopValidation,
                           MockCreationError)
+from ..undefined import Undefined
 from .base import BaseType, get_value_in
 
 from six import iteritems
@@ -21,17 +22,10 @@ from six.moves import xrange
 class MultiType(BaseType):
 
     def __init__(self, **kwargs):
-
-        if hasattr(self, 'field'):
-            def validate_required(value, context=None):
-                if self.field.required and value is None:
-                    raise ValidationError(self.field.messages['required'])
-            self.field.validators.append(validate_required)
-            self.field.parent_field = self
-
         super(MultiType, self).__init__(**kwargs)
-
         self.is_compound = True
+        if hasattr(self, 'field'):
+            self.field.parent_field = self
 
     def _setup(self, field_name, owner_model):
         # Recursively set up inner fields.
@@ -44,6 +38,10 @@ class MultiType(BaseType):
         key. Used by ModelType and ListType.
 
         """
+        self.check_required(value, context)
+        if value in (None, Undefined):
+            return value
+
         if convert:
             value = self.convert(value, context)
 
@@ -144,9 +142,7 @@ class ModelType(MultiType):
                     self.model_class.__name__,
                     type(value).__name__))
 
-        # partial submodels now available with import_data (ht ryanolson)
-        model = self.model_class()
-        return model.import_data(value, context=context)
+        return self.model_class(value, context=context)
 
     def export(self, model_instance, format, context):
         return model_instance.export(format=format, context=context)
@@ -237,17 +233,18 @@ class ListType(MultiType):
         as `transforms.export_loop`.
         """
         data = []
+        _export_level = self.field.get_export_level(context)
+        if _export_level == DROP:
+            return data
         for value in list_instance:
             shaped = self.field.export(value, format, context)
-            feels_empty = shaped is None or isinstance(self.field, MultiType) and len(shaped) == 0
-
-            # Print if we want empty or found a value
-            if feels_empty:
-                if self.field.allow_none() or context.print_none:
-                    data.append(shaped)
-            elif shaped is not None:
-                data.append(shaped)
-
+            if shaped is None:
+                if _export_level <= NOT_NONE:
+                    continue
+            elif self.field.is_compound and len(shaped) == 0:
+                if _export_level <= NONEMPTY:
+                    continue
+            data.append(shaped)
         return data
 
 
@@ -299,17 +296,18 @@ class DictType(MultiType):
         as `transforms.export_loop`.
         """
         data = {}
-
+        _export_level = self.field.get_export_level(context)
+        if _export_level == DROP:
+            return data
         for key, value in iteritems(dict_instance):
             shaped = self.field.export(value, format, context)
-            feels_empty = shaped is None or isinstance(self.field, MultiType) and len(shaped) == 0
-
-            if feels_empty:
-                if self.field.allow_none() or context.print_none:
-                    data[key] = shaped
-            elif shaped is not None:
-                data[key] = shaped
-
+            if shaped is None:
+                if _export_level <= NOT_NONE:
+                    continue
+            elif self.field.is_compound and len(shaped) == 0:
+                if _export_level <= NONEMPTY:
+                    continue
+            data[key] = shaped
         return data
 
 
@@ -378,8 +376,7 @@ class PolyModelType(MultiType):
                                     'an instance of {}'.format(instanceof_msg))
 
         model_class = self.find_model(value)
-        model = model_class()
-        return model.import_data(value, context=context)
+        return model_class(value, context=context)
 
     def find_model(self, data):
         """Finds the intended type by consulting potential classes or `claim_function`."""

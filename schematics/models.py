@@ -8,11 +8,15 @@ from six import iteritems
 from six import iterkeys
 from six import add_metaclass
 
-from .common import NATIVE, PRIMITIVE
+from .common import *
 from .datastructures import OrderedDict as OrderedDictWithSort
-from .exceptions import BaseError, ModelValidationError, MockCreationError
+from .exceptions import (
+    BaseError, ModelValidationError, MockCreationError,
+    MissingValueError, UnknownFieldError
+)
 from .types import BaseType
 from .types.serializable import Serializable
+from .undefined import Undefined
 
 try:
     unicode #PY2
@@ -43,12 +47,14 @@ class FieldDescriptor(object):
         the corresponding data for valid fields or raises the appropriate error
         for fields missing from a class.
         """
-        try:
-            if instance is None:
-                return cls._fields[self.name]
-            return instance._data[self.name]
-        except KeyError:
-            raise AttributeError(self.name)
+        if instance is None:
+            return cls._fields[self.name]
+        else:
+            value = instance._data[self.name]
+            if value is Undefined:
+                raise MissingValueError
+            else:
+                return value
 
     def __set__(self, instance, value):
         """
@@ -66,10 +72,7 @@ class FieldDescriptor(object):
         """
         Checks the field name against a model and deletes the value.
         """
-        try:
-            instance._data[self.name] = None
-        except KeyError:
-            raise AttributeError(self.name)
+        instance._data[self.name] = Undefined
 
 
 class ModelOptions(object):
@@ -80,8 +83,8 @@ class ModelOptions(object):
     instance of a model.
     """
 
-    def __init__(self, klass, namespace=None, roles=None,
-                 serialize_when_none=True, fields_order=None):
+    def __init__(self, klass, namespace=None, roles=None, export_level=DEFAULT,
+                 serialize_when_none=None, fields_order=None):
         """
         :param klass:
             The class which this options instance belongs to.
@@ -100,7 +103,11 @@ class ModelOptions(object):
         self.klass = klass
         self.namespace = namespace
         self.roles = roles or {}
-        self.serialize_when_none = serialize_when_none
+        self.export_level = export_level
+        if serialize_when_none is True:
+            self.export_level = DEFAULT
+        elif serialize_when_none is False:
+            self.export_level = NONEMPTY
         self.fields_order = fields_order
 
 
@@ -228,14 +235,18 @@ class Model(object):
     __optionsclass__ = ModelOptions
 
     def __init__(self, raw_data=None, trusted_data=None, deserialize_mapping=None,
-                 partial=True, strict=True, app_data=None, context=None):
+                 init=True, partial=True, strict=True, app_data=None, **kwargs):
 
-        self._initial = raw_data = raw_data or {}
-        self._data = self.convert(raw_data, trusted_data=trusted_data, strict=strict,
-                                  partial=partial, mapping=deserialize_mapping,
-                                  app_data=app_data, context=context)
+        self._initial = raw_data or {}
 
-    def validate(self, partial=False, strict=False, convert=True, app_data=None, context=None):
+        kwargs.setdefault('init_values', init)
+        kwargs.setdefault('apply_defaults', init)
+
+        self._data = self.convert(raw_data,
+                                  trusted_data=trusted_data, mapping=deserialize_mapping,
+                                  partial=partial, strict=strict, app_data=app_data, **kwargs)
+
+    def validate(self, partial=False, strict=False, convert=True, app_data=None, **kwargs):
         """
         Validates the state of the model and adding additional untrusted data
         as well. If the models is invalid, raises ValidationError with error
@@ -255,10 +266,12 @@ class Model(object):
         """
         try:
             data = validate(self.__class__, self._data, partial=partial, strict=strict,
-                            convert=convert, app_data=app_data, context=context)
-            self._data.update(**data)
+                            convert=convert, app_data=app_data, **kwargs)
         except BaseError as exc:
             raise ModelValidationError(exc.messages)
+
+        if convert:
+            self._data.update(**data)
 
     def import_data(self, raw_data, **kw):
         """
@@ -269,8 +282,7 @@ class Model(object):
             The data to be imported.
         """
         data = self.convert(raw_data, **kw)
-        #[x * 2 if x % 2 == 0 else x for x in a_list]
-        del_keys = [ k for k in data.keys() if data[k] is None]
+        del_keys = [k for k in data.keys() if data[k] is Undefined]
         for k in del_keys:
             del data[k]
 
@@ -291,13 +303,13 @@ class Model(object):
         data = export_loop(self.__class__, self, field_converter=field_converter,
                            role=role, app_data=app_data, **kwargs)
         if format == NATIVE:
-            return self.__class__(trusted_data=data)
+            return self.__class__(data, init=False)
         else:
             return data
 
     def to_native(self, role=None, app_data=None, **kwargs):
         data = to_native(self.__class__, self, role=role, app_data=app_data, **kwargs)
-        return self.__class__(trusted_data=data)
+        return self.__class__(data, init=False)
 
     def to_dict(self, role=None, app_data=None, **kwargs):
         return to_dict(self.__class__, self, role=role, app_data=app_data, **kwargs)
@@ -333,36 +345,23 @@ class Model(object):
         """
         return atoms(self.__class__, self)
 
-    @classmethod
-    def allow_none(cls, field):
-        """
-        Inspects a field and class for ``serialize_when_none`` setting.
-
-        The setting defaults to the value of the class.  A field can override
-        the class setting with it's own ``serialize_when_none`` setting.
-        """
-        return allow_none(cls, field)
-
     def __iter__(self):
         return self.iter()
 
     def iter(self):
-        return iter(self._fields)
+        return iter(self.keys())
 
     def keys(self):
-        return self._fields.keys()
+        return [k for k in self._fields if self._data[k] is not Undefined]
 
     def items(self):
-        return [(k, self.get(k)) for k in iterkeys(self._fields)]
+        return [(k, self._data[k]) for k in self.keys()]
 
     def values(self):
-        return [self.get(k) for k in iterkeys(self._fields)]
+        return [self._data[k] for k in self.keys()]
 
     def get(self, key, default=None):
-        try:
-            return self[key]
-        except KeyError:
-            return default
+        return getattr(self, key, default)
 
     @classmethod
     def get_mock_object(cls, context=None, overrides=None):
@@ -384,32 +383,33 @@ class Model(object):
         return cls(values)
 
     def __getitem__(self, name):
-        try:
+        if name in self._fields or name in self._serializables:
             return getattr(self, name)
-        except AttributeError:
-            raise KeyError(name)
+        else:
+            raise UnknownFieldError
 
     def __setitem__(self, name, value):
-        if name not in self._data:
-            raise KeyError(name)
-        return setattr(self, name, value)
+        if name in self._fields:
+            return setattr(self, name, value)
+        else:
+            raise UnknownFieldError
 
     def __delitem__(self, name):
-        try:
+        if name in self._fields:
             return delattr(self, name)
-        except AttributeError:
-            raise KeyError(name)
+        else:
+            raise UnknownFieldError
 
     def __contains__(self, name):
-        return name in self._data or name in self._serializables
+        return name in self.keys() or name in self._serializables
 
     def __len__(self):
-        return len(self._data)
+        return len(self.keys())
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             for k in self._fields:
-                if self.get(k) != other.get(k):
+                if self._data[k] != other._data[k]:
                     return False
             return True
         return NotImplemented
@@ -437,7 +437,7 @@ class Model(object):
         return '%s object' % self.__class__.__name__
 
 
-from .transforms import allow_none, atoms, flatten, expand
+from .transforms import atoms, flatten, expand
 from .transforms import convert, to_native, to_dict, to_primitive, export_loop
 from .types.compound import ModelType
 from .validate import validate
