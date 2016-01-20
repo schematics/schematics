@@ -2,6 +2,7 @@
 
 import pytest
 
+from schematics.common import *
 from schematics.models import Model
 from schematics.transforms import ExportConverter
 from schematics.types import *
@@ -10,7 +11,7 @@ from schematics.types.serializable import serializable
 from schematics.undefined import Undefined
 
 
-params = [(None, None), (None, 4), (4, 4), (3, 3), (2, 2), (1, 1)]
+params = [(None, None), (None, ALL), (ALL, ALL), (DEFAULT, DEFAULT), (NOT_NONE, NOT_NONE), (NONEMPTY, NONEMPTY)]
 
 @pytest.fixture(params=params)
 def models(request):
@@ -24,13 +25,13 @@ def models(request):
         subfield4 = StringType()
 
     class M(Model):
-        field0 = StringType(export_level=0)
+        field0 = StringType(export_level=DROP)
         field1 = StringType()
         field2 = StringType()
         field3 = StringType()
         field4 = StringType()
-        field5 = StringType(export_level=2)
-        field6 = StringType(export_level=4)
+        field5 = StringType(export_level=NOT_NONE)
+        field6 = StringType(export_level=ALL)
         listfield = ListType(StringType())
         modelfield1 = ModelType(N)
         modelfield2 = ModelType(N)
@@ -68,7 +69,7 @@ def test_export_level(models):
 
     output = M(input, init=False).to_primitive()
 
-    if m_level == 1 and n_level == 1:
+    if m_level == NONEMPTY and n_level == NONEMPTY:
         assert output == {
             'field1': 'foo',
             'field2': '',
@@ -78,7 +79,7 @@ def test_export_level(models):
                 'subfield2': '',
                 },
             }
-    elif m_level == 2 and n_level == 2:
+    elif m_level == NOT_NONE and n_level == NOT_NONE:
         assert output == {
             'field1': 'foo',
             'field2': '',
@@ -90,7 +91,7 @@ def test_export_level(models):
                 },
             'modelfield2': {},
             }
-    elif m_level == 3 and n_level == 3:
+    elif m_level == DEFAULT and n_level == DEFAULT:
         assert output == {
             'field1': 'foo',
             'field2': '',
@@ -104,7 +105,7 @@ def test_export_level(models):
                 },
             'modelfield2': {},
             }
-    elif m_level == 4 and n_level == 4:
+    elif m_level == ALL and n_level == ALL:
         assert output == {
             'field1': 'foo',
             'field2': '',
@@ -125,7 +126,7 @@ def test_export_level(models):
                 'subfield4': None,
                 },
             }
-    elif m_level == 3 and n_level == 4:
+    elif m_level == DEFAULT and n_level == ALL:
         assert output == {
             'field1': 'foo',
             'field2': '',
@@ -157,9 +158,9 @@ def test_export_level_override(models):
 
     m = M(input, init=False)
 
-    assert m.to_primitive(export_level=0) == {}
+    assert m.to_primitive(export_level=DROP) == {}
 
-    assert m.to_primitive(export_level=1) == {
+    assert m.to_primitive(export_level=NONEMPTY) == {
         'field0': 'foo',
         'field1': 'foo',
         'field2': '',
@@ -169,7 +170,7 @@ def test_export_level_override(models):
             },
         }
 
-    assert m.to_primitive(export_level=2) == {
+    assert m.to_primitive(export_level=NOT_NONE) == {
         'field0': 'foo',
         'field1': 'foo',
         'field2': '',
@@ -181,7 +182,7 @@ def test_export_level_override(models):
         'modelfield2': {},
         }
 
-    assert m.to_primitive(export_level=3) == {
+    assert m.to_primitive(export_level=DEFAULT) == {
         'field0': 'foo',
         'field1': 'foo',
         'field2': '',
@@ -196,7 +197,7 @@ def test_export_level_override(models):
         'modelfield2': {},
         }
 
-    assert m.to_primitive(export_level=4) == {
+    assert m.to_primitive(export_level=ALL) == {
         'field0': 'foo',
         'field1': 'foo',
         'field2': '',
@@ -235,5 +236,5 @@ def test_custom_converter():
 
     m = M(dict(x=1, y=None, z=3))
 
-    assert m.export(PRIMITIVE, field_converter=converter, export_level=3) == {'x': 1, 'y': None}
+    assert m.export(PRIMITIVE, field_converter=converter, export_level=DEFAULT) == {'x': 1, 'y': None}
 

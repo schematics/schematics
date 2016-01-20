@@ -5,7 +5,7 @@ import itertools
 
 from six import iteritems
 
-from .common import NATIVE, PRIMITIVE, EMPTY_LIST, EMPTY_DICT
+from .common import *
 from .datastructures import OrderedDict, get_context_factory, DataObject
 from .exceptions import ConversionError, ModelConversionError, ValidationError
 from .undefined import Undefined
@@ -204,14 +204,23 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
         if gottago(field_name, value):
             continue
 
-        if field.get_export_level(context) == 0:
+        _export_level = field.get_export_level(context)
+
+        if _export_level == DROP:
             continue
 
         elif value not in (None, Undefined):
             value = context.field_converter(field, value, context)
 
-        if export_filter(field, value, context):
-            continue
+        if value is Undefined:
+            if _export_level <= DEFAULT:
+                continue
+        elif value is None:
+            if _export_level <= NOT_NONE:
+                continue
+        elif field.is_compound and len(value) == 0:
+            if _export_level <= NONEMPTY:
+                continue
 
         if value is Undefined:
             value = None
@@ -407,25 +416,6 @@ def blacklist(*field_list):
     return Role(Role.blacklist, field_list)
 
 
-def export_filter(field, value, context):
-
-    export_level = field.get_export_level(context)
-    if export_level == 0:
-        return True
-
-    if value is Undefined:
-        if export_level <= 3:
-            return True
-    elif value is None:
-        if export_level <= 2:
-            return True
-    elif field.is_compound and len(value) == 0:
-        if export_level <= 1:
-            return True
-
-    return False
-
-
 ###
 # Import and export functions
 ###
@@ -611,7 +601,7 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
         Default: None
     """
     data = to_primitive(cls, instance_or_dict, role=role, raise_error_on_role=raise_error_on_role,
-                        export_level=3, app_data=app_data, context=context)
+                        export_level=DEFAULT, app_data=app_data, context=context)
 
     flattened = flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
 

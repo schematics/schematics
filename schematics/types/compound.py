@@ -6,7 +6,7 @@ from collections import Iterable
 import itertools
 import functools
 
-from ..common import NATIVE, PRIMITIVE, EMPTY_LIST, EMPTY_DICT
+from ..common import *
 from ..exceptions import (ValidationError, ConversionError,
                           ModelValidationError, StopValidation,
                           MockCreationError)
@@ -233,10 +233,17 @@ class ListType(MultiType):
         as `transforms.export_loop`.
         """
         data = []
+        _export_level = self.field.get_export_level(context)
+        if _export_level == DROP:
+            return data
         for value in list_instance:
             shaped = self.field.export(value, format, context)
-            if export_filter(self.field, shaped, context):
-                continue
+            if shaped is None:
+                if _export_level <= NOT_NONE:
+                    continue
+            elif self.field.is_compound and len(shaped) == 0:
+                if _export_level <= NONEMPTY:
+                    continue
             data.append(shaped)
         return data
 
@@ -289,10 +296,17 @@ class DictType(MultiType):
         as `transforms.export_loop`.
         """
         data = {}
+        _export_level = self.field.get_export_level(context)
+        if _export_level == DROP:
+            return data
         for key, value in iteritems(dict_instance):
             shaped = self.field.export(value, format, context)
-            if export_filter(self.field, shaped, context):
-                continue
+            if shaped is None:
+                if _export_level <= NOT_NONE:
+                    continue
+            elif self.field.is_compound and len(shaped) == 0:
+                if _export_level <= NONEMPTY:
+                    continue
             data[key] = shaped
         return data
 
@@ -406,4 +420,3 @@ class PolyModelType(MultiType):
 
 
 from ..models import ModelMeta
-from ..transforms import export_filter

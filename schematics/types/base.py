@@ -15,7 +15,7 @@ import string
 import six
 from six import iteritems
 
-from ..common import NATIVE, PRIMITIVE
+from ..common import *
 from ..exceptions import (
     StopValidation, ValidationError, ConversionError, MockCreationError
 )
@@ -212,9 +212,9 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         if export_level is not None:
             self.export_level = export_level
         elif serialize_when_none is True:
-            self.export_level = 3
+            self.export_level = DEFAULT
         elif serialize_when_none is False:
-            self.export_level = 1
+            self.export_level = NONEMPTY
         else:
             self.export_level = None
 

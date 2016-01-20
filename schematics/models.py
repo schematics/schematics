@@ -8,7 +8,7 @@ from six import iteritems
 from six import iterkeys
 from six import add_metaclass
 
-from .common import NATIVE, PRIMITIVE
+from .common import *
 from .datastructures import OrderedDict as OrderedDictWithSort
 from .exceptions import (
     BaseError, ModelValidationError, MockCreationError,
@@ -83,7 +83,7 @@ class ModelOptions(object):
     instance of a model.
     """
 
-    def __init__(self, klass, namespace=None, roles=None, export_level=3,
+    def __init__(self, klass, namespace=None, roles=None, export_level=DEFAULT,
                  serialize_when_none=None, fields_order=None):
         """
         :param klass:
@@ -105,9 +105,9 @@ class ModelOptions(object):
         self.roles = roles or {}
         self.export_level = export_level
         if serialize_when_none is True:
-            self.export_level = 3
+            self.export_level = DEFAULT
         elif serialize_when_none is False:
-            self.export_level = 1
+            self.export_level = NONEMPTY
         self.fields_order = fields_order
 
 

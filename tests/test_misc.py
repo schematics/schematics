@@ -106,3 +106,13 @@ def test_setdefault():
     assert result == b.z == 9
     assert B.z is None
 
+
+def test_constant():
+
+    C = Constant('C', 99)
+    assert C == 99
+    assert C.name == 'C'
+
+    with pytest.raises(ValueError):
+        C = Constant('C', 'foo')
+

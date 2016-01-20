@@ -56,7 +56,7 @@ def test_to_native():
     result = m.to_native()
     assert 'intfield' not in result
     assert 'floatfield' not in result.modelfield
-    result = m.to_native(export_level=4)
+    result = m.to_native(export_level=ALL)
     assert result.intfield is None
     assert result.modelfield.floatfield is None
 
