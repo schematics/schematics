@@ -237,7 +237,7 @@ class Model(object):
     def __init__(self, raw_data=None, trusted_data=None, deserialize_mapping=None,
                  partial=True, strict=True, init_values=True, app_data=None, **kwargs):
 
-        self._initial = raw_data = raw_data or {}
+        self._initial = raw_data or {}
         self._data = self.convert(raw_data,
                                   trusted_data=trusted_data, mapping=deserialize_mapping,
                                   partial=partial, strict=strict, init_values=init_values,

@@ -258,6 +258,10 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         validators by raising ``StopValidation`` instead of ``ValidationError``.
 
         """
+        self.check_required(value, context)
+        if value in (None, Undefined):
+            return value
+
         if convert:
             value = self.convert(value, context)
 
@@ -275,6 +279,11 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
             raise ValidationError(errors)
 
         return value
+
+    def check_required(self, value, context=None):
+        if self.required and value in (None, Undefined):
+            if self.name is None or context and not context.partial:
+                raise ValidationError(self.messages['required'])
 
     def validate_choices(self, value, context=None):
         if self.choices is not None:

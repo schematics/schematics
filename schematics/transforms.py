@@ -75,7 +75,12 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
         ``app_data``. The context object is created upon the initial invocation
         of ``import_loop`` and is then propagated through the entire process.
     """
-    if not isinstance(instance_or_dict, (cls, dict)):
+    if instance_or_dict is None:
+        got_data = False
+    else:
+        got_data = True
+
+    if got_data and not isinstance(instance_or_dict, (cls, dict)):
         raise ModelConversionError('Model conversion requires a model or dict')
 
     mapping = mapping or {}
@@ -88,6 +93,7 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
     else:
         _apply_defaults = context.apply_defaults
 
+    _model_mapping = context.mapping.get('model_mapping', {})
 
     data = dict(trusted_data) if trusted_data else {}
     errors = {}
@@ -101,26 +107,29 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
         if field_name in context.mapping:
             all_fields.update(set(_listify(context.mapping[field_name])))
 
-    # Check for rogues if strict is set
-    rogue_fields = set(instance_or_dict) - all_fields
-    if context.strict and len(rogue_fields) > 0:
-        for field in rogue_fields:
-            errors[field] = 'Rogue field'
+    if got_data and context.strict:
+        # Check for rogues if strict is set
+        rogue_fields = set(instance_or_dict) - all_fields
+        if len(rogue_fields) > 0:
+            for field in rogue_fields:
+                errors[field] = 'Rogue field'
 
     for field_name, field in iteritems(cls._fields):
-        trial_keys = _listify(field.deserialize_from)
-        trial_keys.extend(_listify(context.mapping.get(field_name, [])))
-        if field.serialized_name:
-            serialized_field_name = field.serialized_name
-            trial_keys.extend((serialized_field_name, field_name))
-        else:
-            serialized_field_name = field_name
-            trial_keys.append(field_name)
 
         value = Undefined
-        for key in trial_keys:
-            if key and key in instance_or_dict:
-                value = instance_or_dict[key]
+        serialized_field_name = field_name
+
+        if got_data:
+            trial_keys = _listify(field.deserialize_from)
+            trial_keys.extend(_listify(context.mapping.get(field_name, [])))
+            if field.serialized_name:
+                serialized_field_name = field.serialized_name
+                trial_keys.append(field.serialized_name)
+            trial_keys.append(field_name)
+            for key in trial_keys:
+                if key and key in instance_or_dict:
+                    value = instance_or_dict[key]
+
         if value is Undefined:
             if field_name in data:
                 continue
@@ -129,22 +138,16 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
         if value is Undefined and context.init_values:
             value = None
 
-        try:
-            if value in (None, Undefined):
-                if field.required and not context.partial:
-                    errors[serialized_field_name] = [field.messages['required']]
-            else:
-                field_params = {
-                    'mapping': context.mapping.get('model_mapping', {}).get(field_name, None)
-                }
+        if got_data:
+            field_params = {
+                'mapping': _model_mapping.get(field_name, None)}
+            try:
                 value = field_converter(field, value, context._branch(**field_params))
+            except (ConversionError, ValidationError) as exc:
+                errors[serialized_field_name] = exc.messages
+                continue
 
-            data[field_name] = value
-
-        except ConversionError as exc:
-            errors[serialized_field_name] = exc.messages
-        except ValidationError as exc:
-            errors[serialized_field_name] = exc.messages
+        data[field_name] = value
 
     if errors:
         raise ModelConversionError(errors, data)
@@ -456,11 +459,16 @@ class ExportConverter(FieldConverter):
         return field.export(value, format, context)
 
 
-_import_converter = lambda field, value, context: field.convert(value, context)
-
 _to_native_converter = ExportConverter(NATIVE)
 _to_dict_converter = ExportConverter(NATIVE, [ModelType])
 _to_primitive_converter = ExportConverter(PRIMITIVE)
+
+
+def _import_converter(field, value, context):
+    field.check_required(value, context)
+    if value in (None, Undefined):
+        return value
+    return field.convert(value, context)
 
 
 def convert(cls, instance_or_dict, **kwargs):

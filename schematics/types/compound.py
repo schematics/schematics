@@ -10,6 +10,7 @@ from ..common import NATIVE, PRIMITIVE, EMPTY_LIST, EMPTY_DICT
 from ..exceptions import (ValidationError, ConversionError,
                           ModelValidationError, StopValidation,
                           MockCreationError)
+from ..undefined import Undefined
 from .base import BaseType, get_value_in
 
 from six import iteritems
@@ -21,17 +22,10 @@ from six.moves import xrange
 class MultiType(BaseType):
 
     def __init__(self, **kwargs):
-
-        if hasattr(self, 'field'):
-            def validate_required(value, context=None):
-                if self.field.required and value is None:
-                    raise ValidationError(self.field.messages['required'])
-            self.field.validators.append(validate_required)
-            self.field.parent_field = self
-
         super(MultiType, self).__init__(**kwargs)
-
         self.is_compound = True
+        if hasattr(self, 'field'):
+            self.field.parent_field = self
 
     def _setup(self, field_name, owner_model):
         # Recursively set up inner fields.
@@ -44,6 +38,10 @@ class MultiType(BaseType):
         key. Used by ModelType and ListType.
 
         """
+        self.check_required(value, context)
+        if value in (None, Undefined):
+            return value
+
         if convert:
             value = self.convert(value, context)
 
