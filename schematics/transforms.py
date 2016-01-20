@@ -42,7 +42,7 @@ ExportContext = get_context_factory('ExportContext',
 
 def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
                 mapping=None, partial=False, strict=False, init_values=False,
-                apply_defaults=None, app_data=None, context=None):
+                apply_defaults=False, app_data=None, context=None):
     """
     The import loop is designed to take untrusted data and convert it into the
     native types, as described in ``cls``.  It does this by calling
@@ -66,7 +66,6 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
         Complain about unrecognized keys. Default: False
     :param apply_defaults:
         Whether to set fields to their default values when not present in input data.
-        If this parameter is not provided, defaults are applied when ``partial=False``.
     :param app_data:
         An arbitrary container for application-specific data that needs to
         be available during the conversion.
@@ -87,11 +86,6 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
     app_data = app_data if app_data is not None else {}
     context = context or ImportContext(field_converter, mapping, partial, strict,
                                        init_values, apply_defaults, app_data)
-
-    if context.apply_defaults is None:
-        _apply_defaults = context.init_values
-    else:
-        _apply_defaults = context.apply_defaults
 
     _model_mapping = context.mapping.get('model_mapping', {})
 
@@ -133,7 +127,7 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
         if value is Undefined:
             if field_name in data:
                 continue
-            if _apply_defaults:
+            if context.apply_defaults:
                 value = field.default
         if value is Undefined and context.init_values:
             value = None
@@ -185,7 +179,8 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
         of ``export_loop`` and is then propagated through the entire process.
     """
     app_data = app_data if app_data is not None else {}
-    context = context or ExportContext(field_converter, role, raise_error_on_role, export_level, app_data)
+    context = context or ExportContext(field_converter, role, raise_error_on_role,
+                                       export_level, app_data)
 
     data = {}
 

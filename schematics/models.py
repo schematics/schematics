@@ -235,13 +235,16 @@ class Model(object):
     __optionsclass__ = ModelOptions
 
     def __init__(self, raw_data=None, trusted_data=None, deserialize_mapping=None,
-                 partial=True, strict=True, init_values=True, app_data=None, **kwargs):
+                 init=True, partial=True, strict=True, app_data=None, **kwargs):
 
         self._initial = raw_data or {}
+
+        kwargs.setdefault('init_values', init)
+        kwargs.setdefault('apply_defaults', init)
+
         self._data = self.convert(raw_data,
                                   trusted_data=trusted_data, mapping=deserialize_mapping,
-                                  partial=partial, strict=strict, init_values=init_values,
-                                  app_data=app_data, **kwargs)
+                                  partial=partial, strict=strict, app_data=app_data, **kwargs)
 
     def validate(self, partial=False, strict=False, convert=True, app_data=None, **kwargs):
         """
@@ -264,9 +267,11 @@ class Model(object):
         try:
             data = validate(self.__class__, self._data, partial=partial, strict=strict,
                             convert=convert, app_data=app_data, **kwargs)
-            self._data.update(**data)
         except BaseError as exc:
             raise ModelValidationError(exc.messages)
+
+        if convert:
+            self._data.update(**data)
 
     def import_data(self, raw_data, **kw):
         """
@@ -298,13 +303,13 @@ class Model(object):
         data = export_loop(self.__class__, self, field_converter=field_converter,
                            role=role, app_data=app_data, **kwargs)
         if format == NATIVE:
-            return self.__class__(trusted_data=data)
+            return self.__class__(data, init=False)
         else:
             return data
 
     def to_native(self, role=None, app_data=None, **kwargs):
         data = to_native(self.__class__, self, role=role, app_data=app_data, **kwargs)
-        return self.__class__(trusted_data=data)
+        return self.__class__(data, init=False)
 
     def to_dict(self, role=None, app_data=None, **kwargs):
         return to_dict(self.__class__, self, role=role, app_data=app_data, **kwargs)

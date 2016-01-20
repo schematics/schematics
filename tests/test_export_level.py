@@ -66,7 +66,7 @@ def test_export_level(models):
     m_level = M._options.export_level
     n_level = N._options.export_level
 
-    output = M(input, init_values=False).to_primitive()
+    output = M(input, init=False).to_primitive()
 
     if m_level == 1 and n_level == 1:
         assert output == {
@@ -155,7 +155,7 @@ def test_export_level_override(models):
     m_level = M._options.export_level
     n_level = N._options.export_level
 
-    m = M(input, init_values=False)
+    m = M(input, init=False)
 
     assert m.to_primitive(export_level=0) == {}
 

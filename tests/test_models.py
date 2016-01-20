@@ -7,16 +7,40 @@ from schematics.undefined import Undefined
 
 from schematics.types.base import StringType, IntType
 from schematics.types.compound import ModelType
-from schematics.exceptions import ValidationError, ConversionError, ModelConversionError, MissingValueError
+from schematics.exceptions import *
 
 from six import PY3
 
-def test_init_with_dict():
-    class Player(Model):
-        id = IntType()
 
-    p1 = Player({"id": 4})
-    assert p1.id == 4
+def test_init_with_dict():
+
+    class M(Model):
+        a, b, c, d = IntType(), IntType(), IntType(), IntType(default=0)
+
+    m = M({'a': 1, 'b': None})
+    assert m._data == {'a': 1, 'b': None, 'c': None, 'd': 0}
+    assert m.a == 1
+    assert m.b == None
+    assert m.c == None
+    assert m.d == 0
+
+    m = M({'a': 1, 'b': None}, apply_defaults=False)
+    assert m._data == {'a': 1, 'b': None, 'c': None, 'd': None}
+
+    m = M({'a': 1, 'b': None}, init_values=False)
+    assert m._data == {'a': 1, 'b': None, 'c': Undefined, 'd': 0}
+
+    m = M({'a': 1, 'b': None}, init=False)
+    assert m._data == {'a': 1, 'b': None, 'c': Undefined, 'd': Undefined}
+
+    m = M({'a': 1, 'b': None}, init=False, apply_defaults=True)
+    assert m._data == {'a': 1, 'b': None, 'c': Undefined, 'd': 0}
+
+    m = M({'a': 1, 'b': None}, init=False, init_values=True)
+    assert m._data == {'a': 1, 'b': None, 'c': None, 'd': None}
+
+    m = M({'a': 1, 'b': None}, init=False, apply_defaults=True, init_values=True)
+    assert m._data == {'a': 1, 'b': None, 'c': None, 'd': 0}
 
 
 def test_invalid_model_fail_validation():
@@ -533,6 +557,9 @@ def test_get():
     assert inst.get('foo') is None
     assert inst.get('foo', 'bar') == 'bar'
 
+    inst = SimpleModel({'field1': 'foo'}, init=False)
+    assert inst.get('foo') is None
+
 
 def test_getitem():
 
@@ -540,6 +567,13 @@ def test_getitem():
     assert inst['field1'] == 'foo'
     assert inst['field2'] is None
     with pytest.raises(KeyError):
+        inst['foo']
+
+    inst = SimpleModel({'field1': 'foo'}, init=False)
+    assert inst['field1'] == 'foo'
+    with pytest.raises(MissingValueError):
+        inst['field2']
+    with pytest.raises(UnknownFieldError):
         inst['foo']
 
 
