@@ -129,20 +129,18 @@ class ModelType(MultiType):
         model_instance.validate(context=context)
 
     def convert(self, value, context):
-        # We have already checked if the field is required. If it is None it
-        # should continue being None
-        if value is None:
-            return None
-        if isinstance(value, self.model_class):
-            return value
 
-        if not isinstance(value, dict):
+        if isinstance(value, self.model_class):
+            model_class = type(value)
+        elif not isinstance(value, dict):
             raise ConversionError(
                 u'Please use a mapping for this field or {0} instance instead of {1}.'.format(
                     self.model_class.__name__,
                     type(value).__name__))
+        else:
+            model_class = self.model_class
 
-        return self.model_class(value, context=context)
+        return model_class(value, context=context)
 
     def export(self, model_instance, format, context):
         return model_instance.export(format=format, context=context)
