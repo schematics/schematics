@@ -365,6 +365,21 @@ def test_validate_convert():
     assert IntType().validate("foo", convert=False) == "foo"
 
 
+def test_validate_apply_defaults():
+
+    class M(Model):
+        field1 = StringType()
+        field2 = StringType(default='foo')
+
+    m = M({'field1': None}, init=False)
+
+    m.validate()
+    assert m.to_primitive() == {'field1': None}
+
+    m.validate(apply_defaults=True)
+    assert m.to_primitive() == {'field1': None, 'field2': 'foo'}
+
+
 def test_clean_validation_messages():
     error = BaseError(["A"])
     assert error.messages == ["A"]
