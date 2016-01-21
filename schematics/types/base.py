@@ -252,7 +252,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
 
     def validate(self, value, convert=True, context=None):
         """
-        Validate the field and return a clean value or raise a
+        Validate the field and return a converted value or raise a
         ``ValidationError`` with a list of errors raised by the validation
         chain. Stop the validation process from continuing through the
         validators by raising ``StopValidation`` instead of ``ValidationError``.
@@ -353,9 +353,7 @@ class IPv4Type(BaseType):
 
 class StringType(BaseType):
 
-    """A unicode string field. Default minimum length is one. If you want to
-    accept empty strings, init with ``min_length`` 0.
-    """
+    """A unicode string field."""
 
     allow_casts = (int, bytes)
 

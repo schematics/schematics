@@ -1,4 +1,4 @@
-# encoding=utf-8
+# -*- coding: utf-8 -*-
 
 from copy import deepcopy
 import inspect
@@ -26,12 +26,8 @@ except:
 
 
 class FieldDescriptor(object):
-
     """
-    The FieldDescriptor serves as a wrapper for Types that converts them into
-    fields.
-
-    A field is then the merger of a Type and it's Model.
+    ``FieldDescriptor`` instances serve as field accessors on models.
     """
 
     def __init__(self, name):
@@ -43,9 +39,8 @@ class FieldDescriptor(object):
 
     def __get__(self, instance, cls):
         """
-        Checks the field name against the definition of the model and returns
-        the corresponding data for valid fields or raises the appropriate error
-        for fields missing from a class.
+        For a model instance, returns the field's current value.
+        For a model class, returns the field's type object.
         """
         if instance is None:
             return cls._fields[self.name]
@@ -58,7 +53,7 @@ class FieldDescriptor(object):
 
     def __set__(self, instance, value):
         """
-        Checks the field name against a model and sets the value.
+        Sets the field's value.
         """
         field = instance._fields[self.name]
         if all((
@@ -70,17 +65,16 @@ class FieldDescriptor(object):
 
     def __delete__(self, instance):
         """
-        Checks the field name against a model and deletes the value.
+        Deletes the field's value.
         """
         instance._data[self.name] = Undefined
 
 
 class ModelOptions(object):
-
     """
-    This class is a container for all metaclass configuration options. Its
-    primary purpose is to create an instance of a model's options for every
-    instance of a model.
+    This class is a container for all model configuration options. Its
+    primary purpose is to create an independent instance of a model's
+    options for every class.
     """
 
     def __init__(self, klass, namespace=None, roles=None, export_level=DEFAULT,
@@ -97,8 +91,8 @@ class ModelOptions(object):
             When ``False``, serialization skips fields that are None.
             Default: ``True``
         :param fields_order:
-            List of field names that dictates in which order will keys
-            appear in serialized dictionary.
+            List of field names that dictates the order in which keys will
+            appear in a serialized dictionary.
         """
         self.klass = klass
         self.namespace = namespace
@@ -112,9 +106,8 @@ class ModelOptions(object):
 
 
 class ModelMeta(type):
-
     """
-    Meta class for Models.
+    Metaclass for Models.
     """
 
     def __new__(mcs, name, bases, attrs):
@@ -124,10 +117,9 @@ class ModelMeta(type):
 
         This function creates those attributes like this:
 
-        ``mcs._fields`` is list of fields that are schematics types
-        ``mcs._serializables`` is a list of functions that are used to generate
-        values during serialization
-        ``mcs._validator_functions`` are class level validation functions
+        ``mcs._fields`` is list of fields that are Schematics types
+        ``mcs._serializables`` is a list of ``Serializable`` objects
+        ``mcs._validator_functions`` are class-level validation functions
         ``mcs._options`` is the end result of parsing the ``Options`` class
         """
 
@@ -227,9 +219,16 @@ class Model(object):
     models, SQLAlchemy declarative extension and other developer friendly
     libraries.
 
-    Initial field values can be passed in as keyword arguments to ``__init__``
-    to initialize the object with. Can raise ``ConversionError`` if it is not
-    possible to convert the raw data into richer Python constructs.
+    :param Mapping raw_data:
+        The data to be imported into the model instance.
+    :param Mapping deserialize_mapping:
+        Can be used to provide alternative input names for fields. Values may be
+        strings or lists of strings, keyed by the actual field name.
+    :param bool partial:
+        Allow partial data to validate. Essentially drops the ``required=True``
+        settings from field definitions. Default: True
+    :param bool strict:
+        Complain about unrecognized keys. Default: True
     """
 
     __optionsclass__ = ModelOptions
@@ -248,16 +247,12 @@ class Model(object):
 
     def validate(self, partial=False, strict=False, convert=True, app_data=None, **kwargs):
         """
-        Validates the state of the model and adding additional untrusted data
-        as well. If the models is invalid, raises ValidationError with error
-        messages.
+        Validates the state of the model. If the data is invalid, raises a ``ModelValidationError``
+        with error messages.
 
-        :param partial:
-            Allow partial data to validate; useful for PATCH requests.
-            Essentially drops the ``required=True`` arguments from field
-            definitions. Default: False
-        :param strict:
-            Complain about unrecognized keys. Default: False
+        :param bool partial:
+            Allow partial data to validate. Essentially drops the ``required=True``
+            settings from field definitions. Default: False
         :param convert:
             Controls whether to perform import conversion before validating.
             Can be turned off to skip an unnecessary conversion step if all values
@@ -275,8 +270,7 @@ class Model(object):
 
     def import_data(self, raw_data, **kw):
         """
-        Converts and imports the raw data into the instance of the model
-        according to the fields in the model.
+        Converts and imports the raw data into an existing model instance.
 
         :param raw_data:
             The data to be imported.
@@ -340,8 +334,8 @@ class Model(object):
     def atoms(self):
         """
         Iterator for the atomic components of a model definition and relevant
-        data that creates a threeple of the field's name, the instance of it's
-        type, and it's value.
+        data that creates a 3-tuple of the field's name, its type instance and
+        its value.
         """
         return atoms(self.__class__, self)
 

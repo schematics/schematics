@@ -257,15 +257,15 @@ def sort_dict(dct, based_on):
 
 def atoms(cls, instance_or_dict):
     """
-    Iterator for the atomic components of a model definition and relevant data
-    that creates a threeple of the field's name, the instance of it's type, and
-    it's value.
+    Iterator for the atomic components of a model definition and relevant
+    data that creates a 3-tuple of the field's name, its type instance and
+    its value.
 
     :param cls:
         The model definition.
     :param instance_or_dict:
         The structure where fields from cls are mapped to values. The only
-        expectionation for this structure is that it implements a ``dict``
+        expectation for this structure is that it implements a ``Mapping``
         interface.
     """
     all_fields = itertools.chain(iteritems(cls._fields),
@@ -523,7 +523,7 @@ def flatten_to_dict(instance_or_dict, prefix=None, ignore_none=True):
 
     :param instance_or_dict:
         The structure where fields from cls are mapped to values. The only
-        expectionation for this structure is that it implements a ``dict``
+        expectation for this structure is that it implements a ``Mapping``
         interface.
     :param ignore_none:
         This ignores any ``serialize_when_none`` settings and forces the empty
@@ -535,8 +535,6 @@ def flatten_to_dict(instance_or_dict, prefix=None, ignore_none=True):
     """
     if isinstance(instance_or_dict, dict):
         iterator = iteritems(instance_or_dict)
-    # if hasattr(instance_or_dict, "iteritems"):
-    #     iterator = instance_or_dict.iteritems()
     else:
         iterator = enumerate(instance_or_dict)
 
@@ -584,7 +582,7 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
         The model definition.
     :param instance_or_dict:
         The structure where fields from cls are mapped to values. The only
-        expectionation for this structure is that it implements a ``dict``
+        expectation for this structure is that it implements a ``Mapping``
         interface.
     :param role:
         The role used to determine if fields should be left out of the

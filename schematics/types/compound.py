@@ -76,8 +76,8 @@ class MultiType(BaseType):
 
     def init_compound_field(self, field, compound_field, **kwargs):
         """
-        Some of non-BaseType fields requires `field` arg.
-        Not avoid name conflict, provide it as `compound_field`.
+        Some of non-BaseType fields require a `field` arg.
+        To avoid name conflict, provide it as `compound_field`.
         Example:
 
             comments = ListType(DictType, compound_field=StringType)
