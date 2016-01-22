@@ -20,6 +20,7 @@ from ..exceptions import (
     StopValidation, ValidationError, ConversionError, MockCreationError
 )
 from ..undefined import Undefined
+from ..validate import prepare_validator
 
 try:
     from string import ascii_letters # PY3
@@ -101,9 +102,10 @@ class TypeMeta(type):
 
         attrs['MESSAGES'] = messages
 
-        for attr_name in attrs:
+        for attr_name, attr in attrs.items():
             if attr_name.startswith("validate_"):
                 validators.add(attr_name)
+                attrs[attr_name] = prepare_validator(attr, 3)
 
         attrs["_validators"] = validators
 
@@ -176,7 +178,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
 
         self.validators = [getattr(self, validator_name) for validator_name in self._validators]
         if validators:
-            self.validators += validators
+            self.validators += (prepare_validator(func, 2) for func in validators)
 
         self._set_export_level(export_level, serialize_when_none)
 

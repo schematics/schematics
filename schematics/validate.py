@@ -1,3 +1,6 @@
+import functools
+import inspect
+
 from .exceptions import BaseError, ValidationError, ModelConversionError
 from .undefined import Undefined
 
@@ -32,6 +35,8 @@ def validate(cls, instance_or_dict, trusted_data=None, partial=False, strict=Fal
         If errors are found, they are raised as a ValidationError with a list
         of errors attached.
     """
+    from .transforms import import_loop
+
     data = {}
     errors = {}
 
@@ -115,4 +120,12 @@ def _check_for_unknown_fields(cls, data):
     return errors
 
 
-from .transforms import import_loop
+def prepare_validator(func, argcount):
+    if len(inspect.getargspec(func).args) < argcount:
+        def newfunc(*args, **kwargs):
+            if not kwargs or kwargs.pop('context', 0) is 0:
+                args = args[:-1]
+            return func(*args, **kwargs)
+        return functools.wraps(func)(newfunc)
+    return func
+

@@ -8,6 +8,7 @@ from schematics.exceptions import (
 )
 from schematics.types import StringType, DateTimeType, BooleanType, IntType
 from schematics.types.compound import ModelType, ListType, DictType
+from schematics.validate import prepare_validator
 
 
 future_error_msg = u'Future dates are not valid'
@@ -75,8 +76,11 @@ def test_custom_validators():
         if dt > now:
             raise ValidationError(future_error_msg)
 
+    def without_context(dt):
+        pass
+
     class TestDoc(Model):
-        publish = DateTimeType(validators=[is_not_future])
+        publish = DateTimeType(validators=[is_not_future, without_context])
         author = StringType(required=True)
         title = StringType(required=False)
 
@@ -121,13 +125,27 @@ def test_model_validators():
     class TestDoc(Model):
         can_future = BooleanType()
         publish = DateTimeType()
+        foo = StringType()
 
         def validate_publish(self, data, dt, context):
             if dt > datetime.datetime(2012, 1, 1, 0, 0) and not data['can_future']:
                 raise ValidationError(future_error_msg)
 
+        def validate_foo(self, data, dt): # without context param
+            pass
+
+    TestDoc({'publish': now}).validate()
+
     with pytest.raises(ValidationError):
         TestDoc({'publish': future}).validate()
+
+
+def test_validator_wrapper():
+    def f(x, y):
+        pass
+
+    assert prepare_validator(f, 2) is f
+    assert prepare_validator(f, 3) is not f
 
 
 def test_multi_key_validation():

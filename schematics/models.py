@@ -140,7 +140,7 @@ class ModelMeta(type):
         # Parse this class's attributes into meta structures
         for key, value in iteritems(attrs):
             if key.startswith('validate_') and callable(value):
-                validator_functions[key[9:]] = value
+                validator_functions[key[9:]] = prepare_validator(value, 4)
             if isinstance(value, BaseType):
                 fields[key] = value
             if isinstance(value, Serializable):
@@ -434,4 +434,4 @@ class Model(object):
 from .transforms import atoms, flatten, expand
 from .transforms import convert, to_native, to_dict, to_primitive, export_loop
 from .types.compound import ModelType
-from .validate import validate
+from .validate import validate, prepare_validator

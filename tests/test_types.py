@@ -172,7 +172,12 @@ def test_custom_validation_functions():
             if value.upper() != value:
                 raise ValidationError("Value must be uppercase!")
 
+        def validate_without_context(self, value):
+            pass
+
     field = UppercaseType()
+
+    field.validate("UPPERCASE")
 
     with pytest.raises(ValidationError):
         field.validate("lowercase")
