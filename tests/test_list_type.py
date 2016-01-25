@@ -200,7 +200,7 @@ def test_list_model_field_exception_with_full_message():
 
     with pytest.raises(ValidationError) as exception:
         g.validate()
-    assert exception.value.messages == {'users': [{'name': ['String value is too long.']}]}
+    assert exception.value.messages == {'users': {0: {'name': ['String value is too long.']}}}
 
 
 def test_stop_validation():

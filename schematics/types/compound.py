@@ -218,12 +218,13 @@ class ListType(MultiType):
             raise ValidationError(message)
 
     def validate_items(self, items, context=None):
-        errors = []
-        for item in items:
+        errors = {}
+        for index, value in enumerate(items):
             try:
-                self.field.validate(item, context)
+                self.field.validate(value, context)
             except ValidationError as exc:
-                errors.append(exc.messages)
+                errors[index] = exc
+
         if errors:
             raise ValidationError(errors)
 
