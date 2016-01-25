@@ -1,7 +1,7 @@
 from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.validate import validate
-from schematics.exceptions import ValidationError
+from schematics.exceptions import ConversionError, ValidationError, DataError
 
 
 def test_validate_simple_dict():
@@ -76,7 +76,7 @@ def test_validate_with_instance_level_validators():
 
     try:
         validate(Player, p1)
-    except ValidationError as e:
+    except DataError as e:
         assert 'id' in e.messages
         assert 'Cannot change id' in e.messages['id']
         assert p1.id == 4

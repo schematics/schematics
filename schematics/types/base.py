@@ -16,11 +16,10 @@ import six
 from six import iteritems
 
 from ..common import *
-from ..exceptions import (
-    StopValidation, ValidationError, ConversionError, MockCreationError
-)
+from ..datastructures import Context
+from ..exceptions import ConversionError, ValidationError, StopValidationError
 from ..undefined import Undefined
-from ..validate import prepare_validator
+from ..validate import prepare_validator, get_validation_context
 
 try:
     from string import ascii_letters # PY3
@@ -168,6 +167,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
                  export_level=None, serialize_when_none=None,
                  messages=None, **kwargs):
         super(BaseType, self).__init__()
+
         self.required = required
         self._default = default
         self.serialized_name = serialized_name
@@ -235,6 +235,9 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
             default = default()
         return default
 
+    def pre_setattr(self, value):
+        return value
+
     def convert(self, value, context=None):
         return self.to_native(value, context)
 
@@ -252,42 +255,40 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         """
         return value
 
-    def validate(self, value, convert=True, context=None):
+    def validate(self, value, context=None):
         """
         Validate the field and return a converted value or raise a
         ``ValidationError`` with a list of errors raised by the validation
         chain. Stop the validation process from continuing through the
-        validators by raising ``StopValidation`` instead of ``ValidationError``.
+        validators by raising ``StopValidationError`` instead of ``ValidationError``.
 
         """
-        self.check_required(value, context)
-        if value in (None, Undefined):
-            return value
+        context = context or get_validation_context()
 
-        if convert:
+        if context.convert:
             value = self.convert(value, context)
+        elif self.is_compound:
+            self.convert(value, context)
 
         errors = []
-
         for validator in self.validators:
             try:
-                validator(value, context=context)
+                validator(value, context)
             except ValidationError as exc:
-                errors.extend(exc.messages)
-                if isinstance(exc, StopValidation):
+                errors.append(exc)
+                if isinstance(exc, StopValidationError):
                     break
-
         if errors:
             raise ValidationError(errors)
 
         return value
 
-    def check_required(self, value, context=None):
+    def check_required(self, value, context):
         if self.required and value in (None, Undefined):
             if self.name is None or context and not context.partial:
-                raise ValidationError(self.messages['required'])
+                raise ConversionError(self.messages['required'])
 
-    def validate_choices(self, value, context=None):
+    def validate_choices(self, value, context):
         if self.choices is not None:
             if value not in self.choices:
                 raise ValidationError(self.messages['choices']
@@ -437,14 +438,14 @@ class URLType(StringType):
 
     def validate_url(self, value, context=None):
         if not URLType.URL_REGEX.match(value):
-            raise StopValidation(self.messages['invalid_url'])
+            raise StopValidationError(self.messages['invalid_url'])
         if self.verify_exists:
             from six.moves import urllib
             try:
                 request = urllib.Request(value)
                 urllib.urlopen(request)
             except Exception:
-                raise StopValidation(self.messages['not_found'])
+                raise StopValidationError(self.messages['not_found'])
 
 
 class EmailType(StringType):
@@ -473,7 +474,7 @@ class EmailType(StringType):
 
     def validate_email(self, value, context=None):
         if not EmailType.EMAIL_REGEX.match(value):
-            raise StopValidation(self.messages['email'])
+            raise StopValidationError(self.messages['email'])
 
 
 class NumberType(BaseType):

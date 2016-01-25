@@ -1,10 +1,9 @@
 import pytest
 
-from schematics.datastructures import ConfigObject
 from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.types.compound import ModelType, ListType
-from schematics.exceptions import ValidationError
+from schematics.exceptions import DataError
 
 
 def test_simple_embedded_models():
@@ -17,7 +16,6 @@ def test_simple_embedded_models():
 
     r = repr(Player.location)
     assert r.startswith("<schematics.types.compound.ModelType object at 0x")
-    #assert r.endswith("for <class 'tests.test_model_type.Location'>>") #this assertion not compatible with PY3
 
     p = Player(dict(id=1, location={"country_code": "US"}))
 
@@ -94,7 +92,7 @@ def test_raises_validation_error_on_init_with_partial_submodel():
     u = User({'name': 'Arthur'})
     c = Card({'user': u})
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(DataError):
         c.validate()
 
 

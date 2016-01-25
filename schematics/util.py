@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division
 
+import collections
+
 try:
     basestring #PY2
     bytes = str
@@ -36,4 +38,16 @@ class Constant(int):
         return self.name
 
     __str__ = __repr__
+
+
+def listify(value):
+    if isinstance(value, list):
+        return value
+    elif value is None:
+        return []
+    elif isinstance(value, collections.Sequence) \
+      and not isinstance(value, basestring):
+        return list(value)
+    else:
+        return [value]
 

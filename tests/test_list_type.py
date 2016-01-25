@@ -3,8 +3,9 @@ import pytest
 from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.types.compound import ModelType, ListType
-from schematics.exceptions import (ValidationError, StopValidation,
-                                   MockCreationError)
+from schematics.exceptions import (
+    ConversionError, ValidationError, StopValidationError, DataError,
+    MockCreationError)
 
 
 def test_list_field():
@@ -124,19 +125,19 @@ def test_validation_with_size_limits():
     class Card(Model):
         users = ListType(ModelType(User), min_size=1, max_size=2, required=True)
 
-    with pytest.raises(ValidationError) as exception:
+    with pytest.raises(DataError) as exception:
         c = Card({"users": None})
         c.validate()
 
     assert exception.value.messages['users'] == [u'This field is required.']
 
-    with pytest.raises(ValidationError) as exception:
+    with pytest.raises(DataError) as exception:
         c = Card({"users": []})
         c.validate()
 
     assert exception.value.messages['users'] == [u'Please provide at least 1 item.']
 
-    with pytest.raises(ValidationError) as exception:
+    with pytest.raises(DataError) as exception:
         c = Card({"users": [User(), User(), User()]})
         c.validate()
 
@@ -158,7 +159,7 @@ def test_list_field_required():
     c.validate()
 
     c.ids = [None]
-    with pytest.raises(ValidationError):
+    with pytest.raises(DataError):
         c.validate()
 
 
@@ -182,7 +183,7 @@ def test_list_model_field():
     c = Card(data)
 
     c.users = None
-    with pytest.raises(ValidationError) as exception:
+    with pytest.raises(DataError) as exception:
         c.validate()
 
     errors = exception.value.messages
@@ -198,21 +199,21 @@ def test_list_model_field_exception_with_full_message():
 
     g = Group({'users': [{'name': "ToLongName"}]})
 
-    with pytest.raises(ValidationError) as exception:
+    with pytest.raises(DataError) as exception:
         g.validate()
     assert exception.value.messages == {'users': {0: {'name': ['String value is too long.']}}}
 
 
 def test_stop_validation():
     def raiser(*args, **kwargs):
-        raise StopValidation({'something': 'bad'})
+        raise StopValidationError('something bad')
 
     lst = ListType(StringType(), validators=[raiser])
 
     with pytest.raises(ValidationError) as exc:
         lst.validate('foo@bar.com')
 
-    assert exc.value.messages == {'something': 'bad'}
+    assert exc.value.messages == ['something bad']
 
 
 def test_compound_fields():

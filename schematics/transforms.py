@@ -2,25 +2,21 @@
 
 import collections
 import itertools
+import operator
 
 from six import iteritems
 
 from .common import *
-from .datastructures import OrderedDict, get_context_factory, DataObject
-from .exceptions import ConversionError, ModelConversionError, ValidationError
+from .datastructures import OrderedDict, Context
+from .exceptions import *
+from .types.compound import ModelType
 from .undefined import Undefined
+from .util import listify
 
 try:
     basestring #PY2
 except NameError:
     basestring = str #PY3
-
-def _listify(value):
-    if value is None:
-        return []
-    if isinstance(value, basestring):
-        return [value]
-    return list(value)
 
 try:
     unicode #PY2
@@ -29,20 +25,16 @@ except:
     unicode = str #PY3
 
 
-###
-# Transform Loops
-###
 
-ImportContext = get_context_factory('ImportContext',
-    'field_converter, mapping, partial, strict, init_values, apply_defaults, app_data')
-
-ExportContext = get_context_factory('ExportContext',
-    'field_converter, role, raise_error_on_role, export_level, app_data')
+###
+# Transform loops
+###
 
 
 def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
                 mapping=None, partial=False, strict=False, init_values=False,
-                apply_defaults=False, app_data=None, context=None):
+                apply_defaults=False, convert=True, validate=False, new=False,
+                app_data=None, context=None):
     """
     The import loop is designed to take untrusted data and convert it into the
     native types, as described in ``cls``.  It does this by calling
@@ -70,9 +62,9 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
         An arbitrary container for application-specific data that needs to
         be available during the conversion.
     :param context:
-        An ``ImportContext`` object that encapsulates configuration options and
-        ``app_data``. The context object is created upon the initial invocation
-        of ``import_loop`` and is then propagated through the entire process.
+        A ``Context`` object that encapsulates configuration options and ``app_data``.
+        The context object is created upon the initial invocation of ``import_loop``
+        and is then propagated through the entire process.
     """
     if instance_or_dict is None:
         got_data = False
@@ -80,14 +72,27 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
         got_data = True
 
     if got_data and not isinstance(instance_or_dict, (cls, dict)):
-        raise ModelConversionError('Model conversion requires a model or dict')
+        raise ConversionError('Model conversion requires a model or dict')
 
-    mapping = mapping or {}
-    app_data = app_data if app_data is not None else {}
-    context = context or ImportContext(field_converter, mapping, partial, strict,
-                                       init_values, apply_defaults, app_data)
+    context = Context._make(context)
+    try:
+        context.initialized
+    except:
+        context._setdefaults({
+            'initialized': True,
+            'field_converter': field_converter,
+            'mapping': mapping or {},
+            'partial': partial,
+            'strict': strict,
+            'init_values': init_values,
+            'apply_defaults': apply_defaults,
+            'convert': convert,
+            'validate': validate,
+            'new': new,
+            'app_data': app_data if app_data is not None else {}
+        })
 
-    _model_mapping = context.mapping.get('model_mapping', {})
+    _model_mapping = context.mapping.get('model_mapping')
 
     data = dict(trusted_data) if trusted_data else {}
     errors = {}
@@ -97,9 +102,9 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
         if field.serialized_name:
             all_fields.add(field.serialized_name)
         if field.deserialize_from:
-            all_fields.update(set(_listify(field.deserialize_from)))
+            all_fields.update(set(listify(field.deserialize_from)))
         if field_name in context.mapping:
-            all_fields.update(set(_listify(context.mapping[field_name])))
+            all_fields.update(set(listify(context.mapping[field_name])))
 
     if got_data and context.strict:
         # Check for rogues if strict is set
@@ -114,8 +119,8 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
         serialized_field_name = field_name
 
         if got_data:
-            trial_keys = _listify(field.deserialize_from)
-            trial_keys.extend(_listify(context.mapping.get(field_name, [])))
+            trial_keys = listify(field.deserialize_from)
+            trial_keys.extend(listify(context.mapping.get(field_name, [])))
             if field.serialized_name:
                 serialized_field_name = field.serialized_name
                 trial_keys.append(field.serialized_name)
@@ -133,18 +138,27 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
             value = None
 
         if got_data:
-            field_params = {
-                'mapping': _model_mapping.get(field_name, None)}
+            if field.is_compound:
+                if _model_mapping:
+                    submap = _model_mapping.get(field_name)
+                else:
+                    submap = {}
+                field_context = context._branch(mapping=submap)
+            else:
+                field_context = context
             try:
-                value = field_converter(field, value, context._branch(**field_params))
-            except (ConversionError, ValidationError) as exc:
-                errors[serialized_field_name] = exc.messages
+                value = context.field_converter(field, value, field_context)
+            except (FieldError, CompoundError) as exc:
+                errors[serialized_field_name] = exc
+                if isinstance(exc, DataError):
+                    data[field_name] = exc.partial_data
                 continue
 
         data[field_name] = value
 
     if errors:
-        raise ModelConversionError(errors, data)
+        partial_data = dict(((key, value) for key, value in data.items() if value is not Undefined))
+        raise DataError(errors, partial_data)
 
     return data
 
@@ -174,13 +188,22 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
         An arbitrary container for application-specific data that needs to
         be available during the conversion.
     :param context:
-        An ``ExportContext`` object that encapsulates configuration options and
-        ``app_data``. The context object is created upon the initial invocation
-        of ``export_loop`` and is then propagated through the entire process.
+        A ``Context`` object that encapsulates configuration options and ``app_data``.
+        The context object is created upon the initial invocation of ``import_loop``
+        and is then propagated through the entire process.
     """
-    app_data = app_data if app_data is not None else {}
-    context = context or ExportContext(field_converter, role, raise_error_on_role,
-                                       export_level, app_data)
+    context = Context._make(context)
+    try:
+        context.initialized
+    except:
+        context._setdefaults({
+            'initialized': True,
+            'field_converter': field_converter,
+            'role': role,
+            'raise_error_on_role': raise_error_on_role,
+            'export_level': export_level,
+            'app_data': app_data if app_data is not None else {}
+        })
 
     data = {}
 
@@ -275,8 +298,9 @@ def atoms(cls, instance_or_dict):
             for field_name, field in all_fields)
 
 
+
 ###
-# Field Filtering
+# Field filtering
 ###
 
 class Role(collections.Set):
@@ -416,17 +440,21 @@ def blacklist(*field_list):
     return Role(Role.blacklist, field_list)
 
 
-###
-# Import and export functions
-###
 
-from .types.compound import ModelType
-
+###
+# Field converter interface
+###
 
 class FieldConverter(object):
 
     def __call__(self, field, value, context):
         raise NotImplementedError
+
+
+
+###
+# Standard export converters
+###
 
 
 class ExportConverter(FieldConverter):
@@ -445,19 +473,44 @@ class ExportConverter(FieldConverter):
 
 
 _to_native_converter = ExportConverter(NATIVE)
+
 _to_dict_converter = ExportConverter(NATIVE, [ModelType])
+
 _to_primitive_converter = ExportConverter(PRIMITIVE)
 
 
-def _import_converter(field, value, context):
-    field.check_required(value, context)
-    if value in (None, Undefined):
-        return value
-    return field.convert(value, context)
+
+###
+# Standard import converters
+###
+
+
+class ImportConverter(FieldConverter):
+
+    def __init__(self, action):
+        self.action = action
+        self.method = operator.attrgetter(self.action)
+
+    def __call__(self, field, value, context):
+        field.check_required(value, context)
+        if value in (None, Undefined):
+            return value
+        return self.method(field)(value, context)
+
+
+import_converter = ImportConverter('convert')
+
+validation_converter = ImportConverter('validate')
+
+
+
+###
+# Import and export functions
+###
 
 
 def convert(cls, instance_or_dict, **kwargs):
-    return import_loop(cls, instance_or_dict, _import_converter, **kwargs)
+    return import_loop(cls, instance_or_dict, import_converter, **kwargs)
 
 
 def to_native(cls, instance_or_dict, **kwargs):
