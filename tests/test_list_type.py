@@ -1,6 +1,8 @@
 import pytest
 
+from schematics.datastructures import OrderedDict
 from schematics.models import Model
+from schematics.transforms import get_import_context
 from schematics.types import IntType, StringType
 from schematics.types.compound import ModelType, ListType
 from schematics.exceptions import (
@@ -172,6 +174,18 @@ def test_list_field_convert():
     assert c.ids == [1, 2]
 
 
+def test_list_coercion():
+    context = get_import_context()
+    field = ListType(StringType)
+    assert field(('foobar',), context) == ['foobar']
+    assert field({-2: 'bar', -1: 'baz', -3: 'foo'}, context) == ['foo', 'bar', 'baz']
+    assert field(OrderedDict([(-2, 'bar'), (-1, 'baz'), (-3, 'foo')]), context) == ['bar', 'baz', 'foo']
+    assert field(set(('foobar',)), context) == ['foobar']
+    with pytest.raises(ConversionError):
+        field('foobar', context)
+    with pytest.raises(ConversionError):
+        field(None, context)
+
 def test_list_model_field():
     class User(Model):
         name = StringType()
@@ -202,18 +216,6 @@ def test_list_model_field_exception_with_full_message():
     with pytest.raises(DataError) as exception:
         g.validate()
     assert exception.value.messages == {'users': {0: {'name': ['String value is too long.']}}}
-
-
-def test_stop_validation():
-    def raiser(*args, **kwargs):
-        raise StopValidationError('something bad')
-
-    lst = ListType(StringType(), validators=[raiser])
-
-    with pytest.raises(ValidationError) as exc:
-        lst.validate('foo@bar.com')
-
-    assert exc.value.messages == ['something bad']
 
 
 def test_compound_fields():

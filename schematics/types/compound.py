@@ -2,7 +2,7 @@
 
 from __future__ import division
 
-from collections import Iterable
+from collections import Iterable, Sequence, Mapping
 import itertools
 import functools
 
@@ -153,23 +153,28 @@ class ListType(MultiType):
 
         return [self.field._mock(context) for _ in xrange(random_length)]
 
-    def _force_list(self, value):
-        if value == EMPTY_LIST:
-            return []
-
-        try:
-            if isinstance(value, basestring):
-                raise TypeError()
-
-            if isinstance(value, dict):
-                return [value[unicode(k)] for k in sorted(map(int, value.keys()))]
-
-            return list(value)
-        except TypeError:
-            return [value]
+    def _coerce(self, value):
+        if isinstance(value, list):
+            return value
+        elif isinstance(value, Sequence) and not isinstance(value, basestring):
+            return value
+        elif isinstance(value, Mapping):
+            try:
+                value.__reversed__ # indicates an ordered mapping
+            except AttributeError:
+                return [value[k] for k in sorted(value)]
+            else:
+                return value.values()
+        elif isinstance(value, basestring):
+            pass
+        elif isinstance(value, Iterable):
+            return value
+        raise ConversionError('Could not interpret the value as a list')
 
     def convert(self, value, context):
-        value = self._force_list(value)
+        if value == EMPTY_LIST:
+            return []
+        value = self._coerce(value)
         data = []
         errors = {}
         for index, item in enumerate(value):
