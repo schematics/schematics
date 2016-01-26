@@ -206,6 +206,15 @@ class ModelMeta(type):
     def fields(cls):
         return cls._fields
 
+class NonDictModelMeta(ModelMeta):
+    def __new__(mcs, name, bases, attrs):
+
+        klass =  ModelMeta.__new__(mcs, name, bases, attrs)
+
+        if name != 'NonDictModel' and len(klass._fields) != 1:
+            raise Exception('Class should contains only one field')
+
+        return klass
 
 @add_metaclass(ModelMeta)
 class Model(object):
@@ -439,6 +448,33 @@ class Model(object):
     def __unicode__(self):
         return '%s object' % self.__class__.__name__
 
+@add_metaclass(NonDictModelMeta)
+class NonDictModel(Model):
+
+    def convert(self, raw_data, **kw):
+        """
+        Converts the raw data into richer Python constructs according to the
+        fields on the model
+
+        :param raw_data:
+            The data to be converted
+        """
+        if not isinstance(raw_data, dict):
+            raw_data = {self._fields.keys()[0]: raw_data}
+        elif raw_data:
+            raise Exception('raw_data should be empty dict')
+
+        return Model.convert(self, raw_data, **kw)
+
+    def to_primitive(self, role=None, context=None):
+        res = Model.to_primitive(self, role, context)
+
+        return res.values()[0]
+
+    def to_native(self, role=None, context=None):
+        res = Model.to_native(self, role, context)
+
+        return res.values()[0]
 
 from .transforms import (
     atoms, export_loop,
