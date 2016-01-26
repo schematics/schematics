@@ -220,15 +220,13 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
 
     data = {}
 
-    # Translate `role` into `gottago` function
-    gottago = wholelist()
-    if hasattr(cls, '_options') and context.role in cls._options.roles:
-        gottago = cls._options.roles[context.role]
-    elif context.role and context.raise_error_on_role:
-        error_msg = u'%s Model has no role "%s"'
-        raise ValueError(error_msg % (cls.__name__, context.role))
-    else:
-        gottago = cls._options.roles.get("default", gottago)
+    filter_func = cls._options.roles.get(context.role)
+    if filter_func is None:
+        if context.role and context.raise_error_on_role:
+            error_msg = u'%s Model has no role "%s"'
+            raise ValueError(error_msg % (cls.__name__, context.role))
+        else:
+            filter_func = cls._options.roles.get("default")
 
     fields_order = (getattr(cls._options, 'fields_order', None)
                     if hasattr(cls, '_options') else None)
@@ -238,8 +236,7 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
     for field_name, field, value in atoms(cls, instance_or_dict):
         serialized_name = field.serialized_name or field_name
 
-        # Skipping this field was requested
-        if gottago(field_name, value):
+        if filter_func is not None and filter_func(field_name, value):
             continue
 
         _export_level = field.get_export_level(context)
