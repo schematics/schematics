@@ -10,6 +10,3 @@ NOT_NONE  = Constant('NOT_NONE',   2)
 DEFAULT   = Constant('DEFAULT',   10)
 ALL       = Constant('ALL',       99)
 
-EMPTY_LIST = "[]"
-EMPTY_DICT = "{}"
-

@@ -542,6 +542,10 @@ def to_primitive(cls, instance_or_dict, **kwargs):
     return export_loop(cls, instance_or_dict, _to_primitive_converter, **kwargs)
 
 
+EMPTY_LIST = "[]"
+EMPTY_DICT = "{}"
+
+
 def expand(data, expanded_data=None):
     """
     Expands a flattened structure into it's corresponding layers.  Essentially,
@@ -559,14 +563,19 @@ def expand(data, expanded_data=None):
         try:
             key, remaining = key.split(".", 1)
         except ValueError:
-            if not (value in (EMPTY_DICT, EMPTY_LIST) and key in expanded_dict):
-                expanded_dict[key] = value
+            if value == EMPTY_DICT:
+                value = {}
+                if key in expanded_dict:
+                    continue
+            elif value == EMPTY_LIST:
+                value = []
+                if key in expanded_dict:
+                    continue
+            expanded_dict[key] = value
         else:
             current_context = context.setdefault(key, {})
-            if current_context in (EMPTY_DICT, EMPTY_LIST):
-                current_context = {}
-                context[key] = current_context
-
+            if current_context == []:
+                current_context = context[key] = {}
             current_context.update(expand({remaining: value}, current_context))
     return expanded_dict
 

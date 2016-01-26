@@ -172,8 +172,6 @@ class ListType(MultiType):
         raise ConversionError('Could not interpret the value as a list')
 
     def convert(self, value, context):
-        if value == EMPTY_LIST:
-            return []
         value = self._coerce(value)
         data = []
         errors = {}
@@ -244,8 +242,6 @@ class DictType(MultiType):
         return self.field.model_class
 
     def convert(self, value, context, safe=False):
-        if value == EMPTY_DICT:
-            value = {}
         if not isinstance(value, dict):
             raise ConversionError(u'Only dictionaries may be used in a DictType')
 

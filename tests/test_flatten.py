@@ -1,10 +1,10 @@
 from schematics.datastructures import OrderedDict
-from schematics.transforms import expand, whitelist, flatten
+from schematics.transforms import expand, whitelist, flatten, EMPTY_LIST, EMPTY_DICT
 from schematics.models import Model
 from schematics.types.serializable import serializable
 from schematics.types import StringType, IntType
 from schematics.types.compound import (
-    ModelType, ListType, EMPTY_LIST, DictType, EMPTY_DICT
+    ModelType, ListType, DictType
 )
 
 
@@ -129,7 +129,7 @@ def test_flatten_wiht_listtype_empty_value():
     assert p == p_from_flat
 
 
-def test_flatten_wiht_listtype_basic_types():
+def test_flatten_with_listtype_basic_types():
     class PlayerCategoryInfo(Model):
         id = StringType(required=True)
         categories = ListType(IntType, required=True)
