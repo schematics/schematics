@@ -100,6 +100,7 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
 
     instance_or_dict = context.field_converter.pre(cls, instance_or_dict, context)
 
+    _field_converter = context.field_converter
     _model_mapping = context.mapping.get('model_mapping')
 
     data = dict(context.trusted_data) if context.trusted_data else {}
@@ -121,7 +122,7 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
             for field in rogue_fields:
                 errors[field] = 'Rogue field'
 
-    for field_name, field in iteritems(cls._fields):
+    for field_name, field in cls._field_list:
 
         value = Undefined
         serialized_field_name = field_name
@@ -159,7 +160,7 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
             else:
                 field_context = context
             try:
-                value = context.field_converter(field, value, field_context)
+                value = _field_converter(field, value, field_context)
             except (FieldError, CompoundError) as exc:
                 errors[serialized_field_name] = exc
                 if isinstance(exc, DataError):
@@ -238,6 +239,8 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
     fields_order = (getattr(cls._options, 'fields_order', None)
                     if hasattr(cls, '_options') else None)
 
+    _field_converter = context.field_converter
+
     for field_name, field, value in atoms(cls, instance_or_dict):
         serialized_name = field.serialized_name or field_name
 
@@ -251,7 +254,7 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
             continue
 
         elif value not in (None, Undefined):
-            value = context.field_converter(field, value, context)
+            value = _field_converter(field, value, context)
 
         if value is Undefined:
             if _export_level <= DEFAULT:
@@ -311,11 +314,17 @@ def atoms(cls, instance_or_dict):
         expectation for this structure is that it implements a ``Mapping``
         interface.
     """
-    all_fields = itertools.chain(iteritems(cls._fields),
-                                 iteritems(cls._serializables))
+    field_getter = serializable_getter = instance_or_dict.get
+    try:
+        field_getter = instance_or_dict._data.get
+    except AttributeError:
+        pass
 
-    return ((field_name, field, instance_or_dict.get(field_name, Undefined))
-            for field_name, field in all_fields)
+    sequences = ((cls._field_list, field_getter),
+                 (cls._serializables.items(), serializable_getter))
+    for sequence, get in sequences:
+        for field_name, field in sequence:
+            yield (field_name, field, get(field_name, Undefined))
 
 
 

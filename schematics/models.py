@@ -154,6 +154,7 @@ class ModelMeta(type):
 
         # Ready meta data to be klass attributes
         attrs['_fields'] = fields
+        attrs['_field_list'] = list(fields.items())
         attrs['_serializables'] = serializables
         attrs['_validator_functions'] = validator_functions
         attrs['_options'] = options
@@ -345,7 +346,7 @@ class Model(object):
         return iter(self.keys())
 
     def keys(self):
-        return [k for k in self._fields if self._data[k] is not Undefined]
+        return [k for k, v in self._field_list if self._data[k] is not Undefined]
 
     def items(self):
         return [(k, self._data[k]) for k in self.keys()]
