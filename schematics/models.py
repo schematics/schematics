@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 import inspect
+import itertools
 import sys
 
 from six import iteritems
@@ -172,6 +173,10 @@ class ModelMeta(type):
             field._setup(field_name, klass)
         for field_name, field in serializables.items():
             field._setup(field_name, klass)
+
+        klass._valid_input_keys = (
+            set(itertools.chain(*(field.get_input_keys() for field in fields.values())))
+          | set(serializables))
 
         return klass
 

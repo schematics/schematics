@@ -105,38 +105,32 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
 
     data = dict(context.trusted_data) if context.trusted_data else {}
     errors = {}
-    # Determine all acceptable field input names
-    all_fields = set(cls._fields) ^ set(cls._serializables)
-    for field_name, field, in iteritems(cls._fields):
-        if field.serialized_name:
-            all_fields.add(field.serialized_name)
-        if field.deserialize_from:
-            all_fields.update(set(listify(field.deserialize_from)))
-        if field_name in context.mapping:
-            all_fields.update(set(listify(context.mapping[field_name])))
 
-    if got_data and context.strict:
-        # Check for rogues if strict is set
-        rogue_fields = set(instance_or_dict) - all_fields
-        if len(rogue_fields) > 0:
-            for field in rogue_fields:
-                errors[field] = 'Rogue field'
+    if got_data:
+        # Determine all acceptable field input names
+        all_fields = cls._valid_input_keys
+        if context.mapping:
+            mapped_keys = (set(itertools.chain(*(
+                          listify(input_keys) for target_key, input_keys in context.mapping.items()
+                          if target_key != 'model_mapping'))))
+            all_fields = all_fields | mapped_keys
+        if context.strict:
+            # Check for rogues if strict is set
+            rogue_fields = set(instance_or_dict) - all_fields
+            if rogue_fields:
+                for field in rogue_fields:
+                    errors[field] = 'Rogue field'
 
     for field_name, field in cls._field_list:
 
         value = Undefined
-        serialized_field_name = field_name
+        serialized_field_name = field.serialized_name or field_name
 
         if got_data:
-            trial_keys = listify(field.deserialize_from)
-            trial_keys.extend(listify(context.mapping.get(field_name, [])))
-            if field.serialized_name:
-                serialized_field_name = field.serialized_name
-                trial_keys.append(field.serialized_name)
-            trial_keys.append(field_name)
-            for key in trial_keys:
+            for key in field.get_input_keys(context.mapping):
                 if key and key in instance_or_dict:
                     value = instance_or_dict[key]
+                    break
 
         if value is Undefined:
             if field_name in data:

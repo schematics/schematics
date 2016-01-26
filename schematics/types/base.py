@@ -19,6 +19,7 @@ from ..common import *
 from ..datastructures import Context
 from ..exceptions import ConversionError, ValidationError, StopValidationError
 from ..undefined import Undefined
+from ..util import listify
 from ..validate import prepare_validator, get_validation_context
 
 try:
@@ -174,7 +175,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         if choices and not isinstance(choices, (list, tuple)):
             raise TypeError('"choices" must be a list or tuple')
         self.choices = choices
-        self.deserialize_from = deserialize_from
+        self.deserialize_from = listify(deserialize_from)
 
         self.validators = [getattr(self, validator_name) for validator_name in self._validators]
         if validators:
@@ -209,6 +210,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         """
         self.name = field_name
         self.owner_model = owner_model
+        self._input_keys = self._get_input_keys()
 
     def _set_export_level(self, export_level, serialize_when_none):
         if export_level is not None:
@@ -230,6 +232,22 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         if context.export_level is not None:
             level = context.export_level
         return level
+
+    def get_input_keys(self, mapping={}):
+        if mapping:
+            return self._get_input_keys(mapping)
+        else:
+            return self._input_keys
+
+    def _get_input_keys(self, mapping={}):
+        input_keys = [self.name]
+        if self.serialized_name:
+            input_keys.append(self.serialized_name)
+        if self.name in mapping:
+            input_keys.extend(listify(mapping[self.name]))
+        if self.deserialize_from:
+            input_keys.extend(self.deserialize_from)
+        return input_keys
 
     @property
     def default(self):
