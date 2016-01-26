@@ -503,6 +503,23 @@ import_converter = ImportConverter('convert')
 validation_converter = ImportConverter('validate')
 
 
+###
+# Context stub factories
+###
+
+
+def get_import_context(**options):
+    import_options = {
+        'field_converter': import_converter,
+        'partial': False,
+        'strict': False,
+        'convert': True,
+        'validate': False
+    }
+    import_options.update(options)
+    return Context(**import_options)
+
+
 
 ###
 # Import and export functions

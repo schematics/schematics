@@ -194,8 +194,8 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         self.export_mapping = dict(
             (format, getattr(self, fname)) for format, fname in self.EXPORT_METHODS.items())
 
-    def __call__(self, value):
-        return self.to_native(value)
+    def __call__(self, value, context=None):
+        return self.convert(value, context)
 
     def __deepcopy__(self, memo):
         return copy.copy(self)
