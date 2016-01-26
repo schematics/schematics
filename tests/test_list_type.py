@@ -2,7 +2,6 @@ import pytest
 
 from schematics.datastructures import OrderedDict
 from schematics.models import Model
-from schematics.transforms import get_import_context
 from schematics.types import IntType, StringType
 from schematics.types.compound import ModelType, ListType
 from schematics.exceptions import (
@@ -175,16 +174,16 @@ def test_list_field_convert():
 
 
 def test_list_coercion():
-    context = get_import_context()
     field = ListType(StringType)
-    assert field(('foobar',), context) == ['foobar']
-    assert field({-2: 'bar', -1: 'baz', -3: 'foo'}, context) == ['foo', 'bar', 'baz']
-    assert field(OrderedDict([(-2, 'bar'), (-1, 'baz'), (-3, 'foo')]), context) == ['bar', 'baz', 'foo']
-    assert field(set(('foobar',)), context) == ['foobar']
+    assert field(('foobar',)) == ['foobar']
+    assert field({-2: 'bar', -1: 'baz', -3: 'foo'}) == ['foo', 'bar', 'baz']
+    assert field(OrderedDict([(-2, 'bar'), (-1, 'baz'), (-3, 'foo')])) == ['bar', 'baz', 'foo']
+    assert field(set(('foobar',))) == ['foobar']
     with pytest.raises(ConversionError):
-        field('foobar', context)
+        field('foobar')
     with pytest.raises(ConversionError):
-        field(None, context)
+        field(None)
+
 
 def test_list_model_field():
     class User(Model):

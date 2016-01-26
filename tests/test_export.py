@@ -23,6 +23,8 @@ class M(BaseModel):
     utcfield = UTCDateTimeType()
     modelfield = ModelType(N)
 
+field = ListType(ModelType(M)) # standalone field
+
 input = { 'intfield': 3,
           'stringfield': 'foobar',
           'dtfield': '2015-11-26T09:00:00.000000',
@@ -60,17 +62,26 @@ def test_to_native():
     assert result.intfield is None
     assert result.modelfield.floatfield is None
 
+    result = field.convert([input])
+    assert field.to_native(result) == result
+
 
 def test_to_dict():
 
     m = M(input)
     assert m.to_dict() == natives
 
+    result = field.convert([input])
+    assert field.to_dict(result) == [natives]
+
 
 def test_to_primitive():
 
     m = M(input)
     assert m.to_primitive() == input
+
+    result = field.convert([input])
+    assert field.to_primitive(result) == [input]
 
 
 class Foo(object):

@@ -7,8 +7,12 @@ import itertools
 import functools
 
 from ..common import *
+from ..datastructures import Context
 from ..exceptions import *
 from ..models import Model, ModelMeta
+from ..transforms import (
+    get_import_context, get_export_context,
+    to_native_converter, to_dict_converter, to_primitive_converter)
 from ..undefined import Undefined
 from .base import BaseType, get_value_in
 
@@ -32,19 +36,24 @@ class MultiType(BaseType):
             self.field._setup(None, owner_model)
         super(MultiType, self)._setup(field_name, owner_model)
 
-    def convert(self, value, context):
-        raise NotImplementedError
+    def convert(self, value, context=None):
+        context = context or get_import_context()
+        return self._convert(value, context)
 
     def export(self, shape_instance, format, context):
         raise NotImplementedError
 
-    def to_native(self, *_, **__):
-        raise RuntimeError("This method is no longer implemented by the standard compound types. " \
-                           "Please use 'convert()' or 'export()' instead.")
+    def to_native(self, value, context=None):
+        context = context or get_export_context(field_converter=to_native_converter)
+        return self.export(value, None, context)
 
-    def to_primitive(self, *_, **__):
-        raise RuntimeError("This method is no longer implemented by the standard compound types. " \
-                           "Please use 'export()' instead.")
+    def to_dict(self, value, context=None):
+        context = context or get_export_context(field_converter=to_dict_converter)
+        return self.export(value, None, context)
+
+    def to_primitive(self, value, context=None):
+        context = context or get_export_context(field_converter=to_primitive_converter)
+        return self.export(value, None, context)
 
     def init_compound_field(self, field, compound_field, **kwargs):
         """
@@ -103,7 +112,7 @@ class ModelType(MultiType):
             value = self.model_class(value)
         return value
 
-    def convert(self, value, context):
+    def _convert(self, value, context):
 
         if isinstance(value, self.model_class):
             model_class = type(value)
@@ -171,7 +180,7 @@ class ListType(MultiType):
             return value
         raise ConversionError('Could not interpret the value as a list')
 
-    def convert(self, value, context):
+    def _convert(self, value, context):
         value = self._coerce(value)
         data = []
         errors = {}
@@ -241,7 +250,7 @@ class DictType(MultiType):
     def model_class(self):
         return self.field.model_class
 
-    def convert(self, value, context, safe=False):
+    def _convert(self, value, context, safe=False):
         if not isinstance(value, dict):
             raise ConversionError(u'Only dictionaries may be used in a DictType')
 
@@ -323,7 +332,7 @@ class PolyModelType(MultiType):
                 return True
         return False
 
-    def convert(self, value, context):
+    def _convert(self, value, context):
 
         if value is None:
             return None

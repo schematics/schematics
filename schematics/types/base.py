@@ -221,7 +221,10 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
             self.export_level = None
 
     def get_export_level(self, context):
-        level = self.owner_model._options.export_level
+        if self.owner_model:
+            level = self.owner_model._options.export_level
+        else:
+            level = DEFAULT
         if self.export_level is not None:
             level = self.export_level
         if context.export_level is not None:

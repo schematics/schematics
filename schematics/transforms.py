@@ -563,10 +563,20 @@ def get_import_context(**options):
         'partial': False,
         'strict': False,
         'convert': True,
-        'validate': False
+        'validate': False,
+        'new': False
     }
     import_options.update(options)
     return Context(**import_options)
+
+
+def get_export_context(field_converter, **options):
+    export_options = {
+        'field_converter': field_converter,
+        'export_level': None
+    }
+    export_options.update(options)
+    return Context(**export_options)
 
 
 
