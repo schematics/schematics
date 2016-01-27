@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from schematics.models import Model, ModelOptions
+from schematics.models import Model, ModelOptions, NonDictModel
 from schematics.transforms import whitelist, blacklist
 from schematics.undefined import Undefined
 
 from schematics.types.base import StringType, IntType
-from schematics.types.compound import ModelType
+from schematics.types.compound import ModelType, ListType
 from schematics.exceptions import *
 
 from six import PY3
@@ -611,3 +611,13 @@ def test_repr():
         inst.__class__.__name__ = '\x80'
         assert repr(inst) == '<[Bad Unicode class name]: [Bad Unicode data]>'
 
+def test_non_dict_model():
+    class List(NonDictModel):
+        _ = ListType(IntType(min_value=1, max_value=10), min_size=3, max_size=4)
+
+    l = List([2, 3, 4])
+    l.validate()
+
+    l = List([11, 12])
+    with pytest.raises(DataError):
+        l.validate()
