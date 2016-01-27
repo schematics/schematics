@@ -2,12 +2,13 @@
 
 from __future__ import division
 
+import collections
 from collections import Iterable, Sequence, Mapping
 import itertools
 import functools
 
 from ..common import *
-from ..datastructures import Context
+from ..datastructures import Context, OrderedDict
 from ..exceptions import *
 from ..models import Model, ModelMeta
 from ..transforms import (
@@ -20,6 +21,11 @@ from six import iteritems
 from six import string_types as basestring
 from six import text_type as unicode
 from six.moves import xrange
+
+try:
+    ordered_mappings = (collections.OrderedDict, OrderedDict)
+except AttributeError:
+    ordered_mappings = (OrderedDict,) # Python 2.6
 
 
 class MultiType(BaseType):
@@ -168,12 +174,10 @@ class ListType(MultiType):
         elif isinstance(value, Sequence) and not isinstance(value, basestring):
             return value
         elif isinstance(value, Mapping):
-            try:
-                value.__reversed__ # indicates an ordered mapping
-            except AttributeError:
-                return [value[k] for k in sorted(value)]
-            else:
+            if isinstance(value, ordered_mappings):
                 return value.values()
+            else:
+                return [v for k, v in sorted(value.items())]
         elif isinstance(value, basestring):
             pass
         elif isinstance(value, Iterable):

@@ -45,8 +45,9 @@ def listify(value):
         return value
     elif value is None:
         return []
-    elif isinstance(value, collections.Sequence) \
-      and not isinstance(value, basestring):
+    elif isinstance(value, basestring):
+        return [value]
+    elif isinstance(value, collections.Sequence):
         return list(value)
     else:
         return [value]

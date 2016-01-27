@@ -100,42 +100,37 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
 
     instance_or_dict = context.field_converter.pre(cls, instance_or_dict, context)
 
+    _field_converter = context.field_converter
     _model_mapping = context.mapping.get('model_mapping')
 
     data = dict(context.trusted_data) if context.trusted_data else {}
     errors = {}
-    # Determine all acceptable field input names
-    all_fields = set(cls._fields) ^ set(cls._serializables)
-    for field_name, field, in iteritems(cls._fields):
-        if field.serialized_name:
-            all_fields.add(field.serialized_name)
-        if field.deserialize_from:
-            all_fields.update(set(listify(field.deserialize_from)))
-        if field_name in context.mapping:
-            all_fields.update(set(listify(context.mapping[field_name])))
 
-    if got_data and context.strict:
-        # Check for rogues if strict is set
-        rogue_fields = set(instance_or_dict) - all_fields
-        if len(rogue_fields) > 0:
-            for field in rogue_fields:
-                errors[field] = 'Rogue field'
+    if got_data:
+        # Determine all acceptable field input names
+        all_fields = cls._valid_input_keys
+        if context.mapping:
+            mapped_keys = (set(itertools.chain(*(
+                          listify(input_keys) for target_key, input_keys in context.mapping.items()
+                          if target_key != 'model_mapping'))))
+            all_fields = all_fields | mapped_keys
+        if context.strict:
+            # Check for rogues if strict is set
+            rogue_fields = set(instance_or_dict) - all_fields
+            if rogue_fields:
+                for field in rogue_fields:
+                    errors[field] = 'Rogue field'
 
-    for field_name, field in iteritems(cls._fields):
+    for field_name, field in cls._field_list:
 
         value = Undefined
-        serialized_field_name = field_name
+        serialized_field_name = field.serialized_name or field_name
 
         if got_data:
-            trial_keys = listify(field.deserialize_from)
-            trial_keys.extend(listify(context.mapping.get(field_name, [])))
-            if field.serialized_name:
-                serialized_field_name = field.serialized_name
-                trial_keys.append(field.serialized_name)
-            trial_keys.append(field_name)
-            for key in trial_keys:
+            for key in field.get_input_keys(context.mapping):
                 if key and key in instance_or_dict:
                     value = instance_or_dict[key]
+                    break
 
         if value is Undefined:
             if field_name in data:
@@ -159,7 +154,7 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
             else:
                 field_context = context
             try:
-                value = context.field_converter(field, value, field_context)
+                value = _field_converter(field, value, field_context)
             except (FieldError, CompoundError) as exc:
                 errors[serialized_field_name] = exc
                 if isinstance(exc, DataError):
@@ -225,24 +220,23 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
 
     data = {}
 
-    # Translate `role` into `gottago` function
-    gottago = wholelist()
-    if hasattr(cls, '_options') and context.role in cls._options.roles:
-        gottago = cls._options.roles[context.role]
-    elif context.role and context.raise_error_on_role:
-        error_msg = u'%s Model has no role "%s"'
-        raise ValueError(error_msg % (cls.__name__, context.role))
-    else:
-        gottago = cls._options.roles.get("default", gottago)
+    filter_func = cls._options.roles.get(context.role)
+    if filter_func is None:
+        if context.role and context.raise_error_on_role:
+            error_msg = u'%s Model has no role "%s"'
+            raise ValueError(error_msg % (cls.__name__, context.role))
+        else:
+            filter_func = cls._options.roles.get("default")
 
     fields_order = (getattr(cls._options, 'fields_order', None)
                     if hasattr(cls, '_options') else None)
 
+    _field_converter = context.field_converter
+
     for field_name, field, value in atoms(cls, instance_or_dict):
         serialized_name = field.serialized_name or field_name
 
-        # Skipping this field was requested
-        if gottago(field_name, value):
+        if filter_func is not None and filter_func(field_name, value):
             continue
 
         _export_level = field.get_export_level(context)
@@ -251,7 +245,7 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
             continue
 
         elif value not in (None, Undefined):
-            value = context.field_converter(field, value, context)
+            value = _field_converter(field, value, context)
 
         if value is Undefined:
             if _export_level <= DEFAULT:
@@ -311,11 +305,17 @@ def atoms(cls, instance_or_dict):
         expectation for this structure is that it implements a ``Mapping``
         interface.
     """
-    all_fields = itertools.chain(iteritems(cls._fields),
-                                 iteritems(cls._serializables))
+    field_getter = serializable_getter = instance_or_dict.get
+    try:
+        field_getter = instance_or_dict._data.get
+    except AttributeError:
+        pass
 
-    return ((field_name, field, instance_or_dict.get(field_name, Undefined))
-            for field_name, field in all_fields)
+    sequences = ((cls._field_list, field_getter),
+                 (cls._serializables.items(), serializable_getter))
+    for sequence, get in sequences:
+        for field_name, field in sequence:
+            yield (field_name, field, get(field_name, Undefined))
 
 
 
