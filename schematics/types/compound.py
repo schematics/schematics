@@ -46,20 +46,27 @@ class MultiType(BaseType):
         context = context or get_import_context()
         return self._convert(value, context)
 
-    def export(self, shape_instance, format, context):
+    def _convert(self, value, context):
+        raise NotImplementedError
+
+    def export(self, value, format, context=None):
+        context = context or get_export_context()
+        return self._export(value, format, context)
+
+    def _export(self, value, format, context):
         raise NotImplementedError
 
     def to_native(self, value, context=None):
-        context = context or get_export_context(field_converter=to_native_converter)
-        return self.export(value, None, context)
+        context = context or get_export_context(to_native_converter)
+        return to_native_converter(self, value, context)
 
     def to_dict(self, value, context=None):
-        context = context or get_export_context(field_converter=to_dict_converter)
-        return self.export(value, None, context)
+        context = context or get_export_context(to_dict_converter)
+        return to_dict_converter(self, value, context)
 
     def to_primitive(self, value, context=None):
-        context = context or get_export_context(field_converter=to_primitive_converter)
-        return self.export(value, None, context)
+        context = context or get_export_context(to_primitive_converter)
+        return to_primitive_converter(self, value, context)
 
     def init_compound_field(self, field, compound_field, **kwargs):
         """
@@ -131,7 +138,7 @@ class ModelType(MultiType):
                     type(value).__name__))
         return model_class._convert(value, context=context)
 
-    def export(self, model_instance, format, context):
+    def _export(self, model_instance, format, context):
         return model_instance.export(context=context)
 
 
@@ -214,7 +221,7 @@ class ListType(MultiType):
             }[self.max_size == 1]) % self.max_size
             raise ValidationError(message)
 
-    def export(self, list_instance, format, context):
+    def _export(self, list_instance, format, context):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
         as `transforms.export_loop`.
@@ -269,7 +276,7 @@ class DictType(MultiType):
             raise CompoundError(errors)
         return data
 
-    def export(self, dict_instance, format, context):
+    def _export(self, dict_instance, format, context):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
         as `transforms.export_loop`.
@@ -386,7 +393,7 @@ class PolyModelType(MultiType):
         else:
             raise Exception("Input for polymorphic field did not match any model")
 
-    def export(self, model_instance, format, context):
+    def _export(self, model_instance, format, context):
 
         model_class = model_instance.__class__
         if not self.is_allowed_model(model_instance):

@@ -557,9 +557,9 @@ validation_converter = ImportConverter('validate')
 ###
 
 
-def get_import_context(**options):
+def get_import_context(field_converter=import_converter, **options):
     import_options = {
-        'field_converter': import_converter,
+        'field_converter': field_converter,
         'partial': False,
         'strict': False,
         'convert': True,
@@ -570,7 +570,7 @@ def get_import_context(**options):
     return Context(**import_options)
 
 
-def get_export_context(field_converter, **options):
+def get_export_context(field_converter=to_native_converter, **options):
     export_options = {
         'field_converter': field_converter,
         'export_level': None
