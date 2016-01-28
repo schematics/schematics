@@ -262,6 +262,8 @@ def test_string_to_native():
 
     with pytest.raises(ConversionError):
         StringType().to_native(3.14)
+    with pytest.raises(ConversionError):
+        StringType().to_native(b'\xE0\xA0') # invalid UTF-8 sequence
 
     if sys.version_info[0] == 2:
         assert StringType().to_native(u'abc éíçßµ') == u'abc éíçßµ'
@@ -282,13 +284,13 @@ def test_multilingualstring_should_only_take_certain_types():
     mls(None)
     mls({})
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         mls(123)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         mls([])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         mls('foo')
 
 
@@ -396,6 +398,12 @@ def test_boolean_to_native():
             bool_field.to_native(bad_value)
 
 
+def test_ipv4_type():
+    assert IPv4Type().validate('255.255.255.255')
+    with pytest.raises(ValidationError):
+        IPv4Type().validate('255.256.255.255')
+
+
 def test_geopoint_mock():
     geo = GeoPointType(required=True)
     geo_point = geo.mock()
@@ -408,16 +416,16 @@ def test_geopoint_mock():
 def test_geopoint_to_native():
     geo = GeoPointType(required=True)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         native = geo.to_native((10,))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         native = geo.to_native({'1':'-20', '2': '18'})
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         native = geo.to_native(['-20',  '18'])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         native = geo.to_native('-20, 18')
 
     class Point(object):
@@ -425,7 +433,7 @@ def test_geopoint_to_native():
         def __len__(self):
             return 2
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         native = geo.to_native(Point())
 
     native = geo.to_native([89, -12])
