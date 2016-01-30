@@ -11,11 +11,7 @@ import pytest
 
 from schematics.datastructures import Context
 from schematics.models import Model
-from schematics.types import (
-    BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
-    URLType, MultilingualStringType, UUIDType, IPv4Type, MD5Type, BooleanType,
-    GeoPointType, FloatType, DecimalType
-)
+from schematics.types import *
 from schematics.types.base import get_range_endpoints
 from schematics.exceptions import ConversionError, ValidationError, DataError
 
@@ -211,21 +207,6 @@ def test_custom_validation_function_and_inheritance():
         field.validate("MM")
 
 
-def test_email_type_with_invalid_email():
-    with pytest.raises(ValidationError):
-        EmailType().validate(u'sdfg\U0001f636\U0001f46e')
-
-
-def test_url_type_with_invalid_url():
-    with pytest.raises(ValidationError):
-        URLType().validate(u'http:example.com')
-
-
-def test_url_type_with_unreachable_url():
-    with pytest.raises(ValidationError):
-        URLType(verify_exists=True).validate_url('http://127.0.0.1:99999/')
-
-
 def test_string_type_required():
     class M(Model):
         field = StringType(required=True)
@@ -396,12 +377,6 @@ def test_boolean_to_native():
     for bad_value in ['TrUe', 'foo', 2, None, 1.0]:
         with pytest.raises(ConversionError):
             bool_field.to_native(bad_value)
-
-
-def test_ipv4_type():
-    assert IPv4Type().validate('255.255.255.255')
-    with pytest.raises(ValidationError):
-        IPv4Type().validate('255.256.255.255')
 
 
 def test_geopoint_mock():
