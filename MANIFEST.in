@@ -4,5 +4,6 @@ include test-requirements.txt
 include tox.ini
 include HISTORY.rst
 include LICENSE
+include AUTHORS
 graft docs
 graft tests

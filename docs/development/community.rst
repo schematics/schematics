@@ -4,9 +4,9 @@
 Community
 =========
 
-Schematics was created in Brooklyn, NY by `James Dennis <http://j2labs.io>`_.
-Since then, the code has been worked on by folks from around the world.  If you
-have ideas, we encourage you to share them!
+Schematics was created in Brooklyn, NY by James Dennis. Since then, the code has
+been worked on by folks from around the world.  If you have ideas, we encourage
+you to share them!
 
 Special thanks to `Hacker School <http://hackerschool.com>`_, `Plain Vanilla
 <http://www.plainvanilla.is/>`_, `Quantopian <http://quantopian.com>`_, `Apple

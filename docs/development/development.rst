@@ -4,8 +4,8 @@
 Developer's Guide
 =================
 
-Schematics development is lead by `James Dennis <http://j2labs.io>`_, but this
-project is very much a sum of the work done by a community.
+Schematics development is currently led by `Kalle Tuure <kalle@goodtimes.fi>`_,
+but this project is very much a sum of the work done by a community.
 
 
 .. _development_contributors:
@@ -16,7 +16,7 @@ List of Contributors
 ::
 
   $ cd schematics
-  $ git shortlog -sn
+  $ git shortlog -sne
 
 Schematics has a few design choices that are both explicit and implicit. We
 care about these decisions and have probably debated them on the mailing list.

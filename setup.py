@@ -29,9 +29,9 @@ setup(
     name='schematics',
     license='BSD',
     version=__version__,
-    description='Structured Data for Humans',
-    author=u'James Dennis, Jökull Sólberg, Jóhann Þorvaldur Bergþórsson',
-    author_email='jdennis@gmail.com, jokull@plainvanillagames.com, johann@plainvanillagames.com',
+    description='Python Data Structures for Humans',
+    author=u'James Dennis, Jökull Sólberg, Jóhann Þorvaldur Bergþórsson, Kalle Tuure',
+    author_email='jdennis@gmail.com, jokull@plainvanillagames.com, johann@plainvanillagames.com, kalle@goodtimes.fi',
     url='https://github.com/schematics/schematics',
     packages=['schematics', 'schematics.types', 'schematics.contrib'],
     classifiers=[
