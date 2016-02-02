@@ -228,12 +228,14 @@ class Model(object):
     __optionsclass__ = ModelOptions
 
     def __init__(self, raw_data=None, trusted_data=None, deserialize_mapping=None,
-                 partial=True, strict=True, app_data=None, context=None):
+                 partial=True, strict=True, app_data=None, context=None, validate=False):
 
         self._initial = raw_data = raw_data or {}
         self._data = self.convert(raw_data, trusted_data=trusted_data, strict=strict,
                                   partial=partial, mapping=deserialize_mapping,
                                   app_data=app_data, context=context)
+        if validate:
+            self.validate(partial=partial, strict=strict, app_data=app_data, context=context)
 
     def validate(self, partial=False, strict=False, convert=True, app_data=None, context=None):
         """
