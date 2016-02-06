@@ -11,11 +11,7 @@ import pytest
 
 from schematics.datastructures import Context
 from schematics.models import Model
-from schematics.types import (
-    BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
-    URLType, MultilingualStringType, UUIDType, IPv4Type, MD5Type, BooleanType,
-    GeoPointType, FloatType, DecimalType
-)
+from schematics.types import *
 from schematics.types.base import get_range_endpoints
 from schematics.exceptions import ConversionError, ValidationError, DataError
 
@@ -211,21 +207,6 @@ def test_custom_validation_function_and_inheritance():
         field.validate("MM")
 
 
-def test_email_type_with_invalid_email():
-    with pytest.raises(ValidationError):
-        EmailType().validate(u'sdfg\U0001f636\U0001f46e')
-
-
-def test_url_type_with_invalid_url():
-    with pytest.raises(ValidationError):
-        URLType().validate(u'http:example.com')
-
-
-def test_url_type_with_unreachable_url():
-    with pytest.raises(ValidationError):
-        URLType(verify_exists=True).validate_url('http://127.0.0.1:99999/')
-
-
 def test_string_type_required():
     class M(Model):
         field = StringType(required=True)
@@ -262,6 +243,8 @@ def test_string_to_native():
 
     with pytest.raises(ConversionError):
         StringType().to_native(3.14)
+    with pytest.raises(ConversionError):
+        StringType().to_native(b'\xE0\xA0') # invalid UTF-8 sequence
 
     if sys.version_info[0] == 2:
         assert StringType().to_native(u'abc éíçßµ') == u'abc éíçßµ'
@@ -282,13 +265,13 @@ def test_multilingualstring_should_only_take_certain_types():
     mls(None)
     mls({})
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         mls(123)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         mls([])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         mls('foo')
 
 
@@ -408,16 +391,16 @@ def test_geopoint_mock():
 def test_geopoint_to_native():
     geo = GeoPointType(required=True)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         native = geo.to_native((10,))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         native = geo.to_native({'1':'-20', '2': '18'})
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         native = geo.to_native(['-20',  '18'])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         native = geo.to_native('-20, 18')
 
     class Point(object):
@@ -425,7 +408,7 @@ def test_geopoint_to_native():
         def __len__(self):
             return 2
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         native = geo.to_native(Point())
 
     native = geo.to_native([89, -12])

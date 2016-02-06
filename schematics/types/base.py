@@ -338,7 +338,7 @@ class UUIDType(BaseType):
         if not isinstance(value, uuid.UUID):
             try:
                 value = uuid.UUID(value)
-            except (AttributeError, TypeError, ValueError):
+            except (TypeError, ValueError):
                 raise ConversionError(self.messages['convert'].format(value))
         return value
 
@@ -377,12 +377,13 @@ class IPv4Type(BaseType):
 
 class StringType(BaseType):
 
-    """A unicode string field."""
+    """A Unicode string field."""
 
     allow_casts = (int, bytes)
 
     MESSAGES = {
         'convert': u"Couldn't interpret '{0}' as string.",
+        'decode': u"Invalid UTF-8 data.",
         'max_length': u"String value is too long.",
         'min_length': u"String value is too short.",
         'regex': u"String value did not match validation regex.",
@@ -399,103 +400,29 @@ class StringType(BaseType):
         return random_string(get_value_in(self.min_length, self.max_length))
 
     def to_native(self, value, context=None):
-        if value is None:
-            return None
-
-        if not isinstance(value, unicode):
-            if isinstance(value, self.allow_casts):
-                if isinstance(value, bytes):
-                    value = unicode(value, 'utf-8')
-                else:
-                    value = unicode(value)
+        if isinstance(value, unicode):
+            return value
+        if isinstance(value, self.allow_casts):
+            if isinstance(value, bytes):
+                try:
+                    return unicode(value, 'utf-8')
+                except UnicodeError:
+                    raise ConversionError(self.messages['decode'].format(value))
             else:
-                raise ConversionError(self.messages['convert'].format(value))
-
-        return value
+                return unicode(value)
+        raise ConversionError(self.messages['convert'].format(value))
 
     def validate_length(self, value, context=None):
-        len_of_value = len(value) if value else 0
-
-        if self.max_length is not None and len_of_value > self.max_length:
+        length = len(value)
+        if self.max_length is not None and length > self.max_length:
             raise ValidationError(self.messages['max_length'])
 
-        if self.min_length is not None and len_of_value < self.min_length:
+        if self.min_length is not None and length < self.min_length:
             raise ValidationError(self.messages['min_length'])
 
     def validate_regex(self, value, context=None):
         if self.regex is not None and self.regex.match(value) is None:
             raise ValidationError(self.messages['regex'])
-
-
-class URLType(StringType):
-
-    """A field that validates input as an URL.
-
-    If verify_exists=True is passed the validate function will make sure
-    the URL makes a valid connection.
-    """
-
-    MESSAGES = {
-        'invalid_url': u"Not a well formed URL.",
-        'not_found': u"URL does not exist.",
-    }
-
-    URL_REGEX = re.compile(
-        r'^https?://'
-        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,2000}[A-Z0-9])?\.)+[A-Z]{2,63}\.?|'
-        r'localhost|'
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
-        r'(?::\d+)?'
-        r'(?:/?|[/?]\S+)$', re.IGNORECASE
-    )
-
-    def __init__(self, verify_exists=False, **kwargs):
-        self.verify_exists = verify_exists
-        super(URLType, self).__init__(**kwargs)
-
-    def _mock(self, context=None):
-        return fill_template('http://a%s.ZZ', self.min_length,
-                             self.max_length)
-
-    def validate_url(self, value, context=None):
-        if not URLType.URL_REGEX.match(value):
-            raise StopValidationError(self.messages['invalid_url'])
-        if self.verify_exists:
-            from six.moves import urllib
-            try:
-                request = urllib.Request(value)
-                urllib.urlopen(request)
-            except Exception:
-                raise StopValidationError(self.messages['not_found'])
-
-
-class EmailType(StringType):
-
-    """A field that validates input as an E-Mail-Address.
-    """
-
-    MESSAGES = {
-        'email': u"Not a well formed email address."
-    }
-
-    EMAIL_REGEX = re.compile(
-        # dot-atom
-        r"(^[-!#$%&'*+/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*"
-        # quoted-string
-        r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-011\013\014\016'
-        r'-\177])*"'
-        # domain
-        r')@(?:[A-Z0-9](?:[A-Z0-9-]{0,2000}[A-Z0-9])?\.)+[A-Z]{2,63}\.?$',
-        re.IGNORECASE
-    )
-
-    def _mock(self, context=None):
-        return fill_template('%s@example.com', self.min_length,
-                             self.max_length)
-
-    def validate_email(self, value, context=None):
-        if not EmailType.EMAIL_REGEX.match(value):
-            raise StopValidationError(self.messages['email'])
 
 
 class NumberType(BaseType):
@@ -599,8 +526,8 @@ class DecimalType(BaseType):
 
     MESSAGES = {
         'number_coerce': u"Number '{0}' failed to convert to a decimal.",
-        'number_min': u"Value should be greater than {0}.",
-        'number_max': u"Value should be less than {0}.",
+        'number_min': u"Value should be greater than or equal to {0}.",
+        'number_max': u"Value should be less than or equal to {0}.",
     }
 
     def __init__(self, min_value=None, max_value=None, **kwargs):
@@ -637,7 +564,7 @@ class DecimalType(BaseType):
         return value
 
 
-class HashType(BaseType):
+class HashType(StringType):
 
     MESSAGES = {
         'hash_length': u"Hash value is wrong length.",
@@ -648,6 +575,8 @@ class HashType(BaseType):
         return random_string(self.LENGTH, string.hexdigits)
 
     def to_native(self, value, context=None):
+        value = super(HashType, self).to_native(value, context)
+
         if len(value) != self.LENGTH:
             raise ValidationError(self.messages['hash_length'])
         try:
@@ -696,7 +625,7 @@ class BooleanType(BaseType):
             elif value in self.FALSE_VALUES:
                 value = False
 
-        if isinstance(value, int) and value in [0, 1]:
+        elif isinstance(value, int) and value in [0, 1]:
             value = bool(value)
 
         if not isinstance(value, bool):
@@ -807,7 +736,7 @@ class DateTimeType(BaseType):
              u'(?P<hour>\d\d):(?P<minute>\d\d)'
              u'(?::(?P<second>\d\d)(?:(?:\.|,)(?P<sec_frac>\d{1,6}))?)?'
              u'(?:(?P<tzd_offset>(?P<tzd_sign>[+−-])(?P<tzd_hour>\d\d):?(?P<tzd_minute>\d\d)?)'
-             u'|(?P<tzd_utc>Z))?$', re.U + re.X)
+             u'|(?P<tzd_utc>Z))?$', re.X)
 
     TIMEDELTA_ZERO = datetime.timedelta(0)
 
@@ -985,9 +914,9 @@ class UTCDateTimeType(DateTimeType):
 
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
-    def __init__(self, formats=None, parser=None, tzd='utc', convert_tz=True, drop_tzinfo=True):    
+    def __init__(self, formats=None, parser=None, tzd='utc', convert_tz=True, drop_tzinfo=True, **kwargs):
         super(UTCDateTimeType, self).__init__(formats=formats, parser=parser, tzd=tzd, 
-                                            convert_tz=convert_tz, drop_tzinfo=drop_tzinfo)
+                                            convert_tz=convert_tz, drop_tzinfo=drop_tzinfo, **kwargs)
 
 
 class TimestampType(DateTimeType):
@@ -997,9 +926,9 @@ class TimestampType(DateTimeType):
     ``convert_tz=True``.
     """
 
-    def __init__(self, formats=None, parser=None, drop_tzinfo=False):
+    def __init__(self, formats=None, parser=None, drop_tzinfo=False, **kwargs):
         super(TimestampType, self).__init__(formats=formats, parser=parser, tzd='require', 
-                                            convert_tz=True, drop_tzinfo=drop_tzinfo)
+                                            convert_tz=True, drop_tzinfo=drop_tzinfo, **kwargs)
 
     def to_primitive(self, value):
         if value.tzinfo is None:
@@ -1020,33 +949,34 @@ class GeoPointType(BaseType):
     """
 
     MESSAGES = {
-        'point_min': u"{0} value {1} should be greater than {2}.",
-        'point_max': u"{0} value {1} should be less than {2}."
+        'point_min': u"{0} value {1} should be greater than or equal to {2}.",
+        'point_max': u"{0} value {1} should be less than or equal to {2}."
     }
 
     def _mock(self, context=None):
         return (random.randrange(-90, 90), random.randrange(-180, 180))
 
+    @classmethod
+    def _normalize(cls, value):
+        if isinstance(value, dict):
+            return value.values()
+        else:
+            return value
+
     def to_native(self, value, context=None):
         """Make sure that a geo-value is of type (x, y)
         """
-        if not len(value) == 2:
-            raise ValueError('Value must be a two-dimensional point')
-        if isinstance(value, dict):
-            for val in value.values():
-                if not isinstance(val, (float, int)):
-                    raise ValueError('Both values in point must be float or int')
-        elif isinstance(value, (list, tuple)):
-            if (not isinstance(value[0], (float, int)) or
-                    not isinstance(value[1], (float, int))):
-                raise ValueError('Both values in point must be float or int')
-        else:
-            raise ValueError('GeoPointType can only accept tuples, lists, or dicts')
-
+        if not isinstance(value, (tuple, list, dict)):
+            raise ConversionError('GeoPointType can only accept tuples, lists, or dicts')
+        elements = self._normalize(value)
+        if not len(elements) == 2:
+            raise ConversionError('Value must be a two-dimensional point')
+        if not all(isinstance(v, (float, int)) for v in elements):
+            raise ConversionError('Both values in point must be float or int')
         return value
 
     def validate_range(self, value, context=None):
-        latitude, longitude = value
+        latitude, longitude = self._normalize(value)
         if latitude < -90:
             raise ValidationError(
                 self.messages['point_min'].format('Latitude', latitude, '-90')
@@ -1055,12 +985,10 @@ class GeoPointType(BaseType):
             raise ValidationError(
                 self.messages['point_max'].format('Latitude', latitude, '90')
             )
-
         if longitude < -180:
             raise ValidationError(
                 self.messages['point_min'].format('Longitude', longitude, -180)
             )
-
         if longitude > 180:
             raise ValidationError(
                 self.messages['point_max'].format('Longitude', longitude, 180)
@@ -1110,7 +1038,7 @@ class MultilingualStringType(BaseType):
         """Make sure a MultilingualStringType value is a dict or None."""
 
         if not (value is None or isinstance(value, dict)):
-            raise ValueError('Value must be a dict or None')
+            raise ConversionError('Value must be a dict or None')
 
         return value
 

@@ -28,19 +28,21 @@ except AttributeError:
     ordered_mappings = (OrderedDict,) # Python 2.6
 
 
-class MultiType(BaseType):
+class CompoundType(BaseType):
 
     def __init__(self, **kwargs):
-        super(MultiType, self).__init__(**kwargs)
+        super(CompoundType, self).__init__(**kwargs)
         self.is_compound = True
-        if hasattr(self, 'field'):
+        try:
             self.field.parent_field = self
+        except AttributeError:
+            pass
 
     def _setup(self, field_name, owner_model):
         # Recursively set up inner fields.
         if hasattr(self, 'field'):
             self.field._setup(None, owner_model)
-        super(MultiType, self)._setup(field_name, owner_model)
+        super(CompoundType, self)._setup(field_name, owner_model)
 
     def convert(self, value, context=None):
         context = context or get_import_context()
@@ -68,22 +70,24 @@ class MultiType(BaseType):
         context = context or get_export_context(to_primitive_converter)
         return to_primitive_converter(self, value, context)
 
-    def init_compound_field(self, field, compound_field, **kwargs):
+    def _init_field(self, field, options):
         """
-        Some of non-BaseType fields require a `field` arg.
-        To avoid name conflict, provide it as `compound_field`.
-        Example:
-
-            comments = ListType(DictType, compound_field=StringType)
+        Instantiate the inner field that represents each element within this compound type.
+        In case the inner field is itself a compound type, its inner field can be provided
+        as the ``nested_field`` keyword argument.
         """
-        if compound_field:
-            field = field(field=compound_field, **kwargs)
-        else:
-            field = field(**kwargs)
+        if not isinstance(field, BaseType):
+            nested_field = options.pop('nested_field', None) or options.pop('compound_field', None)
+            if nested_field:
+                field = field(field=nested_field, **options)
+            else:
+                field = field(**options)
         return field
 
+MultiType = CompoundType
 
-class ModelType(MultiType):
+
+class ModelType(CompoundType):
     """A field that can hold an instance of the specified model."""
 
     @property
@@ -142,18 +146,13 @@ class ModelType(MultiType):
         return model_instance.export(context=context)
 
 
-class ListType(MultiType):
+class ListType(CompoundType):
     """A field for storing a list of items, all of which must conform to the type
     specified by the ``field`` parameter.
     """
 
     def __init__(self, field, min_size=None, max_size=None, **kwargs):
-
-        if not isinstance(field, BaseType):
-            compound_field = kwargs.pop('compound_field', None)
-            field = self.init_compound_field(field, compound_field, **kwargs)
-
-        self.field = field
+        self.field = self._init_field(field, kwargs)
         self.min_size = min_size
         self.max_size = max_size
 
@@ -242,19 +241,14 @@ class ListType(MultiType):
         return data
 
 
-class DictType(MultiType):
+class DictType(CompoundType):
     """A field for storing a mapping of items, the values of which must conform to the type
     specified by the ``field`` parameter.
     """
 
     def __init__(self, field, coerce_key=None, **kwargs):
-        if not isinstance(field, BaseType):
-            compound_field = kwargs.pop('compound_field', None)
-            field = self.init_compound_field(field, compound_field, **kwargs)
-
+        self.field = self._init_field(field, kwargs)
         self.coerce_key = coerce_key or unicode
-        self.field = field
-
         super(DictType, self).__init__(**kwargs)
 
     @property
@@ -297,7 +291,7 @@ class DictType(MultiType):
         return data
 
 
-class PolyModelType(MultiType):
+class PolyModelType(CompoundType):
     """A field that accepts an instance of any of the specified models."""
 
     def __init__(self, model_spec, **kwargs):
@@ -315,7 +309,7 @@ class PolyModelType(MultiType):
         self.claim_function = kwargs.pop("claim_function", None)
         self.allow_subclasses = kwargs.pop("allow_subclasses", allow_subclasses)
 
-        MultiType.__init__(self, **kwargs)
+        CompoundType.__init__(self, **kwargs)
 
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % str(self.model_classes)
