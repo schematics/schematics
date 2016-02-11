@@ -149,6 +149,11 @@ class ModelType(CompoundType):
 class ListType(CompoundType):
     """A field for storing a list of items, all of which must conform to the type
     specified by the ``field`` parameter.
+
+    Use it like this::
+
+        ...
+        categories = ListType(StringType)
     """
 
     def __init__(self, field, min_size=None, max_size=None, **kwargs):
@@ -244,6 +249,12 @@ class ListType(CompoundType):
 class DictType(CompoundType):
     """A field for storing a mapping of items, the values of which must conform to the type
     specified by the ``field`` parameter.
+
+    Use it like this::
+
+        ...
+        categories = DictType(StringType)
+
     """
 
     def __init__(self, field, coerce_key=None, **kwargs):
