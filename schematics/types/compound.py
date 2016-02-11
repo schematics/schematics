@@ -244,6 +244,13 @@ class ListType(CompoundType):
 class DictType(CompoundType):
     """A field for storing a mapping of items, the values of which must conform to the type
     specified by the ``field`` parameter.
+    
+    Use it like this:
+    
+    .. code-block:: python
+        ...
+        categories = DictType(StringType)
+
     """
 
     def __init__(self, field, coerce_key=None, **kwargs):
