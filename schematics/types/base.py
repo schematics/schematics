@@ -150,7 +150,13 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         class. A metaclass will merge all the `MESSAGES` and override the
         resulting dict with instance level `messages` and assign to
         `self.messages`.
-
+    :param metadata:
+        Dictionary for storing custom metadata associated with the field.  
+        To encourage compatibility with external tools, we suggest these keys 
+        for common metadata:
+        - *label* : Brief human-readable label
+        - *description* : Explanation of the purpose of the field. Used for 
+          help, tooltips, documentation, etc.
     """
 
     MESSAGES = {
