@@ -166,7 +166,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
     def __init__(self, required=False, default=Undefined, serialized_name=None,
                  choices=None, validators=None, deserialize_from=None,
                  export_level=None, serialize_when_none=None,
-                 messages=None, **kwargs):
+                 messages=None, metadata=None, **kwargs):
         super(BaseType, self).__init__()
 
         self.required = required
@@ -184,6 +184,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         self._set_export_level(export_level, serialize_when_none)
 
         self.messages = dict(self.MESSAGES, **(messages or {}))
+        self.metadata = metadata or {}
         self._position_hint = next(_next_position_hint)  # For ordering of fields
 
         self.name = None
