@@ -2,6 +2,8 @@
 a part of the pymongo distribution.
 """
 
+from __future__ import unicode_literals, absolute_import
+
 import bson
 
 from ..common import * # pylint: disable=redefined-builtin
@@ -19,7 +21,7 @@ class ObjectIdType(BaseType):
     """
 
     MESSAGES = {
-        'convert': u"Couldn't interpret value as an ObjectId.",
+        'convert': "Couldn't interpret value as an ObjectId.",
     }
 
     def __init__(self, auto_fill=False, **kwargs):

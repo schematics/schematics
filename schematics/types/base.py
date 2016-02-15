@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals, absolute_import
+
+import codecs
 import copy
 import math
 import uuid
@@ -142,8 +145,8 @@ class BaseType(object):
     """
 
     MESSAGES = {
-        'required': u"This field is required.",
-        'choices': u"Value must be one of {0}.",
+        'required': "This field is required.",
+        'choices': "Value must be one of {0}.",
     }
 
     EXPORT_METHODS = {
@@ -719,12 +722,12 @@ class DateTimeType(BaseType):
         'validate_utc_wrong': u'Time zone must be UTC.',
     }
 
-    REGEX = re.compile(
-             u'(?P<year>\d{4})-(?P<month>\d\d)-(?P<day>\d\d)(?:T|\ )'
-             u'(?P<hour>\d\d):(?P<minute>\d\d)'
-             u'(?::(?P<second>\d\d)(?:(?:\.|,)(?P<sec_frac>\d{1,6}))?)?'
-             u'(?:(?P<tzd_offset>(?P<tzd_sign>[+−-])(?P<tzd_hour>\d\d):?(?P<tzd_minute>\d\d)?)'
-             u'|(?P<tzd_utc>Z))?$', re.X)
+    REGEX = re.compile(r"""
+                (?P<year>\d{4})-(?P<month>\d\d)-(?P<day>\d\d)(?:T|\ )
+                (?P<hour>\d\d):(?P<minute>\d\d)
+                (?::(?P<second>\d\d)(?:(?:\.|,)(?P<sec_frac>\d{1,6}))?)?
+                (?:(?P<tzd_offset>(?P<tzd_sign>[+−-])(?P<tzd_hour>\d\d):?(?P<tzd_minute>\d\d)?)
+                |(?P<tzd_utc>Z))?$""", re.X)
 
     TIMEDELTA_ZERO = datetime.timedelta(0)
 

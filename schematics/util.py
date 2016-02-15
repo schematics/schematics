@@ -1,4 +1,6 @@
-from __future__ import absolute_import, division
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals, absolute_import
 
 import collections
 import sys

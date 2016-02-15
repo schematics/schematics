@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
+from __future__ import unicode_literals, absolute_import
 
 import collections
 from collections import Iterable, Sequence, Mapping
@@ -133,7 +133,7 @@ class ModelType(CompoundType):
             model_class = self.model_class
         else:
             raise ConversionError(
-                u'Please use a mapping for this field or {0} instance instead of {1}.'.format(
+                'Please use a mapping for this field or {0} instance instead of {1}.'.format(
                     self.model_class.__name__,
                     type(value).__name__))
         return model_class._convert(value, context=context)
@@ -169,7 +169,7 @@ class ListType(CompoundType):
         min_size = self.min_size or 1
         max_size = self.max_size or 1
         if min_size > max_size:
-            message = u'Minimum list size is greater than maximum list size.'
+            message = 'Minimum list size is greater than maximum list size.'
             raise MockCreationError(message)
         random_length = get_value_in(min_size, max_size)
 
@@ -209,15 +209,15 @@ class ListType(CompoundType):
 
         if self.min_size is not None and list_length < self.min_size:
             message = ({
-                True: u'Please provide at least %d item.',
-                False: u'Please provide at least %d items.',
+                True: 'Please provide at least %d item.',
+                False: 'Please provide at least %d items.',
             }[self.min_size == 1]) % self.min_size
             raise ValidationError(message)
 
         if self.max_size is not None and list_length > self.max_size:
             message = ({
-                True: u'Please provide no more than %d item.',
-                False: u'Please provide no more than %d items.',
+                True: 'Please provide no more than %d item.',
+                False: 'Please provide no more than %d items.',
             }[self.max_size == 1]) % self.max_size
             raise ValidationError(message)
 
@@ -264,7 +264,7 @@ class DictType(CompoundType):
 
     def _convert(self, value, context, safe=False):
         if not isinstance(value, dict):
-            raise ConversionError(u'Only dictionaries may be used in a DictType')
+            raise ConversionError('Only dictionaries may be used in a DictType')
 
         data = {}
         errors = {}
@@ -356,7 +356,7 @@ class PolyModelType(CompoundType):
                     cls.__name__ for cls in self.model_classes))
             else:
                 instanceof_msg = self.model_classes[0].__name__
-            raise ConversionError(u'Please use a mapping for this field or '
+            raise ConversionError('Please use a mapping for this field or '
                                     'an instance of {}'.format(instanceof_msg))
 
         model_class = self.find_model(value)

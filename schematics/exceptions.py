@@ -1,9 +1,14 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals, absolute_import
+
 from collections import Iterable
 
 from .common import * # pylint: disable=redefined-builtin
 from .util import listify
 
 
+@str_compat
 class ErrorMessage(object):
 
     def __init__(self, summary, info=None):
@@ -41,6 +46,7 @@ class BaseError(Exception):
     pass
 
 
+@str_compat
 class FieldError(BaseError):
 
     type = None
@@ -99,7 +105,7 @@ class FieldError(BaseError):
             msg = self.messages[0]
             msg_repr = '"{0}", info={1}'.format(msg.summary, msg.info_repr)
         else:
-            msg_repr = str.join(u', ',
+            msg_repr = str.join(', ',
                                 ('("{0}", {1})'.format(msg.summary, msg.info_repr)
                                  for msg in self.messages))
         return '{0}({1})'.format(type(self).__name__, msg_repr)

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import pytest
 
 from schematics.exceptions import *
@@ -69,6 +71,9 @@ def test_error_repr():
             ('baz', [1, 2, 3]))
 
     assert str(e) == 'ValidationError(("foo", None), ("bar", 98), ("baz", <\'list\' object>))'
+
+    e = ValidationError(u'é')
+    assert str(e) == repr(e)
 
 
 def test_error_message_object():

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals, absolute_import
+
 from copy import deepcopy
 import inspect
 import itertools
@@ -154,6 +156,7 @@ class ModelMeta(type):
         attrs['_options'] = options
 
         klass = type.__new__(mcs, name, bases, attrs)
+        klass = str_compat(klass)
 
         # Register class on ancestor models
         klass._subclasses = []
@@ -420,7 +423,7 @@ class Model(object):
         except (UnicodeEncodeError, UnicodeDecodeError):
             class_name = '[Bad Unicode class name]'
 
-        return u"<%s: %s>" % (class_name, obj)
+        return "<%s: %s>" % (class_name, obj)
 
     def __str__(self):
         return '%s object' % self.__class__.__name__

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+from __future__ import unicode_literals, absolute_import
 
 import collections
 import itertools
@@ -210,7 +210,7 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
     filter_func = cls._options.roles.get(context.role)
     if filter_func is None:
         if context.role and context.raise_error_on_role:
-            error_msg = u'%s Model has no role "%s"'
+            error_msg = '%s Model has no role "%s"'
             raise ValueError(error_msg % (cls.__name__, context.role))
         else:
             filter_func = cls._options.roles.get("default")
@@ -310,6 +310,7 @@ def atoms(cls, instance_or_dict):
 # Field filtering
 ###
 
+@str_compat
 class Role(collections.Set):
 
     """
@@ -641,9 +642,9 @@ def flatten_to_dict(instance_or_dict, prefix=None, ignore_none=True):
 
         {
             's': 'jms was hrrr',
-            u'l.1': 'here',
-            u'l.0': 'jms was here',
-            u'l.2': 'and here'
+            'l.1': 'here',
+            'l.0': 'jms was here',
+            'l.2': 'and here'
         }
 
     :param instance_or_dict:
@@ -701,7 +702,7 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
         >>> f.l = ['jms', 'was here', 'and here']
 
         >>> flatten(Foo, f)
-        {'s': 'string', u'l.1': 'jms', u'l.0': 'was here', u'l.2': 'and here'}
+        {'s': 'string', 'l.1': 'jms', 'l.0': 'was here', 'l.2': 'and here'}
 
     :param cls:
         The model definition.

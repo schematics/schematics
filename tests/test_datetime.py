@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from datetime import datetime, timedelta
 import sys
 
@@ -26,6 +28,8 @@ def test_parse_with_defaults():
     dt = field.to_native('2015-11-08T12:34:56,0369-0730')
     assert dt.utcoffset() == timedelta(hours=-7, minutes=-30)
     assert dt.replace(tzinfo=None) == datetime(2015, 11, 8, 12, 34, 56, 36900)
+
+    assert dt == field.to_native(u'2015-11-08T12:34:56,0369−0730') # minus U+2212
 
     dt = field.to_native('2015-11-08 12:34:56.00200+02:00')
     assert dt.utcoffset() == timedelta(hours=2)

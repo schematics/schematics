@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals, absolute_import
+
 from .compat import * # pylint: disable=redefined-builtin
 from .compat import __all__ as compat_exports
 from .util import module_exports, Constant
