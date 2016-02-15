@@ -343,7 +343,6 @@ class Role(collections.Set):
         return len(self.fields)
 
     def __eq__(self, other):
-        print(dir(self.function))
         return (self.function.__name__ == other.function.__name__ and
                 self.fields == other.fields)
 

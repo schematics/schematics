@@ -8,7 +8,7 @@ import bson
 
 from ..common import * # pylint: disable=redefined-builtin
 from ..types import BaseType
-from ..exceptions import ConversionError, ValidationError
+from ..exceptions import ConversionError
 
 
 class ObjectIdType(BaseType):

@@ -5,16 +5,14 @@ from __future__ import unicode_literals, absolute_import
 import collections
 from collections import Iterable, Sequence, Mapping
 import itertools
-import functools
 
 from ..common import * # pylint: disable=redefined-builtin
-from ..datastructures import Context, OrderedDict
+from ..datastructures import OrderedDict
 from ..exceptions import *
 from ..models import Model, ModelMeta
 from ..transforms import (
     get_import_context, get_export_context,
     to_native_converter, to_dict_converter, to_primitive_converter)
-from ..undefined import Undefined
 
 from .base import BaseType, get_value_in
 

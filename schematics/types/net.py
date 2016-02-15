@@ -16,35 +16,34 @@ except ImportError: # PY2
     from urllib import quote as urlquote
 
 from ..common import * # pylint: disable=redefined-builtin
-from ..exceptions import ConversionError, ValidationError, StopValidationError
-from ..util import listify
+from ..exceptions import ValidationError, StopValidationError
 
-from .base import StringType
+from .base import StringType, fill_template
 
 
 ### Character ranges
 
-hex      = '0-9A-F'
-alpha    = 'A-Z'
-alphanum = 'A-Z0-9'
-ucs      = ('\u00A0-\uD7FF'
+HEX      = '0-9A-F'
+ALPHA    = 'A-Z'
+ALPHANUM = 'A-Z0-9'
+UCS      = ('\u00A0-\uD7FF'
             '\uF900-\uFDCF'
             '\uFDF0-\uFFEF')
-private  =  '\uE000-\uF8FF'
+PRIVATE  =  '\uE000-\uF8FF'
 
 if len('\U0002000B') == 1: # Indicates that code points beyond the BMP are supported.
-    ucs     += '\U00010000-\U000EFFFF'
-    private += '\U000F0000-\U0010FFFD'
+    UCS     += '\U00010000-\U000EFFFF'
+    PRIVATE += '\U000F0000-\U0010FFFD'
 
 
 ### IP address patterns
 
-ipv4_octet = '( 25[0-5] | 2[0-4][0-9] | [0-1]?[0-9]{1,2} )'
-ipv4 = r'( ((%(oct)s\.){3} %(oct)s) )' % {'oct': ipv4_octet}
+IPV4_OCTET = '( 25[0-5] | 2[0-4][0-9] | [0-1]?[0-9]{1,2} )'
+IPV4 = r'( ((%(oct)s\.){3} %(oct)s) )' % {'oct': IPV4_OCTET}
 
-ipv6_h16 = '[%s]{1,4}' % hex
-ipv6_l32 = '(%(h16)s:%(h16)s|%(ipv4)s)' % {'h16': ipv6_h16, 'ipv4': ipv4}
-ipv6 = r"""(
+IPV6_H16 = '[%s]{1,4}' % HEX
+IPV6_L32 = '(%(h16)s:%(h16)s|%(ipv4)s)' % {'h16': IPV6_H16, 'ipv4': IPV4}
+IPV6 = r"""(
                                     (%(h16)s:){6}%(l32)s  |
                                 ::  (%(h16)s:){5}%(l32)s  |
     (               %(h16)s )?  ::  (%(h16)s:){4}%(l32)s  |
@@ -53,14 +52,14 @@ ipv6 = r"""(
     ( (%(h16)s:){,3}%(h16)s )?  ::  (%(h16)s:){1}%(l32)s  |
     ( (%(h16)s:){,4}%(h16)s )?  ::               %(l32)s  |
     ( (%(h16)s:){,5}%(h16)s )?  ::               %(h16)s  |
-    ( (%(h16)s:){,6}%(h16)s )?  :: )""" % {'h16': ipv6_h16,
-                                           'l32': ipv6_l32}
+    ( (%(h16)s:){,6}%(h16)s )?  :: )""" % {'h16': IPV6_H16,
+                                           'l32': IPV6_L32}
 
 
 class IPAddressType(StringType):
 
     VERSION = None
-    REGEX = re.compile('^%s|%s$' % (ipv4, ipv6), re.I + re.X)
+    REGEX = re.compile('^%s|%s$' % (IPV4, IPV6), re.I + re.X)
 
     @classmethod
     def valid_ip(cls, value):
@@ -75,7 +74,7 @@ class IPv4Type(IPAddressType):
     """A field that stores a valid IPv4 address."""
 
     VERSION = 'v4'
-    REGEX = re.compile('^%s$' % ipv4, re.I + re.X)
+    REGEX = re.compile('^%s$' % IPV4, re.I + re.X)
 
     def _mock(self, context=None):
         return '.'.join(str(random.randrange(256)) for _ in range(4))
@@ -85,7 +84,7 @@ class IPv6Type(IPAddressType):
     """A field that stores a valid IPv6 address."""
 
     VERSION = 'v6'
-    REGEX = re.compile('^%s$' % ipv6, re.I + re.X)
+    REGEX = re.compile('^%s$' % IPV6, re.I + re.X)
 
     def _mock(self, context=None):
         return '.'.join(str(random.randrange(256)) for _ in range(4))
@@ -93,22 +92,22 @@ class IPv6Type(IPAddressType):
 
 ### URI patterns
 
-sub_delims = '!$&\'()*+,;='
-unreserved  = '-_.~' + alphanum + ucs
-pchar = unreserved + sub_delims + '%%:@'
-query_extras = '\[\]' # nonstandard
+SUB_DELIMS = '!$&\'()*+,;='
+UNRESERVED  = '-_.~' + ALPHANUM + UCS
+PCHAR = UNRESERVED + SUB_DELIMS + '%%:@'
+QUERY_EXTRAS = r'\[\]' # nonstandard
 
-uri_patterns = {
-    'scheme' : '[%s]+' % ('-.+' + alphanum),
-    'user'   : '[%s]+' % (unreserved + sub_delims + '%%:'),
-    'port'   : '\d{2,5}',
-    'host'   : '[%s]+' % (unreserved + sub_delims + '%%:\[\]'),
-    'host6'  : '[%s]+' % (hex + ':'),
-    'host4'  :  ipv4,
-    'hostn'  : '[%s]+' % (alphanum + ucs + '.-'),
-    'path'   : '(/[%s]*)*' % pchar,
-    'query'  : '[%s]*' % (pchar + '/?' + private + query_extras),
-    'frag'   : '[%s]*' % (pchar + '/?'),
+URI_PATTERNS = {
+    'scheme' : r'[%s]+' % ('-.+' + ALPHANUM),
+    'user'   : r'[%s]+' % (UNRESERVED + SUB_DELIMS + '%%:'),
+    'port'   : r'\d{2,5}',
+    'host'   : r'[%s]+' % (UNRESERVED + SUB_DELIMS + r'%%:\[\]'),
+    'host6'  : r'[%s]+' % (HEX + ':'),
+    'host4'  : IPV4,
+    'hostn'  : r'[%s]+' % (ALPHANUM + UCS + '.-'),
+    'path'   : r'(/[%s]*)*' % PCHAR,
+    'query'  : r'[%s]*' % (PCHAR + '/?' + PRIVATE + QUERY_EXTRAS),
+    'frag'   : r'[%s]*' % (PCHAR + '/?'),
 }
 
 
@@ -135,9 +134,9 @@ class URLType(StringType):
             (?P<path>   %(path)s   )
         (\? (?P<query>  %(query)s  )     )?
         (\# (?P<frag>   %(frag)s   )     )?)$
-        """ % uri_patterns, re.I + re.X)
+        """ % URI_PATTERNS, re.I + re.X)
 
-    TLD_REGEX = re.compile('^( ([a-z]{2,}) | (xn--[a-z0-9]{4,}) )$', re.I + re.X)
+    TLD_REGEX = re.compile(r'^( ([a-z]{2,}) | (xn--[a-z0-9]{4,}) )$', re.I + re.X)
 
     def __init__(self, fqdn=True, verify_exists=False, **kwargs):
         self.schemes = ['http', 'https']
@@ -202,17 +201,11 @@ class URLType(StringType):
                 url['path'],
                 url['query'],
                 url['frag'])
-                ).encode('utf-8'), safe=py_native_string('%~:/?#[]@' + sub_delims))
+                ).encode('utf-8'), safe=py_native_string('%~:/?#[]@' + SUB_DELIMS))
             try:
                 urlopen(url_string)
             except URLError:
                 raise StopValidationError(self.messages['not_found'])
-
-
-### Email patterns
-
-atext = 'A-Z0-9!#$%&\'*+-/=?^_`{|}~'
-qtext = '!#-\[\]-~\s'
 
 
 class EmailType(StringType):
@@ -225,11 +218,14 @@ class EmailType(StringType):
     }
 
     EMAIL_REGEX = re.compile(r"""^(
-        (
-          (      [%(a)s]+ (\.[%(a)s]+)*      )  |  # dot-atom
-          ( "(   [%(q)s] | \\[!-~\s]     )*" )     # quoted-string
-        )
-        @((?!-)[A-Z0-9-]{1,63}(?<!-)\.)+[A-Z]{2,63})$""" % {'a': atext, 'q': qtext}, re.I + re.X)
+        ( ( [%(atext)s]+ (\.[%(atext)s]+)* ) | ("( [%(qtext)s\s] | \\[%(vchar)s\s] )*") )
+        @((?!-)[A-Z0-9-]{1,63}(?<!-)\.)+[A-Z]{2,63})$"""
+        % {
+            'atext': '-A-Z0-9!#$%&\'*+/=?^_`{|}~',
+            'qtext': '\x21\x23-\x5B\\\x5D-\x7E',
+            'vchar': '\x21-\x7E'
+        },
+        re.I + re.X)
 
     def _mock(self, context=None):
         return fill_template('%s@example.com', self.min_length,

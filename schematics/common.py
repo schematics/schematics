@@ -2,6 +2,11 @@
 
 from __future__ import unicode_literals, absolute_import
 
+# pylint: disable=unused-import
+import encodings.ascii
+import encodings.utf_8
+import encodings.unicode_escape
+
 from .compat import * # pylint: disable=redefined-builtin
 from .compat import __all__ as compat_exports
 from .util import module_exports, Constant

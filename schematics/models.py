@@ -5,7 +5,6 @@ from __future__ import unicode_literals, absolute_import
 from copy import deepcopy
 import inspect
 import itertools
-import sys
 
 from .common import * # pylint: disable=redefined-builtin
 from .datastructures import OrderedDict as OrderedDictWithSort

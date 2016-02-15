@@ -2,22 +2,18 @@
 
 from __future__ import unicode_literals, absolute_import
 
-import codecs
 import copy
-import math
-import uuid
-import re
 import datetime
 import decimal
 import itertools
 import numbers
-import functools
 import random
+import re
 import string
+import uuid
 
 from ..common import * # pylint: disable=redefined-builtin
-from ..datastructures import Context
-from ..exceptions import ConversionError, ValidationError, StopValidationError
+from ..exceptions import *
 from ..undefined import Undefined
 from ..util import listify
 from ..validate import prepare_validator, get_validation_context
@@ -196,7 +192,7 @@ class BaseType(object):
         return None
 
     def _setup(self, field_name, owner_model):
-        """Perform late-stage setup tasks that are run after the containing model 
+        """Perform late-stage setup tasks that are run after the containing model
         has been created.
         """
         self.name = field_name
@@ -224,17 +220,17 @@ class BaseType(object):
             level = context.export_level
         return level
 
-    def get_input_keys(self, mapping={}):
+    def get_input_keys(self, mapping=None):
         if mapping:
             return self._get_input_keys(mapping)
         else:
             return self._input_keys
 
-    def _get_input_keys(self, mapping={}):
+    def _get_input_keys(self, mapping=None):
         input_keys = [self.name]
         if self.serialized_name:
             input_keys.append(self.serialized_name)
-        if self.name in mapping:
+        if mapping and self.name in mapping:
             input_keys.extend(listify(mapping[self.name]))
         if self.deserialize_from:
             input_keys.extend(self.deserialize_from)
@@ -337,35 +333,6 @@ class UUIDType(BaseType):
         return str(value)
 
 
-class IPv4Type(BaseType):
-
-    """ A field that stores a valid IPv4 address """
-
-    def _mock(self, context=None):
-        return '.'.join(str(random.randrange(256)) for _ in range(4))
-
-    @classmethod
-    def valid_ip(cls, addr):
-        try:
-            addr = addr.strip().split(".")
-        except AttributeError:
-            return False
-        try:
-            return len(addr) == 4 and all(0 <= int(octet) < 256 for octet in addr)
-        except ValueError:
-            return False
-
-    def validate(self, value, context=None):
-        """
-          Make sure the value is a IPv4 address:
-          http://stackoverflow.com/questions/9948833/validate-ip-address-from-list
-        """
-        if not IPv4Type.valid_ip(value):
-            error_msg = 'Invalid IPv4 address'
-            raise ValidationError(error_msg)
-        return True
-
-
 class StringType(BaseType):
 
     """A Unicode string field."""
@@ -441,14 +408,14 @@ class NumberType(BaseType):
         return get_value_in(self.min_value, self.max_value)
 
     def to_native(self, value, context=None):
-        if type(value) is self.number_class:
+        if isinstance(value, self.number_class):
             return value
         try:
             native_value = self.number_class(value)
         except (TypeError, ValueError):
             pass
         else:
-            if self.number_class is float:  # Float conversion is strict enough.
+            if self.number_class is float: # Float conversion is strict enough.
                 return native_value
             if not self.strict and native_value == value: # Match numeric types.
                 return native_value
@@ -741,23 +708,23 @@ class DateTimeType(BaseType):
 
     class utc_timezone(fixed_timezone):
         offset = datetime.timedelta(0)
-        name = 'UTC'
+        name = str = 'UTC'
 
     class offset_timezone(fixed_timezone):
         def __init__(self, hours=0, minutes=0):
             self.offset = datetime.timedelta(hours=hours, minutes=minutes)
             total_seconds = self.offset.days * 86400 + self.offset.seconds
             self.str = '{0:s}{1:02d}:{2:02d}'.format(
-                           '+' if total_seconds >= 0 else '-',
-                           int(abs(total_seconds) / 3600),
-                           int(abs(total_seconds) % 3600 / 60))
+                '+' if total_seconds >= 0 else '-',
+                int(abs(total_seconds) / 3600),
+                int(abs(total_seconds) % 3600 / 60))
         def __repr__(self):
             return DateTimeType.fixed_timezone.__repr__(self, self.str)
 
     UTC = utc_timezone()
     EPOCH = datetime.datetime(1970, 1, 1, tzinfo=UTC)
 
-    def __init__(self, formats=None, serialized_format=None, parser=None, 
+    def __init__(self, formats=None, serialized_format=None, parser=None,
                  tzd='allow', convert_tz=False, drop_tzinfo=False, **kwargs):
 
         if isinstance(formats, string_type):
@@ -843,29 +810,29 @@ class DateTimeType(BaseType):
         return dt
 
     def from_string(self, value):
-            match = self.REGEX.match(value)
-            if not match:
-                return None
-            parts = dict(((k, v) for k, v in match.groupdict().items() if v is not None))
-            p = lambda name: int(parts.get(name, 0))
-            microsecond = p('sec_frac') and p('sec_frac') * 10 ** (6 - len(parts['sec_frac']))
-            if 'tzd_utc' in parts:
+        match = self.REGEX.match(value)
+        if not match:
+            return None
+        parts = dict(((k, v) for k, v in match.groupdict().items() if v is not None))
+        p = lambda name: int(parts.get(name, 0))
+        microsecond = p('sec_frac') and p('sec_frac') * 10 ** (6 - len(parts['sec_frac']))
+        if 'tzd_utc' in parts:
+            tz = self.UTC
+        elif 'tzd_offset' in parts:
+            tz_sign = 1 if parts['tzd_sign'] == '+' else -1
+            tz_offset = (p('tzd_hour') * 60 + p('tzd_minute')) * tz_sign
+            if tz_offset == 0:
                 tz = self.UTC
-            elif 'tzd_offset' in parts:
-                tz_sign = 1 if parts['tzd_sign'] == '+' else -1
-                tz_offset = (p('tzd_hour') * 60 + p('tzd_minute')) * tz_sign
-                if tz_offset == 0:
-                    tz = self.UTC
-                else:
-                    tz = self.offset_timezone(minutes=tz_offset)
             else:
-                tz = None
-            try:
-                return datetime.datetime(p('year'), p('month'), p('day'),
-                                         p('hour'), p('minute'), p('second'),
-                                         microsecond, tz)
-            except (ValueError, TypeError):
-                return None
+                tz = self.offset_timezone(minutes=tz_offset)
+        else:
+            tz = None
+        try:
+            return datetime.datetime(p('year'), p('month'), p('day'),
+                                     p('hour'), p('minute'), p('second'),
+                                     microsecond, tz)
+        except (ValueError, TypeError):
+            return None
 
     def from_timestamp(self, value):
         try:
@@ -906,8 +873,8 @@ class UTCDateTimeType(DateTimeType):
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
     def __init__(self, formats=None, parser=None, tzd='utc', convert_tz=True, drop_tzinfo=True, **kwargs):
-        super(UTCDateTimeType, self).__init__(formats=formats, parser=parser, tzd=tzd, 
-                                            convert_tz=convert_tz, drop_tzinfo=drop_tzinfo, **kwargs)
+        super(UTCDateTimeType, self).__init__(formats=formats, parser=parser, tzd=tzd,
+                                              convert_tz=convert_tz, drop_tzinfo=drop_tzinfo, **kwargs)
 
 
 class TimestampType(DateTimeType):
@@ -918,7 +885,7 @@ class TimestampType(DateTimeType):
     """
 
     def __init__(self, formats=None, parser=None, drop_tzinfo=False, **kwargs):
-        super(TimestampType, self).__init__(formats=formats, parser=parser, tzd='require', 
+        super(TimestampType, self).__init__(formats=formats, parser=parser, tzd='require',
                                             convert_tz=True, drop_tzinfo=drop_tzinfo, **kwargs)
 
     def to_primitive(self, value):

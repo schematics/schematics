@@ -4,7 +4,6 @@ from __future__ import unicode_literals, absolute_import
 
 import collections
 import sys
-import types
 
 from .compat import * # pylint: disable=redefined-builtin
 
@@ -31,6 +30,7 @@ class Constant(int):
 
     def __init__(self, name, value):
         self.name = name
+        int.__init__(self)
 
     def __repr__(self):
         return self.name

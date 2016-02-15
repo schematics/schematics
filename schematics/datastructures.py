@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
+# pylint: skip-file
 
 from __future__ import unicode_literals, absolute_import
 
-from collections import namedtuple
 from copy import deepcopy
 
 from .common import * # pylint: disable=redefined-builtin

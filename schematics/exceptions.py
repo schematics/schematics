@@ -2,8 +2,6 @@
 
 from __future__ import unicode_literals, absolute_import
 
-from collections import Iterable
-
 from .common import * # pylint: disable=redefined-builtin
 from .util import listify
 
@@ -79,12 +77,12 @@ class FieldError(BaseError):
         for message in self.messages:
             message.type = self.type or type(self)
 
-        Exception.__init__(self, self.messages)
+        super(FieldError, self).__init__(self.messages)
 
     def __eq__(self, other):
         if type(other) is type(self):
             return other.messages == self.messages
-        elif type(other) is list:
+        elif isinstance(other, list):
             return other == self.messages
         return False
 
@@ -144,7 +142,7 @@ class CompoundError(BaseError):
                 self.messages[key] = value.messages
             else:
                 self.messages[key] = value
-        Exception.__init__(self, self.messages)
+        super(CompoundError, self).__init__(self.messages)
 
 
 class DataError(CompoundError):
