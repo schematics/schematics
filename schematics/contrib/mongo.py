@@ -2,16 +2,12 @@
 a part of the pymongo distribution.
 """
 
-from schematics.types import BaseType
-from schematics.exceptions import ConversionError, ValidationError
-
 import bson
 
-try:
-    unicode #PY2
-except:
-    import codecs
-    unicode = str #PY3
+from ..common import * # pylint: disable=redefined-builtin
+from ..types import BaseType
+from ..exceptions import ConversionError, ValidationError
+
 
 class ObjectIdType(BaseType):
 
@@ -33,7 +29,7 @@ class ObjectIdType(BaseType):
     def to_native(self, value, context=None):
         if not isinstance(value, bson.objectid.ObjectId):
             try:
-                value = bson.objectid.ObjectId(unicode(value))
+                value = bson.objectid.ObjectId(str(value))
             except bson.objectid.InvalidId:
                 raise ConversionError(self.messages['convert'])
         return value

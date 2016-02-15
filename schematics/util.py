@@ -1,14 +1,10 @@
 from __future__ import absolute_import, division
 
 import collections
+import sys
+import types
 
-try:
-    basestring #PY2
-    bytes = str
-    range = xrange
-except NameError:
-    basestring = str #PY3
-    unicode = str
+from .compat import * # pylint: disable=redefined-builtin
 
 
 def setdefault(obj, attr, value, search_mro=False, overwrite_none=False):
@@ -45,10 +41,23 @@ def listify(value):
         return value
     elif value is None:
         return []
-    elif isinstance(value, basestring):
+    elif isinstance(value, string_type):
         return [value]
     elif isinstance(value, collections.Sequence):
         return list(value)
     else:
         return [value]
+
+
+def module_exports(module_name):
+    module_globals = sys.modules[module_name].__dict__
+    return [
+        name for name, obj in module_globals.items()
+        if name[0] != '_'
+          and (getattr(obj, '__module__', None) == module_name
+                or isinstance(obj, Constant))
+    ]
+
+
+__all__ = module_exports(__name__)
 

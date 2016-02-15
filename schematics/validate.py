@@ -1,6 +1,7 @@
 import functools
 import inspect
 
+from .common import * # pylint: disable=redefined-builtin
 from .datastructures import Context
 from .exceptions import FieldError, DataError
 from .transforms import import_loop, validation_converter
@@ -104,10 +105,14 @@ def get_validation_context(**options):
 
 def prepare_validator(func, argcount):
     if len(inspect.getargspec(func).args) < argcount:
+        @functools.wraps(func)
         def newfunc(*args, **kwargs):
             if not kwargs or kwargs.pop('context', 0) is 0:
                 args = args[:-1]
             return func(*args, **kwargs)
-        return functools.wraps(func)(newfunc)
+        return newfunc
     return func
+
+
+__all__ = module_exports(__name__)
 

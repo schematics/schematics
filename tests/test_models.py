@@ -9,8 +9,6 @@ from schematics.types.base import StringType, IntType
 from schematics.types.compound import ModelType
 from schematics.exceptions import *
 
-from six import PY3
-
 
 def test_init_with_dict():
 
@@ -606,8 +604,4 @@ def test_eq():
 def test_repr():
     inst = SimpleModel({'field1': 'foo'})
     assert repr(inst) == '<SimpleModel: SimpleModel object>'
-
-    if not PY3: #todo: make this work for PY3
-        inst.__class__.__name__ = '\x80'
-        assert repr(inst) == '<[Bad Unicode class name]: [Bad Unicode data]>'
 

@@ -1,15 +1,7 @@
 from collections import Iterable
 
-from six import iteritems
-
+from .common import * # pylint: disable=redefined-builtin
 from .util import listify
-
-try:
-    basestring #PY2
-    bytes = str
-except NameError:
-    basestring = str #PY3
-    unicode = str
 
 
 class ErrorMessage(object):
@@ -31,7 +23,7 @@ class ErrorMessage(object):
             return 'None'
         elif isinstance(self.info, int):
             return self.info
-        elif isinstance(self.info, basestring):
+        elif isinstance(self.info, string_type):
             return '"{0}"'.format(self.info)
         else:
             return "<'{0}' object>".format(type(self.info).__name__)
@@ -39,7 +31,7 @@ class ErrorMessage(object):
     def __eq__(self, other):
         if isinstance(other, ErrorMessage):
             return self.__dict__ == other.__dict__
-        elif isinstance(other, basestring):
+        elif isinstance(other, string_type):
             return self.summary == other
         else:
             return False
@@ -67,7 +59,7 @@ class FieldError(BaseError):
             items = args
         self.messages = []
         for item in items:
-            if isinstance(item, basestring):
+            if isinstance(item, string_type):
                 self.messages.append(ErrorMessage(item))
             elif isinstance(item, tuple):
                 self.messages.append(ErrorMessage(*item))
@@ -107,7 +99,7 @@ class FieldError(BaseError):
             msg = self.messages[0]
             msg_repr = '"{0}", info={1}'.format(msg.summary, msg.info_repr)
         else:
-            msg_repr = str.join(', ',
+            msg_repr = str.join(u', ',
                                 ('("{0}", {1})'.format(msg.summary, msg.info_repr)
                                  for msg in self.messages))
         return '{0}({1})'.format(type(self).__name__, msg_repr)
@@ -172,4 +164,7 @@ class MissingValueError(AttributeError, KeyError):
 class UnknownFieldError(KeyError):
     """Exception raised when attempting to set a nonexistent field using the subscription syntax."""
     pass
+
+
+__all__ = module_exports(__name__)
 

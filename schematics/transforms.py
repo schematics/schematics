@@ -7,24 +7,11 @@ import itertools
 import operator
 import types
 
-from six import iteritems
-
-from .common import *
+from .common import * # pylint: disable=redefined-builtin
 from .datastructures import OrderedDict, Context
 from .exceptions import *
 from .undefined import Undefined
 from .util import listify
-
-try:
-    basestring #PY2
-except NameError:
-    basestring = str #PY3
-
-try:
-    unicode #PY2
-except:
-    import codecs
-    unicode = str #PY3
 
 
 
@@ -679,7 +666,7 @@ def flatten_to_dict(instance_or_dict, prefix=None, ignore_none=True):
     flat_dict = {}
     for key, value in iterator:
         if prefix:
-            key = ".".join(map(unicode, (prefix, key)))
+            key = ".".join(map(str, (prefix, key)))
 
         if value == []:
             value = EMPTY_LIST
@@ -742,4 +729,7 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
     flattened = flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
 
     return flattened
+
+
+__all__ = module_exports(__name__)
 

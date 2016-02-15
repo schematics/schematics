@@ -15,17 +15,11 @@ except ImportError: # PY2
     from urlparse import urlunsplit
     from urllib import quote as urlquote
 
-from ..common import *
+from ..common import * # pylint: disable=redefined-builtin
 from ..exceptions import ConversionError, ValidationError, StopValidationError
 from ..util import listify
-from .base import StringType
 
-try:
-    basestring #PY2
-    bytes = str
-except NameError:
-    basestring = str #PY3
-    unicode = str
+from .base import StringType
 
 
 ### Character ranges
@@ -244,4 +238,7 @@ class EmailType(StringType):
     def validate_email(self, value, context=None):
         if not EmailType.EMAIL_REGEX.match(value):
             raise StopValidationError(self.messages['email'])
+
+
+__all__ = module_exports(__name__)
 

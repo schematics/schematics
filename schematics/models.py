@@ -5,25 +5,18 @@ import inspect
 import itertools
 import sys
 
-from six import iteritems
-from six import iterkeys
-from six import add_metaclass
-
-from .common import *
+from .common import * # pylint: disable=redefined-builtin
 from .datastructures import OrderedDict as OrderedDictWithSort
-from .exceptions import (
-    BaseError, DataError, MockCreationError,
-    MissingValueError, UnknownFieldError
+from .exceptions import *
+from .transforms import (
+    atoms, export_loop,
+    convert, to_native, to_dict, to_primitive,
+    flatten, expand
 )
+from .validate import validate, prepare_validator
 from .types import BaseType
 from .types.serializable import Serializable
 from .undefined import Undefined
-
-try:
-    unicode #PY2
-except:
-    import codecs
-    unicode = str #PY3
 
 
 class FieldDescriptor(object):
@@ -213,7 +206,7 @@ class ModelMeta(type):
         return cls._fields
 
 
-@add_metaclass(ModelMeta)
+@metaclass(ModelMeta)
 class Model(object):
 
     """
@@ -418,12 +411,12 @@ class Model(object):
 
     def __repr__(self):
         try:
-            obj = unicode(self)
+            obj = str(self)
         except (UnicodeEncodeError, UnicodeDecodeError):
             obj = '[Bad Unicode data]'
 
         try:
-            class_name = unicode(self.__class__.__name__)
+            class_name = str(self.__class__.__name__)
         except (UnicodeEncodeError, UnicodeDecodeError):
             class_name = '[Bad Unicode class name]'
 
@@ -436,9 +429,5 @@ class Model(object):
         return '%s object' % self.__class__.__name__
 
 
-from .transforms import (
-    atoms, export_loop,
-    convert, to_native, to_dict, to_primitive,
-    flatten, expand,
-)
-from .validate import validate, prepare_validator
+__all__ = module_exports(__name__)
+

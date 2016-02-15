@@ -8,13 +8,6 @@ from schematics.types.compound import ModelType, DictType, ListType
 from schematics.types.serializable import serializable
 from schematics.transforms import blacklist, whitelist, wholelist, export_loop
 
-import six
-from six import iteritems
-try:
-    unicode #PY2
-except:
-    import codecs
-    unicode = str #PY3
 
 def test_serializable():
     class Location(Model):
@@ -79,7 +72,7 @@ def test_serializable_with_custom_serializable_class():
     class PlayerIdType(LongType):
 
         def to_primitive(self, value, context=None):
-            return unicode(value)
+            return str(value)
 
     class Player(Model):
         id = LongType()
@@ -761,7 +754,7 @@ def test_role_set_operations():
             n += 1
 
     class User(Model):
-        id = IntType(default=six.next(count(42)))
+        id = IntType(default=next(count(42)))
         name = StringType()
         email = StringType()
         password = StringType()
@@ -802,7 +795,7 @@ def test_role_set_operations():
 
     user = User(
         dict(
-            (k, v) for k, v in iteritems(data)
+            (k, v) for k, v in data.items()
             if k in User._options.roles['create']  # filter by 'create' role
         )
     )

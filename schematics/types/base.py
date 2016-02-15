@@ -12,27 +12,12 @@ import functools
 import random
 import string
 
-import six
-from six import iteritems
-
-from ..common import *
+from ..common import * # pylint: disable=redefined-builtin
 from ..datastructures import Context
 from ..exceptions import ConversionError, ValidationError, StopValidationError
 from ..undefined import Undefined
 from ..util import listify
 from ..validate import prepare_validator, get_validation_context
-
-try:
-    from string import ascii_letters # PY3
-except ImportError:
-    from string import letters as ascii_letters #PY2
-
-try:
-    basestring #PY2
-    bytes = str
-except NameError:
-    basestring = str #PY3
-    unicode = str
 
 
 def fill_template(template, min_length, max_length):
@@ -71,7 +56,9 @@ def get_value_in(min_length, max_length, padding=0, required_length=0):
         *get_range_endpoints(min_length, max_length, padding, required_length))
 
 
-def random_string(length, chars=ascii_letters + string.digits):
+_alphanumeric = string.ascii_letters + string.digits
+
+def random_string(length, chars=_alphanumeric):
     return ''.join(random.choice(chars) for _ in range(length))
 
 
@@ -112,7 +99,8 @@ class TypeMeta(type):
         return type.__new__(mcs, name, bases, attrs)
 
 
-class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
+@metaclass(TypeMeta)
+class BaseType(object):
 
     """A base class for Types in a Schematics model. Instances of this
     class may be added to subclasses of ``Model`` to define a model schema.
@@ -313,7 +301,7 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         if self.choices is not None:
             if value not in self.choices:
                 raise ValidationError(self.messages['choices']
-                                      .format(unicode(self.choices)))
+                                      .format(str(self.choices)))
 
     def mock(self, context=None):
         if not self.required and not random.choice([True, False]):
@@ -400,16 +388,16 @@ class StringType(BaseType):
         return random_string(get_value_in(self.min_length, self.max_length))
 
     def to_native(self, value, context=None):
-        if isinstance(value, unicode):
+        if isinstance(value, str):
             return value
         if isinstance(value, self.allow_casts):
             if isinstance(value, bytes):
                 try:
-                    return unicode(value, 'utf-8')
+                    return str(value, 'utf-8')
                 except UnicodeError:
                     raise ConversionError(self.messages['decode'].format(value))
             else:
-                return unicode(value)
+                return str(value)
         raise ConversionError(self.messages['convert'].format(value))
 
     def validate_length(self, value, context=None):
@@ -461,7 +449,7 @@ class NumberType(BaseType):
                 return native_value
             if not self.strict and native_value == value: # Match numeric types.
                 return native_value
-            if isinstance(value, (basestring, numbers.Integral)):
+            if isinstance(value, (string_type, numbers.Integral)):
                 return native_value
 
         raise ConversionError(self.messages['number_coerce']
@@ -539,12 +527,12 @@ class DecimalType(BaseType):
         return get_value_in(self.min_value, self.max_value)
 
     def to_primitive(self, value, context=None):
-        return unicode(value)
+        return str(value)
 
     def to_native(self, value, context=None):
         if not isinstance(value, decimal.Decimal):
-            if not isinstance(value, basestring):
-                value = unicode(value)
+            if not isinstance(value, string_type):
+                value = str(value)
             try:
                 value = decimal.Decimal(value)
             except (TypeError, decimal.InvalidOperation):
@@ -619,7 +607,7 @@ class BooleanType(BaseType):
         return random.choice([True, False])
 
     def to_native(self, value, context=None):
-        if isinstance(value, basestring):
+        if isinstance(value, string_type):
             if value in self.TRUE_VALUES:
                 value = True
             elif value in self.FALSE_VALUES:
@@ -769,7 +757,7 @@ class DateTimeType(BaseType):
     def __init__(self, formats=None, serialized_format=None, parser=None, 
                  tzd='allow', convert_tz=False, drop_tzinfo=False, **kwargs):
 
-        if isinstance(formats, basestring):
+        if isinstance(formats, string_type):
             formats = [formats]
         self.formats = formats
         self.serialized_format = serialized_format or self.SERIALIZED_FORMAT
@@ -1061,7 +1049,7 @@ class MultilingualStringType(BaseType):
             if not locale:
                 continue
 
-            if isinstance(locale, basestring):
+            if isinstance(locale, string_type):
                 possible_locales.append(locale)
             else:
                 possible_locales.extend(locale)
@@ -1076,12 +1064,12 @@ class MultilingualStringType(BaseType):
         else:
             raise ConversionError(self.messages['locale_not_found'])
 
-        if not isinstance(localized, unicode):
+        if not isinstance(localized, str):
             if isinstance(localized, self.allow_casts):
                 if isinstance(localized, bytes):
-                    localized = unicode(localized, 'utf-8')
+                    localized = str(localized, 'utf-8')
                 else:
-                    localized = unicode(localized)
+                    localized = str(localized)
             else:
                 raise ConversionError(self.messages['convert'])
 
@@ -1109,4 +1097,7 @@ class MultilingualStringType(BaseType):
             if self.locale_regex is not None and self.locale_regex.match(locale) is None:
                 raise ValidationError(
                     self.messages['regex_locale'].format(locale))
+
+
+__all__ = module_exports(__name__)
 

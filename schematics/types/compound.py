@@ -7,7 +7,7 @@ from collections import Iterable, Sequence, Mapping
 import itertools
 import functools
 
-from ..common import *
+from ..common import * # pylint: disable=redefined-builtin
 from ..datastructures import Context, OrderedDict
 from ..exceptions import *
 from ..models import Model, ModelMeta
@@ -15,12 +15,8 @@ from ..transforms import (
     get_import_context, get_export_context,
     to_native_converter, to_dict_converter, to_primitive_converter)
 from ..undefined import Undefined
-from .base import BaseType, get_value_in
 
-from six import iteritems
-from six import string_types as basestring
-from six import text_type as unicode
-from six.moves import xrange
+from .base import BaseType, get_value_in
 
 try:
     ordered_mappings = (collections.OrderedDict, OrderedDict)
@@ -99,7 +95,7 @@ class ModelType(CompoundType):
         if isinstance(model_spec, ModelMeta):
             self.model_class = model_spec
             self.model_name = self.model_class.__name__
-        elif isinstance(model_spec, basestring):
+        elif isinstance(model_spec, string_type):
             self.model_class = None
             self.model_name = model_spec
         else:
@@ -177,19 +173,19 @@ class ListType(CompoundType):
             raise MockCreationError(message)
         random_length = get_value_in(min_size, max_size)
 
-        return [self.field._mock(context) for _ in xrange(random_length)]
+        return [self.field._mock(context) for _ in range(random_length)]
 
     def _coerce(self, value):
         if isinstance(value, list):
             return value
-        elif isinstance(value, Sequence) and not isinstance(value, basestring):
+        elif isinstance(value, Sequence) and not isinstance(value, string_type):
             return value
         elif isinstance(value, Mapping):
             if isinstance(value, ordered_mappings):
                 return value.values()
             else:
                 return [v for k, v in sorted(value.items())]
-        elif isinstance(value, basestring):
+        elif isinstance(value, string_type):
             pass
         elif isinstance(value, Iterable):
             return value
@@ -259,7 +255,7 @@ class DictType(CompoundType):
 
     def __init__(self, field, coerce_key=None, **kwargs):
         self.field = self._init_field(field, kwargs)
-        self.coerce_key = coerce_key or unicode
+        self.coerce_key = coerce_key or str
         super(DictType, self).__init__(**kwargs)
 
     @property
@@ -307,7 +303,7 @@ class PolyModelType(CompoundType):
 
     def __init__(self, model_spec, **kwargs):
 
-        if isinstance(model_spec, (ModelMeta, basestring)):
+        if isinstance(model_spec, (ModelMeta, string_type)):
             self.model_classes = (model_spec,)
             allow_subclasses = True
         elif isinstance(model_spec, Iterable):
@@ -329,7 +325,7 @@ class PolyModelType(CompoundType):
         # Resolve possible name-based model references.
         resolved_classes = []
         for m in self.model_classes:
-            if isinstance(m, basestring):
+            if isinstance(m, string_type):
                 if m == owner_model.__name__:
                     resolved_classes.append(owner_model)
                 else:
@@ -405,4 +401,7 @@ class PolyModelType(CompoundType):
             raise Exception("Cannot export: {} is not an allowed type".format(model_class))
 
         return model_instance.export(context=context)
+
+
+__all__ = module_exports(__name__)
 
