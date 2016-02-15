@@ -102,8 +102,8 @@ class ModelType(CompoundType):
 
         super(ModelType, self).__init__(**kwargs)
 
-    def __repr__(self):
-        return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
+    def _repr_info(self):
+        return self.model_class.__name__
 
     def _mock(self, context=None):
         return self.model_class.get_mock_object(context)
@@ -162,6 +162,9 @@ class ListType(CompoundType):
     @property
     def model_class(self):
         return self.field.model_class
+
+    def _repr_info(self):
+        return self.field.__class__.__name__
 
     def _mock(self, context=None):
         min_size = self.min_size or 1
@@ -260,6 +263,9 @@ class DictType(CompoundType):
     def model_class(self):
         return self.field.model_class
 
+    def _repr_info(self):
+        return self.field.__class__.__name__
+
     def _convert(self, value, context, safe=False):
         if not isinstance(value, dict):
             raise ConversionError('Only dictionaries may be used in a DictType')
@@ -315,9 +321,6 @@ class PolyModelType(CompoundType):
         self.allow_subclasses = kwargs.pop("allow_subclasses", allow_subclasses)
 
         CompoundType.__init__(self, **kwargs)
-
-    def __repr__(self):
-        return object.__repr__(self)[:-1] + ' for %s>' % str(self.model_classes)
 
     def _setup(self, field_name, owner_model):
         # Resolve possible name-based model references.

@@ -412,23 +412,26 @@ class Model(object):
         return not self == other
 
     def __repr__(self):
-        try:
-            obj = str(self)
-        except (UnicodeEncodeError, UnicodeDecodeError):
-            obj = '[Bad Unicode data]'
+        model = self.__class__.__name__
+        info = self._repr_info()
+        if info:
+            return '<%s: %s>' % (model, info)
+        else:
+            return '<%s instance>' % model
 
-        try:
-            class_name = str(self.__class__.__name__)
-        except (UnicodeEncodeError, UnicodeDecodeError):
-            class_name = '[Bad Unicode class name]'
+    def _repr_info(self):
+        """
+        Subclasses may implement this method to augment the ``__repr__()`` output for the instance::
 
-        return "<%s: %s>" % (class_name, obj)
+            class Person(Model):
+                ...
+                def _repr_info(self):
+                    return self.name
 
-    def __str__(self):
-        return '%s object' % self.__class__.__name__
-
-    def __unicode__(self):
-        return '%s object' % self.__class__.__name__
+            >>> Person({'name': 'Mr. Pink'})
+            <Person: Mr. Pink>
+        """
+        return None
 
 
 __all__ = module_exports(__name__)

@@ -182,6 +182,15 @@ class BaseType(object):
         self.export_mapping = dict(
             (format, getattr(self, fname)) for format, fname in self.EXPORT_METHODS.items())
 
+    def __repr__(self):
+        type_ = "%s(%s) instance" % (self.__class__.__name__, self._repr_info() or '')
+        model = " on %s" % self.owner_model.__name__ if self.owner_model else ''
+        field = " as '%s'" % self.name if self.name else ''
+        return "<%s>" % (type_ + model + field)
+
+    def _repr_info(self):
+        return None
+
     def __call__(self, value, context=None):
         return self.convert(value, context)
 

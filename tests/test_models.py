@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+
 import pytest
 
 from schematics.models import Model, ModelOptions
 from schematics.transforms import whitelist, blacklist
 from schematics.undefined import Undefined
 
+from schematics.common import PY2
 from schematics.types.base import StringType, IntType
 from schematics.types.compound import ModelType
 from schematics.exceptions import *
@@ -603,5 +605,18 @@ def test_eq():
 
 def test_repr():
     inst = SimpleModel({'field1': 'foo'})
-    assert repr(inst) == '<SimpleModel: SimpleModel object>'
+    assert repr(inst) == str(inst) == '<SimpleModel instance>'
+
+    class FooModel(SimpleModel):
+        def _repr_info(self):
+            return str.join(', ', (self[k] for k in self))
+
+    inst = FooModel({'field1': 'foo', 'field2': 'bar'})
+    assert repr(inst) == '<FooModel: foo, bar>'
+
+    inst = FooModel({'field1': u'é', 'field2': u'Ä'})
+    if PY2:
+        assert repr(inst) == '<FooModel: \\xe9, \\xc4>'
+    else:
+        assert repr(inst) == '<FooModel: é, Ä>'
 

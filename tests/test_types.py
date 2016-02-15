@@ -12,11 +12,29 @@ import pytest
 from schematics.datastructures import Context
 from schematics.models import Model
 from schematics.types import *
+from schematics.types.compound import *
 from schematics.types.base import get_range_endpoints
 from schematics.exceptions import ConversionError, ValidationError, DataError
 
 
 _uuid = uuid.UUID('3ce85e48-3028-409c-a07c-c8ee3d16d5c4')
+
+
+def test_type_repr():
+
+    class Bar(Model):
+        pass
+
+    class Foo(Model):
+        intfield = IntType()
+        modelfield = ModelType(Bar)
+        listfield = ListType(ListType(StringType))
+
+    assert repr(Foo.intfield) == "<IntType() instance on Foo as 'intfield'>"
+    assert repr(Foo.listfield) == "<ListType(ListType) instance on Foo as 'listfield'>"
+    assert repr(Foo.listfield.field.field) == "<StringType() instance on Foo>"
+    assert repr(Foo.modelfield) == "<ModelType(Bar) instance on Foo as 'modelfield'>"
+    assert repr(DateTimeType()) == "<DateTimeType() instance>"
 
 
 def test_string_choices():

@@ -14,22 +14,22 @@ class ErrorMessage(object):
         self.summary = summary
         self.info = info
 
-    def __str__(self):
-        return self.summary
-
     def __repr__(self):
-        return '{0}("{1}", info={2})'.format(type(self).__name__, self.summary, self.info_repr)
+        return '%s(%s)' % (self.__class__.__name__, str(self))
 
-    @property
-    def info_repr(self):
-        if self.info is None:
-            return 'None'
-        elif isinstance(self.info, int):
-            return self.info
-        elif isinstance(self.info, string_type):
-            return '"{0}"'.format(self.info)
+    def __str__(self):
+        if self.info:
+            return '("%s", %s)' % (self.summary, self._info_as_str())
         else:
-            return "<'{0}' object>".format(type(self.info).__name__)
+            return '"%s"' % self.summary
+
+    def _info_as_str(self):
+        if isinstance(self.info, int):
+            return str(self.info)
+        elif isinstance(self.info, string_type):
+            return '"%s"' % self.info
+        else:
+            return "<'%s' object>" % self.info.__class__.__name__
 
     def __eq__(self, other):
         if isinstance(other, ErrorMessage):
@@ -100,13 +100,10 @@ class FieldError(BaseError):
 
     def __repr__(self):
         if len(self.messages) == 1:
-            msg = self.messages[0]
-            msg_repr = '"{0}", info={1}'.format(msg.summary, msg.info_repr)
+            msg_repr = str(self.messages[0])
         else:
-            msg_repr = str.join(', ',
-                                ('("{0}", {1})'.format(msg.summary, msg.info_repr)
-                                 for msg in self.messages))
-        return '{0}({1})'.format(type(self).__name__, msg_repr)
+            msg_repr = '[' + str.join(', ', map(str, self.messages)) + ']'
+        return '%s(%s)' % (self.__class__.__name__, msg_repr)
 
     __str__ = __repr__
 
