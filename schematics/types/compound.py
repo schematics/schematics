@@ -272,8 +272,8 @@ class DictType(CompoundType):
         return self.field.__class__.__name__
 
     def _convert(self, value, context, safe=False):
-        if not isinstance(value, dict):
-            raise ConversionError('Only dictionaries may be used in a DictType')
+        if not isinstance(value, Mapping):
+            raise ConversionError('Only mappings may be used in a DictType')
 
         data = {}
         errors = {}

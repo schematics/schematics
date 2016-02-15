@@ -7,7 +7,7 @@ import inspect
 import itertools
 
 from .common import * # pylint: disable=redefined-builtin
-from .datastructures import OrderedDict as OrderedDictWithSort
+from .datastructures import OrderedDict
 from .exceptions import *
 from .transforms import (
     atoms, export_loop,
@@ -117,7 +117,7 @@ class ModelMeta(type):
         """
 
         # Structures used to accumulate meta info
-        fields = OrderedDictWithSort()
+        fields = OrderedDict()
         serializables = {}
         validator_functions = {}  # Model level
 
@@ -339,7 +339,7 @@ class Model(object):
         return iter(self.keys())
 
     def keys(self):
-        return [k for k, v in self._field_list if self._data[k] is not Undefined]
+        return [k for k in self._fields if self._data[k] is not Undefined]
 
     def items(self):
         return [(k, self._data[k]) for k in self.keys()]

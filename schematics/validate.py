@@ -77,7 +77,7 @@ def _validate_model(cls, data, partial_data, context):
     """
     errors = {}
     invalid_fields = []
-    for field_name, field in cls._fields.iteritems():
+    for field_name, field in iteritems(cls._fields):
         if field_name in cls._validator_functions and field_name in partial_data:
             value = data[field_name]
             try:

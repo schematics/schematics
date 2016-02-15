@@ -3,182 +3,187 @@
 
 from __future__ import unicode_literals, absolute_import
 
+from collections import MutableMapping, KeysView, ValuesView, ItemsView
 from copy import deepcopy
+from operator import eq
 
-from .common import * # pylint: disable=redefined-builtin
+from .common import *
+
+if PY2:
+    try:
+        from thread import get_ident
+    except ImportError:
+        from dummy_thread import get_ident
+else:
+    try:
+        from _thread import get_ident
+    except ImportError:
+        from _dummy_thread import get_ident
 
 
-_missing = object()
+class OrderedDict(MutableMapping, dict):
+    """
+    An ordered dictionary.
 
-class OrderedDict(dict):
-
-    """Simple ordered dict implementation.
-
-    It's a dict subclass and provides some list functions.  The implementation
-    of this class is inspired by the implementation of Babel but incorporates
-    some ideas from the `ordereddict`_ and Django's ordered dict.
-
-    The constructor and `update()` both accept iterables of tuples as well as
-    mappings:
-
-    >>> d = OrderedDict([('a', 'b'), ('c', 'd')])
-    >>> d.update({'foo': 'bar'})
-    >>> d
-    OrderedDict([('a', 'b'), ('c', 'd'), ('foo', 'bar')])
-
-    Keep in mind that when updating from dict-literals the order is not
-    preserved as these dicts are unsorted!
-
-    You can copy an OrderedDict like a dict by using the constructor,
-    `copy.copy` or the `copy` method and make deep copies with `copy.deepcopy`:
-
-    >>> from copy import copy, deepcopy
-    >>> copy(d)
-    OrderedDict([('a', 'b'), ('c', 'd'), ('foo', 'bar')])
-    >>> d.copy()
-    OrderedDict([('a', 'b'), ('c', 'd'), ('foo', 'bar')])
-    >>> OrderedDict(d)
-    OrderedDict([('a', 'b'), ('c', 'd'), ('foo', 'bar')])
-    >>> d['spam'] = []
-    >>> d2 = deepcopy(d)
-    >>> d2['spam'].append('eggs')
-    >>> d
-    OrderedDict([('a', 'b'), ('c', 'd'), ('foo', 'bar'), ('spam', [])])
-    >>> d2
-    OrderedDict([('a', 'b'), ('c', 'd'), ('foo', 'bar'), ('spam', ['eggs'])])
-
-    All iteration methods as well as `keys`, `values` and `items` return
-    the values ordered by the the time the key-value pair is inserted:
-
-    >>> d.keys()
-    ['a', 'c', 'foo', 'spam']
-    >>> d.values()
-    ['b', 'd', 'bar', []]
-    >>> d.items()
-    [('a', 'b'), ('c', 'd'), ('foo', 'bar'), ('spam', [])]
-    >>> list(d.iterkeys())
-    ['a', 'c', 'foo', 'spam']
-    >>> list(d.itervalues())
-    ['b', 'd', 'bar', []]
-    >>> list(d.iteritems())
-    [('a', 'b'), ('c', 'd'), ('foo', 'bar'), ('spam', [])]
-
-    You can sort the OrderedDict like a list:
-
-    >>> d.sort(key=lambda x: x[0].lower())
-    >>> d
-    OrderedDict([('a', 'b'), ('c', 'd'), ('foo', 'bar'), ('spam', [])])
-
-    For performance reasons the ordering is not taken into account when
-    comparing two ordered dicts.
-
-    .. _ordereddict: http://www.xs4all.nl/~anthon/Python/ordereddict/
+    The implementation is based on ``collections.OrderedDict`` of the standard library.
+    It preserves the original technique of storing the keys as a regular list, whereas
+    the reference implementation now uses a linked list. The built-in list gives better
+    performance in use cases that are typical with Schematics.
     """
 
-    def __init__(self, *args, **kwargs):
-        super(OrderedDict, self).__init__()
-        self._keys = []
-        self.update(*args, **kwargs)
+    def __init__(*args, **kwargs):
+        if not args:
+            raise TypeError("OrderedDict.__init__() needs an instance as the first argument")
+        self = args[0]
+        args = args[1:]
+        if len(args) > 1:
+            raise TypeError("OrderedDict() takes at most 1 positional argument, got %d" % len(args))
+        dict.__init__(self)
+        if not self:
+            self._keys = []
+        MutableMapping.update(self, *args, **kwargs)
 
-    def __delitem__(self, key):
-        super(OrderedDict, self).__delitem__(key)
+    __contains__ = dict.__contains__
+    __getitem__ = dict.__getitem__
+    __len__ = dict.__len__
+
+    get = dict.get
+
+    def __setitem__(self, key, item, setitem=dict.__setitem__):
+        if key not in self:
+            self._keys.append(key)
+        setitem(self, key, item)
+
+    def __delitem__(self, key, delitem=dict.__delitem__):
+        delitem(self, key)
         self._keys.remove(key)
 
-    def __setitem__(self, key, item):
-        if key not in self:
-            if hasattr(self, '_keys'):
-                self._keys.append(key)
-            else:
-                self._keys = [key]
-        super(OrderedDict, self).__setitem__(key, item)
-
-    def __deepcopy__(self, memo):
-        memo[id(self)] = new_od = self.__class__()
-        new_od.__init__(deepcopy(self.items(), memo))
-        return new_od
+    def __iter__(self):
+        return iter(self._keys)
 
     def __reversed__(self):
         return reversed(self._keys)
 
-    @classmethod
-    def fromkeys(cls, iterable, default=None):
-        return cls((key, default) for key in iterable)
-
     def clear(self):
         del self._keys[:]
-        super(OrderedDict, self).clear()
+        dict.clear(self)
 
     def copy(self):
         return self.__class__(self)
 
-    def items(self):
-        return list(zip(self._keys, self.values()))
+    __copy__ = copy
 
-    def iteritems(self):
-        return list(zip(self._keys, self.itervalues()))
-
-    def keys(self):
-        return self._keys[:]
-
-    def iterkeys(self):
-        return iter(self._keys)
-
-    def pop(self, key, default=_missing):
+    def move_to_end(self, key, last=True):
         if key not in self:
-            if default is _missing:
-                raise KeyError(key)
-            return default
+            raise KeyError(key)
         self._keys.remove(key)
-        return super(OrderedDict, self).pop(key, default)
+        if last:
+            self._keys.append(key)
+        else:
+            self._keys.insert(0, key)
 
-    def popitem(self):
-        if not self._keys:
-            raise KeyError('popitem(): dictionary is empty')
-        return self._keys[0], self.pop(self._keys[0])
+    __token = object()
+
+    def pop(self, key, default=__token):
+        if key in self:
+            self._keys.remove(key)
+            return dict.pop(self, key)
+        elif default is self.__token:
+            raise KeyError(key)
+        else:
+            return default
+
+    def popitem(self, last=True):
+        if not self:
+            raise KeyError('dictionary is empty')
+        key = self._keys.pop(-1 if last else 0)
+        value = dict.pop(self, key)
+        return key, value
 
     def setdefault(self, key, default=None):
-        if key not in self:
-            self._keys.append(key)
-        return super(OrderedDict, self).setdefault(key, default)
-
-    def update(self, *args, **kwargs):
-        sources = []
-        if len(args) == 1:
-            if isinstance(args[0], dict):
-                sources.append(iteritems(args[0]))
-            # if hasattr(args[0], 'iteritems'):
-            #     sources.append(args[0].iteritems())
-            else:
-                sources.append(iter(args[0]))
-        elif args:
-            raise TypeError('expected at most one positional argument')
-        if kwargs:
-            sources.append(iteritems(kwargs))
-        for iterable in sources:
-            for key, val in iterable:
-                self[key] = val
-
-    def values(self):
-        return [self.get(key) for key in self._keys]
-
-    def itervalues(self):
-        return (self.get(key) for key in self._keys)
-
-    def sort(self, cmp=None, key=None, reverse=False):
-        if key is not None:
-            self._keys.sort(key=lambda k: key((k, self[k])))
-        elif cmp is not None:
-            self._keys.sort(lambda a, b: cmp((a, self[a]), (b, self[b])))
+        if key in self:
+            return self[key]
         else:
-            self._keys.sort()
-        if reverse:
-            self._keys.reverse()
+            self[key] = default
+            return default
 
-    def __repr__(self):
-        return '%s(%r)' % (type(self).__name__, self.items())
+    def sort(self, key=None, reverse=False):
+        if key is not None:
+            _key = lambda k: key((k, self[k]))
+        else:
+            _key = None
+        self._keys.sort(key=_key, reverse=reverse)
 
-    __copy__ = copy
-    __iter__ = iterkeys
+    def reverse(self):
+        self._keys.reverse()
+
+    @classmethod
+    def fromkeys(cls, iterable, value=None):
+        return cls((key, value) for key in iterable)
+
+    def __eq__(self, other):
+        if isinstance(other, OrderedDict):
+            return dict.__eq__(self, other) and all(map(eq, self, other))
+        else:
+            return dict.__eq__(self, other)
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __reduce_ex__(self, protocol=0):
+        attrs = vars(self).copy()
+        for k in vars(self.__class__()):
+            attrs.pop(k, None)
+        if protocol <= 2:
+            # Express tuples as lists to enable proper PyYAML serialization.
+            items = [[k, self[k]] for k in self]
+            return (self.__class__, (items,), attrs or None)
+        else:
+            # Provide items as an iterator. This variant can handle recursive dictionaries.
+            return (self.__class__, (), attrs or None, None, iter(self.items()))
+
+    __reduce__ = __reduce_ex__
+
+    def __repr__(self, memo=set()):
+        call_key = (id(self), get_ident())
+        if call_key in memo:
+            return '...'
+        else:
+            memo.add(call_key)
+        try:
+            return '%s(%s)' % (self.__class__.__name__, repr(list(self.items())) if self else '')
+        finally:
+            memo.remove(call_key)
+
+    if PY3:
+
+        def keys(self):
+            return _ODKeysView(self)
+
+        def values(self):
+            return _ODValuesView(self)
+
+        def items(self):
+            return _ODItemsView(self)
+
+
+class _ODKeysView(KeysView):
+    def __reversed__(self):
+        for key in reversed(self._mapping):
+            yield key
+
+
+class _ODValuesView(ValuesView):
+    def __reversed__(self):
+        for key in reversed(self._mapping):
+            yield self._mapping[key]
+
+
+class _ODItemsView(ItemsView):
+    def __reversed__(self):
+        for key in reversed(self._mapping):
+            yield (key, self._mapping[key])
+
 
 
 class DataObject(object):
@@ -264,6 +269,7 @@ class DataObject(object):
     def _setdefault(self, *args): return self.__dict__.setdefault(*args)
 
 
+
 class Context(DataObject):
 
     _fields = ()
@@ -316,4 +322,8 @@ class Context(DataObject):
         return True
 
     __nonzero__ = __bool__
+
+
+
+__all__ = module_exports(__name__)
 
