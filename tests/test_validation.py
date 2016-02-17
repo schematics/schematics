@@ -1,5 +1,7 @@
-import pytest
 import datetime
+import operator
+
+import pytest
 
 from schematics.models import Model
 from schematics.exceptions import (
@@ -374,13 +376,33 @@ def test_deep_errors_with_dicts():
     }
 
 
-def test_field_validator_override():
+def test_type_validator_inheritance():
 
     class CustomIntType(IntType):
-        def validate_range(self, value, context=None):
+        def validate_(self, value, context=None):
+            pass
+        def validate_foo(self, value, context=None):
             pass
 
-    CustomIntType(max_value=1).validate(9)
+    class SpecialIntType(CustomIntType):
+        def validate_range(self, value, context=None):
+            pass
+        def validate_bar(self, value, context=None):
+            pass
+
+    validators_custom = list(map(operator.attrgetter('__name__'), CustomIntType().validators))
+    validators_special = list(map(operator.attrgetter('__name__'), SpecialIntType().validators))
+
+    assert (validators_custom[0:2] == validators_special[0:2]
+        == ['validate_choices', 'validate_range']) # from BaseType & IntType
+
+    assert (set(validators_custom[2:4]) == set(validators_special[2:4])
+        == set(['validate_', 'validate_foo'])) # both from CustomIntType; mutual order is random
+
+    assert validators_custom[4:] == []
+    assert validators_special[4:] == ['validate_bar']
+
+    assert SpecialIntType(max_value=1).validate(9) # Overridden `validate_range()` does nothing.
 
 
 def test_model_validator_override():

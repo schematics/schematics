@@ -13,6 +13,7 @@ import string
 import uuid
 
 from ..common import * # pylint: disable=redefined-builtin
+from ..datastructures import OrderedDict
 from ..exceptions import *
 from ..undefined import Undefined
 from ..util import listify
@@ -74,7 +75,7 @@ class TypeMeta(type):
 
     def __new__(mcs, name, bases, attrs):
         messages = {}
-        validators = set()
+        validators = OrderedDict()
 
         for base in reversed(bases):
             if hasattr(base, 'MESSAGES'):
@@ -90,7 +91,7 @@ class TypeMeta(type):
 
         for attr_name, attr in attrs.items():
             if attr_name.startswith("validate_"):
-                validators.add(attr_name)
+                validators[attr_name] = 1
                 attrs[attr_name] = prepare_validator(attr, 3)
 
         attrs["_validators"] = validators
