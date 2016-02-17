@@ -1,18 +1,23 @@
-# encoding=utf-8
+# -*- coding: utf-8 -*-
 
 from copy import deepcopy
 import inspect
+import itertools
 import sys
 
 from six import iteritems
 from six import iterkeys
 from six import add_metaclass
 
-from .common import NATIVE, PRIMITIVE
+from .common import *
 from .datastructures import OrderedDict as OrderedDictWithSort
-from .exceptions import BaseError, ModelValidationError, MockCreationError
+from .exceptions import (
+    BaseError, DataError, MockCreationError,
+    MissingValueError, UnknownFieldError
+)
 from .types import BaseType
 from .types.serializable import Serializable
+from .undefined import Undefined
 
 try:
     unicode #PY2
@@ -22,12 +27,8 @@ except:
 
 
 class FieldDescriptor(object):
-
     """
-    The FieldDescriptor serves as a wrapper for Types that converts them into
-    fields.
-
-    A field is then the merger of a Type and it's Model.
+    ``FieldDescriptor`` instances serve as field accessors on models.
     """
 
     def __init__(self, name):
@@ -39,49 +40,42 @@ class FieldDescriptor(object):
 
     def __get__(self, instance, cls):
         """
-        Checks the field name against the definition of the model and returns
-        the corresponding data for valid fields or raises the appropriate error
-        for fields missing from a class.
+        For a model instance, returns the field's current value.
+        For a model class, returns the field's type object.
         """
-        try:
-            if instance is None:
-                return cls._fields[self.name]
-            return instance._data[self.name]
-        except KeyError:
-            raise AttributeError(self.name)
+        if instance is None:
+            return cls._fields[self.name]
+        else:
+            value = instance._data[self.name]
+            if value is Undefined:
+                raise MissingValueError
+            else:
+                return value
 
     def __set__(self, instance, value):
         """
-        Checks the field name against a model and sets the value.
+        Sets the field's value.
         """
         field = instance._fields[self.name]
-        if all((
-                value is not None,
-                not isinstance(value, Model),
-                isinstance(field, ModelType))):
-            value = field.model_class(value)
+        value = field.pre_setattr(value)
         instance._data[self.name] = value
 
     def __delete__(self, instance):
         """
-        Checks the field name against a model and deletes the value.
+        Deletes the field's value.
         """
-        try:
-            instance._data[self.name] = None
-        except KeyError:
-            raise AttributeError(self.name)
+        instance._data[self.name] = Undefined
 
 
 class ModelOptions(object):
-
     """
-    This class is a container for all metaclass configuration options. Its
-    primary purpose is to create an instance of a model's options for every
-    instance of a model.
+    This class is a container for all model configuration options. Its
+    primary purpose is to create an independent instance of a model's
+    options for every class.
     """
 
-    def __init__(self, klass, namespace=None, roles=None,
-                 serialize_when_none=True, fields_order=None):
+    def __init__(self, klass, namespace=None, roles=None, export_level=DEFAULT,
+                 serialize_when_none=None, fields_order=None):
         """
         :param klass:
             The class which this options instance belongs to.
@@ -94,20 +88,23 @@ class ModelOptions(object):
             When ``False``, serialization skips fields that are None.
             Default: ``True``
         :param fields_order:
-            List of field names that dictates in which order will keys
-            appear in serialized dictionary.
+            List of field names that dictates the order in which keys will
+            appear in a serialized dictionary.
         """
         self.klass = klass
         self.namespace = namespace
         self.roles = roles or {}
-        self.serialize_when_none = serialize_when_none
+        self.export_level = export_level
+        if serialize_when_none is True:
+            self.export_level = DEFAULT
+        elif serialize_when_none is False:
+            self.export_level = NONEMPTY
         self.fields_order = fields_order
 
 
 class ModelMeta(type):
-
     """
-    Meta class for Models.
+    Metaclass for Models.
     """
 
     def __new__(mcs, name, bases, attrs):
@@ -117,10 +114,9 @@ class ModelMeta(type):
 
         This function creates those attributes like this:
 
-        ``mcs._fields`` is list of fields that are schematics types
-        ``mcs._serializables`` is a list of functions that are used to generate
-        values during serialization
-        ``mcs._validator_functions`` are class level validation functions
+        ``mcs._fields`` is list of fields that are Schematics types
+        ``mcs._serializables`` is a list of ``Serializable`` objects
+        ``mcs._validator_functions`` are class-level validation functions
         ``mcs._options`` is the end result of parsing the ``Options`` class
         """
 
@@ -141,7 +137,7 @@ class ModelMeta(type):
         # Parse this class's attributes into meta structures
         for key, value in iteritems(attrs):
             if key.startswith('validate_') and callable(value):
-                validator_functions[key[9:]] = value
+                validator_functions[key[9:]] = prepare_validator(value, 4)
             if isinstance(value, BaseType):
                 fields[key] = value
             if isinstance(value, Serializable):
@@ -159,6 +155,7 @@ class ModelMeta(type):
 
         # Ready meta data to be klass attributes
         attrs['_fields'] = fields
+        attrs['_field_list'] = list(fields.items())
         attrs['_serializables'] = serializables
         attrs['_validator_functions'] = validator_functions
         attrs['_options'] = options
@@ -176,6 +173,10 @@ class ModelMeta(type):
             field._setup(field_name, klass)
         for field_name, field in serializables.items():
             field._setup(field_name, klass)
+
+        klass._valid_input_keys = (
+            set(itertools.chain(*(field.get_input_keys() for field in fields.values())))
+          | set(serializables))
 
         return klass
 
@@ -220,63 +221,62 @@ class Model(object):
     models, SQLAlchemy declarative extension and other developer friendly
     libraries.
 
-    Initial field values can be passed in as keyword arguments to ``__init__``
-    to initialize the object with. Can raise ``ConversionError`` if it is not
-    possible to convert the raw data into richer Python constructs.
+    :param Mapping raw_data:
+        The data to be imported into the model instance.
+    :param Mapping deserialize_mapping:
+        Can be used to provide alternative input names for fields. Values may be
+        strings or lists of strings, keyed by the actual field name.
+    :param bool partial:
+        Allow partial data to validate. Essentially drops the ``required=True``
+        settings from field definitions. Default: True
+    :param bool strict:
+        Complain about unrecognized keys. Default: True
     """
 
     __optionsclass__ = ModelOptions
 
     def __init__(self, raw_data=None, trusted_data=None, deserialize_mapping=None,
-                 partial=True, strict=True, app_data=None, context=None, validate=False):
+                 init=True, partial=True, strict=True, validate=False, app_data=None,
+                 **kwargs):
 
-        self._initial = raw_data = raw_data or {}
-        self._data = self.convert(raw_data, trusted_data=trusted_data, strict=strict,
-                                  partial=partial, mapping=deserialize_mapping,
-                                  app_data=app_data, context=context)
-        if validate:
-            self.validate(partial=partial, strict=strict, app_data=app_data, context=context)
+        self._initial = raw_data or {}
 
-    def validate(self, partial=False, strict=False, convert=True, app_data=None, context=None):
+        kwargs.setdefault('init_values', init)
+        kwargs.setdefault('apply_defaults', init)
+
+        self._data = self.convert(raw_data,
+                                  trusted_data=trusted_data, mapping=deserialize_mapping,
+                                  partial=partial, strict=strict, validate=validate, new=True,
+                                  app_data=app_data, **kwargs)
+
+    def validate(self, partial=False, convert=True, app_data=None, **kwargs):
         """
-        Validates the state of the model and adding additional untrusted data
-        as well. If the models is invalid, raises ValidationError with error
-        messages.
+        Validates the state of the model. If the data is invalid, raises a ``DataError``
+        with error messages.
 
-        :param partial:
-            Allow partial data to validate; useful for PATCH requests.
-            Essentially drops the ``required=True`` arguments from field
-            definitions. Default: False
-        :param strict:
-            Complain about unrecognized keys. Default: False
+        :param bool partial:
+            Allow partial data to validate. Essentially drops the ``required=True``
+            settings from field definitions. Default: False
         :param convert:
             Controls whether to perform import conversion before validating.
             Can be turned off to skip an unnecessary conversion step if all values
             are known to have the right datatypes (e.g., when validating immediately
             after the initial import). Default: True
         """
-        try:
-            data = validate(self.__class__, self._data, partial=partial, strict=strict,
-                            convert=convert, app_data=app_data, context=context)
-            self._data.update(**data)
-        except BaseError as exc:
-            raise ModelValidationError(exc.messages)
+        data = validate(self.__class__, self._data, partial=partial, convert=convert,
+                        app_data=app_data, **kwargs)
 
-    def import_data(self, raw_data, **kw):
+        if convert:
+            self._data.update(**data)
+
+    def import_data(self, raw_data, recursive=False, **kwargs):
         """
-        Converts and imports the raw data into the instance of the model
-        according to the fields in the model.
+        Converts and imports the raw data into an existing model instance.
 
         :param raw_data:
             The data to be imported.
         """
-        data = self.convert(raw_data, **kw)
-        #[x * 2 if x % 2 == 0 else x for x in a_list]
-        del_keys = [ k for k in data.keys() if data[k] is None]
-        for k in del_keys:
-            del data[k]
-
-        self._data.update(data)
+        self._data = self.convert(raw_data, trusted_data=self, recursive=recursive, **kwargs)
         return self
 
     def convert(self, raw_data, **kw):
@@ -287,19 +287,28 @@ class Model(object):
         :param raw_data:
             The data to be converted
         """
-        return convert(self.__class__, raw_data, **kw)
-
-    def export(self, format, field_converter=None, role=None, app_data=None, **kwargs):
-        data = export_loop(self.__class__, self, field_converter=field_converter,
-                           role=role, app_data=app_data, **kwargs)
-        if format == NATIVE:
-            return self.__class__(trusted_data=data)
+        _validate = getattr(kw.get('context'), 'validate', kw.get('validate', False))
+        if _validate:
+            return validate(self.__class__, raw_data, **kw)
         else:
-            return data
+            return convert(self.__class__, raw_data, **kw)
+
+    @classmethod
+    def _convert(cls, obj, context):
+        if context.new or not isinstance(obj, Model):
+            return cls(obj, context=context)
+        else:
+            data = obj.convert(obj._data, context=context)
+            if context.convert:
+                obj._data.update(data)
+            return obj
+
+    def export(self, field_converter=None, role=None, app_data=None, **kwargs):
+        return export_loop(self.__class__, self, field_converter=field_converter,
+                           role=role, app_data=app_data, **kwargs)
 
     def to_native(self, role=None, app_data=None, **kwargs):
-        data = to_native(self.__class__, self, role=role, app_data=app_data, **kwargs)
-        return self.__class__(trusted_data=data)
+        return to_native(self.__class__, self, role=role, app_data=app_data, **kwargs)
 
     def to_dict(self, role=None, app_data=None, **kwargs):
         return to_dict(self.__class__, self, role=role, app_data=app_data, **kwargs)
@@ -307,8 +316,8 @@ class Model(object):
     def to_primitive(self, role=None, app_data=None, **kwargs):
         return to_primitive(self.__class__, self, role=role, app_data=app_data, **kwargs)
 
-    def serialize(self, role=None, app_data=None, **kwargs):
-        return self.to_primitive(role=role, app_data=app_data, **kwargs)
+    def serialize(self, *args, **kwargs):
+        return self.to_primitive(*args, **kwargs)
 
     def flatten(self, role=None, prefix="", app_data=None, context=None):
         """
@@ -330,41 +339,28 @@ class Model(object):
     def atoms(self):
         """
         Iterator for the atomic components of a model definition and relevant
-        data that creates a threeple of the field's name, the instance of it's
-        type, and it's value.
+        data that creates a 3-tuple of the field's name, its type instance and
+        its value.
         """
         return atoms(self.__class__, self)
-
-    @classmethod
-    def allow_none(cls, field):
-        """
-        Inspects a field and class for ``serialize_when_none`` setting.
-
-        The setting defaults to the value of the class.  A field can override
-        the class setting with it's own ``serialize_when_none`` setting.
-        """
-        return allow_none(cls, field)
 
     def __iter__(self):
         return self.iter()
 
     def iter(self):
-        return iter(self._fields)
+        return iter(self.keys())
 
     def keys(self):
-        return self._fields.keys()
+        return [k for k, v in self._field_list if self._data[k] is not Undefined]
 
     def items(self):
-        return [(k, self.get(k)) for k in iterkeys(self._fields)]
+        return [(k, self._data[k]) for k in self.keys()]
 
     def values(self):
-        return [self.get(k) for k in iterkeys(self._fields)]
+        return [self._data[k] for k in self.keys()]
 
     def get(self, key, default=None):
-        try:
-            return self[key]
-        except KeyError:
-            return default
+        return getattr(self, key, default)
 
     @classmethod
     def get_mock_object(cls, context=None, overrides=None):
@@ -386,32 +382,33 @@ class Model(object):
         return cls(values)
 
     def __getitem__(self, name):
-        try:
+        if name in self._fields or name in self._serializables:
             return getattr(self, name)
-        except AttributeError:
-            raise KeyError(name)
+        else:
+            raise UnknownFieldError
 
     def __setitem__(self, name, value):
-        if name not in self._data:
-            raise KeyError(name)
-        return setattr(self, name, value)
+        if name in self._fields:
+            return setattr(self, name, value)
+        else:
+            raise UnknownFieldError
 
     def __delitem__(self, name):
-        try:
+        if name in self._fields:
             return delattr(self, name)
-        except AttributeError:
-            raise KeyError(name)
+        else:
+            raise UnknownFieldError
 
     def __contains__(self, name):
-        return name in self._data or name in self._serializables
+        return name in self.keys() or name in self._serializables
 
     def __len__(self):
-        return len(self._data)
+        return len(self.keys())
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             for k in self._fields:
-                if self.get(k) != other.get(k):
+                if self._data[k] != other._data[k]:
                     return False
             return True
         return NotImplemented
@@ -439,7 +436,9 @@ class Model(object):
         return '%s object' % self.__class__.__name__
 
 
-from .transforms import allow_none, atoms, flatten, expand
-from .transforms import convert, to_native, to_dict, to_primitive, export_loop
-from .types.compound import ModelType
-from .validate import validate
+from .transforms import (
+    atoms, export_loop,
+    convert, to_native, to_dict, to_primitive,
+    flatten, expand,
+)
+from .validate import validate, prepare_validator

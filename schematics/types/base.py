@@ -15,10 +15,12 @@ import string
 import six
 from six import iteritems
 
-from ..common import NATIVE, PRIMITIVE
-from ..exceptions import (
-    StopValidation, ValidationError, ConversionError, MockCreationError
-)
+from ..common import *
+from ..datastructures import Context
+from ..exceptions import ConversionError, ValidationError, StopValidationError
+from ..undefined import Undefined
+from ..util import listify
+from ..validate import prepare_validator, get_validation_context
 
 try:
     from string import ascii_letters # PY3
@@ -100,9 +102,10 @@ class TypeMeta(type):
 
         attrs['MESSAGES'] = messages
 
-        for attr_name in attrs:
+        for attr_name, attr in attrs.items():
             if attr_name.startswith("validate_"):
                 validators.add(attr_name)
+                attrs[attr_name] = prepare_validator(attr, 3)
 
         attrs["_validators"] = validators
 
@@ -160,23 +163,26 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         PRIMITIVE: 'to_primitive',
     }
 
-    def __init__(self, required=False, default=None, serialized_name=None,
+    def __init__(self, required=False, default=Undefined, serialized_name=None,
                  choices=None, validators=None, deserialize_from=None,
-                 serialize_when_none=None, messages=None):
+                 export_level=None, serialize_when_none=None,
+                 messages=None, **kwargs):
         super(BaseType, self).__init__()
+
         self.required = required
         self._default = default
         self.serialized_name = serialized_name
         if choices and not isinstance(choices, (list, tuple)):
             raise TypeError('"choices" must be a list or tuple')
         self.choices = choices
-        self.deserialize_from = deserialize_from
+        self.deserialize_from = listify(deserialize_from)
 
         self.validators = [getattr(self, validator_name) for validator_name in self._validators]
         if validators:
-            self.validators += validators
+            self.validators += (prepare_validator(func, 2) for func in validators)
 
-        self.serialize_when_none = serialize_when_none
+        self._set_export_level(export_level, serialize_when_none)
+
         self.messages = dict(self.MESSAGES, **(messages or {}))
         self._position_hint = next(_next_position_hint)  # For ordering of fields
 
@@ -189,8 +195,8 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         self.export_mapping = dict(
             (format, getattr(self, fname)) for format, fname in self.EXPORT_METHODS.items())
 
-    def __call__(self, value):
-        return self.to_native(value)
+    def __call__(self, value, context=None):
+        return self.convert(value, context)
 
     def __deepcopy__(self, memo):
         return copy.copy(self)
@@ -204,13 +210,54 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         """
         self.name = field_name
         self.owner_model = owner_model
+        self._input_keys = self._get_input_keys()
+
+    def _set_export_level(self, export_level, serialize_when_none):
+        if export_level is not None:
+            self.export_level = export_level
+        elif serialize_when_none is True:
+            self.export_level = DEFAULT
+        elif serialize_when_none is False:
+            self.export_level = NONEMPTY
+        else:
+            self.export_level = None
+
+    def get_export_level(self, context):
+        if self.owner_model:
+            level = self.owner_model._options.export_level
+        else:
+            level = DEFAULT
+        if self.export_level is not None:
+            level = self.export_level
+        if context.export_level is not None:
+            level = context.export_level
+        return level
+
+    def get_input_keys(self, mapping={}):
+        if mapping:
+            return self._get_input_keys(mapping)
+        else:
+            return self._input_keys
+
+    def _get_input_keys(self, mapping={}):
+        input_keys = [self.name]
+        if self.serialized_name:
+            input_keys.append(self.serialized_name)
+        if self.name in mapping:
+            input_keys.extend(listify(mapping[self.name]))
+        if self.deserialize_from:
+            input_keys.extend(self.deserialize_from)
+        return input_keys
 
     @property
     def default(self):
         default = self._default
-        if callable(self._default):
-            default = self._default()
+        if callable(default):
+            default = default()
         return default
+
+    def pre_setattr(self, value):
+        return value
 
     def convert(self, value, context=None):
         return self.to_native(value, context)
@@ -229,39 +276,40 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         """
         return value
 
-    def allow_none(self):
-        if self.owner_model:
-            return self.owner_model.allow_none(self)
-        else:
-            return self.serialize_when_none
-
-    def validate(self, value, convert=True, context=None):
+    def validate(self, value, context=None):
         """
-        Validate the field and return a clean value or raise a
+        Validate the field and return a converted value or raise a
         ``ValidationError`` with a list of errors raised by the validation
         chain. Stop the validation process from continuing through the
-        validators by raising ``StopValidation`` instead of ``ValidationError``.
+        validators by raising ``StopValidationError`` instead of ``ValidationError``.
 
         """
-        if convert:
+        context = context or get_validation_context()
+
+        if context.convert:
             value = self.convert(value, context)
+        elif self.is_compound:
+            self.convert(value, context)
 
         errors = []
-
         for validator in self.validators:
             try:
-                validator(value, context=context)
+                validator(value, context)
             except ValidationError as exc:
-                errors.extend(exc.messages)
-                if isinstance(exc, StopValidation):
+                errors.append(exc)
+                if isinstance(exc, StopValidationError):
                     break
-
         if errors:
             raise ValidationError(errors)
 
         return value
 
-    def validate_choices(self, value, context=None):
+    def check_required(self, value, context):
+        if self.required and value in (None, Undefined):
+            if self.name is None or context and not context.partial:
+                raise ConversionError(self.messages['required'])
+
+    def validate_choices(self, value, context):
         if self.choices is not None:
             if value not in self.choices:
                 raise ValidationError(self.messages['choices']
@@ -290,7 +338,7 @@ class UUIDType(BaseType):
         if not isinstance(value, uuid.UUID):
             try:
                 value = uuid.UUID(value)
-            except (AttributeError, TypeError, ValueError):
+            except (TypeError, ValueError):
                 raise ConversionError(self.messages['convert'].format(value))
         return value
 
@@ -329,21 +377,20 @@ class IPv4Type(BaseType):
 
 class StringType(BaseType):
 
-    """A unicode string field. Default minimum length is one. If you want to
-    accept empty strings, init with ``min_length`` 0.
-    """
+    """A Unicode string field."""
 
     allow_casts = (int, bytes)
 
     MESSAGES = {
         'convert': u"Couldn't interpret '{0}' as string.",
+        'decode': u"Invalid UTF-8 data.",
         'max_length': u"String value is too long.",
         'min_length': u"String value is too short.",
         'regex': u"String value did not match validation regex.",
     }
 
     def __init__(self, regex=None, max_length=None, min_length=None, **kwargs):
-        self.regex = regex
+        self.regex = re.compile(regex) if regex else None
         self.max_length = max_length
         self.min_length = min_length
 
@@ -353,103 +400,29 @@ class StringType(BaseType):
         return random_string(get_value_in(self.min_length, self.max_length))
 
     def to_native(self, value, context=None):
-        if value is None:
-            return None
-
-        if not isinstance(value, unicode):
-            if isinstance(value, self.allow_casts):
-                if isinstance(value, bytes):
-                    value = unicode(value, 'utf-8')
-                else:
-                    value = unicode(value)
+        if isinstance(value, unicode):
+            return value
+        if isinstance(value, self.allow_casts):
+            if isinstance(value, bytes):
+                try:
+                    return unicode(value, 'utf-8')
+                except UnicodeError:
+                    raise ConversionError(self.messages['decode'].format(value))
             else:
-                raise ConversionError(self.messages['convert'].format(value))
-
-        return value
+                return unicode(value)
+        raise ConversionError(self.messages['convert'].format(value))
 
     def validate_length(self, value, context=None):
-        len_of_value = len(value) if value else 0
-
-        if self.max_length is not None and len_of_value > self.max_length:
+        length = len(value)
+        if self.max_length is not None and length > self.max_length:
             raise ValidationError(self.messages['max_length'])
 
-        if self.min_length is not None and len_of_value < self.min_length:
+        if self.min_length is not None and length < self.min_length:
             raise ValidationError(self.messages['min_length'])
 
     def validate_regex(self, value, context=None):
-        if self.regex is not None and re.match(self.regex, value) is None:
+        if self.regex is not None and self.regex.match(value) is None:
             raise ValidationError(self.messages['regex'])
-
-
-class URLType(StringType):
-
-    """A field that validates input as an URL.
-
-    If verify_exists=True is passed the validate function will make sure
-    the URL makes a valid connection.
-    """
-
-    MESSAGES = {
-        'invalid_url': u"Not a well formed URL.",
-        'not_found': u"URL does not exist.",
-    }
-
-    URL_REGEX = re.compile(
-        r'^https?://'
-        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,2000}[A-Z0-9])?\.)+[A-Z]{2,63}\.?|'
-        r'localhost|'
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
-        r'(?::\d+)?'
-        r'(?:/?|[/?]\S+)$', re.IGNORECASE
-    )
-
-    def __init__(self, verify_exists=False, **kwargs):
-        self.verify_exists = verify_exists
-        super(URLType, self).__init__(**kwargs)
-
-    def _mock(self, context=None):
-        return fill_template('http://a%s.ZZ', self.min_length,
-                             self.max_length)
-
-    def validate_url(self, value, context=None):
-        if not URLType.URL_REGEX.match(value):
-            raise StopValidation(self.messages['invalid_url'])
-        if self.verify_exists:
-            from six.moves import urllib
-            try:
-                request = urllib.Request(value)
-                urllib.urlopen(request)
-            except Exception:
-                raise StopValidation(self.messages['not_found'])
-
-
-class EmailType(StringType):
-
-    """A field that validates input as an E-Mail-Address.
-    """
-
-    MESSAGES = {
-        'email': u"Not a well formed email address."
-    }
-
-    EMAIL_REGEX = re.compile(
-        # dot-atom
-        r"(^[-!#$%&'*+/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*"
-        # quoted-string
-        r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-011\013\014\016'
-        r'-\177])*"'
-        # domain
-        r')@(?:[A-Z0-9](?:[A-Z0-9-]{0,2000}[A-Z0-9])?\.)+[A-Z]{2,63}\.?$',
-        re.IGNORECASE
-    )
-
-    def _mock(self, context=None):
-        return fill_template('%s@example.com', self.min_length,
-                             self.max_length)
-
-    def validate_email(self, value, context=None):
-        if not EmailType.EMAIL_REGEX.match(value):
-            raise StopValidation(self.messages['email'])
 
 
 class NumberType(BaseType):
@@ -553,8 +526,8 @@ class DecimalType(BaseType):
 
     MESSAGES = {
         'number_coerce': u"Number '{0}' failed to convert to a decimal.",
-        'number_min': u"Value should be greater than {0}.",
-        'number_max': u"Value should be less than {0}.",
+        'number_min': u"Value should be greater than or equal to {0}.",
+        'number_max': u"Value should be less than or equal to {0}.",
     }
 
     def __init__(self, min_value=None, max_value=None, **kwargs):
@@ -591,7 +564,7 @@ class DecimalType(BaseType):
         return value
 
 
-class HashType(BaseType):
+class HashType(StringType):
 
     MESSAGES = {
         'hash_length': u"Hash value is wrong length.",
@@ -602,6 +575,8 @@ class HashType(BaseType):
         return random_string(self.LENGTH, string.hexdigits)
 
     def to_native(self, value, context=None):
+        value = super(HashType, self).to_native(value, context)
+
         if len(value) != self.LENGTH:
             raise ValidationError(self.messages['hash_length'])
         try:
@@ -650,7 +625,7 @@ class BooleanType(BaseType):
             elif value in self.FALSE_VALUES:
                 value = False
 
-        if isinstance(value, int) and value in [0, 1]:
+        elif isinstance(value, int) and value in [0, 1]:
             value = bool(value)
 
         if not isinstance(value, bool):
@@ -756,11 +731,12 @@ class DateTimeType(BaseType):
         'validate_utc_wrong': u'Time zone must be UTC.',
     }
 
-    REGEX = (u'(?P<year>\d{4})-(?P<month>\d\d)-(?P<day>\d\d)(?:T|\ )'
+    REGEX = re.compile(
+             u'(?P<year>\d{4})-(?P<month>\d\d)-(?P<day>\d\d)(?:T|\ )'
              u'(?P<hour>\d\d):(?P<minute>\d\d)'
              u'(?::(?P<second>\d\d)(?:(?:\.|,)(?P<sec_frac>\d{1,6}))?)?'
              u'(?:(?P<tzd_offset>(?P<tzd_sign>[+−-])(?P<tzd_hour>\d\d):?(?P<tzd_minute>\d\d)?)'
-             u'|(?P<tzd_utc>Z))?$')
+             u'|(?P<tzd_utc>Z))?$', re.X)
 
     TIMEDELTA_ZERO = datetime.timedelta(0)
 
@@ -876,7 +852,7 @@ class DateTimeType(BaseType):
         return dt
 
     def from_string(self, value):
-            match = re.match(self.REGEX, value, re.U + re.X)
+            match = self.REGEX.match(value)
             if not match:
                 return None
             parts = dict(((k, v) for k, v in match.groupdict().items() if v is not None))
@@ -938,9 +914,9 @@ class UTCDateTimeType(DateTimeType):
 
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
-    def __init__(self, formats=None, parser=None, tzd='utc', convert_tz=True, drop_tzinfo=True):    
+    def __init__(self, formats=None, parser=None, tzd='utc', convert_tz=True, drop_tzinfo=True, **kwargs):
         super(UTCDateTimeType, self).__init__(formats=formats, parser=parser, tzd=tzd, 
-                                            convert_tz=convert_tz, drop_tzinfo=drop_tzinfo)
+                                            convert_tz=convert_tz, drop_tzinfo=drop_tzinfo, **kwargs)
 
 
 class TimestampType(DateTimeType):
@@ -950,9 +926,9 @@ class TimestampType(DateTimeType):
     ``convert_tz=True``.
     """
 
-    def __init__(self, formats=None, parser=None, drop_tzinfo=False):
+    def __init__(self, formats=None, parser=None, drop_tzinfo=False, **kwargs):
         super(TimestampType, self).__init__(formats=formats, parser=parser, tzd='require', 
-                                            convert_tz=True, drop_tzinfo=drop_tzinfo)
+                                            convert_tz=True, drop_tzinfo=drop_tzinfo, **kwargs)
 
     def to_primitive(self, value):
         if value.tzinfo is None:
@@ -973,33 +949,34 @@ class GeoPointType(BaseType):
     """
 
     MESSAGES = {
-        'point_min': u"{0} value {1} should be greater than {2}.",
-        'point_max': u"{0} value {1} should be less than {2}."
+        'point_min': u"{0} value {1} should be greater than or equal to {2}.",
+        'point_max': u"{0} value {1} should be less than or equal to {2}."
     }
 
     def _mock(self, context=None):
         return (random.randrange(-90, 90), random.randrange(-180, 180))
 
+    @classmethod
+    def _normalize(cls, value):
+        if isinstance(value, dict):
+            return value.values()
+        else:
+            return value
+
     def to_native(self, value, context=None):
         """Make sure that a geo-value is of type (x, y)
         """
-        if not len(value) == 2:
-            raise ValueError('Value must be a two-dimensional point')
-        if isinstance(value, dict):
-            for val in value.values():
-                if not isinstance(val, (float, int)):
-                    raise ValueError('Both values in point must be float or int')
-        elif isinstance(value, (list, tuple)):
-            if (not isinstance(value[0], (float, int)) or
-                    not isinstance(value[1], (float, int))):
-                raise ValueError('Both values in point must be float or int')
-        else:
-            raise ValueError('GeoPointType can only accept tuples, lists, or dicts')
-
+        if not isinstance(value, (tuple, list, dict)):
+            raise ConversionError('GeoPointType can only accept tuples, lists, or dicts')
+        elements = self._normalize(value)
+        if not len(elements) == 2:
+            raise ConversionError('Value must be a two-dimensional point')
+        if not all(isinstance(v, (float, int)) for v in elements):
+            raise ConversionError('Both values in point must be float or int')
         return value
 
     def validate_range(self, value, context=None):
-        latitude, longitude = value
+        latitude, longitude = self._normalize(value)
         if latitude < -90:
             raise ValidationError(
                 self.messages['point_min'].format('Latitude', latitude, '-90')
@@ -1008,12 +985,10 @@ class GeoPointType(BaseType):
             raise ValidationError(
                 self.messages['point_max'].format('Latitude', latitude, '90')
             )
-
         if longitude < -180:
             raise ValidationError(
                 self.messages['point_min'].format('Longitude', longitude, -180)
             )
-
         if longitude > 180:
             raise ValidationError(
                 self.messages['point_max'].format('Longitude', longitude, 180)
@@ -1063,7 +1038,7 @@ class MultilingualStringType(BaseType):
         """Make sure a MultilingualStringType value is a dict or None."""
 
         if not (value is None or isinstance(value, dict)):
-            raise ValueError('Value must be a dict or None')
+            raise ConversionError('Value must be a dict or None')
 
         return value
 

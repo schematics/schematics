@@ -186,6 +186,8 @@ def test_utc_type():
     dt = field.to_native('2015-11-08 12:34:56.00')
     assert dt == datetime(2015, 11, 8, 12, 34, 56, 0)
 
+    UTCDateTimeType(default=datetime.utcnow)
+
 
 def test_timestamp():
 

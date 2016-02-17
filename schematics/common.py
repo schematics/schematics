@@ -1,6 +1,12 @@
+from .util import Constant
 
-NATIVE, PRIMITIVE = 0, 1
 
-EMPTY_LIST = "[]"
-EMPTY_DICT = "{}"
+NATIVE    = Constant('NATIVE',     0)
+PRIMITIVE = Constant('PRIMITIVE',  1)
+
+DROP      = Constant('DROP',       0)
+NONEMPTY  = Constant('NONEMPTY',   1)
+NOT_NONE  = Constant('NOT_NONE',   2)
+DEFAULT   = Constant('DEFAULT',   10)
+ALL       = Constant('ALL',       99)
 

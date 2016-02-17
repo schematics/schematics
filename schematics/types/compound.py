@@ -2,14 +2,19 @@
 
 from __future__ import division
 
-from collections import Iterable
+import collections
+from collections import Iterable, Sequence, Mapping
 import itertools
 import functools
 
-from ..common import NATIVE, PRIMITIVE, EMPTY_LIST, EMPTY_DICT
-from ..exceptions import (ValidationError, ConversionError,
-                          ModelValidationError, StopValidation,
-                          MockCreationError)
+from ..common import *
+from ..datastructures import Context, OrderedDict
+from ..exceptions import *
+from ..models import Model, ModelMeta
+from ..transforms import (
+    get_import_context, get_export_context,
+    to_native_converter, to_dict_converter, to_primitive_converter)
+from ..undefined import Undefined
 from .base import BaseType, get_value_in
 
 from six import iteritems
@@ -17,81 +22,72 @@ from six import string_types as basestring
 from six import text_type as unicode
 from six.moves import xrange
 
+try:
+    ordered_mappings = (collections.OrderedDict, OrderedDict)
+except AttributeError:
+    ordered_mappings = (OrderedDict,) # Python 2.6
 
-class MultiType(BaseType):
+
+class CompoundType(BaseType):
 
     def __init__(self, **kwargs):
-
-        if hasattr(self, 'field'):
-            def validate_required(value, context=None):
-                if self.field.required and value is None:
-                    raise ValidationError(self.field.messages['required'])
-            self.field.validators.append(validate_required)
-            self.field.parent_field = self
-
-        super(MultiType, self).__init__(**kwargs)
-
+        super(CompoundType, self).__init__(**kwargs)
         self.is_compound = True
+        try:
+            self.field.parent_field = self
+        except AttributeError:
+            pass
 
     def _setup(self, field_name, owner_model):
         # Recursively set up inner fields.
         if hasattr(self, 'field'):
             self.field._setup(None, owner_model)
-        super(MultiType, self)._setup(field_name, owner_model)
+        super(CompoundType, self)._setup(field_name, owner_model)
 
-    def validate(self, value, convert=True, context=None):
-        """Report dictionary of errors with lists of errors as values of each
-        key. Used by ModelType and ListType.
+    def convert(self, value, context=None):
+        context = context or get_import_context()
+        return self._convert(value, context)
 
-        """
-        if convert:
-            value = self.convert(value, context)
-
-        errors = {}
-
-        for validator in self.validators:
-            try:
-                validator(value, context=context)
-            except ModelValidationError as exc:
-                errors.update(exc.messages)
-                if isinstance(exc, StopValidation):
-                    break
-
-        if errors:
-            raise ValidationError(errors)
-
-        return value
-
-    def convert(self, value, context):
+    def _convert(self, value, context):
         raise NotImplementedError
 
-    def export(self, shape_instance, format, context):
+    def export(self, value, format, context=None):
+        context = context or get_export_context()
+        return self._export(value, format, context)
+
+    def _export(self, value, format, context):
         raise NotImplementedError
 
-    def to_native(self, *_, **__):
-        raise RuntimeError("This method is no longer implemented by the standard compound types. " \
-                           "Please use 'convert()' or 'export()' instead.")
+    def to_native(self, value, context=None):
+        context = context or get_export_context(to_native_converter)
+        return to_native_converter(self, value, context)
 
-    def to_primitive(self, *_, **__):
-        raise RuntimeError("This method is no longer implemented by the standard compound types. " \
-                           "Please use 'export()' instead.")
+    def to_dict(self, value, context=None):
+        context = context or get_export_context(to_dict_converter)
+        return to_dict_converter(self, value, context)
 
-    def init_compound_field(self, field, compound_field, **kwargs):
+    def to_primitive(self, value, context=None):
+        context = context or get_export_context(to_primitive_converter)
+        return to_primitive_converter(self, value, context)
+
+    def _init_field(self, field, options):
         """
-        Some of non-BaseType fields requires `field` arg.
-        Not avoid name conflict, provide it as `compound_field`.
-        Example:
-
-            comments = ListType(DictType, compound_field=StringType)
+        Instantiate the inner field that represents each element within this compound type.
+        In case the inner field is itself a compound type, its inner field can be provided
+        as the ``nested_field`` keyword argument.
         """
-        if compound_field:
-            field = field(field=compound_field, **kwargs)
-        else:
-            field = field(**kwargs)
+        if not isinstance(field, BaseType):
+            nested_field = options.pop('nested_field', None) or options.pop('compound_field', None)
+            if nested_field:
+                field = field(field=nested_field, **options)
+            else:
+                field = field(**options)
         return field
 
+MultiType = CompoundType
 
-class ModelType(MultiType):
+
+class ModelType(CompoundType):
     """A field that can hold an instance of the specified model."""
 
     @property
@@ -127,43 +123,41 @@ class ModelType(MultiType):
                 raise Exception("ModelType: Unable to resolve model '{}'.".format(self.model_name))
         super(ModelType, self)._setup(field_name, owner_model)
 
-    def validate_model(self, model_instance, context=None):
-        model_instance.validate(context=context)
+    def pre_setattr(self, value):
+        if value is not None \
+          and not isinstance(value, Model):
+            value = self.model_class(value)
+        return value
 
-    def convert(self, value, context):
-        # We have already checked if the field is required. If it is None it
-        # should continue being None
-        if value is None:
-            return None
+    def _convert(self, value, context):
+
         if isinstance(value, self.model_class):
-            return value
-
-        if not isinstance(value, dict):
+            model_class = type(value)
+        elif isinstance(value, dict):
+            model_class = self.model_class
+        else:
             raise ConversionError(
                 u'Please use a mapping for this field or {0} instance instead of {1}.'.format(
                     self.model_class.__name__,
                     type(value).__name__))
+        return model_class._convert(value, context=context)
 
-        # partial submodels now available with import_data (ht ryanolson)
-        model = self.model_class()
-        return model.import_data(value, context=context)
-
-    def export(self, model_instance, format, context):
-        return model_instance.export(format=format, context=context)
+    def _export(self, model_instance, format, context):
+        return model_instance.export(context=context)
 
 
-class ListType(MultiType):
+class ListType(CompoundType):
     """A field for storing a list of items, all of which must conform to the type
     specified by the ``field`` parameter.
+
+    Use it like this::
+
+        ...
+        categories = ListType(StringType)
     """
 
     def __init__(self, field, min_size=None, max_size=None, **kwargs):
-
-        if not isinstance(field, BaseType):
-            compound_field = kwargs.pop('compound_field', None)
-            field = self.init_compound_field(field, compound_field, **kwargs)
-
-        self.field = field
+        self.field = self._init_field(field, kwargs)
         self.min_size = min_size
         self.max_size = max_size
 
@@ -185,26 +179,36 @@ class ListType(MultiType):
 
         return [self.field._mock(context) for _ in xrange(random_length)]
 
-    def _force_list(self, value):
-        if value is None or value == EMPTY_LIST:
-            return []
+    def _coerce(self, value):
+        if isinstance(value, list):
+            return value
+        elif isinstance(value, Sequence) and not isinstance(value, basestring):
+            return value
+        elif isinstance(value, Mapping):
+            if isinstance(value, ordered_mappings):
+                return value.values()
+            else:
+                return [v for k, v in sorted(value.items())]
+        elif isinstance(value, basestring):
+            pass
+        elif isinstance(value, Iterable):
+            return value
+        raise ConversionError('Could not interpret the value as a list')
 
-        try:
-            if isinstance(value, basestring):
-                raise TypeError()
+    def _convert(self, value, context):
+        value = self._coerce(value)
+        data = []
+        errors = {}
+        for index, item in enumerate(value):
+            try:
+                data.append(context.field_converter(self.field, item, context))
+            except BaseError as exc:
+                errors[index] = exc
+        if errors:
+            raise CompoundError(errors)
+        return data
 
-            if isinstance(value, dict):
-                return [value[unicode(k)] for k in sorted(map(int, value.keys()))]
-
-            return list(value)
-        except TypeError:
-            return [value]
-
-    def convert(self, value, context):
-        items = self._force_list(value)
-        return [self.field.convert(item, context) for item in items]
-
-    def check_length(self, value, context=None):
+    def check_length(self, value, context):
         list_length = len(value) if value else 0
 
         if self.min_size is not None and list_length < self.min_size:
@@ -221,99 +225,84 @@ class ListType(MultiType):
             }[self.max_size == 1]) % self.max_size
             raise ValidationError(message)
 
-    def validate_items(self, items, context=None):
-        errors = []
-        for item in items:
-            try:
-                self.field.validate(item, context)
-            except ValidationError as exc:
-                errors.append(exc.messages)
-        if errors:
-            raise ValidationError(errors)
-
-    def export(self, list_instance, format, context):
+    def _export(self, list_instance, format, context):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
         as `transforms.export_loop`.
         """
         data = []
+        _export_level = self.field.get_export_level(context)
+        if _export_level == DROP:
+            return data
         for value in list_instance:
             shaped = self.field.export(value, format, context)
-            feels_empty = shaped is None or isinstance(self.field, MultiType) and len(shaped) == 0
-
-            # Print if we want empty or found a value
-            if feels_empty:
-                if self.field.allow_none() or context.print_none:
-                    data.append(shaped)
-            elif shaped is not None:
-                data.append(shaped)
-
+            if shaped is None:
+                if _export_level <= NOT_NONE:
+                    continue
+            elif self.field.is_compound and len(shaped) == 0:
+                if _export_level <= NONEMPTY:
+                    continue
+            data.append(shaped)
         return data
 
 
-class DictType(MultiType):
+class DictType(CompoundType):
     """A field for storing a mapping of items, the values of which must conform to the type
     specified by the ``field`` parameter.
+
+    Use it like this::
+
+        ...
+        categories = DictType(StringType)
+
     """
 
     def __init__(self, field, coerce_key=None, **kwargs):
-        if not isinstance(field, BaseType):
-            compound_field = kwargs.pop('compound_field', None)
-            field = self.init_compound_field(field, compound_field, **kwargs)
-
+        self.field = self._init_field(field, kwargs)
         self.coerce_key = coerce_key or unicode
-        self.field = field
-
-        validators = [self.validate_items] + kwargs.pop("validators", [])
-
-        super(DictType, self).__init__(validators=validators, **kwargs)
+        super(DictType, self).__init__(**kwargs)
 
     @property
     def model_class(self):
         return self.field.model_class
 
-    def convert(self, value, context, safe=False):
-        if value == EMPTY_DICT:
-            value = {}
-        value = value or {}
+    def _convert(self, value, context, safe=False):
         if not isinstance(value, dict):
             raise ConversionError(u'Only dictionaries may be used in a DictType')
 
-        return dict((self.coerce_key(k), self.field.convert(v, context))
-                    for k, v in iteritems(value))
-
-    def validate_items(self, items, context=None):
+        data = {}
         errors = {}
-        for key, value in iteritems(items):
+        for k, v in iteritems(value):
             try:
-                self.field.validate(value, context)
-            except ValidationError as exc:
-                errors[key] = exc
-
+                data[self.coerce_key(k)] = context.field_converter(self.field, v, context)
+            except BaseError as exc:
+                errors[k] = exc
         if errors:
-            raise ValidationError(errors)
+            raise CompoundError(errors)
+        return data
 
-    def export(self, dict_instance, format, context):
+    def _export(self, dict_instance, format, context):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
         as `transforms.export_loop`.
         """
         data = {}
-
+        _export_level = self.field.get_export_level(context)
+        if _export_level == DROP:
+            return data
         for key, value in iteritems(dict_instance):
             shaped = self.field.export(value, format, context)
-            feels_empty = shaped is None or isinstance(self.field, MultiType) and len(shaped) == 0
-
-            if feels_empty:
-                if self.field.allow_none() or context.print_none:
-                    data[key] = shaped
-            elif shaped is not None:
-                data[key] = shaped
-
+            if shaped is None:
+                if _export_level <= NOT_NONE:
+                    continue
+            elif self.field.is_compound and len(shaped) == 0:
+                if _export_level <= NONEMPTY:
+                    continue
+            data[key] = shaped
         return data
 
 
-class PolyModelType(MultiType):
+class PolyModelType(CompoundType):
     """A field that accepts an instance of any of the specified models."""
 
     def __init__(self, model_spec, **kwargs):
@@ -331,7 +320,7 @@ class PolyModelType(MultiType):
         self.claim_function = kwargs.pop("claim_function", None)
         self.allow_subclasses = kwargs.pop("allow_subclasses", allow_subclasses)
 
-        MultiType.__init__(self, **kwargs)
+        CompoundType.__init__(self, **kwargs)
 
     def __repr__(self):
         return object.__repr__(self)[:-1] + ' for %s>' % str(self.model_classes)
@@ -350,9 +339,6 @@ class PolyModelType(MultiType):
         self.model_classes = tuple(resolved_classes)
         super(PolyModelType, self)._setup(field_name, owner_model)
 
-    def validate_model(self, model_instance, context=None):
-        model_instance.validate(context=context)
-
     def is_allowed_model(self, model_instance):
         if self.allow_subclasses:
             if isinstance(model_instance, self.model_classes):
@@ -362,7 +348,7 @@ class PolyModelType(MultiType):
                 return True
         return False
 
-    def convert(self, value, context):
+    def _convert(self, value, context):
 
         if value is None:
             return None
@@ -378,8 +364,7 @@ class PolyModelType(MultiType):
                                     'an instance of {}'.format(instanceof_msg))
 
         model_class = self.find_model(value)
-        model = model_class()
-        return model.import_data(value, context=context)
+        return model_class(value, context=context)
 
     def find_model(self, data):
         """Finds the intended type by consulting potential classes or `claim_function`."""
@@ -413,13 +398,11 @@ class PolyModelType(MultiType):
         else:
             raise Exception("Input for polymorphic field did not match any model")
 
-    def export(self, model_instance, format, context):
+    def _export(self, model_instance, format, context):
 
         model_class = model_instance.__class__
         if not self.is_allowed_model(model_instance):
             raise Exception("Cannot export: {} is not an allowed type".format(model_class))
 
-        return model_instance.export(format=format, context=context)
+        return model_instance.export(context=context)
 
-
-from ..models import ModelMeta

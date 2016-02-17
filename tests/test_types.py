@@ -9,17 +9,11 @@ import uuid
 
 import pytest
 
-from schematics.transforms import ExportContext
+from schematics.datastructures import Context
 from schematics.models import Model
-from schematics.types import (
-    BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
-    URLType, MultilingualStringType, UUIDType, IPv4Type, MD5Type, BooleanType,
-    GeoPointType, FloatType, DecimalType
-)
+from schematics.types import *
 from schematics.types.base import get_range_endpoints
-from schematics.exceptions import (
-    ValidationError, ConversionError, MockCreationError
-)
+from schematics.exceptions import ConversionError, ValidationError, DataError
 
 
 _uuid = uuid.UUID('3ce85e48-3028-409c-a07c-c8ee3d16d5c4')
@@ -172,7 +166,12 @@ def test_custom_validation_functions():
             if value.upper() != value:
                 raise ValidationError("Value must be uppercase!")
 
+        def validate_without_context(self, value):
+            pass
+
     field = UppercaseType()
+
+    field.validate("UPPERCASE")
 
     with pytest.raises(ValidationError):
         field.validate("lowercase")
@@ -208,25 +207,10 @@ def test_custom_validation_function_and_inheritance():
         field.validate("MM")
 
 
-def test_email_type_with_invalid_email():
-    with pytest.raises(ValidationError):
-        EmailType().validate(u'sdfg\U0001f636\U0001f46e')
-
-
-def test_url_type_with_invalid_url():
-    with pytest.raises(ValidationError):
-        URLType().validate(u'http:example.com')
-
-
-def test_url_type_with_unreachable_url():
-    with pytest.raises(ValidationError):
-        URLType(verify_exists=True).validate_url('http://127.0.0.1:99999/')
-
-
 def test_string_type_required():
     class M(Model):
         field = StringType(required=True)
-    with pytest.raises(ValidationError):
+    with pytest.raises(DataError):
         M({'field': None}).validate()
 
 
@@ -259,6 +243,8 @@ def test_string_to_native():
 
     with pytest.raises(ConversionError):
         StringType().to_native(3.14)
+    with pytest.raises(ConversionError):
+        StringType().to_native(b'\xE0\xA0') # invalid UTF-8 sequence
 
     if sys.version_info[0] == 2:
         assert StringType().to_native(u'abc éíçßµ') == u'abc éíçßµ'
@@ -279,13 +265,13 @@ def test_multilingualstring_should_only_take_certain_types():
     mls(None)
     mls({})
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         mls(123)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         mls([])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         mls('foo')
 
 
@@ -342,7 +328,7 @@ def test_multilingual_string_should_emit_string_with_explicit_locale():
 
     assert mls.to_primitive(
         {'en_US': 'snake', 'fr_FR': 'serpent'},
-        context=ExportContext(app_data={'locale': 'fr_FR'})) == 'serpent'
+        context=Context(app_data={'locale': 'fr_FR'})) == 'serpent'
 
 
 def test_multilingual_string_should_require_a_locale():
@@ -359,7 +345,7 @@ def test_multilingual_string_without_matching_locale_should_explode():
         mls.to_primitive({'fr_FR': 'serpent'})
 
     with pytest.raises(ConversionError):
-        mls.to_primitive({'en_US': 'snake'}, context=ExportContext(app_data={'locale': 'fr_FR'}))
+        mls.to_primitive({'en_US': 'snake'}, context=Context(app_data={'locale': 'fr_FR'}))
 
 
 def test_multilingual_string_should_accept_lists_of_locales():
@@ -372,11 +358,11 @@ def test_multilingual_string_should_accept_lists_of_locales():
     mls = MultilingualStringType(default_locale=['foo', 'fr_FR', 'es_MX'])
 
     assert mls.to_primitive(strings) == 'serpent'
-    assert mls.to_primitive(strings, context=ExportContext(app_data={'locale': ['es_MX', 'bar']})) == 'serpiente'
+    assert mls.to_primitive(strings, context=Context(app_data={'locale': ['es_MX', 'bar']})) == 'serpiente'
 
     mls = MultilingualStringType()
 
-    assert mls.to_primitive(strings, context=ExportContext(app_data={'locale': ['foo', 'es_MX', 'fr_FR']})) == 'serpiente'
+    assert mls.to_primitive(strings, context=Context(app_data={'locale': ['foo', 'es_MX', 'fr_FR']})) == 'serpiente'
 
 
 def test_boolean_to_native():
@@ -405,16 +391,16 @@ def test_geopoint_mock():
 def test_geopoint_to_native():
     geo = GeoPointType(required=True)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         native = geo.to_native((10,))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         native = geo.to_native({'1':'-20', '2': '18'})
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         native = geo.to_native(['-20',  '18'])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         native = geo.to_native('-20, 18')
 
     class Point(object):
@@ -422,7 +408,7 @@ def test_geopoint_to_native():
         def __len__(self):
             return 2
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         native = geo.to_native(Point())
 
     native = geo.to_native([89, -12])

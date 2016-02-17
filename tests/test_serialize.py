@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
+from schematics.common import *
 from schematics.models import Model
 from schematics.types import StringType, LongType, IntType, MD5Type
 from schematics.types.compound import ModelType, DictType, ListType
@@ -485,7 +486,7 @@ def test_serialize_none_fields_if_export_loop_says_so():
 
     q = TestModel({'inst_id': 1})
 
-    d = export_loop(TestModel, q, lambda field, value, context: None, print_none=True)
+    d = export_loop(TestModel, q, lambda field, value, context: None, export_level=DEFAULT)
     assert d == {'inst_id': None}
 
 
@@ -495,7 +496,7 @@ def test_serialize_print_none_always_gets_you_something():
 
     q = TestModel()
 
-    d = export_loop(TestModel, q, lambda field, value, context: None, print_none=True)
+    d = export_loop(TestModel, q, lambda field, value, context: None, export_level=DEFAULT)
     assert d == {}
 
 
