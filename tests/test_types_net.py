@@ -57,7 +57,7 @@ def test_url_type_with_valid_urls():
         u'https://example.fi',
         u'http://foo-bar.example.com',
         u'HTTP://example.com:80',
-        u'http://-user:123::456(z)@example.com:80',
+        u'http://-user:123:%:456(z)@example.com:80',
         u'http://example.com/a/b/../c+d/e;f/~jdoe/@?q(x=1;y=2)&r=0#yo!',
         u'http://example.com./a/',
         u'http://crème-brûlée.tld/menu/à%20la%20carte/',
@@ -101,11 +101,12 @@ def test_url_type_with_invalid_url():
         u'http://example.com../a/',
         u'http://ex..ample.com/a/',
         u'http://.example.com/a/',
+        u'http://exam%70le.com/a/',
         u'http://example.com|/a/',
+        u'http://example.com/a b/',
         u'http://foo_bar.example.com',
         u'http://xn--abcdäedfg.xn--q9jyb4c', # ACE prefix + non-ASCII character
         u'http://example.com/a/\x7F', # illegal ASCII character
-        u'http://example.com/a/\uD800', # Unicode private range code point
         u'http://127.0.0.1:999999/',
         u'http://2001:4802:7901::e60a:1375:0:5',
     ]

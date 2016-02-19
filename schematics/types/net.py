@@ -26,14 +26,6 @@ from .base import StringType, fill_template
 HEX      = '0-9A-F'
 ALPHA    = 'A-Z'
 ALPHANUM = 'A-Z0-9'
-UCS      = ('\u00A0-\uD7FF'
-            '\uF900-\uFDCF'
-            '\uFDF0-\uFFEF')
-PRIVATE  =  '\uE000-\uF8FF'
-
-if len('\U0002000B') == 1: # Indicates that code points beyond the BMP are supported.
-    UCS     += '\U00010000-\U000EFFFF'
-    PRIVATE += '\U000F0000-\U0010FFFD'
 
 
 ### IP address patterns
@@ -92,22 +84,38 @@ class IPv6Type(IPAddressType):
 
 ### URI patterns
 
-SUB_DELIMS = '!$&\'()*+,;='
-UNRESERVED  = '-_.~' + ALPHANUM + UCS
-PCHAR = UNRESERVED + SUB_DELIMS + '%%:@'
-QUERY_EXTRAS = r'\[\]' # nonstandard
+GEN_DELIMS = set(':/?#[]@')
+SUB_DELIMS = set('!$&\'()*+,;=')
+UNRESERVED = set('-_.~')
+PCHAR = SUB_DELIMS | UNRESERVED | set('%:@')
+QUERY_EXTRAS = set('[]') # nonstandard
+
+VALID_CHARS = GEN_DELIMS | SUB_DELIMS | UNRESERVED | set('%')
+VALID_CHAR_STRING = py_native_string(str.join('', VALID_CHARS))
+UNSAFE_CHAR_STRING = '\x00-\x20<>{}|"`\\^\x7F-\x9F'
+
+def _chrcls(allowed_chars):
+    """
+    Given a subset of the URL-compatible special characters ``!#$%&'()*+,-./:;=?@[]_~``,
+    returns a regex character class matching any URL-compatible character apart from the
+    special characters not present in the provided set.
+    """
+    return ('^'
+            + UNSAFE_CHAR_STRING
+            + str.join('', VALID_CHARS - allowed_chars).replace('%', '%%')
+                                                       .replace(']', r'\]')
+                                                       .replace('-', r'\-'))
 
 URI_PATTERNS = {
-    'scheme' : r'[%s]+' % ('-.+' + ALPHANUM),
-    'user'   : r'[%s]+' % (UNRESERVED + SUB_DELIMS + '%%:'),
-    'port'   : r'\d{2,5}',
-    'host'   : r'[%s]+' % (UNRESERVED + SUB_DELIMS + r'%%:\[\]'),
-    'host6'  : r'[%s]+' % (HEX + ':'),
+    'scheme' : r'[%s]+' % ('A-Z0-9.+-'),
+    'user'   : r'[%s]+' % _chrcls(UNRESERVED | SUB_DELIMS | set('%:')),
+    'port'   : r'[0-9]{2,5}',
     'host4'  : IPV4,
-    'hostn'  : r'[%s]+' % (ALPHANUM + UCS + '.-'),
-    'path'   : r'(/[%s]*)*' % PCHAR,
-    'query'  : r'[%s]*' % (PCHAR + '/?' + PRIVATE + QUERY_EXTRAS),
-    'frag'   : r'[%s]*' % (PCHAR + '/?'),
+    'host6'  : r'[%s]+' % (HEX + ':'),
+    'hostn'  : r'[%s]+' % _chrcls(set('.-')),
+    'path'   : r'[%s]*' % _chrcls(PCHAR | set('/')),
+    'query'  : r'[%s]*' % _chrcls(PCHAR | set('/?') | QUERY_EXTRAS),
+    'frag'   : r'[%s]*' % _chrcls(PCHAR | set('/?')),
 }
 
 
@@ -127,11 +135,11 @@ class URLType(StringType):
     URL_REGEX = re.compile(r"""^(
             (?P<scheme> %(scheme)s ) ://
         (   (?P<user>   %(user)s   ) @   )?
-        (   (?P<host6>\[%(host6)s] ) 
+        (\[ (?P<host6>  %(host6)s  ) ]
           | (?P<host4>  %(host4)s  )
           | (?P<hostn>  %(hostn)s  )     )
         ( : (?P<port>   %(port)s   )     )?
-            (?P<path>   %(path)s   )
+            (?P<path> / %(path)s   )?
         (\? (?P<query>  %(query)s  )     )?
         (\# (?P<frag>   %(frag)s   )     )?)$
         """ % URI_PATTERNS, re.I + re.X)
@@ -156,7 +164,7 @@ class URLType(StringType):
         if url['scheme'].lower() not in self.schemes:
             return False
         if url['host6']:
-            if IPv6Type.valid_ip(url['host6'][1:-1]):
+            if IPv6Type.valid_ip(url['host6']):
                 return url
             else:
                 return False
@@ -188,6 +196,7 @@ class URLType(StringType):
                 return False
 
         url['hostn_enc'] = hostname
+
         return url
 
     def validate_(self, value, context=None):
@@ -201,7 +210,7 @@ class URLType(StringType):
                 url['path'],
                 url['query'],
                 url['frag'])
-                ).encode('utf-8'), safe=py_native_string('%~:/?#[]@' + SUB_DELIMS))
+                ).encode('utf-8'), safe=VALID_CHAR_STRING)
             try:
                 urlopen(url_string)
             except URLError:
