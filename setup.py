@@ -31,7 +31,5 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
-    install_requires=[
-        'six>=1.7.3',
-    ],
+    install_requires=[],
 )

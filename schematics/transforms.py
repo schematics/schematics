@@ -1,30 +1,17 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+from __future__ import unicode_literals, absolute_import
 
 import collections
 import itertools
 import operator
 import types
 
-from six import iteritems
-
-from .common import *
+from .common import * # pylint: disable=redefined-builtin
 from .datastructures import OrderedDict, Context
 from .exceptions import *
 from .undefined import Undefined
 from .util import listify
-
-try:
-    basestring #PY2
-except NameError:
-    basestring = str #PY3
-
-try:
-    unicode #PY2
-except:
-    import codecs
-    unicode = str #PY3
 
 
 
@@ -223,7 +210,7 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
     filter_func = cls._options.roles.get(context.role)
     if filter_func is None:
         if context.role and context.raise_error_on_role:
-            error_msg = u'%s Model has no role "%s"'
+            error_msg = '%s Model has no role "%s"'
             raise ValueError(error_msg % (cls.__name__, context.role))
         else:
             filter_func = cls._options.roles.get("default")
@@ -323,6 +310,7 @@ def atoms(cls, instance_or_dict):
 # Field filtering
 ###
 
+@str_compat
 class Role(collections.Set):
 
     """
@@ -355,7 +343,6 @@ class Role(collections.Set):
         return len(self.fields)
 
     def __eq__(self, other):
-        print(dir(self.function))
         return (self.function.__name__ == other.function.__name__ and
                 self.fields == other.fields)
 
@@ -654,9 +641,9 @@ def flatten_to_dict(instance_or_dict, prefix=None, ignore_none=True):
 
         {
             's': 'jms was hrrr',
-            u'l.1': 'here',
-            u'l.0': 'jms was here',
-            u'l.2': 'and here'
+            'l.1': 'here',
+            'l.0': 'jms was here',
+            'l.2': 'and here'
         }
 
     :param instance_or_dict:
@@ -679,7 +666,7 @@ def flatten_to_dict(instance_or_dict, prefix=None, ignore_none=True):
     flat_dict = {}
     for key, value in iterator:
         if prefix:
-            key = ".".join(map(unicode, (prefix, key)))
+            key = ".".join(map(str, (prefix, key)))
 
         if value == []:
             value = EMPTY_LIST
@@ -714,7 +701,7 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
         >>> f.l = ['jms', 'was here', 'and here']
 
         >>> flatten(Foo, f)
-        {'s': 'string', u'l.1': 'jms', u'l.0': 'was here', u'l.2': 'and here'}
+        {'s': 'string', 'l.1': 'jms', 'l.0': 'was here', 'l.2': 'and here'}
 
     :param cls:
         The model definition.
@@ -742,4 +729,7 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
     flattened = flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
 
     return flattened
+
+
+__all__ = module_exports(__name__)
 

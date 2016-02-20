@@ -1,11 +1,14 @@
-from collections import namedtuple
+# -*- coding: utf-8 -*-
+# pylint: skip-file
+
+from __future__ import unicode_literals, absolute_import
+
 from copy import deepcopy
-from six.moves import zip
-from six import iteritems
-from six import PY3
+
+from .common import * # pylint: disable=redefined-builtin
+
 
 _missing = object()
-
 
 class OrderedDict(dict):
 

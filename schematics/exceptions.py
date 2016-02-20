@@ -1,17 +1,12 @@
-from collections import Iterable
+# -*- coding: utf-8 -*-
 
-from six import iteritems
+from __future__ import unicode_literals, absolute_import
 
+from .common import * # pylint: disable=redefined-builtin
 from .util import listify
 
-try:
-    basestring #PY2
-    bytes = str
-except NameError:
-    basestring = str #PY3
-    unicode = str
 
-
+@str_compat
 class ErrorMessage(object):
 
     def __init__(self, summary, info=None):
@@ -19,27 +14,27 @@ class ErrorMessage(object):
         self.summary = summary
         self.info = info
 
-    def __str__(self):
-        return self.summary
-
     def __repr__(self):
-        return '{0}("{1}", info={2})'.format(type(self).__name__, self.summary, self.info_repr)
+        return '%s(%s)' % (self.__class__.__name__, str(self))
 
-    @property
-    def info_repr(self):
-        if self.info is None:
-            return 'None'
-        elif isinstance(self.info, int):
-            return self.info
-        elif isinstance(self.info, basestring):
-            return '"{0}"'.format(self.info)
+    def __str__(self):
+        if self.info:
+            return '("%s", %s)' % (self.summary, self._info_as_str())
         else:
-            return "<'{0}' object>".format(type(self.info).__name__)
+            return '"%s"' % self.summary
+
+    def _info_as_str(self):
+        if isinstance(self.info, int):
+            return str(self.info)
+        elif isinstance(self.info, string_type):
+            return '"%s"' % self.info
+        else:
+            return "<'%s' object>" % self.info.__class__.__name__
 
     def __eq__(self, other):
         if isinstance(other, ErrorMessage):
             return self.__dict__ == other.__dict__
-        elif isinstance(other, basestring):
+        elif isinstance(other, string_type):
             return self.summary == other
         else:
             return False
@@ -49,6 +44,7 @@ class BaseError(Exception):
     pass
 
 
+@str_compat
 class FieldError(BaseError):
 
     type = None
@@ -67,7 +63,7 @@ class FieldError(BaseError):
             items = args
         self.messages = []
         for item in items:
-            if isinstance(item, basestring):
+            if isinstance(item, string_type):
                 self.messages.append(ErrorMessage(item))
             elif isinstance(item, tuple):
                 self.messages.append(ErrorMessage(*item))
@@ -81,12 +77,12 @@ class FieldError(BaseError):
         for message in self.messages:
             message.type = self.type or type(self)
 
-        Exception.__init__(self, self.messages)
+        super(FieldError, self).__init__(self.messages)
 
     def __eq__(self, other):
         if type(other) is type(self):
             return other.messages == self.messages
-        elif type(other) is list:
+        elif isinstance(other, list):
             return other == self.messages
         return False
 
@@ -104,13 +100,10 @@ class FieldError(BaseError):
 
     def __repr__(self):
         if len(self.messages) == 1:
-            msg = self.messages[0]
-            msg_repr = '"{0}", info={1}'.format(msg.summary, msg.info_repr)
+            msg_repr = str(self.messages[0])
         else:
-            msg_repr = str.join(', ',
-                                ('("{0}", {1})'.format(msg.summary, msg.info_repr)
-                                 for msg in self.messages))
-        return '{0}({1})'.format(type(self).__name__, msg_repr)
+            msg_repr = '[' + str.join(', ', map(str, self.messages)) + ']'
+        return '%s(%s)' % (self.__class__.__name__, msg_repr)
 
     __str__ = __repr__
 
@@ -146,7 +139,7 @@ class CompoundError(BaseError):
                 self.messages[key] = value.messages
             else:
                 self.messages[key] = value
-        Exception.__init__(self, self.messages)
+        super(CompoundError, self).__init__(self.messages)
 
 
 class DataError(CompoundError):
@@ -172,4 +165,7 @@ class MissingValueError(AttributeError, KeyError):
 class UnknownFieldError(KeyError):
     """Exception raised when attempting to set a nonexistent field using the subscription syntax."""
     pass
+
+
+__all__ = module_exports(__name__)
 

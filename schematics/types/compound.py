@@ -1,26 +1,20 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
+from __future__ import unicode_literals, absolute_import
 
 import collections
 from collections import Iterable, Sequence, Mapping
 import itertools
-import functools
 
-from ..common import *
-from ..datastructures import Context, OrderedDict
+from ..common import * # pylint: disable=redefined-builtin
+from ..datastructures import OrderedDict
 from ..exceptions import *
 from ..models import Model, ModelMeta
 from ..transforms import (
     get_import_context, get_export_context,
     to_native_converter, to_dict_converter, to_primitive_converter)
-from ..undefined import Undefined
-from .base import BaseType, get_value_in
 
-from six import iteritems
-from six import string_types as basestring
-from six import text_type as unicode
-from six.moves import xrange
+from .base import BaseType, get_value_in
 
 try:
     ordered_mappings = (collections.OrderedDict, OrderedDict)
@@ -99,7 +93,7 @@ class ModelType(CompoundType):
         if isinstance(model_spec, ModelMeta):
             self.model_class = model_spec
             self.model_name = self.model_class.__name__
-        elif isinstance(model_spec, basestring):
+        elif isinstance(model_spec, string_type):
             self.model_class = None
             self.model_name = model_spec
         else:
@@ -108,8 +102,8 @@ class ModelType(CompoundType):
 
         super(ModelType, self).__init__(**kwargs)
 
-    def __repr__(self):
-        return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
+    def _repr_info(self):
+        return self.model_class.__name__
 
     def _mock(self, context=None):
         return self.model_class.get_mock_object(context)
@@ -137,7 +131,7 @@ class ModelType(CompoundType):
             model_class = self.model_class
         else:
             raise ConversionError(
-                u'Please use a mapping for this field or {0} instance instead of {1}.'.format(
+                'Please use a mapping for this field or {0} instance instead of {1}.'.format(
                     self.model_class.__name__,
                     type(value).__name__))
         return model_class._convert(value, context=context)
@@ -169,27 +163,30 @@ class ListType(CompoundType):
     def model_class(self):
         return self.field.model_class
 
+    def _repr_info(self):
+        return self.field.__class__.__name__
+
     def _mock(self, context=None):
         min_size = self.min_size or 1
         max_size = self.max_size or 1
         if min_size > max_size:
-            message = u'Minimum list size is greater than maximum list size.'
+            message = 'Minimum list size is greater than maximum list size.'
             raise MockCreationError(message)
         random_length = get_value_in(min_size, max_size)
 
-        return [self.field._mock(context) for _ in xrange(random_length)]
+        return [self.field._mock(context) for _ in range(random_length)]
 
     def _coerce(self, value):
         if isinstance(value, list):
             return value
-        elif isinstance(value, Sequence) and not isinstance(value, basestring):
+        elif isinstance(value, Sequence) and not isinstance(value, string_type):
             return value
         elif isinstance(value, Mapping):
             if isinstance(value, ordered_mappings):
                 return value.values()
             else:
                 return [v for k, v in sorted(value.items())]
-        elif isinstance(value, basestring):
+        elif isinstance(value, string_type):
             pass
         elif isinstance(value, Iterable):
             return value
@@ -213,15 +210,15 @@ class ListType(CompoundType):
 
         if self.min_size is not None and list_length < self.min_size:
             message = ({
-                True: u'Please provide at least %d item.',
-                False: u'Please provide at least %d items.',
+                True: 'Please provide at least %d item.',
+                False: 'Please provide at least %d items.',
             }[self.min_size == 1]) % self.min_size
             raise ValidationError(message)
 
         if self.max_size is not None and list_length > self.max_size:
             message = ({
-                True: u'Please provide no more than %d item.',
-                False: u'Please provide no more than %d items.',
+                True: 'Please provide no more than %d item.',
+                False: 'Please provide no more than %d items.',
             }[self.max_size == 1]) % self.max_size
             raise ValidationError(message)
 
@@ -259,16 +256,19 @@ class DictType(CompoundType):
 
     def __init__(self, field, coerce_key=None, **kwargs):
         self.field = self._init_field(field, kwargs)
-        self.coerce_key = coerce_key or unicode
+        self.coerce_key = coerce_key or str
         super(DictType, self).__init__(**kwargs)
 
     @property
     def model_class(self):
         return self.field.model_class
 
+    def _repr_info(self):
+        return self.field.__class__.__name__
+
     def _convert(self, value, context, safe=False):
         if not isinstance(value, dict):
-            raise ConversionError(u'Only dictionaries may be used in a DictType')
+            raise ConversionError('Only dictionaries may be used in a DictType')
 
         data = {}
         errors = {}
@@ -307,7 +307,7 @@ class PolyModelType(CompoundType):
 
     def __init__(self, model_spec, **kwargs):
 
-        if isinstance(model_spec, (ModelMeta, basestring)):
+        if isinstance(model_spec, (ModelMeta, string_type)):
             self.model_classes = (model_spec,)
             allow_subclasses = True
         elif isinstance(model_spec, Iterable):
@@ -322,14 +322,11 @@ class PolyModelType(CompoundType):
 
         CompoundType.__init__(self, **kwargs)
 
-    def __repr__(self):
-        return object.__repr__(self)[:-1] + ' for %s>' % str(self.model_classes)
-
     def _setup(self, field_name, owner_model):
         # Resolve possible name-based model references.
         resolved_classes = []
         for m in self.model_classes:
-            if isinstance(m, basestring):
+            if isinstance(m, string_type):
                 if m == owner_model.__name__:
                     resolved_classes.append(owner_model)
                 else:
@@ -360,7 +357,7 @@ class PolyModelType(CompoundType):
                     cls.__name__ for cls in self.model_classes))
             else:
                 instanceof_msg = self.model_classes[0].__name__
-            raise ConversionError(u'Please use a mapping for this field or '
+            raise ConversionError('Please use a mapping for this field or '
                                     'an instance of {}'.format(instanceof_msg))
 
         model_class = self.find_model(value)
@@ -405,4 +402,7 @@ class PolyModelType(CompoundType):
             raise Exception("Cannot export: {} is not an allowed type".format(model_class))
 
         return model_instance.export(context=context)
+
+
+__all__ = module_exports(__name__)
 

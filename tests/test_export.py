@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+import datetime
 import pytest
+import uuid
 
 from schematics.common import *
 from schematics.models import Model

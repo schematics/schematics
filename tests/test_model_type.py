@@ -14,9 +14,6 @@ def test_simple_embedded_models():
         id = IntType()
         location = ModelType(Location)
 
-    r = repr(Player.location)
-    assert r.startswith("<schematics.types.compound.ModelType object at 0x")
-
     p = Player(dict(id=1, location={"country_code": "US"}))
 
     assert p.id == 1

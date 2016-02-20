@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import pytest
 
 from schematics.exceptions import *
@@ -39,36 +41,39 @@ def test_error_from_mixed_args():
 
     e = ValidationError(
             ('hello', 99),
-            ('world', 98),
+            'world',
             ErrorMessage('from_msg', info=0),
             ValidationError('from_err', info=1))
 
     assert e == e.messages == ['hello', 'world', 'from_msg', 'from_err']
-    assert [msg.info for msg in e] == [99, 98, 0, 1]
+    assert [msg.info for msg in e] == [99, None, 0, 1]
 
 
 def test_error_from_mixed_list():
 
     e = ConversionError([
             ('hello', 99),
-            ('world', 98),
+            'world',
             ErrorMessage('from_msg', info=0),
             ConversionError('from_err', info=1)])
 
     assert e.messages == ['hello', 'world', 'from_msg', 'from_err']
-    assert [msg.info for msg in e.messages] == [99, 98, 0, 1]
+    assert [msg.info for msg in e.messages] == [99, None, 0, 1]
 
 
 def test_error_repr():
 
-    assert str(ValidationError('foo')) == 'ValidationError("foo", info=None)'
+    assert str(ValidationError('foo')) == 'ValidationError("foo")'
 
     e = ValidationError(
             ('foo', None),
             ('bar', 98),
             ('baz', [1, 2, 3]))
 
-    assert str(e) == 'ValidationError(("foo", None), ("bar", 98), ("baz", <\'list\' object>))'
+    assert str(e) == 'ValidationError(["foo", ("bar", 98), ("baz", <\'list\' object>)])'
+
+    e = ValidationError(u'é')
+    assert str(e) == repr(e)
 
 
 def test_error_message_object():

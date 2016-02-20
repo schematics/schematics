@@ -1,29 +1,23 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals, absolute_import
+
 from copy import deepcopy
 import inspect
 import itertools
-import sys
 
-from six import iteritems
-from six import iterkeys
-from six import add_metaclass
-
-from .common import *
+from .common import * # pylint: disable=redefined-builtin
 from .datastructures import OrderedDict as OrderedDictWithSort
-from .exceptions import (
-    BaseError, DataError, MockCreationError,
-    MissingValueError, UnknownFieldError
+from .exceptions import *
+from .transforms import (
+    atoms, export_loop,
+    convert, to_native, to_dict, to_primitive,
+    flatten, expand
 )
+from .validate import validate, prepare_validator
 from .types import BaseType
 from .types.serializable import Serializable
 from .undefined import Undefined
-
-try:
-    unicode #PY2
-except:
-    import codecs
-    unicode = str #PY3
 
 
 class FieldDescriptor(object):
@@ -161,6 +155,7 @@ class ModelMeta(type):
         attrs['_options'] = options
 
         klass = type.__new__(mcs, name, bases, attrs)
+        klass = str_compat(klass)
 
         # Register class on ancestor models
         klass._subclasses = []
@@ -213,7 +208,7 @@ class ModelMeta(type):
         return cls._fields
 
 
-@add_metaclass(ModelMeta)
+@metaclass(ModelMeta)
 class Model(object):
 
     """
@@ -417,28 +412,27 @@ class Model(object):
         return not self == other
 
     def __repr__(self):
-        try:
-            obj = unicode(self)
-        except (UnicodeEncodeError, UnicodeDecodeError):
-            obj = '[Bad Unicode data]'
+        model = self.__class__.__name__
+        info = self._repr_info()
+        if info:
+            return '<%s: %s>' % (model, info)
+        else:
+            return '<%s instance>' % model
 
-        try:
-            class_name = unicode(self.__class__.__name__)
-        except (UnicodeEncodeError, UnicodeDecodeError):
-            class_name = '[Bad Unicode class name]'
+    def _repr_info(self):
+        """
+        Subclasses may implement this method to augment the ``__repr__()`` output for the instance::
 
-        return u"<%s: %s>" % (class_name, obj)
+            class Person(Model):
+                ...
+                def _repr_info(self):
+                    return self.name
 
-    def __str__(self):
-        return '%s object' % self.__class__.__name__
+            >>> Person({'name': 'Mr. Pink'})
+            <Person: Mr. Pink>
+        """
+        return None
 
-    def __unicode__(self):
-        return '%s object' % self.__class__.__name__
 
+__all__ = module_exports(__name__)
 
-from .transforms import (
-    atoms, export_loop,
-    convert, to_native, to_dict, to_primitive,
-    flatten, expand,
-)
-from .validate import validate, prepare_validator

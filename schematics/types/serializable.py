@@ -1,5 +1,10 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals, absolute_import
+
 import copy
 
+from ..common import * # pylint: disable=redefined-builtin
 from ..util import setdefault
 
 from .base import BaseType
@@ -14,11 +19,11 @@ def serializable(*args, **kwargs):
     ...     country_code = StringType()
     ...     @serializable
     ...     def country_name(self):
-    ...         return {'us': u'United States'}[self.country_code]
+    ...         return {'us': 'United States'}[self.country_code]
     ...
     >>> location = Location({'country_code': 'us'})
     >>> location.serialize()
-    {'country_name': u'United States', 'country_code': u'us'}
+    {'country_name': 'United States', 'country_code': 'us'}
     >>>
     :param type:
         A custom subclass of `BaseType` for enforcing a certain type
@@ -68,4 +73,7 @@ class Serializable(object):
 
     def __deepcopy__(self, memo):
         return self.__class__(self.func, copy.deepcopy(self.type))
+
+
+__all__ = module_exports(__name__)
 

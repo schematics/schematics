@@ -2,8 +2,6 @@ import copy
 import pickle
 
 import pytest
-from six import PY3
-from six.moves import zip
 
 from schematics.datastructures import OrderedDict, DataObject, Context
 
