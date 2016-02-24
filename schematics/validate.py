@@ -101,7 +101,8 @@ def get_validation_context(**options):
         'partial': False,
         'strict': False,
         'convert': True,
-        'validate': True
+        'validate': True,
+        'new': False,
     }
     validation_options.update(options)
     return Context(**validation_options)
