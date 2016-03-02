@@ -12,11 +12,14 @@ import re
 import string
 import uuid
 
-from ..common import * # pylint: disable=redefined-builtin
-from ..exceptions import *
+from ..common import *  # pylint: disable=redefined-builtin
+from ..exceptions import ConversionError, ValidationError, StopValidationError
 from ..undefined import Undefined
 from ..util import listify
 from ..validate import prepare_validator, get_validation_context
+
+MIMIMUM_TZ_HOUR_OFFSET = -12
+MAXIMUM_TZ_HOUR_OFFSET = 12
 
 
 def fill_template(template, min_length, max_length):
@@ -426,7 +429,7 @@ class NumberType(BaseType):
         else:
             if self.number_class is float: # Float conversion is strict enough.
                 return native_value
-            if not self.strict and native_value == value: # Match numeric types.
+            if not self.strict and native_value == value:  # Match numeric types.
                 return native_value
             if isinstance(value, (string_type, numbers.Integral)):
                 return native_value
@@ -465,10 +468,9 @@ class LongType(NumberType):
     def __init__(self, *args, **kwargs):
 
         try:
-            number_class = long #PY2
+            number_class = long  # PY2
         except NameError:
-            number_class = int #PY3
-
+            number_class = int  # PY3
 
         super(LongType, self).__init__(number_class=number_class,
                                        number_type='Long',
@@ -748,7 +750,7 @@ class DateTimeType(BaseType):
         super(DateTimeType, self).__init__(**kwargs)
 
     def _mock(self, context=None):
-        return datetime.datetime(
+        mocked = datetime.datetime(
             year=random.randrange(600) + 1900,
             month=random.randrange(12) + 1,
             day=random.randrange(28) + 1,
@@ -757,6 +759,41 @@ class DateTimeType(BaseType):
             second=random.randrange(60),
             microsecond=random.randrange(1000000),
         )
+
+        # Validated datetime is guaranteed to be naive
+        if self.tzd == 'reject':
+            return mocked
+
+        # Validated datetime is guaranteed to be in utc
+        if self.tzd == 'utc':
+            return mocked.replace(tzinfo=self.UTC)
+
+        # Validated datetime is guaranteed to be timezone-aware
+        if self.tzd == 'require':
+            if self.convert_tz:
+                return mocked.replace(tzinfo=self.UTC)
+            hours = random.randrange(MIMIMUM_TZ_HOUR_OFFSET,
+                                     MAXIMUM_TZ_HOUR_OFFSET + 1)
+            return mocked.replace(tzinfo=self.offset_timezone(hours=hours))
+
+        # Validated datetime can be timezone-naive or -aware.
+        if self.tzd == 'allow':
+            if self.drop_tzinfo:
+                return mocked
+
+            # We always need to return a timezone-aware
+            if self.convert_tz:
+                return mocked.replace(tzinfo=self.UTC)
+
+            # We return a timezone-naive datetime in half the cases.
+            if random.randrange(2):
+                return mocked
+
+            hours = random.randrange(MIMIMUM_TZ_HOUR_OFFSET,
+                                     MAXIMUM_TZ_HOUR_OFFSET + 1)
+            return mocked.replace(tzinfo=self.offset_timezone(hours=hours))
+
+        raise ValueError('Unknown tzd: %r' % self.tzd)
 
     def to_native(self, value, context=None):
 
@@ -1079,4 +1116,3 @@ class MultilingualStringType(BaseType):
 
 
 __all__ = module_exports(__name__)
-

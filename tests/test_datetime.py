@@ -3,7 +3,8 @@
 from datetime import datetime, timedelta
 import sys
 
-from dateutil.tz import gettz, tzutc
+from dateutil.tz import gettz
+import mock
 import pytest
 
 from schematics.exceptions import ConversionError, ValidationError
@@ -296,3 +297,54 @@ def test_validate_tz():
     with pytest.raises(ValidationError):
         field.validate_tz(dt_nyc)
 
+
+def test_get_mocked_datetime_reject():
+    field = DateTimeType(tzd='reject')
+    assert field._mock().tzinfo is None
+
+
+def test_get_mocked_datetime_require():
+    field = DateTimeType(tzd='require')
+    assert field._mock().tzinfo is not None
+
+
+def test_get_mocked_datetime_require_convert_tz():
+    field = DateTimeType(tzd='require', convert_tz=True)
+    assert field._mock().tzinfo == DateTimeType.UTC
+
+
+def test_get_mocked_datetime_utc():
+    field = DateTimeType(tzd='utc')
+    assert field._mock().tzinfo == DateTimeType.UTC
+
+
+def test_get_mocked_datetime_allow_drop_convert_tz():
+    field = DateTimeType(tzd='allow', convert_tz=True)
+    assert field._mock().tzinfo == DateTimeType.UTC
+
+
+def test_get_mocked_datetime_allow_drop_tzinfo():
+    field = DateTimeType(tzd='allow', drop_tzinfo=True)
+    assert field._mock().tzinfo is None
+
+
+def test_get_mocked_datetime_unknown_tzd():
+    field = DateTimeType(tzd='unknown')
+    with pytest.raises(ValueError):
+        field._mock()
+
+
+@mock.patch('schematics.types.base.random.randrange')
+def test_get_mocked_datetime_allow_random_no(mock_randrange):
+    # Forces a timezone to never be added
+    mock_randrange.return_value = 1
+    field = DateTimeType(tzd='allow')
+    assert field._mock().tzinfo is None
+
+
+@mock.patch('schematics.types.base.random.randrange')
+def test_get_mocked_datetime_allow_random_yes(mock_randrange):
+    # Forces a timezone to always be added
+    mock_randrange.return_value = 0
+    field = DateTimeType(tzd='allow')
+    assert field._mock().tzinfo is not None
