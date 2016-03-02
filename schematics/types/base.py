@@ -736,6 +736,8 @@ class DateTimeType(BaseType):
     def __init__(self, formats=None, serialized_format=None, parser=None,
                  tzd='allow', convert_tz=False, drop_tzinfo=False, **kwargs):
 
+        if tzd not in ('require', 'allow', 'utc', 'reject'):
+            raise ValueError("DateTimeType.__init__() got an invalid value for parameter 'tzd'")
         if isinstance(formats, string_type):
             formats = [formats]
         self.formats = formats
@@ -748,15 +750,24 @@ class DateTimeType(BaseType):
         super(DateTimeType, self).__init__(**kwargs)
 
     def _mock(self, context=None):
-        return datetime.datetime(
-            year=random.randrange(600) + 1900,
-            month=random.randrange(12) + 1,
-            day=random.randrange(28) + 1,
-            hour=random.randrange(24),
-            minute=random.randrange(60),
-            second=random.randrange(60),
-            microsecond=random.randrange(1000000),
-        )
+        dt = datetime.datetime(
+               year=random.randrange(600) + 1900,
+               month=random.randrange(12) + 1,
+               day=random.randrange(28) + 1,
+               hour=random.randrange(24),
+               minute=random.randrange(60),
+               second=random.randrange(60),
+               microsecond=random.randrange(1000000))
+
+        if self.tzd == 'reject' or \
+           self.drop_tzinfo or \
+           self.tzd == 'allow' and random.randrange(2):
+            return dt
+        elif self.convert_tz:
+            return dt.replace(tzinfo=self.UTC)
+        else:
+            return dt.replace(tzinfo=self.offset_timezone(hours=random.randrange(-12, 15),
+                                                          minutes=random.choice([0, 30, 45])))
 
     def to_native(self, value, context=None):
 
@@ -866,7 +877,7 @@ class DateTimeType(BaseType):
                 raise ValidationError(self.messages['validate_tzd_reject'])
             if self.tzd == 'reject':
                 raise ValidationError(self.messages['validate_tzd_reject'])
-            if (self.tzd == 'utc' or self.convert_tz) \
+            if self.convert_tz \
               and value.tzinfo.utcoffset(value) != self.TIMEDELTA_ZERO:
                 raise ValidationError(self.messages['validate_utc_wrong'])
 
@@ -897,7 +908,7 @@ class TimestampType(DateTimeType):
         super(TimestampType, self).__init__(formats=formats, parser=parser, tzd='require',
                                             convert_tz=True, drop_tzinfo=drop_tzinfo, **kwargs)
 
-    def to_primitive(self, value):
+    def to_primitive(self, value, context=None):
         if value.tzinfo is None:
             value = value.replace(tzinfo=self.UTC)
         else:

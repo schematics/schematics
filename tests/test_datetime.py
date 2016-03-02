@@ -226,7 +226,7 @@ def test_timestamp():
     assert field_no_tz.to_native(1446991200.7777) == dt_no_tz_usec
 
     with pytest.raises(ConversionError):
-        field.to_native(dt_no_tz_usec)
+        field.to_native(dt_no_tz)
 
     ts = field.to_primitive(dt_no_tz_usec)
     assert ts == 1446991200.7777
@@ -241,58 +241,36 @@ def test_timestamp():
 
 def test_validate_tz():
 
-    dt_naive_utc = datetime(2015, 6, 1, 14, 00)
-    dt_utc = datetime(2015, 6, 1, 14, 00, tzinfo=UTC)
-    dt_plustwo = datetime(2015, 6, 1, 16, 00, tzinfo=DateTimeType.offset_timezone(2))
-    dt_nyc = datetime(2015, 6, 1, 10, 00, tzinfo=NYC)
+    dt_naive = lambda: datetime(2015, 6, 1, 14, 00)
+    dt_utc = lambda: datetime(2015, 6, 1, 14, 00, tzinfo=UTC)
+    dt_plustwo = lambda: datetime(2015, 6, 1, 16, 00, tzinfo=DateTimeType.offset_timezone(2))
+    dt_nyc = lambda: datetime(2015, 6, 1, 10, 00, tzinfo=NYC)
 
-    field = DateTimeType(tzd='allow')
-    field.validate_tz(dt_naive_utc)
-    field.validate_tz(dt_utc)
-    field.validate_tz(dt_plustwo)
-    field.validate_tz(dt_nyc)
+    all_values = [dt_naive, dt_utc, dt_plustwo, dt_nyc]
 
-    field = DateTimeType(tzd='utc')
-    field.validate_tz(dt_utc)
-    with pytest.raises(ValidationError):
-        field.validate_tz(dt_naive_utc)
-    with pytest.raises(ValidationError):
-        field.validate_tz(dt_plustwo)
-    with pytest.raises(ValidationError):
-        field.validate_tz(dt_nyc)
+    def test_field(field, valid):
+        for value in all_values:
+            if value in valid:
+                field.validate_tz(value())
+            else:
+                with pytest.raises(ValidationError):
+                    field.validate_tz(value())
 
-    field = DateTimeType(tzd='reject')
-    field.validate_tz(dt_naive_utc)
-    with pytest.raises(ValidationError):
-        field.validate_tz(dt_utc)
+    test_field(DateTimeType(tzd='allow'), [dt_naive, dt_utc, dt_plustwo, dt_nyc])
+    test_field(DateTimeType(convert_tz=True), [dt_naive, dt_utc])
+    test_field(DateTimeType(tzd='utc'), [dt_utc, dt_plustwo, dt_nyc])
+    test_field(DateTimeType(tzd='utc', convert_tz=True), [dt_utc])
+    test_field(DateTimeType(tzd='reject'), [dt_naive])
+    test_field(DateTimeType(tzd='require'), [dt_utc, dt_plustwo, dt_nyc])
+    test_field(DateTimeType(drop_tzinfo=True), [dt_naive])
 
-    field = DateTimeType(tzd='require')
-    field.validate_tz(dt_utc)
-    field.validate_tz(dt_plustwo)
-    with pytest.raises(ValidationError):
-        field.validate_tz(dt_naive_utc)
 
-    field = DateTimeType(tzd='require', convert_tz=True, drop_tzinfo=True)
-    field.validate_tz(dt_naive_utc)
-    with pytest.raises(ValidationError):
-        field.validate_tz(dt_utc)
-    with pytest.raises(ValidationError):
-        field.validate_tz(dt_plustwo)
+@pytest.mark.parametrize('tzd', ('require', 'allow', 'utc', 'reject'))
+@pytest.mark.parametrize('convert_tz', (True, False))
+@pytest.mark.parametrize('drop_tzinfo', (True, False))
+def test_mock(tzd, convert_tz, drop_tzinfo):
 
-    field = DateTimeType(convert_tz=True)
-    field.validate_tz(dt_naive_utc)
-    field.validate_tz(dt_utc)
-    with pytest.raises(ValidationError):
-        field.validate_tz(dt_plustwo)
-    with pytest.raises(ValidationError):
-        field.validate_tz(dt_nyc)
-
-    field = DateTimeType(convert_tz=True, drop_tzinfo=True)
-    field.validate_tz(dt_naive_utc)
-    with pytest.raises(ValidationError):
-        field.validate_tz(dt_utc)
-    with pytest.raises(ValidationError):
-        field.validate_tz(dt_plustwo)
-    with pytest.raises(ValidationError):
-        field.validate_tz(dt_nyc)
+    field = DateTimeType(tzd=tzd, convert_tz=convert_tz, drop_tzinfo=drop_tzinfo)
+    for _ in range(20):
+        field.validate(field._mock())
 
