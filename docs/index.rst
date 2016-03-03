@@ -4,13 +4,13 @@ Schematics
 
 .. rubric:: Python Data Structures for Humans™.
 
-.. image:: https://secure.travis-ci.org/schematics/schematics.png?branch=master
-  :target: https://secure.travis-ci.org/schematics/schematics
-  :alt: Build Status
+.. image:: https://travis-ci.org/schematics/schematics.svg?branch=development
+   :target: https://travis-ci.org/schematics/schematics
+   :alt: Build Status
 
-.. image:: https://coveralls.io/repos/schematics/schematics/badge.png
-  :target: https://coveralls.io/r/schematics/schematics
-  :alt: Coverage
+.. image:: https://coveralls.io/repos/github/schematics/schematics/badge.svg?branch=development
+   :target: https://coveralls.io/github/schematics/schematics?branch=development 
+   :alt: Coverage
 
 .. toctree::
    :hidden:
