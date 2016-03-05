@@ -182,3 +182,25 @@ def test_specify_model_by_name():
     assert M.to_one.model_class is M
     assert M.to_many.field.model_class is M
     assert M.matrix.field.field.model_class is M
+
+
+def test_model_context_pass_to_type():
+    from schematics.types import BaseType
+
+    class CustomType(BaseType):
+
+        def to_native(self, value, context=None):
+            suffix = context.suffix
+            return str(value) + suffix
+
+        def to_primitive(self, value, context=None):
+            suffix = context.suffix
+            return value[:-len(suffix)]
+
+    class Thing(Model):
+        x = CustomType()
+
+    context = {'suffix': 'z'}
+    thing = Thing(dict(x='thingie'), context=context)
+    assert thing.x == 'thingiez'
+    assert thing.to_primitive(context=context) == {'x': 'thingie'}
