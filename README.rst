@@ -27,7 +27,7 @@ of the stable release. To do this, add the ``--pre`` option when installing via 
 About
 =====
 
-**Project documentation:** http://schematics.readthedocs.org/en/latest/
+**Project documentation:** https://schematics.readthedocs.org/en/latest/
 
 Schematics is a Python library to combine types into structures, validate them,
 and transform the shapes of your data based on simple descriptions.

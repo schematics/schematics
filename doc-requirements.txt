@@ -1,0 +1,1 @@
+sphinx-navtree>=0.2.1

@@ -12,15 +12,6 @@ Schematics
    :target: https://coveralls.io/github/schematics/schematics?branch=development 
    :alt: Coverage
 
-.. toctree::
-   :hidden:
-   :maxdepth: 2
-   :caption: Basics
-
-   Overview <self>
-   basics/install
-   basics/quickstart
-
 .. contents::
    :local:
    :depth: 1
@@ -123,26 +114,6 @@ and easily serialize the results into any format we need.
 The User's Guide provides the high-level concepts, but the API documentation and
 the code itself provide the most accurate reference.
 
-.. toctree::
-   :maxdepth: 2
-   :caption: User's Guide
-
-   usage/types
-   usage/models
-   usage/exporting
-   usage/importing
-   usage/validation
-
-.. toctree::
-   :maxdepth: 1
-   :caption: API Reference
-
-   schematics.models <api/models>
-   schematics.validation <api/validation>
-   schematics.transforms <api/transforms>
-   schematics.types <api/types>
-   schematics.contrib <api/contrib>
-
 
 Development
 ===========
@@ -151,13 +122,6 @@ We welcome ideas and code.  We ask that you follow some of our guidelines
 though.
 
 See the :doc:`development/development` for more information.
-
-.. toctree::
-   :hidden:
-   :caption: Development
-
-   development/development
-   development/community
 
 
 Testing & Coverage
