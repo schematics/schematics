@@ -186,6 +186,7 @@ def test_specify_model_by_name():
 
 def test_model_context_pass_to_type():
     from schematics.types import BaseType
+    from schematics.datastructures import Context
 
     class CustomType(BaseType):
 
@@ -201,6 +202,41 @@ def test_model_context_pass_to_type():
         x = CustomType()
 
     context = {'suffix': 'z'}
-    thing = Thing(dict(x='thingie'), context=context)
+    input = {'x': 'thingie'}
+    thing = Thing(input, context=context)
     assert thing.x == 'thingiez'
     assert thing.to_primitive(context=context) == {'x': 'thingie'}
+    # try it with a Context object
+    model_context = Context(suffix='z!')
+    thing2 = Thing(input, context=model_context)
+    assert thing2.x == 'thingiez!'
+    export_context = Context(suffix='z!')
+    assert thing2.to_primitive(context=export_context) == {'x': 'thingie'}
+    with pytest.raises(AttributeError):
+        # can't reuse the same Context object as was used for model
+        # TODO this may be unexpected to the uninitiated; a custom exception
+        #      could explain it better.
+        thing2.to_primitive(context=model_context)
+
+
+def test_model_app_data_pass_to_type():
+    from schematics.types import BaseType
+
+    class CustomType(BaseType):
+
+        def to_native(self, value, context=None):
+            suffix = context.app_data['suffix']
+            return str(value) + suffix
+
+        def to_primitive(self, value, context=None):
+            suffix = context.app_data['suffix']
+            return value[:-len(suffix)]
+
+    class Thing(Model):
+        x = CustomType()
+
+    app_data = {'suffix': 'z'}
+    input = {'x': 'thingie'}
+    thing = Thing(input, app_data=app_data)
+    assert thing.x == 'thingiez'
+    assert thing.to_primitive(app_data=app_data) == {'x': 'thingie'}
