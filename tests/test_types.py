@@ -454,3 +454,8 @@ def test_geopoint_range():
 
     with pytest.raises(ValidationError) as ve:
         geo.validate((28.2342323, 181.123141))
+
+def test_metadata():
+    metadata = {'description': 'amazing', 'extra': {'abc': 1}}
+    assert StringType(metadata=metadata).metadata == metadata
+    assert StringType().metadata == {}
