@@ -9,7 +9,6 @@ import itertools
 from ..common import * # pylint: disable=redefined-builtin
 from ..datastructures import OrderedDict
 from ..exceptions import *
-from ..models import Model, ModelMeta
 from ..transforms import (
     get_import_context, get_export_context,
     to_native_converter, to_dict_converter, to_primitive_converter)

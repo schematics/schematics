@@ -1,4 +1,5 @@
 from .base import *
+from .compound import *
 from .union import *
 from .net import *
 
