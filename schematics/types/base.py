@@ -159,7 +159,7 @@ class BaseType(object):
     def __init__(self, required=False, default=Undefined, serialized_name=None,
                  choices=None, validators=None, deserialize_from=None,
                  export_level=None, serialize_when_none=None,
-                 messages=None, metadata=None, **kwargs):
+                 messages=None, metadata=None):
         super(BaseType, self).__init__()
 
         self.required = required
