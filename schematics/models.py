@@ -15,7 +15,7 @@ from .transforms import (
     flatten, expand
 )
 from .validate import validate, prepare_validator
-from .types import BaseType
+from .types.base import BaseType
 from .types.serializable import Serializable
 from .undefined import Undefined
 

@@ -88,6 +88,7 @@ class ModelType(CompoundType):
         return self.model_class.fields
 
     def __init__(self, model_spec, **kwargs):
+        from ..models import ModelMeta
 
         if isinstance(model_spec, ModelMeta):
             self.model_class = model_spec
@@ -117,8 +118,8 @@ class ModelType(CompoundType):
         super(ModelType, self)._setup(field_name, owner_model)
 
     def pre_setattr(self, value):
-        if value is not None \
-          and not isinstance(value, Model):
+        from ..models import Model
+        if value is not None and not isinstance(value, Model):
             value = self.model_class(value)
         return value
 
@@ -305,6 +306,7 @@ class PolyModelType(CompoundType):
     """A field that accepts an instance of any of the specified models."""
 
     def __init__(self, model_spec, **kwargs):
+        from ..models import ModelMeta
 
         if isinstance(model_spec, (ModelMeta, string_type)):
             self.model_classes = (model_spec,)
