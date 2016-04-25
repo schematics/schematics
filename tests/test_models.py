@@ -571,7 +571,7 @@ def test_getitem():
 
     inst = SimpleModel({'field1': 'foo'}, init=False)
     assert inst['field1'] == 'foo'
-    with pytest.raises(MissingValueError):
+    with pytest.raises(UndefinedValueError):
         inst['field2']
     with pytest.raises(UnknownFieldError):
         inst['foo']

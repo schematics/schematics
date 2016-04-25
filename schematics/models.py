@@ -42,7 +42,7 @@ class FieldDescriptor(object):
         else:
             value = instance._data[self.name]
             if value is Undefined:
-                raise MissingValueError
+                raise UndefinedValueError(instance, self.name)
             else:
                 return value
 
@@ -380,19 +380,19 @@ class Model(object):
         if name in self._fields or name in self._serializables:
             return getattr(self, name)
         else:
-            raise UnknownFieldError
+            raise UnknownFieldError(self, name)
 
     def __setitem__(self, name, value):
         if name in self._fields:
             return setattr(self, name, value)
         else:
-            raise UnknownFieldError
+            raise UnknownFieldError(self, name)
 
     def __delitem__(self, name):
         if name in self._fields:
             return delattr(self, name)
         else:
-            raise UnknownFieldError
+            raise UnknownFieldError(self, name)
 
     def __contains__(self, name):
         return name in self.keys() or name in self._serializables

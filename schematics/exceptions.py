@@ -157,14 +157,18 @@ class MockCreationError(ValueError):
     pass
 
 
-class MissingValueError(AttributeError, KeyError):
-    """Exception raised when accessing an undefined value on an instance."""
-    pass
+class UndefinedValueError(AttributeError, KeyError):
+    """Exception raised when accessing a field with an undefined value."""
+    def __init__(self, model, name):
+        msg = "'%s' instance has no value for field '%s'" % (model.__class__.__name__, name)
+        super(UndefinedValueError, self).__init__(msg)
 
 
 class UnknownFieldError(KeyError):
-    """Exception raised when attempting to set a nonexistent field using the subscription syntax."""
-    pass
+    """Exception raised when attempting to access a nonexistent field using the subscription syntax."""
+    def __init__(self, model, name):
+        msg = "Model '%s' has no field named '%s'" % (model.__class__.__name__, name)
+        super(UnknownFieldError, self).__init__(msg)
 
 
 __all__ = module_exports(__name__)
