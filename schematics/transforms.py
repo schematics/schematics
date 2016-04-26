@@ -23,7 +23,7 @@ from .util import listify
 def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
                 mapping=None, partial=False, strict=False, init_values=False,
                 apply_defaults=False, convert=True, validate=False, new=False,
-                recursive=False, app_data=None, context=None):
+                oo=False, recursive=False, app_data=None, context=None):
     """
     The import loop is designed to take untrusted data and convert it into the
     native types, as described in ``cls``.  It does this by calling
@@ -81,6 +81,7 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
             'convert': convert,
             'validate': validate,
             'new': new,
+            'oo': oo,
             'recursive': recursive,
             'app_data': app_data if app_data is not None else {}
         })
@@ -147,6 +148,9 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
                 if isinstance(exc, DataError):
                     data[field_name] = exc.partial_data
                 continue
+
+        if not context.oo and value is Undefined:
+            continue
 
         data[field_name] = value
 
@@ -551,7 +555,8 @@ def get_import_context(field_converter=import_converter, **options):
         'strict': False,
         'convert': True,
         'validate': False,
-        'new': False
+        'new': False,
+        'oo': False
     }
     import_options.update(options)
     return Context(**import_options)

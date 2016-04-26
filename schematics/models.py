@@ -258,8 +258,8 @@ class Model(object):
             are known to have the right datatypes (e.g., when validating immediately
             after the initial import). Default: True
         """
-        data = validate(self.__class__, self._data, partial=partial, convert=convert,
-                        app_data=app_data, **kwargs)
+        data = self.convert(self, validate=True, partial=partial, convert=convert,
+                            app_data=app_data, **kwargs)
 
         if convert:
             self._data.update(**data)
@@ -274,7 +274,8 @@ class Model(object):
         self._data = self.convert(raw_data, trusted_data=self, recursive=recursive, **kwargs)
         return self
 
-    def convert(self, raw_data, **kw):
+    @classmethod
+    def convert(cls, raw_data, context=None, **kw):
         """
         Converts the raw data into richer Python constructs according to the
         fields on the model
@@ -282,21 +283,11 @@ class Model(object):
         :param raw_data:
             The data to be converted
         """
-        _validate = getattr(kw.get('context'), 'validate', kw.get('validate', False))
+        _validate = getattr(context, 'validate', None) or kw.get('validate', False)
         if _validate:
-            return validate(self.__class__, raw_data, **kw)
+            return validate(cls, raw_data, oo=True, context=context, **kw)
         else:
-            return convert(self.__class__, raw_data, **kw)
-
-    @classmethod
-    def _convert(cls, obj, context):
-        if context.new or not isinstance(obj, Model):
-            return cls(obj, context=context)
-        else:
-            data = obj.convert(obj._data, context=context)
-            if context.convert:
-                obj._data.update(data)
-            return obj
+            return convert(cls, raw_data, oo=True, context=context, **kw)
 
     def export(self, field_converter=None, role=None, app_data=None, **kwargs):
         return export_loop(self.__class__, self, field_converter=field_converter,

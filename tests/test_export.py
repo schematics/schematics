@@ -5,7 +5,7 @@ import uuid
 
 from schematics.common import *
 from schematics.models import Model
-from schematics.transforms import ExportConverter
+from schematics.transforms import ExportConverter, to_native, to_dict, to_primitive
 from schematics.types import *
 from schematics.types.compound import *
 from schematics.types.serializable import serializable
@@ -27,13 +27,13 @@ class M(BaseModel):
 
 field = ListType(ModelType(M)) # standalone field
 
-input = { 'intfield': 3,
-          'stringfield': 'foobar',
-          'dtfield': '2015-11-26T09:00:00.000000',
-          'utcfield': '2015-11-26T07:00:00.000000Z',
-          'modelfield': {
-              'floatfield': 1.0,
-              'uuidfield': '54020382-291e-4192-b370-4850493ac5bc' }}
+primitives = { 'intfield': 3,
+               'stringfield': 'foobar',
+               'dtfield': '2015-11-26T09:00:00.000000',
+               'utcfield': '2015-11-26T07:00:00.000000Z',
+               'modelfield': {
+                   'floatfield': 1.0,
+                   'uuidfield': '54020382-291e-4192-b370-4850493ac5bc' }}
 
 natives = { 'intfield': 3,
             'stringfield': 'foobar',
@@ -46,8 +46,10 @@ natives = { 'intfield': 3,
 
 def test_to_native():
 
-    m = M(input)
+    m = M(primitives)
     assert m.to_native() == m
+
+    assert to_native(M, natives) == m
 
     m = M({'modelfield': {}})
     result = m.to_native()
@@ -64,26 +66,30 @@ def test_to_native():
     assert result.intfield is None
     assert result.modelfield.floatfield is None
 
-    result = field.convert([input])
-    assert field.to_native(result) == result
-
 
 def test_to_dict():
 
-    m = M(input)
+    m = M(primitives)
     assert m.to_dict() == natives
 
-    result = field.convert([input])
-    assert field.to_dict(result) == [natives]
+    assert to_dict(M, natives) == natives
 
 
 def test_to_primitive():
 
-    m = M(input)
-    assert m.to_primitive() == input
+    m = M(primitives)
+    assert m.to_primitive() == primitives
 
-    result = field.convert([input])
-    assert field.to_primitive(result) == [input]
+    assert to_primitive(M, natives) == primitives
+
+
+def test_standalone_field():
+
+    converted = field.convert([primitives])
+    assert converted == [natives]
+    assert field.to_native(converted) == [M(primitives)]
+    assert field.to_dict(converted) == [natives]
+    assert field.to_primitive(converted) == [primitives]
 
 
 class Foo(object):

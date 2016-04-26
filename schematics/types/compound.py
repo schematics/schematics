@@ -10,6 +10,7 @@ from ..common import * # pylint: disable=redefined-builtin
 from ..datastructures import OrderedDict
 from ..exceptions import *
 from ..transforms import (
+    export_loop,
     get_import_context, get_export_context,
     to_native_converter, to_dict_converter, to_primitive_converter)
 
@@ -130,13 +131,18 @@ class ModelType(CompoundType):
             model_class = self.model_class
         else:
             raise ConversionError(
-                'Please use a mapping for this field or {0} instance instead of {1}.'.format(
-                    self.model_class.__name__,
-                    type(value).__name__))
-        return model_class._convert(value, context=context)
+                "Input must be a mapping or '%s' instance" % self.model_class.__name__)
+        if context.convert and context.oo:
+            return model_class(value, context=context)
+        else:
+            return model_class.convert(value, context=context)
 
-    def _export(self, model_instance, format, context):
-        return model_instance.export(context=context)
+    def _export(self, value, format, context):
+        if isinstance(value, Model):
+            model_class = type(value)
+        else:
+            model_class = self.model_class
+        return export_loop(model_class, value, context=context)
 
 
 class ListType(CompoundType):
