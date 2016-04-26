@@ -16,6 +16,11 @@ from schematics.types.compound import *
 from schematics.types.base import get_range_endpoints
 from schematics.exceptions import ConversionError, ValidationError, DataError
 
+try:
+    from schematics.compat import bytes, str
+except ImportError:
+    pass
+
 
 _uuid = uuid.UUID('3ce85e48-3028-409c-a07c-c8ee3d16d5c4')
 
@@ -99,6 +104,8 @@ def test_int():
     i = lambda x: (intfield(x), type(intfield(x)))
     # from int
     assert i(3) == (3, int)
+    # from bool
+    assert i(True) == (1, int)
     # from float
     assert i(3.0) == (3, int)
     with pytest.raises(ConversionError):
@@ -128,6 +135,8 @@ def test_int_strict():
     i = lambda x: (intfield(x), type(intfield(x)))
     # from int
     assert i(3) == (3, int)
+    # from bool
+    assert i(True) == (1, int)
     # from float
     with pytest.raises(ConversionError):
         i(3.0)
@@ -153,6 +162,8 @@ def test_float():
     f = lambda x: (floatfield(x), type(floatfield(x)))
     # from int
     assert f(3) == (3.0, float)
+    # from bool
+    assert f(True) == (1.0, float)
     # from float
     assert f(3.2) == (3.2, float)
     # from string
@@ -258,18 +269,36 @@ def test_string_regex():
 
 
 def test_string_to_native():
+    field = StringType()
 
     with pytest.raises(ConversionError):
-        StringType().to_native(3.14)
+        field.to_native(3.14)
     with pytest.raises(ConversionError):
-        StringType().to_native(b'\xE0\xA0') # invalid UTF-8 sequence
+        field.to_native(b'\xE0\xA0') # invalid UTF-8 sequence
+    with pytest.raises(ConversionError):
+        field.to_native(True)
 
     if sys.version_info[0] == 2:
-        assert StringType().to_native(u'abc éíçßµ') == u'abc éíçßµ'
-        assert StringType().to_native('\xC3\xA4') == u'ä'
+        strings = [
+            (u'abcdefg',   u'abcdefg'),
+            ( 'abcdefg',   u'abcdefg'),
+            (u'abc éíçßµ', u'abc éíçßµ'),
+            ( '\xC3\xA4',  u'ä'),
+            (  12345,      u'12345'),
+        ]
     else:
-        assert StringType().to_native('abc éíçßµ') == 'abc éíçßµ'
-        assert StringType().to_native(b'\xC3\xA4') == 'ä'
+        strings = [
+            ( 'abcdefg',   'abcdefg'),
+            (b'abcdefg',   'abcdefg'),
+            ( 'abc éíçßµ', 'abc éíçßµ'),
+            (b'\xC3\xA4',  'ä'),
+            (  12345,      '12345'),
+        ]
+
+    for input, expected in strings:
+        res = field.to_native(input)
+        assert res == expected
+        assert type(res) is str
 
 
 def test_string_max_length_is_enforced():
