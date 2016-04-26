@@ -70,7 +70,9 @@ def test_to_native():
 def test_to_dict():
 
     m = M(primitives)
-    assert m.to_dict() == natives
+    output = m.to_dict()
+    assert type(output) is dict
+    assert output == natives
 
     assert to_dict(M, natives) == natives
 
@@ -78,7 +80,9 @@ def test_to_dict():
 def test_to_primitive():
 
     m = M(primitives)
-    assert m.to_primitive() == primitives
+    output = m.to_primitive()
+    assert type(output) is dict
+    assert output == primitives
 
     assert to_primitive(M, natives) == primitives
 
@@ -146,4 +150,31 @@ def test_converter_function():
     exporter = lambda field, value, context: field.export(value, PRIMITIVE, context)
 
     assert x.export(field_converter=exporter) == x.to_primitive()
+
+
+def test_export_order():
+
+    class O(Model):
+        class Options:
+            export_order = True
+        f = StringType()
+        a = StringType()
+        e = StringType()
+        b = StringType()
+        d = StringType()
+        c = StringType()
+
+    assert list(O().to_primitive().keys()) == ['f', 'a', 'e', 'b', 'd', 'c']
+
+    class O(Model):
+        class Options:
+            export_order = True
+        b = StringType()
+        f = StringType()
+        c = StringType()
+        e = StringType()
+        d = StringType()
+        a = StringType()
+
+    assert list(O().to_primitive().keys()) == ['b', 'f', 'c', 'e', 'd', 'a']
 

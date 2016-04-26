@@ -8,10 +8,15 @@ import operator
 import types
 
 from .common import * # pylint: disable=redefined-builtin
-from .datastructures import OrderedDict, Context
+from .datastructures import Context
 from .exceptions import *
 from .undefined import Undefined
 from .util import listify
+
+try:
+    from collections import OrderedDict
+except ImportError:
+    from .datastructures import OrderedDict
 
 
 
@@ -209,7 +214,10 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
 
     instance_or_dict = context.field_converter.pre(cls, instance_or_dict, context)
 
-    data = {}
+    if cls._options.export_order:
+        data = OrderedDict()
+    else:
+        data = {}
 
     filter_func = cls._options.roles.get(context.role)
     if filter_func is None:
@@ -218,9 +226,6 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
             raise ValueError(error_msg % (cls.__name__, context.role))
         else:
             filter_func = cls._options.roles.get("default")
-
-    fields_order = (getattr(cls._options, 'fields_order', None)
-                    if hasattr(cls, '_options') else None)
 
     _field_converter = context.field_converter
 
@@ -253,34 +258,9 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
 
         data[serialized_name] = value
 
-    if fields_order:
-        data = sort_dict(data, fields_order)
-
     data = context.field_converter.post(cls, data, context)
 
     return data
-
-
-def sort_dict(dct, based_on):
-    """
-    Sorts provided dictionary based on order of keys provided in ``based_on``
-    list.
-
-    Order is not guarantied in case if ``dct`` has keys that are not present
-    in ``based_on``
-
-    :param dct:
-        Dictionary to be sorted.
-    :param based_on:
-        List of keys in order that resulting dictionary should have.
-    :return:
-        OrderedDict with keys in the same order as provided ``based_on``.
-    """
-    return OrderedDict(
-        sorted(
-            dct.items(),
-            key=lambda el: based_on.index(el[0] if el[0] in based_on else -1))
-    )
 
 
 def atoms(cls, instance_or_dict):

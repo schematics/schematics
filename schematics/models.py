@@ -69,7 +69,7 @@ class ModelOptions(object):
     """
 
     def __init__(self, klass, namespace=None, roles=None, export_level=DEFAULT,
-                 serialize_when_none=None, fields_order=None):
+                 serialize_when_none=None, export_order=False):
         """
         :param klass:
             The class which this options instance belongs to.
@@ -81,9 +81,11 @@ class ModelOptions(object):
         :param serialize_when_none:
             When ``False``, serialization skips fields that are None.
             Default: ``True``
-        :param fields_order:
-            List of field names that dictates the order in which keys will
-            appear in a serialized dictionary.
+        :param export_order:
+            Specifies whether to maintain the original field order when exporting
+            the model. This entails returning an ``OrderedDictionary`` instead of
+            a regular dictionary.
+            Default: ``False``
         """
         self.klass = klass
         self.namespace = namespace
@@ -93,7 +95,7 @@ class ModelOptions(object):
             self.export_level = DEFAULT
         elif serialize_when_none is False:
             self.export_level = NONEMPTY
-        self.fields_order = fields_order
+        self.export_order = export_order
 
 
 class ModelMeta(type):
