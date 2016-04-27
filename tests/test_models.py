@@ -2,13 +2,11 @@
 
 import pytest
 
+from schematics.common import PY2
 from schematics.models import Model, ModelOptions
 from schematics.transforms import whitelist, blacklist
 from schematics.undefined import Undefined
-
-from schematics.common import PY2
-from schematics.types.base import StringType, IntType
-from schematics.types.compound import ModelType
+from schematics.types import StringType, IntType, ListType, ModelType
 from schematics.exceptions import *
 
 
@@ -41,6 +39,38 @@ def test_init_with_dict():
 
     m = M({'a': 1, 'b': None}, init=False, apply_defaults=True, init_values=True)
     assert m._data == {'a': 1, 'b': None, 'c': None, 'd': 0}
+
+
+def test_defaults():
+
+    class M(Model):
+        d0 = IntType(default=0)
+        dN = ListType(IntType, default=None)
+
+    m = M()
+    assert m._data == {'d0': 0, 'dN': None}
+    m.validate()
+    assert m._data == {'d0': 0, 'dN': None}
+
+    m = M(apply_defaults=False)
+    assert m._data == {'d0': None, 'dN': None}
+    m.validate()
+    assert m._data == {'d0': None, 'dN': None}
+
+    m = M(init_values=False)
+    assert m._data == {'d0': 0, 'dN': None}
+    m.validate()
+    assert m._data == {'d0': 0, 'dN': None}
+
+    m = M(init=False)
+    assert m._data == {'d0': Undefined, 'dN': Undefined}
+    m.validate()
+    assert m._data == {'d0': Undefined, 'dN': Undefined}
+
+    m = M(init=False, apply_defaults=True)
+    assert m._data == {'d0': 0, 'dN': None}
+    m.validate()
+    assert m._data == {'d0': 0, 'dN': None}
 
 
 def test_invalid_model_fail_validation():
