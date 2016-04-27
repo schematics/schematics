@@ -1,3 +1,5 @@
+# pylint: skip-file
+
 from __future__ import absolute_import
 
 import functools
@@ -13,7 +15,6 @@ PY3 = sys.version_info[0] == 3
 
 
 if PY2:
-    # pylint: disable=redefined-builtin,invalid-name,unused-import,wrong-import-position
     __all__ += ['bytes', 'str', 'map', 'zip', 'range']
     bytes = str
     str = unicode

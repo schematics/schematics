@@ -28,9 +28,9 @@ enable=
 
 # Disable the message, report, category or checker with the given id(s).
 disable=
-    bad-whitespace,bad-continuation,
+    bad-whitespace, bad-continuation,
     wildcard-import, unused-wildcard-import,
-    protected-access,
+    protected-access, redefined-builtin,
     unused-argument, too-many-arguments, too-many-branches
 
 
