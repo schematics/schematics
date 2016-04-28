@@ -650,3 +650,11 @@ def test_repr():
     else:
         assert repr(inst) == '<FooModel: é, Ä>'
 
+
+def test_mock_recursive_model():
+
+    class M(Model):
+        m = ListType(ModelType('M', required=True), required=True)
+
+    M.get_mock_object()
+

@@ -7,7 +7,7 @@ import inspect
 import itertools
 
 from .common import * # pylint: disable=redefined-builtin
-from .datastructures import OrderedDict
+from .datastructures import OrderedDict, Context
 from .exceptions import *
 from .transforms import (
     atoms, export_loop,
@@ -333,21 +333,25 @@ class Model(object):
         return getattr(self, key, default)
 
     @classmethod
-    def get_mock_object(cls, context=None, overrides=None):
+    def get_mock_object(cls, context=None, overrides={}):
         """Get a mock object.
 
         :param dict context:
         :param dict overrides: overrides for the model
         """
-        if overrides is None:
-            overrides = {}
+        context = Context._make(context)
+        context._setdefault('memo', set())
+        context.memo.add(cls)
         values = {}
         for name, field in cls.fields.items():
-            if name not in overrides:
-                try:
-                    values[name] = field.mock(context)
-                except MockCreationError as exc:
-                    raise MockCreationError('%s: %s' % (name, exc.message))
+            if name in overrides:
+                continue
+            if getattr(field, 'model_class', None) in context.memo:
+                continue
+            try:
+                values[name] = field.mock(context)
+            except MockCreationError as exc:
+                raise MockCreationError('%s: %s' % (name, exc.message))
         values.update(overrides)
         return cls(values)
 
