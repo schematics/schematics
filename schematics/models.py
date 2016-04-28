@@ -12,7 +12,6 @@ from .exceptions import *
 from .transforms import (
     atoms, export_loop,
     convert, to_native, to_dict, to_primitive,
-    flatten, expand
 )
 from .validate import validate, prepare_validator
 from .types import BaseType
@@ -306,23 +305,6 @@ class Model(object):
 
     def serialize(self, *args, **kwargs):
         return self.to_primitive(*args, **kwargs)
-
-    def flatten(self, role=None, prefix="", app_data=None, context=None):
-        """
-        Return data as a pure key-value dictionary, where the values are
-        primitive types (string, bool, int, long).
-
-        :param role:
-            Filter output by a specific role
-        :param prefix:
-            A prefix to use for keynames during flattening.
-        """
-        return flatten(self.__class__, self, role=role, prefix=prefix,
-                       app_data=app_data, context=context)
-
-    @classmethod
-    def from_flat(cls, data):
-        return cls(expand(data))
 
     def atoms(self):
         """
