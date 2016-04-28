@@ -176,9 +176,9 @@ def test_list_field_convert():
 def test_list_coercion():
     field = ListType(StringType)
     assert field(('foobar',)) == ['foobar']
-    assert field({-2: 'bar', -1: 'baz', -3: 'foo'}) == ['foo', 'bar', 'baz']
-    assert field(OrderedDict([(-2, 'bar'), (-1, 'baz'), (-3, 'foo')])) == ['bar', 'baz', 'foo']
     assert field(set(('foobar',))) == ['foobar']
+    with pytest.raises(ConversionError):
+        field({1: 'bar', 2: 'baz', 0: 'foo'})
     with pytest.raises(ConversionError):
         field('foobar')
     with pytest.raises(ConversionError):

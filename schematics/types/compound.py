@@ -16,11 +16,6 @@ from ..transforms import (
 
 from .base import BaseType, get_value_in
 
-try:
-    ordered_mappings = (collections.OrderedDict, OrderedDict)
-except AttributeError:
-    ordered_mappings = (OrderedDict,) # Python 2.6
-
 
 class CompoundType(BaseType):
 
@@ -184,15 +179,10 @@ class ListType(CompoundType):
     def _coerce(self, value):
         if isinstance(value, list):
             return value
-        elif isinstance(value, Sequence) and not isinstance(value, string_type):
-            return value
-        elif isinstance(value, Mapping):
-            if isinstance(value, ordered_mappings):
-                return value.values()
-            else:
-                return [v for k, v in sorted(value.items())]
-        elif isinstance(value, string_type):
+        elif isinstance(value, (string_type, Mapping)): # unacceptable iterables
             pass
+        elif isinstance(value, Sequence):
+            return value
         elif isinstance(value, Iterable):
             return value
         raise ConversionError('Could not interpret the value as a list')
