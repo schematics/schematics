@@ -17,6 +17,7 @@ from .validate import validate, prepare_validator
 from .types import BaseType
 from .types.serializable import Serializable
 from .undefined import Undefined
+from .util import get_ident
 
 
 class FieldDescriptor(object):
@@ -379,13 +380,20 @@ class Model(object):
     def __len__(self):
         return len(self.keys())
 
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            for k in self._fields:
-                if self._data[k] != other._data[k]:
-                    return False
+    def __eq__(self, other, memo=set()):
+        if self is other:
             return True
-        return NotImplemented
+        if type(self) is not type(other):
+            return NotImplemented
+        key = (id(self), id(other), get_ident())
+        if key in memo:
+            return True
+        else:
+            memo.add(key)
+        try:
+            return self._data == other._data
+        finally:
+            memo.remove(key)
 
     def __ne__(self, other):
         return not self == other

@@ -8,17 +8,8 @@ from copy import deepcopy
 from operator import eq
 
 from .common import *
+from .util import get_ident
 
-if PY2:
-    try:
-        from thread import get_ident
-    except ImportError:
-        from dummy_thread import get_ident
-else:
-    try:
-        from _thread import get_ident
-    except ImportError:
-        from _dummy_thread import get_ident
 
 
 class OrderedDict(MutableMapping, dict):

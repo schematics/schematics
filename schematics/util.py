@@ -5,7 +5,18 @@ from __future__ import unicode_literals, absolute_import
 import collections
 import sys
 
-from .compat import * # pylint: disable=redefined-builtin
+from .compat import *
+
+if PY2:
+    try:
+        from thread import get_ident
+    except ImportError:
+        from dummy_thread import get_ident
+else:
+    try:
+        from _thread import get_ident
+    except ImportError:
+        from _dummy_thread import get_ident
 
 
 def setdefault(obj, attr, value, search_mro=False, overwrite_none=False):
