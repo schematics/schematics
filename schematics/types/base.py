@@ -464,23 +464,7 @@ class IntType(NumberType):
                                       number_type='Int',
                                       *args, **kwargs)
 
-
-class LongType(NumberType):
-
-    """A field that validates input as a Long
-    """
-
-    def __init__(self, *args, **kwargs):
-
-        try:
-            number_class = long #PY2
-        except NameError:
-            number_class = int #PY3
-
-
-        super(LongType, self).__init__(number_class=number_class,
-                                       number_type='Long',
-                                       *args, **kwargs)
+LongType = IntType
 
 
 class FloatType(NumberType):
