@@ -243,6 +243,18 @@ def test_validate_methods_passed_self():
     Foo({'foo': u'Bar'}).validate()
 
 
+def test_validate_discovers_classmethod():
+    class Foo(Model):
+        foo = StringType()
+
+        @classmethod
+        def validate_foo(cls, data, value, context):
+            raise ValidationError(u"I'm a classmethod that should be discovered.")
+
+    with pytest.raises(DataError):
+        Foo({'foo': u'Bar'}).validate()
+
+
 def test_basic_error():
     class School(Model):
         name = StringType(required=True)
