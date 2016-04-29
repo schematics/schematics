@@ -4,7 +4,6 @@ import pytest
 
 from schematics.common import *
 from schematics.models import Model
-from schematics.transforms import ExportConverter
 from schematics.types import *
 from schematics.types.compound import *
 from schematics.types.serializable import serializable

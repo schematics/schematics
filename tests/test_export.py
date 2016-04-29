@@ -5,7 +5,7 @@ import uuid
 
 from schematics.common import *
 from schematics.models import Model
-from schematics.transforms import ExportConverter, to_native, to_dict, to_primitive
+from schematics.transforms import Converter, to_native, to_primitive
 from schematics.types import *
 from schematics.types.compound import *
 from schematics.types.serializable import serializable
@@ -47,34 +47,11 @@ natives = { 'intfield': 3,
 def test_to_native():
 
     m = M(primitives)
-    assert m.to_native() == m
-
-    assert to_native(M, natives) == m
-
-    m = M({'modelfield': {}})
-    result = m.to_native()
-    assert result.intfield is None
-    assert result.modelfield.floatfield is None
-
-    m = M({'modelfield': {}})
-    del m.intfield
-    del m.modelfield.floatfield
-    result = m.to_native()
-    assert 'intfield' not in result
-    assert 'floatfield' not in result.modelfield
-    result = m.to_native(export_level=ALL)
-    assert result.intfield is None
-    assert result.modelfield.floatfield is None
-
-
-def test_to_dict():
-
-    m = M(primitives)
-    output = m.to_dict()
+    output = m.to_native()
     assert type(output) is dict
     assert output == natives
 
-    assert to_dict(M, natives) == natives
+    assert to_native(M, natives) == natives
 
 
 def test_to_primitive():
@@ -91,8 +68,7 @@ def test_standalone_field():
 
     converted = field.convert([primitives])
     assert converted == [natives]
-    assert field.to_native(converted) == [M(primitives)]
-    assert field.to_dict(converted) == [natives]
+    assert field.to_native(converted) == [natives]
     assert field.to_primitive(converted) == [primitives]
 
 
@@ -123,17 +99,34 @@ def test_custom_exporter():
             'dt': '2015-11-26T07:00',
             'foo': {'x': 1, 'y': 2} })
 
-    assert x.to_dict() == {
+    assert x.to_native() == {
         'id': uuid.UUID('54020382-291e-4192-b370-4850493ac5bc'),
         'dt': datetime.datetime(2015, 11, 26, 7),
         'foo': Foo(1, 2) }
 
-    exporter = ExportConverter(PRIMITIVE, [UTCDateTimeType, UUIDType])
+    class MyExportConverter(Converter):
+
+        keep_as_native = (UTCDateTimeType, UUIDType)
+
+        def __call__(self, field, value, context):
+            if field.typeclass in self.keep_as_native:
+                format = NATIVE
+            else:
+                format = PRIMITIVE
+            return field.export(value, format, context)
+
+        def post(self, model_class, data, context):
+            data['n'] = 42
+            return data
+
+    exporter = MyExportConverter()
 
     assert x.export(field_converter=exporter) == {
         'id': uuid.UUID('54020382-291e-4192-b370-4850493ac5bc'),
         'dt': datetime.datetime(2015, 11, 26, 7),
-        'foo': {'x': 1, 'y': 2} }
+        'foo': {'x': 1, 'y': 2},
+        'n': 42
+    }
 
 
 def test_converter_function():

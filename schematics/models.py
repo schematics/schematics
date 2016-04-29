@@ -11,7 +11,7 @@ from .datastructures import OrderedDict, Context
 from .exceptions import *
 from .transforms import (
     atoms, export_loop,
-    convert, to_native, to_dict, to_primitive,
+    convert, to_native, to_primitive,
 )
 from .validate import validate, prepare_validator
 from .types import BaseType
@@ -297,9 +297,6 @@ class Model(object):
 
     def to_native(self, role=None, app_data=None, **kwargs):
         return to_native(self.__class__, self, role=role, app_data=app_data, **kwargs)
-
-    def to_dict(self, role=None, app_data=None, **kwargs):
-        return to_dict(self.__class__, self, role=role, app_data=app_data, **kwargs)
 
     def to_primitive(self, role=None, app_data=None, **kwargs):
         return to_primitive(self.__class__, self, role=role, app_data=app_data, **kwargs)
