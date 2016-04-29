@@ -154,14 +154,13 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
                     data[field_name] = exc.partial_data
                 continue
 
-        if not context.oo and value is Undefined:
+        if value is Undefined:
             continue
 
         data[field_name] = value
 
     if errors:
-        partial_data = dict(((key, value) for key, value in data.items() if value is not Undefined))
-        raise DataError(errors, partial_data)
+        raise DataError(errors, data)
 
     data = context.field_converter.post(cls, data, context)
 

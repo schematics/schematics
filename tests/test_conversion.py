@@ -11,6 +11,13 @@ from schematics.exceptions import *
 from schematics.undefined import Undefined
 
 
+def missing(d, fieldname, init_to_none):
+    if init_to_none:
+        return d[fieldname] is None
+    else:
+        return fieldname not in d
+
+
 def autofail(value, context):
     if value != [42]:
         raise ValidationError("Error!", info=99)
@@ -89,14 +96,16 @@ def input(input_instance, input_init, variant):
 
 
 @pytest.mark.parametrize('variant', (None,))
-@pytest.mark.parametrize('input_instance, input_init, init,  missing_obj',
-                       [( False,          None,       True,  None),
-                        ( False,          None,       False, Undefined),
-                        ( True,           False,      True,  None),
-                        ( True,           False,      False, Undefined),
-                        ( True,           True,       True,  None),
-                        ( True,           True,       False, None)])
-def test_conversion(input, input_instance, init, missing_obj):
+@pytest.mark.parametrize('input_instance, input_init, init',
+                       [( False,          None,       True),
+                        ( False,          None,       False),
+                        ( True,           False,      True),
+                        ( True,           False,      False),
+                        ( True,           True,       True),
+                        ( True,           True,       False)])
+def test_conversion(input, input_instance, input_init, init):
+
+    init_to_none = input_init or init
 
     orig_input = copy(input)
 
@@ -114,9 +123,9 @@ def test_conversion(input, input_instance, init, missing_obj):
     assert type(m.modelfield.modelfield.matrixfield[2]) is list
 
     assert m._data['listfield'] == []
-    assert m.modelfield._data['intfield'] is missing_obj
+    assert missing(m.modelfield._data, 'intfield', init_to_none)
     assert m.modelfield.modelfield._data['listfield'] is None
-    assert m.modelfield.modelfield._data['reqfield'] is missing_obj
+    assert missing(m.modelfield.modelfield._data, 'reqfield', init_to_none)
 
     assert input == orig_input
 
@@ -129,14 +138,16 @@ def test_conversion(input, input_instance, init, missing_obj):
 
 
 @pytest.mark.parametrize('variant', (None,))
-@pytest.mark.parametrize('input_instance, input_init, init,  missing_obj',
-                       [( False,          None,       True,  None),
-                        ( False,          None,       False, Undefined),
-                        ( True,           False,      True,  None),
-                        ( True,           False,      False, Undefined),
-                        ( True,           True,       True,  None),
-                        ( True,           True,       False, None)])
-def test_conversion_to_dictl(input, input_instance, init, missing_obj):
+@pytest.mark.parametrize('input_instance, input_init, init',
+                       [( False,          None,       True),
+                        ( False,          None,       False),
+                        ( True,           False,      True),
+                        ( True,           False,      False),
+                        ( True,           True,       True),
+                        ( True,           True,       False)])
+def test_conversion_to_dictl(input, input_instance, input_init, init):
+
+    init_to_none = input_init or init
 
     orig_input = copy(input)
 
@@ -155,9 +166,9 @@ def test_conversion_to_dictl(input, input_instance, init, missing_obj):
     assert type(m['modelfield']['modelfield']['matrixfield'][2]) is list
 
     assert m['listfield'] == []
-    assert m['modelfield'].get('intfield', Undefined) is missing_obj
+    assert missing(m['modelfield'], 'intfield', init_to_none)
     assert m['modelfield']['modelfield']['listfield'] is None
-    assert m['modelfield']['modelfield'].get('reqfield', Undefined) is missing_obj
+    assert missing(m['modelfield']['modelfield'], 'reqfield', init_to_none)
 
     assert input == orig_input
 
@@ -169,25 +180,27 @@ def test_conversion_to_dictl(input, input_instance, init, missing_obj):
 
 @pytest.mark.parametrize('variant', (None, 'noerrors'))
 @pytest.mark.parametrize('partial', (True, False))
-@pytest.mark.parametrize('import_, two_pass, input_instance, input_init, init,  missing_obj',
-                       [( True,    False,    False,          None,       True,  None),
-                        ( True,    False,    False,          None,       False, Undefined),
-                        ( True,    False,    True,           False,      True,  None),
-                        ( True,    False,    True,           False,      False, Undefined),
-                        ( True,    False,    True,           True,       True,  None),
-                        ( True,    False,    True,           True,       False, None),
-                        ( True,    True,     False,          None,       True,  None),
-                        ( True,    True,     False,          None,       False, Undefined),
-                        ( True,    True,     True,           False,      True,  None),
-                        ( True,    True,     True,           False,      False, Undefined),
-                        ( True,    True,     True,           True,       True,  None),
-                        ( True,    True,     True,           True,       False, None),
-                        ( False,   None,     True,           False,      True,  None),
-                        ( False,   None,     True,           False,      False, Undefined),
-                        ( False,   None,     True,           True,       True,  None),
-                        ( False,   None,     True,           True,       False, None)])
-def test_conversion_with_validation(input, import_, two_pass, input_instance, init, missing_obj,
+@pytest.mark.parametrize('import_, two_pass, input_instance, input_init, init',
+                       [( True,    False,    False,          None,       True),
+                        ( True,    False,    False,          None,       False),
+                        ( True,    False,    True,           False,      True),
+                        ( True,    False,    True,           False,      False),
+                        ( True,    False,    True,           True,       True),
+                        ( True,    False,    True,           True,       False),
+                        ( True,    True,     False,          None,       True),
+                        ( True,    True,     False,          None,       False),
+                        ( True,    True,     True,           False,      True),
+                        ( True,    True,     True,           False,      False),
+                        ( True,    True,     True,           True,       True),
+                        ( True,    True,     True,           True,       False),
+                        ( False,   None,     True,           False,      True),
+                        ( False,   None,     True,           False,      False),
+                        ( False,   None,     True,           True,       True),
+                        ( False,   None,     True,           True,       False)])
+def test_conversion_with_validation(input, import_, two_pass, input_instance, input_init, init,
                                     partial, variant):
+
+    init_to_none = input_init or init
 
     if variant == 'noerrors':
 
@@ -220,7 +233,7 @@ def test_conversion_with_validation(input, import_, two_pass, input_instance, in
 
         return
 
-    if missing_obj is None:
+    if init_to_none:
         partial_data = {
             'intfield': 1,
             'reqfield': u'foo',
@@ -280,7 +293,7 @@ def test_conversion_with_validation(input, import_, two_pass, input_instance, in
         err_msg = err_list.pop()
         assert err_list == []
         assert err_msg.type == ConversionError
-        if missing_obj is None:
+        if init_to_none:
             partial_data['modelfield']['modelfield'].pop('reqfield')
 
     err_dict = messages['modelfield']['modelfield'].pop('matrixfield')

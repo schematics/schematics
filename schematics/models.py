@@ -40,7 +40,7 @@ class FieldDescriptor(object):
         if instance is None:
             return cls._fields[self.name]
         else:
-            value = instance._data[self.name]
+            value = instance._data.get(self.name, Undefined)
             if value is Undefined:
                 raise UndefinedValueError(instance, self.name)
             else:
@@ -58,7 +58,7 @@ class FieldDescriptor(object):
         """
         Deletes the field's value.
         """
-        instance._data[self.name] = Undefined
+        del instance._data[self.name]
 
 
 class ModelOptions(object):
@@ -316,19 +316,16 @@ class Model(object):
         return atoms(self.__class__, self)
 
     def __iter__(self):
-        return self.iter()
-
-    def iter(self):
-        return iter(self.keys())
+        return (k for k in self._fields if k in self._data)
 
     def keys(self):
-        return [k for k in self._fields if self._data[k] is not Undefined]
+        return list(iter(self))
 
     def items(self):
-        return [(k, self._data[k]) for k in self.keys()]
+        return [(k, self._data[k]) for k in self]
 
     def values(self):
-        return [self._data[k] for k in self.keys()]
+        return [self._data[k] for k in self]
 
     def get(self, key, default=None):
         return getattr(self, key, default)
@@ -375,10 +372,10 @@ class Model(object):
             raise UnknownFieldError(self, name)
 
     def __contains__(self, name):
-        return name in self.keys() or name in self._serializables
+        return name in self._data or name in self._serializables
 
     def __len__(self):
-        return len(self.keys())
+        return len(self._data)
 
     def __eq__(self, other, memo=set()):
         if self is other:

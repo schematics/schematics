@@ -52,17 +52,15 @@ def validate(cls, instance_or_dict, trusted_data=None, partial=False, strict=Fal
         errors = exc.messages
         data = exc.partial_data
 
-    partial_data = dict(((key, value) for key, value in data.items() if value is not Undefined))
-
-    errors.update(_validate_model(cls, data, partial_data, context))
+    errors.update(_validate_model(cls, data, context))
 
     if errors:
-        raise DataError(errors, partial_data)
+        raise DataError(errors, data)
 
     return data
 
 
-def _validate_model(cls, data, partial_data, context):
+def _validate_model(cls, data, context):
     """
     Validate data using model level methods.
 
@@ -78,10 +76,10 @@ def _validate_model(cls, data, partial_data, context):
     errors = {}
     invalid_fields = []
     for field_name, field in iteritems(cls._fields):
-        if field_name in cls._validator_functions and field_name in partial_data:
+        if field_name in cls._validator_functions and field_name in data:
             value = data[field_name]
             try:
-                cls._validator_functions[field_name](cls, partial_data, value, context)
+                cls._validator_functions[field_name](cls, data, value, context)
             except FieldError as exc:
                 field = cls._fields[field_name]
                 serialized_field_name = field.serialized_name or field_name
@@ -90,7 +88,6 @@ def _validate_model(cls, data, partial_data, context):
 
     for field_name in invalid_fields:
         data.pop(field_name)
-        partial_data.pop(field_name)
 
     return errors
 

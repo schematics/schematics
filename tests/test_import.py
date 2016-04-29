@@ -31,7 +31,7 @@ def test_import_data(init):
     if init:
         assert m._data == {'a': None, 'b': 2, 'c': 3, 'd': None}
     else:
-        assert m._data == {'a': None, 'b': 2, 'c': 3, 'd': Undefined}
+        assert m._data == {'a': None, 'b': 2, 'c': 3}
 
 
 @pytest.mark.parametrize('init', (True, False))
@@ -56,7 +56,7 @@ def test_import_data_with_error(init):
     if init:
         assert m._data == {'a': 1, 'b': None, 'c': 3, 'd': None}
     else:
-        assert m._data == {'a': 1, 'b': None, 'c': 3, 'd': Undefined}
+        assert m._data == {'a': 1, 'b': None, 'c': 3}
 
 
 @pytest.mark.parametrize('preconvert_source, populate_source',

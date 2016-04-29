@@ -26,13 +26,13 @@ def test_init_with_dict():
     assert m._data == {'a': 1, 'b': None, 'c': None, 'd': None}
 
     m = M({'a': 1, 'b': None}, init_values=False)
-    assert m._data == {'a': 1, 'b': None, 'c': Undefined, 'd': 0}
+    assert m._data == {'a': 1, 'b': None, 'd': 0}
 
     m = M({'a': 1, 'b': None}, init=False)
-    assert m._data == {'a': 1, 'b': None, 'c': Undefined, 'd': Undefined}
+    assert m._data == {'a': 1, 'b': None}
 
     m = M({'a': 1, 'b': None}, init=False, apply_defaults=True)
-    assert m._data == {'a': 1, 'b': None, 'c': Undefined, 'd': 0}
+    assert m._data == {'a': 1, 'b': None, 'd': 0}
 
     m = M({'a': 1, 'b': None}, init=False, init_values=True)
     assert m._data == {'a': 1, 'b': None, 'c': None, 'd': None}
@@ -63,9 +63,9 @@ def test_defaults():
     assert m._data == {'d0': 0, 'dN': None}
 
     m = M(init=False)
-    assert m._data == {'d0': Undefined, 'dN': Undefined}
+    assert m._data == {}
     m.validate()
-    assert m._data == {'d0': Undefined, 'dN': Undefined}
+    assert m._data == {}
 
     m = M(init=False, apply_defaults=True)
     assert m._data == {'d0': 0, 'dN': None}
