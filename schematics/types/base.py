@@ -383,6 +383,8 @@ class StringType(BaseType):
                     return str(value, 'utf-8')
                 except UnicodeError:
                     raise ConversionError(self.messages['decode'].format(value))
+            elif isinstance(value, bool):
+                pass
             else:
                 return str(value)
         raise ConversionError(self.messages['convert'].format(value))
@@ -425,6 +427,8 @@ class NumberType(BaseType):
         return get_value_in(self.min_value, self.max_value)
 
     def to_native(self, value, context=None):
+        if isinstance(value, bool):
+            value = int(value)
         if isinstance(value, self.number_class):
             return value
         try:
