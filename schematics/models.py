@@ -372,7 +372,8 @@ class Model(object):
             raise UnknownFieldError(self, name)
 
     def __contains__(self, name):
-        return name in self._data or name in self._serializables
+        return name in self._data \
+            or name in self._serializables and getattr(self, name, Undefined) is not Undefined
 
     def __len__(self):
         return len(self._data)

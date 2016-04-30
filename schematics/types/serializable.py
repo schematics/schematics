@@ -3,14 +3,18 @@
 from __future__ import unicode_literals, absolute_import
 
 import copy
+from functools import partial
+from types import FunctionType
 
-from ..common import * # pylint: disable=redefined-builtin
+from ..common import *
+from ..exceptions import *
+from ..undefined import Undefined
 from ..util import setdefault
 
-from .base import BaseType
+from .base import BaseType, TypeMeta
 
 
-def serializable(*args, **kwargs):
+def serializable(arg=None, **kwargs):
     """A serializable is a way to define dynamic serializable fields that are
     derived from other fields.
 
@@ -31,29 +35,30 @@ def serializable(*args, **kwargs):
     :param serialized_name:
         The name of this field in the serialized output.
     """
-    def wrapper(func):
-
-        serialized_type = kwargs.pop("type", BaseType)
-
-        if isinstance(serialized_type, BaseType):
-            # If `serialized_type` is already an instance, update it with the options
-            # found in `kwargs`. This is necessary because historically certain options
-            # were stored on the `Serializable` itself instead of the underlying field.
-            serialized_type._set_export_level(
-                kwargs.pop('export_level', None), kwargs.pop("serialize_when_none", None))
-            for name, value in kwargs.items():
-                setdefault(serialized_type, name, value, overwrite_none=True)
-        else:
-            serialized_type = serialized_type(**kwargs)
-
-        return Serializable(func, serialized_type)
-
-    if len(args) == 1 and callable(args[0]):
-        # No arguments, this is the decorator
-        # Set default values for the arguments
-        return wrapper(args[0])
+    if isinstance(arg, FunctionType):
+        decorator = True
+        func = arg
+        serialized_type = BaseType
+    elif arg is None or isinstance(arg, (BaseType, TypeMeta)):
+        decorator = False
+        serialized_type = arg or kwargs.pop("type", BaseType)
     else:
-        return wrapper
+        raise TypeError("The argument to 'serializable' must be a function or a type.")
+
+    if isinstance(serialized_type, BaseType):
+        # `serialized_type` is already a type instance,
+        # so update it with the options found in `kwargs`.
+        serialized_type._set_export_level(kwargs.pop('export_level', None),
+                                          kwargs.pop("serialize_when_none", None))
+        for name, value in kwargs.items():
+            setattr(serialized_type, name, value)
+    else:
+        serialized_type = serialized_type(**kwargs)
+
+    if decorator:
+        return Serializable(func, serialized_type)
+    else:
+        return partial(Serializable, type=serialized_type)
 
 
 class Serializable(object):
@@ -66,14 +71,17 @@ class Serializable(object):
         return getattr(self.type, name)
 
     def __get__(self, instance, cls):
-        if instance:
-            return self.func(instance)
-        else:
+        if instance is None:
             return self
+        else:
+            value = self.func(instance)
+            if value is Undefined:
+                raise UndefinedValueError(instance, self.name)
+            else:
+                return value
 
     def __deepcopy__(self, memo):
         return self.__class__(self.func, copy.deepcopy(self.type))
 
 
 __all__ = module_exports(__name__)
-

@@ -68,11 +68,12 @@ def test_serializable_with_serializable_name():
     assert d == {"cc": "US", "cn": "United States"}
 
 
-def test_serializable_with_custom_serializable_class():
-    class PlayerIdType(LongType):
+class PlayerIdType(LongType):
+    def to_primitive(self, value, context=None):
+        return str(value)
 
-        def to_primitive(self, value, context=None):
-            return str(value)
+
+def test_serializable_with_custom_serializable_class():
 
     class Player(Model):
         id = LongType()
@@ -88,6 +89,42 @@ def test_serializable_with_custom_serializable_class():
 
     d = player.serialize()
     assert d == {"id": 1, "player_id": "1"}
+
+
+def test_serializable_with_type_as_positional_argument():
+
+    class Player(Model):
+        id = LongType()
+
+        @serializable(PlayerIdType)
+        def player_id(self):
+            return self.id
+
+    player = Player({"id": 1})
+
+    assert player.id == 1
+    assert player.player_id == 1
+
+    d = player.serialize()
+    assert d == {"id": 1, "player_id": "1"}
+
+
+def test_serializable_with_type_and_options():
+
+    class Player(Model):
+        id = LongType()
+
+        @serializable(PlayerIdType(), serialized_name='playerId')
+        def player_id(self):
+            return self.id
+
+    player = Player({"id": 1})
+
+    assert player.id == 1
+    assert player.player_id == 1
+
+    d = player.serialize()
+    assert d == {"id": 1, "playerId": "1"}
 
 
 def test_serializable_with_model():
