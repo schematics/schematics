@@ -89,3 +89,5 @@ class UnionType(BaseType):
         field, _ = self._resolve(value, context)
         return field.to_primitive(value, context)
 
+
+__all__ = module_exports(__name__)

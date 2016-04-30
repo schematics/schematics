@@ -2,11 +2,6 @@ include AUTHORS
 include HISTORY.rst
 include LICENSE
 include README.rst
-include setup.cfg
-include setup.py
 include test-requirements.txt
 include tox.ini
-graft docs
-prune docs/_build
 global-exclude .DS_Store
-prune dist
