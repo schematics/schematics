@@ -27,14 +27,12 @@ def test_error_from_tuple():
     _assert(ValidationError(('hello', 99)))
 
 
-def test_error_from_tuple():
-    msg = ErrorMessage('hello', info=99)
-    _assert(ValidationError(msg))
+def test_error_from_message():
+    _assert(ValidationError(ErrorMessage('hello', info=99)))
 
 
 def test_error_from_error():
-    e = ValidationError('hello', info=99)
-    _assert(ValidationError(e))
+    _assert(ValidationError(ValidationError(('hello', 99))))
 
 
 def test_error_from_mixed_args():
@@ -74,6 +72,24 @@ def test_error_repr():
 
     e = ValidationError(u'é')
     assert str(e) == repr(e)
+
+
+def test_error_list_conversion():
+    err = ValidationError("A", "B", "C")
+    assert list(err) == err.messages
+
+
+def test_error_eq():
+    assert ValidationError("A") == ValidationError("A") == ["A"]
+    assert ValidationError("A") != ConversionError("A")
+    assert ValidationError("A", "B") == ValidationError("A", "B") == ["A", "B"]
+    assert ValidationError("A") != ValidationError("A", "B")
+
+
+def test_error_pop():
+    err = ValidationError("A", "B", "C")
+    assert err.pop() == "C"
+    assert err == ValidationError("A", "B")
 
 
 def test_error_message_object():

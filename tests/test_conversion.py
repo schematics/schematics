@@ -272,42 +272,34 @@ def test_conversion_with_validation(input, import_, two_pass, input_instance, in
         else:
             input.validate(init_values=init, partial=partial)
 
-    messages = excinfo.value.messages
+    errors = excinfo.value.errors
 
-    err_list = messages.pop('listfield')
-    assert err_list.pop().type == ValidationError
-    assert err_list == []
+    err_list = errors.pop('listfield')
+    assert type(err_list) is ValidationError
+    assert len(err_list) == 1
 
-    err_list = messages['modelfield'].pop('listfield')
-    assert err_list.pop().type == ValidationError
-    assert err_list.pop().type == ValidationError
-    assert err_list == []
+    err_list = errors['modelfield'].pop('listfield')
+    assert type(err_list) is ValidationError
+    assert len(err_list) == 2
 
-    err_list = messages['modelfield']['modelfield'].pop('intfield')
-    err_msg = err_list.pop()
-    assert err_list == []
-    assert err_msg.type == ValidationError
+    err_list = errors['modelfield']['modelfield'].pop('intfield')
+    assert len(err_list) == 1
 
     if not partial:
-        err_list = messages['modelfield']['modelfield'].pop('reqfield')
-        err_msg = err_list.pop()
-        assert err_list == []
-        assert err_msg.type == ConversionError
+        err_list = errors['modelfield']['modelfield'].pop('reqfield')
+        assert len(err_list) == 1
         if init_to_none:
             partial_data['modelfield']['modelfield'].pop('reqfield')
 
-    err_dict = messages['modelfield']['modelfield'].pop('matrixfield')
+    err_dict = errors['modelfield']['modelfield'].pop('matrixfield')
     sub_err_dict = err_dict.pop(1)
-    err_list_1 = sub_err_dict.pop(2)
-    err_list_2 = sub_err_dict.pop(3)
-    assert err_list_1.pop().type == ValidationError
-    assert err_list_2.pop().type == ValidationError
-    assert err_list_1 == err_list_2 == []
-    assert err_dict == sub_err_dict == {}
+    assert list((k, type(v)) for k, v in sub_err_dict.items()) \
+        == [(2, ValidationError), (3, ValidationError)]
+    assert err_dict == {}
 
-    assert messages['modelfield'].pop('modelfield') == {}
-    assert messages.pop('modelfield') == {}
-    assert messages == {}
+    assert errors['modelfield'].pop('modelfield') == {}
+    assert errors.pop('modelfield') == {}
+    assert errors == {}
 
     assert excinfo.value.partial_data == partial_data
 

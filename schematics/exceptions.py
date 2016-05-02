@@ -2,8 +2,9 @@
 
 from __future__ import unicode_literals, absolute_import
 
-from .common import * # pylint: disable=redefined-builtin
-from .util import listify
+from collections import Sequence
+
+from .common import *
 
 
 @str_compat
@@ -45,7 +46,7 @@ class BaseError(Exception):
 
 
 @str_compat
-class FieldError(BaseError):
+class FieldError(BaseError, Sequence):
 
     type = None
 
@@ -58,7 +59,11 @@ class FieldError(BaseError):
         if kwargs:
             items = [ErrorMessage(*args, **kwargs)]
         elif len(args) == 1:
-            items = listify(args[0])
+            arg = args[0]
+            if isinstance(arg, list):
+                items = list(arg)
+            else:
+                items = [arg]
         else:
             items = args
         self.messages = []
@@ -89,8 +94,8 @@ class FieldError(BaseError):
     def __contains__(self, value):
         return value in self.messages
 
-    def __getitem__(self, key):
-        return self.messages[key]
+    def __getitem__(self, index):
+        return self.messages[index]
 
     def __iter__(self):
         return iter(self.messages)
@@ -125,7 +130,7 @@ class StopValidationError(ValidationError):
     """Exception raised when no more validation need occur."""
     type = ValidationError
 
-StopValidation = StopValidationError
+StopValidation = StopValidationError # v1
 
 
 class CompoundError(BaseError):
@@ -133,23 +138,24 @@ class CompoundError(BaseError):
     def __init__(self, errors):
         if not isinstance(errors, dict):
             raise TypeError("Compound errors must be reported as a dictionary.")
-        self.messages = {}
+        self.errors = {}
         for key, value in errors.items():
             if isinstance(value, CompoundError):
-                self.messages[key] = value.messages
+                self.errors[key] = value.errors
             else:
-                self.messages[key] = value
-        super(CompoundError, self).__init__(self.messages)
+                self.errors[key] = value
+        self.messages = self.errors # v1
+        super(CompoundError, self).__init__(self.errors)
 
 
 class DataError(CompoundError):
 
-    def __init__(self, messages, partial_data=None):
-        super(DataError, self).__init__(messages)
+    def __init__(self, errors, partial_data=None):
+        super(DataError, self).__init__(errors)
         self.partial_data = partial_data
 
-ModelConversionError = DataError
-ModelValidationError = DataError
+ModelConversionError = DataError # v1
+ModelValidationError = DataError # v1
 
 
 class MockCreationError(ValueError):
@@ -172,4 +178,3 @@ class UnknownFieldError(KeyError):
 
 
 __all__ = module_exports(__name__)
-
