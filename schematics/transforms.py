@@ -436,7 +436,7 @@ def blacklist(*field_list):
 ###
 
 
-class FieldConverter(object):
+class Converter(object):
 
     def __call__(self, field, value, context):
         raise NotImplementedError
@@ -448,7 +448,7 @@ class FieldConverter(object):
         return data
 
 
-class BasicConverter(FieldConverter):
+class BasicConverter(Converter):
 
     def __init__(self, func):
         self.func = func
@@ -463,33 +463,14 @@ class BasicConverter(FieldConverter):
 ###
 
 
-class ExportConverter(FieldConverter):
-
-    def __init__(self, format, exceptions=None):
-        self.primary = format
-        self.secondary = not format
-        self.exceptions = set(exceptions) if exceptions else None
-
-    def __call__(self, field, value, context):
-        format = self.primary
-        if self.exceptions:
-            if any((issubclass(field.typeclass, cls) for cls in self.exceptions)):
-                format = self.secondary
-        return field.export(value, format, context)
+@BasicConverter
+def to_native_converter(field, value, context):
+    return field.export(value, NATIVE, context)
 
 
-class NativeConverter(ExportConverter):
-
-    def __init__(self, exceptions=None):
-        ExportConverter.__init__(self, NATIVE, exceptions)
-
-    def post(self, model_class, data, context):
-        return model_class(data, init=False)
-
-
-to_native_converter = NativeConverter()
-to_dict_converter = ExportConverter(NATIVE)
-to_primitive_converter = ExportConverter(PRIMITIVE)
+@BasicConverter
+def to_primitive_converter(field, value, context):
+    return field.export(value, PRIMITIVE, context)
 
 
 
@@ -498,27 +479,20 @@ to_primitive_converter = ExportConverter(PRIMITIVE)
 ###
 
 
-class ImportConverter(FieldConverter):
-
-    def __init__(self, action):
-        self.action = action
-        self.method = operator.attrgetter(self.action)
-
-    def __call__(self, field, value, context):
-        field.check_required(value, context)
-        if value in (None, Undefined):
-            return value
-        return self.method(field)(value, context)
-
-    def pre(self, model_class, instance_or_dict, context):
-        return instance_or_dict
-
-    def post(self, model_class, data, context):
-        return data
+@BasicConverter
+def import_converter(field, value, context):
+    field.check_required(value, context)
+    if value in (None, Undefined):
+        return value
+    return field.convert(value, context)
 
 
-import_converter = ImportConverter('convert')
-validation_converter = ImportConverter('validate')
+@BasicConverter
+def validation_converter(field, value, context):
+    field.check_required(value, context)
+    if value in (None, Undefined):
+        return value
+    return field.validate(value, context)
 
 
 
@@ -562,10 +536,6 @@ def convert(cls, instance_or_dict, **kwargs):
 
 def to_native(cls, instance_or_dict, **kwargs):
     return export_loop(cls, instance_or_dict, to_native_converter, **kwargs)
-
-
-def to_dict(cls, instance_or_dict, **kwargs):
-    return export_loop(cls, instance_or_dict, to_dict_converter, **kwargs)
 
 
 def to_primitive(cls, instance_or_dict, **kwargs):

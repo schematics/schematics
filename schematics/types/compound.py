@@ -12,7 +12,7 @@ from ..exceptions import *
 from ..transforms import (
     export_loop,
     get_import_context, get_export_context,
-    to_native_converter, to_dict_converter, to_primitive_converter)
+    to_native_converter, to_primitive_converter)
 
 from .base import BaseType, get_value_in
 
@@ -50,10 +50,6 @@ class CompoundType(BaseType):
     def to_native(self, value, context=None):
         context = context or get_export_context(to_native_converter)
         return to_native_converter(self, value, context)
-
-    def to_dict(self, value, context=None):
-        context = context or get_export_context(to_dict_converter)
-        return to_dict_converter(self, value, context)
 
     def to_primitive(self, value, context=None):
         context = context or get_export_context(to_primitive_converter)
