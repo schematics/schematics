@@ -604,15 +604,25 @@ class DateType(BaseType):
 
     SERIALIZED_FORMAT = '%Y-%m-%d'
     MESSAGES = {
-        'parse': u"Could not parse {0}. Should be ISO8601 (YYYY-MM-DD).",
+        'parse': u"Could not parse {0}. Should be ISO 8601 (YYYY-MM-DD).",
+        'parse_formats': u'Could not parse {0}. Valid formats: {1}',
     }
 
-    def __init__(self, **kwargs):
+    def __init__(self, formats=None, **kwargs):
+
+        if formats:
+            self.formats = listify(formats)
+            self.conversion_errmsg = self.MESSAGES['parse_formats']
+        else:
+            self.formats = ['%Y-%m-%d']
+            self.conversion_errmsg = self.MESSAGES['parse']
+
         self.serialized_format = self.SERIALIZED_FORMAT
+
         super(DateType, self).__init__(**kwargs)
 
     def _mock(self, context=None):
-        return datetime.datetime(
+        return datetime.date(
             year=random.randrange(600) + 1900,
             month=random.randrange(12) + 1,
             day=random.randrange(28) + 1,
@@ -622,10 +632,13 @@ class DateType(BaseType):
         if isinstance(value, datetime.date):
             return value
 
-        try:
-            return datetime.datetime.strptime(value, self.serialized_format).date()
-        except (ValueError, TypeError):
-            raise ConversionError(self.messages['parse'].format(value))
+        for fmt in self.formats:
+            try:
+                return datetime.datetime.strptime(value, fmt).date()
+            except (ValueError, TypeError):
+                continue
+        else:
+            raise ConversionError(self.conversion_errmsg.format(value, ", ".join(self.formats)))
 
     def to_primitive(self, value, context=None):
         return value.strftime(self.serialized_format)
@@ -734,9 +747,7 @@ class DateTimeType(BaseType):
 
         if tzd not in ('require', 'allow', 'utc', 'reject'):
             raise ValueError("DateTimeType.__init__() got an invalid value for parameter 'tzd'")
-        if isinstance(formats, string_type):
-            formats = [formats]
-        self.formats = formats
+        self.formats = listify(formats)
         self.serialized_format = serialized_format or self.SERIALIZED_FORMAT
         self.parser = parser
         self.tzd = tzd

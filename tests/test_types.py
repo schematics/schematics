@@ -51,14 +51,40 @@ def test_date():
     today = datetime.date(2013, 3, 1)
 
     date_type = DateType()
+
+    with pytest.raises(ConversionError):
+        date_type.to_native("2013/03/01")
+
     assert date_type("2013-03-01") == today
 
     assert date_type.to_primitive(today) == "2013-03-01"
 
     assert date_type.to_native(today) is today
 
+    assert type(date_type._mock()) is datetime.date
+
+
+def test_date_formats():
+    today = datetime.date(2013, 3, 1)
+
+    date_type = DateType(formats='%d.%m.%Y')
+
     with pytest.raises(ConversionError):
-        date_type.to_native('foo')
+        date_type.to_native("2013-03-01")
+
+    assert date_type("1.3.2013") == today
+
+    assert date_type.to_primitive(today) == "2013-03-01"
+
+    date_type = DateType(formats=('%d.%m.%Y', '%d/%m/%Y'))
+
+    with pytest.raises(ConversionError):
+        date_type.to_native("2013-03-01")
+
+    assert date_type("1.3.2013") == today
+    assert date_type("1/3/2013") == today
+
+    assert date_type.to_primitive(today) == "2013-03-01"
 
 
 def test_datetime():
