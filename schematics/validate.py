@@ -106,6 +106,8 @@ def get_validation_context(**options):
 
 
 def prepare_validator(func, argcount):
+    if isinstance(func, classmethod):
+        func = func.__get__(object).__func__
     if len(inspect.getargspec(func).args) < argcount:
         @functools.wraps(func)
         def newfunc(*args, **kwargs):

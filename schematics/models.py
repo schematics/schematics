@@ -5,6 +5,7 @@ from __future__ import unicode_literals, absolute_import
 from copy import deepcopy
 import inspect
 import itertools
+from types import FunctionType
 
 from .common import * # pylint: disable=redefined-builtin
 from .datastructures import OrderedDict, Context
@@ -132,7 +133,7 @@ class ModelMeta(type):
 
         # Parse this class's attributes into meta structures
         for key, value in iteritems(attrs):
-            if key.startswith('validate_') and callable(value):
+            if key.startswith('validate_') and isinstance(value, (FunctionType, classmethod)):
                 validator_functions[key[9:]] = prepare_validator(value, 4)
             if isinstance(value, BaseType):
                 fields[key] = value
