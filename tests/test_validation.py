@@ -235,6 +235,17 @@ def test_multi_key_validation_fields_order():
         Signup({'name': u'Brad'}).validate()
 
 
+def test_validate_discovers_classmethod():
+    class Foo(Model):
+        foo = StringType()
+
+        @classmethod
+        def validate_foo(cls, data, value, context):
+            raise ValidationError(u"I'm a classmethod that should be discovered.")
+
+    with pytest.raises(DataError):
+        Foo({'foo': u'Bar'}).validate()
+
 
 def test_basic_error():
     class School(Model):
