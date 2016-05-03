@@ -8,7 +8,7 @@ from setuptools import setup
 
 
 with open(os.path.join(os.path.dirname(__file__), 'schematics/__init__.py')) as f:
-    version = re.search("^__version__ = '(\d\.\d+\.\d+((\.dev|a|b|rc)\d?)?)'$",
+    version = re.search("^__version__ = '(\d\.\d+\.\d+(\.?(dev|a|b|rc)\d?)?)'$",
                   f.read(), re.M).group(1)
 
 setup(
@@ -24,9 +24,11 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
