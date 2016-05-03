@@ -24,7 +24,7 @@ class UnionType(BaseType):
     types = None
 
     MESSAGES = {
-        'convert': u"Couldn't interpret '{0}' value as any of {1}.",
+        'convert': "Couldn't interpret value '{0}' as any of {1}.",
     }
 
     _baseclass_args = _valid_init_args(BaseType)

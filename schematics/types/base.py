@@ -332,7 +332,7 @@ class UUIDType(BaseType):
     """A field that stores a valid UUID value.
     """
     MESSAGES = {
-        'convert': u"Couldn't interpret '{0}' value as UUID.",
+        'convert': "Couldn't interpret '{0}' value as UUID.",
     }
 
     def _mock(self, context=None):
@@ -357,11 +357,11 @@ class StringType(BaseType):
     allow_casts = (int, bytes)
 
     MESSAGES = {
-        'convert': u"Couldn't interpret '{0}' as string.",
-        'decode': u"Invalid UTF-8 data.",
-        'max_length': u"String value is too long.",
-        'min_length': u"String value is too short.",
-        'regex': u"String value did not match validation regex.",
+        'convert': "Couldn't interpret '{0}' as string.",
+        'decode': "Invalid UTF-8 data.",
+        'max_length': "String value is too long.",
+        'min_length': "String value is too short.",
+        'regex': "String value did not match validation regex.",
     }
 
     def __init__(self, regex=None, max_length=None, min_length=None, **kwargs):
@@ -408,9 +408,9 @@ class NumberType(BaseType):
     """
 
     MESSAGES = {
-        'number_coerce': u"Value '{0}' is not {1}.",
-        'number_min': u"{0} value should be greater than or equal to {1}.",
-        'number_max': u"{0} value should be less than or equal to {1}.",
+        'number_coerce': "Value '{0}' is not {1}.",
+        'number_min': "{0} value should be greater than or equal to {1}.",
+        'number_max': "{0} value should be less than or equal to {1}.",
     }
 
     def __init__(self, number_class, number_type,
@@ -488,9 +488,9 @@ class DecimalType(BaseType):
     """
 
     MESSAGES = {
-        'number_coerce': u"Number '{0}' failed to convert to a decimal.",
-        'number_min': u"Value should be greater than or equal to {0}.",
-        'number_max': u"Value should be less than or equal to {0}.",
+        'number_coerce': "Number '{0}' failed to convert to a decimal.",
+        'number_min': "Value should be greater than or equal to {0}.",
+        'number_max': "Value should be less than or equal to {0}.",
     }
 
     def __init__(self, min_value=None, max_value=None, **kwargs):
@@ -530,8 +530,8 @@ class DecimalType(BaseType):
 class HashType(StringType):
 
     MESSAGES = {
-        'hash_length': u"Hash value is wrong length.",
-        'hash_hex': u"Hash value is not hexadecimal.",
+        'hash_length': "Hash value is wrong length.",
+        'hash_hex': "Hash value is not hexadecimal.",
     }
 
     def _mock(self, context=None):
@@ -592,7 +592,7 @@ class BooleanType(BaseType):
             value = bool(value)
 
         if not isinstance(value, bool):
-            raise ConversionError(u"Must be either true or false.")
+            raise ConversionError("Must be either true or false.")
 
         return value
 
@@ -604,8 +604,8 @@ class DateType(BaseType):
 
     SERIALIZED_FORMAT = '%Y-%m-%d'
     MESSAGES = {
-        'parse': u"Could not parse {0}. Should be ISO 8601 (YYYY-MM-DD).",
-        'parse_formats': u'Could not parse {0}. Valid formats: {1}',
+        'parse': "Could not parse {0}. Should be ISO 8601 (YYYY-MM-DD).",
+        'parse_formats': 'Could not parse {0}. Valid formats: {1}',
     }
 
     def __init__(self, formats=None, **kwargs):
@@ -694,17 +694,17 @@ class DateTimeType(BaseType):
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%f%z'
 
     MESSAGES = {
-        'parse': u'Could not parse {0}. Should be ISO 8601 or timestamp.',
-        'parse_formats': u'Could not parse {0}. Valid formats: {1}',
-        'parse_external': u'Could not parse {0}.',
-        'parse_tzd_require': u'Could not parse {0}. Time zone offset required.',
-        'parse_tzd_reject': u'Could not parse {0}. Time zone offset not allowed.',
-        'tzd_require': u'Could not convert {0}. Time zone required but not found.',
-        'tzd_reject': u'Could not convert {0}. Time zone offsets not allowed.',
-        'validate_tzd_require': u'Time zone information required but not found.',
-        'validate_tzd_reject': u'Time zone information not allowed.',
-        'validate_utc_none': u'Time zone must be UTC but was None.',
-        'validate_utc_wrong': u'Time zone must be UTC.',
+        'parse': 'Could not parse {0}. Should be ISO 8601 or timestamp.',
+        'parse_formats': 'Could not parse {0}. Valid formats: {1}',
+        'parse_external': 'Could not parse {0}.',
+        'parse_tzd_require': 'Could not parse {0}. Time zone offset required.',
+        'parse_tzd_reject': 'Could not parse {0}. Time zone offset not allowed.',
+        'tzd_require': 'Could not convert {0}. Time zone required but not found.',
+        'tzd_reject': 'Could not convert {0}. Time zone offsets not allowed.',
+        'validate_tzd_require': 'Time zone information required but not found.',
+        'validate_tzd_reject': 'Time zone information not allowed.',
+        'validate_utc_none': 'Time zone must be UTC but was None.',
+        'validate_utc_wrong': 'Time zone must be UTC.',
     }
 
     REGEX = re.compile(r"""
@@ -934,8 +934,8 @@ class GeoPointType(BaseType):
     """
 
     MESSAGES = {
-        'point_min': u"{0} value {1} should be greater than or equal to {2}.",
-        'point_max': u"{0} value {1} should be less than or equal to {2}."
+        'point_min': "{0} value {1} should be greater than or equal to {2}.",
+        'point_max': "{0} value {1} should be less than or equal to {2}."
     }
 
     def _mock(self, context=None):
@@ -995,13 +995,13 @@ class MultilingualStringType(BaseType):
     allow_casts = (int, bytes)
 
     MESSAGES = {
-        'convert': u"Couldn't interpret value as string.",
-        'max_length': u"String value in locale {0} is too long.",
-        'min_length': u"String value in locale {0} is too short.",
-        'locale_not_found': u"No requested locale was available.",
-        'no_locale': u"No default or explicit locales were given.",
-        'regex_locale': u"Name of locale {0} did not match validation regex.",
-        'regex_localized': u"String value in locale {0} did not match validation regex.",
+        'convert': "Couldn't interpret value as string.",
+        'max_length': "String value in locale {0} is too long.",
+        'min_length': "String value in locale {0} is too short.",
+        'locale_not_found': "No requested locale was available.",
+        'no_locale': "No default or explicit locales were given.",
+        'regex_locale': "Name of locale {0} did not match validation regex.",
+        'regex_localized': "String value in locale {0} did not match validation regex.",
     }
 
     LOCALE_REGEX = r'^[a-z]{2}(:?_[A-Z]{2})?$'
