@@ -125,7 +125,7 @@ class BaseType(object):
         inbound data.
     :param choices:
         A list of valid choices. This is the last step of the validator
-        chain.
+        chain.  May be a callable.
     :param validators:
         A list of callables. Each callable receives the value after it has been
         converted into a rich python type. Default: []
@@ -166,9 +166,9 @@ class BaseType(object):
         self.required = required
         self._default = default
         self.serialized_name = serialized_name
-        if choices and not isinstance(choices, (list, tuple)):
+        if choices and not (callable(choices) or isinstance(choices, (list, tuple))):
             raise TypeError('"choices" must be a list or tuple')
-        self.choices = choices
+        self._choices = choices
         self.deserialize_from = listify(deserialize_from)
 
         self.validators = [getattr(self, validator_name) for validator_name in self._validators]
@@ -260,6 +260,15 @@ class BaseType(object):
             default = default()
         return default
 
+    @property
+    def choices(self):
+        choices = self._choices
+        if callable(choices):
+            choices = choices()
+            if not isinstance(choices, (list, tuple)):
+                raise TypeError('"choices" must be a list or tuple')
+        return choices
+
     def pre_setattr(self, value):
         return value
 
@@ -314,10 +323,11 @@ class BaseType(object):
                 raise ConversionError(self.messages['required'])
 
     def validate_choices(self, value, context):
-        if self.choices is not None:
-            if value not in self.choices:
+        choices = self.choices
+        if choices is not None:
+            if value not in choices:
                 raise ValidationError(self.messages['choices']
-                                      .format(str(self.choices)))
+                                      .format(str(choices)))
 
     def mock(self, context=None):
         if not self.required and not random.choice([True, False]):

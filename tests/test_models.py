@@ -241,6 +241,15 @@ def test_field_default():
     assert u.name == u'Doggy'
 
 
+def test_field_default_callable():
+    class User(Model):
+        name = StringType(default=lambda: u'Doggy')
+
+    u = User()
+    assert User.name.__class__ == StringType
+    assert u.name == u'Doggy'
+
+
 def test_attribute_default_to_none_if_no_value():
     class User(Model):
         name = StringType()

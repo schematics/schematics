@@ -22,6 +22,14 @@ def test_choices_validates():
     doc.validate()
 
 
+def test_choices_callable_validates():
+    class Document(Model):
+        language = StringType(choices=lambda: ['en', 'de'])
+
+    doc = Document({'language': 'de'})
+    doc.validate()
+
+
 def test_validation_fails():
     class Document(Model):
         language = StringType(choices=['en', 'de'])
