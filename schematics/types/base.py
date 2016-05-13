@@ -167,7 +167,7 @@ class BaseType(object):
         self._default = default
         self.serialized_name = serialized_name
         if choices and not (callable(choices) or isinstance(choices, (list, tuple))):
-            raise TypeError('"choices" must be a list or tuple')
+            raise TypeError('"choices" must be a callabe, list, or tuple')
         self._choices = choices
         self.deserialize_from = listify(deserialize_from)
 
@@ -266,7 +266,7 @@ class BaseType(object):
         if callable(choices):
             choices = choices()
             if not isinstance(choices, (list, tuple)):
-                raise TypeError('"choices" must be a list or tuple')
+                raise TypeError('"choices" callable must return a list or tuple')
         return choices
 
     def pre_setattr(self, value):
