@@ -239,7 +239,7 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
         if _export_level == DROP:
             continue
 
-        elif value not in (None, Undefined):
+        elif value is not None and value is not Undefined:
             value = _field_converter(field, value, context)
 
         if value is Undefined:
@@ -482,7 +482,7 @@ def to_primitive_converter(field, value, context):
 @BasicConverter
 def import_converter(field, value, context):
     field.check_required(value, context)
-    if value in (None, Undefined):
+    if value is None or value is Undefined:
         return value
     return field.convert(value, context)
 
@@ -490,7 +490,7 @@ def import_converter(field, value, context):
 @BasicConverter
 def validation_converter(field, value, context):
     field.check_required(value, context)
-    if value in (None, Undefined):
+    if value is None or value is Undefined:
         return value
     return field.validate(value, context)
 
