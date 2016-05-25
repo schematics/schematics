@@ -309,7 +309,7 @@ class BaseType(object):
         return value
 
     def check_required(self, value, context):
-        if self.required and value in (None, Undefined):
+        if self.required and (value is None or value is Undefined):
             if self.name is None or context and not context.partial:
                 raise ConversionError(self.messages['required'])
 
