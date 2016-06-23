@@ -199,12 +199,12 @@ def test_timestamp():
     field_no_tz = TimestampType(drop_tzinfo=True)
 
     ts = field.to_primitive(datetime(2015, 11, 8, 14, 00))
-    assert ts == 1446991200
-    assert type(ts) == int
+    assert ts == 1446991200.0
+    assert type(ts) == float
 
     ts = field_no_tz.to_primitive(datetime(2015, 11, 8, 14, 00))
-    assert ts == 1446991200
-    assert type(ts) == int
+    assert ts == 1446991200.0
+    assert type(ts) == float
 
     ts = field.to_primitive(datetime(2014, 5, 8, 22, 40, 40, tzinfo=gettz('PST8PDT')))
     assert ts == 1399614040.0

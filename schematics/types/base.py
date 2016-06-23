@@ -147,6 +147,9 @@ class BaseType(object):
           help, tooltips, documentation, etc.
     """
 
+    primitive_type = None
+    native_type = None 
+
     MESSAGES = {
         'required': "This field is required.",
         'choices': "Value must be one of {0}.",
@@ -331,6 +334,10 @@ class UUIDType(BaseType):
 
     """A field that stores a valid UUID value.
     """
+
+    primitive_type = str
+    native_type = uuid.UUID
+
     MESSAGES = {
         'convert': "Couldn't interpret '{0}' value as UUID.",
     }
@@ -354,6 +361,8 @@ class StringType(BaseType):
 
     """A Unicode string field."""
 
+    primitive_type = str
+    native_type = str
     allow_casts = (int, bytes)
 
     MESSAGES = {
@@ -407,16 +416,16 @@ class NumberType(BaseType):
     """A number field.
     """
 
+    primitive_type = None
+    native_type = None
+    number_type = None
     MESSAGES = {
         'number_coerce': "Value '{0}' is not {1}.",
         'number_min': "{0} value should be greater than or equal to {1}.",
         'number_max': "{0} value should be less than or equal to {1}.",
     }
 
-    def __init__(self, number_class, number_type,
-                 min_value=None, max_value=None, strict=False, **kwargs):
-        self.number_class = number_class
-        self.number_type = number_type
+    def __init__(self, min_value=None, max_value=None, strict=False, **kwargs):
         self.min_value = min_value
         self.max_value = max_value
         self.strict = strict
@@ -429,14 +438,14 @@ class NumberType(BaseType):
     def to_native(self, value, context=None):
         if isinstance(value, bool):
             value = int(value)
-        if isinstance(value, self.number_class):
+        if isinstance(value, self.primitive_type):
             return value
         try:
-            native_value = self.number_class(value)
+            native_value = self.primitive_type(value)
         except (TypeError, ValueError):
             pass
         else:
-            if self.number_class is float: # Float conversion is strict enough.
+            if self.primitive_type is float: # Float conversion is strict enough.
                 return native_value
             if not self.strict and native_value == value: # Match numeric types.
                 return native_value
@@ -463,10 +472,10 @@ class IntType(NumberType):
     """A field that validates input as an Integer
     """
 
-    def __init__(self, *args, **kwargs):
-        super(IntType, self).__init__(number_class=int,
-                                      number_type='Int',
-                                      *args, **kwargs)
+    primitive_type = int
+    native_type = int
+    number_type = 'Int'
+
 
 LongType = IntType
 
@@ -476,16 +485,18 @@ class FloatType(NumberType):
     """A field that validates input as a Float
     """
 
-    def __init__(self, *args, **kwargs):
-        super(FloatType, self).__init__(number_class=float,
-                                        number_type='Float',
-                                        *args, **kwargs)
+    primitive_type = float
+    native_type = float
+    number_type = 'Float'
 
 
 class DecimalType(BaseType):
 
     """A fixed-point decimal number field.
     """
+
+    primitive_type = str
+    native_type = decimal.Decimal
 
     MESSAGES = {
         'number_coerce': "Number '{0}' failed to convert to a decimal.",
@@ -575,6 +586,9 @@ class BooleanType(BaseType):
 
     """
 
+    primitive_type = bool
+    native_type = bool
+
     TRUE_VALUES = ('True', 'true', '1')
     FALSE_VALUES = ('False', 'false', '0')
 
@@ -601,6 +615,9 @@ class DateType(BaseType):
 
     """Defaults to converting to and from ISO8601 date values.
     """
+
+    primitive_type = str
+    native_type = datetime.date
 
     SERIALIZED_FORMAT = '%Y-%m-%d'
     MESSAGES = {
@@ -690,6 +707,9 @@ class DateTimeType(BaseType):
             * ``True``:  Discard the ``tzinfo`` components and make naive ``datetime`` objects instead.
             * ``False``: Preserve the ``tzinfo`` components if present.
     """
+
+    primitive_type = str
+    native_type = datetime.datetime
 
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%f%z'
 
@@ -911,6 +931,8 @@ class TimestampType(DateTimeType):
     ``convert_tz=True``.
     """
 
+    primitive_type = float
+
     def __init__(self, formats=None, parser=None, drop_tzinfo=False, **kwargs):
         super(TimestampType, self).__init__(formats=formats, parser=parser, tzd='require',
                                             convert_tz=True, drop_tzinfo=drop_tzinfo, **kwargs)
@@ -922,16 +944,16 @@ class TimestampType(DateTimeType):
             value = value.astimezone(self.UTC)
         delta = value - self.EPOCH
         ts = (delta.days * 24 * 3600) + delta.seconds + delta.microseconds / 1E6
-        if delta.microseconds:
-            return ts
-        else:
-            return int(ts)
+        return ts
 
 
 class GeoPointType(BaseType):
 
     """A list storing a latitude and longitude.
     """
+
+    primitive_type = list
+    native_type = list
 
     MESSAGES = {
         'point_min': "{0} value {1} should be greater than or equal to {2}.",
@@ -944,9 +966,10 @@ class GeoPointType(BaseType):
     @classmethod
     def _normalize(cls, value):
         if isinstance(value, dict):
-            return value.values()
+            # py3: ensure list and not view
+            return list(value.values())
         else:
-            return value
+            return list(value)
 
     def to_native(self, value, context=None):
         """Make sure that a geo-value is of type (x, y)
@@ -991,6 +1014,9 @@ class MultilingualStringType(BaseType):
     when calling ``.to_primitive``.
 
     """
+
+    primitive_type = str
+    native_type = str
 
     allow_casts = (int, bytes)
 

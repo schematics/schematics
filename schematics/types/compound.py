@@ -75,6 +75,12 @@ MultiType = CompoundType
 class ModelType(CompoundType):
     """A field that can hold an instance of the specified model."""
 
+    primitive_type = dict
+
+    @property
+    def native_type(self):
+        return self.model_class
+
     @property
     def fields(self):
         return self.model_class.fields
@@ -145,6 +151,9 @@ class ListType(CompoundType):
         ...
         categories = ListType(StringType)
     """
+
+    primitive_type = list
+    native_type = list
 
     def __init__(self, field, min_size=None, max_size=None, **kwargs):
         self.field = self._init_field(field, kwargs)
@@ -245,6 +254,9 @@ class DictType(CompoundType):
 
     """
 
+    primitive_type = dict
+    native_type = dict
+
     def __init__(self, field, coerce_key=None, **kwargs):
         self.field = self._init_field(field, kwargs)
         self.coerce_key = coerce_key or str
@@ -295,6 +307,9 @@ class DictType(CompoundType):
 
 class PolyModelType(CompoundType):
     """A field that accepts an instance of any of the specified models."""
+
+    primitive_type = dict
+    native_type = None  # cannot be determined from a PolyModelType instance
 
     def __init__(self, model_spec, **kwargs):
 
