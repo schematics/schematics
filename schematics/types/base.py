@@ -438,14 +438,14 @@ class NumberType(BaseType):
     def to_native(self, value, context=None):
         if isinstance(value, bool):
             value = int(value)
-        if isinstance(value, self.primitive_type):
+        if isinstance(value, self.native_type):
             return value
         try:
-            native_value = self.primitive_type(value)
+            native_value = self.native_type(value)
         except (TypeError, ValueError):
             pass
         else:
-            if self.primitive_type is float: # Float conversion is strict enough.
+            if self.native_type is float: # Float conversion is strict enough.
                 return native_value
             if not self.strict and native_value == value: # Match numeric types.
                 return native_value
