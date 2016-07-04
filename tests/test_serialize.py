@@ -530,6 +530,26 @@ def test_serialize_print_none_always_gets_you_something():
     assert d == {}
 
 
+def test_serializable_setter():
+    class Location(Model):
+        country_code = StringType()
+
+        @serializable
+        def country_name(self):
+            return "United States" if self.country_code == "US" else "Unknown"
+
+        @country_name.setter
+        def country_name(self, value):
+            self.country_code = {"United States": "US"}.get(value)
+
+    location = Location()
+    location.country_name = "United States"
+    assert location.country_code == "US"
+
+    d = location.serialize()
+    assert d == {"country_code": "US", "country_name": "United States"}
+
+
 def test_roles_work_with_subclassing():
     class Address(Model):
         private_key = StringType()

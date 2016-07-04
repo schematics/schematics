@@ -56,16 +56,17 @@ def serializable(arg=None, **kwargs):
         serialized_type = serialized_type(**kwargs)
 
     if decorator:
-        return Serializable(func, serialized_type)
+        return Serializable(func, type=serialized_type)
     else:
         return partial(Serializable, type=serialized_type)
 
 
 class Serializable(object):
 
-    def __init__(self, func, type):
+    def __init__(self, func, type, fset=None):
         self.func = func
         self.type = type
+        self.fset = fset
 
     def __getattr__(self, name):
         return getattr(self.type, name)
@@ -79,6 +80,16 @@ class Serializable(object):
                 raise UndefinedValueError(instance, self.name)
             else:
                 return value
+
+    def __set__(self, instance, value):
+        if self.fset is None:
+            raise AttributeError("can't set attribute")
+        value = self.type.pre_setattr(value)
+        self.fset(instance, value)
+
+    def setter(self, fset):
+        self.fset = fset
+        return self
 
     def __deepcopy__(self, memo):
         return self.__class__(self.func, copy.deepcopy(self.type))
