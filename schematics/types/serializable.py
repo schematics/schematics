@@ -91,8 +91,17 @@ class Serializable(object):
         self.fset = fset
         return self
 
+    def _repr_info(self):
+        return self.type.__class__.__name__
+
     def __deepcopy__(self, memo):
         return self.__class__(self.func, copy.deepcopy(self.type))
+
+    def __repr__(self):
+        type_ = "%s(%s) instance" % (self.__class__.__name__, self._repr_info() or '')
+        model = " on %s" % self.owner_model.__name__ if self.owner_model else ''
+        field = " as '%s'" % self.name if self.name else ''
+        return "<%s>" % (type_ + model + field)
 
 
 __all__ = module_exports(__name__)
