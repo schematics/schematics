@@ -31,8 +31,9 @@ else:
 def metaclass(metaclass):
     def make_class(cls):
         attrs = cls.__dict__.copy()
-        del attrs['__dict__']
-        del attrs['__weakref__']
+        if attrs.get('__dict__'):
+            del attrs['__dict__']
+            del attrs['__weakref__']
         return metaclass(cls.__name__, cls.__bases__, attrs)
     return make_class
 
