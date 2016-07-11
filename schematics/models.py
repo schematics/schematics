@@ -4,7 +4,6 @@ from __future__ import unicode_literals, absolute_import
 
 from copy import deepcopy
 import inspect
-import itertools
 from types import FunctionType
 
 from .common import * # pylint: disable=redefined-builtin
@@ -19,6 +18,9 @@ from .types import BaseType
 from .types.serializable import Serializable
 from .undefined import Undefined
 from .util import get_ident
+from . import schema
+
+ModelOptions = schema.SchemaOptions  # deprecated alias
 
 
 class FieldDescriptor(object):
@@ -62,43 +64,6 @@ class FieldDescriptor(object):
         del instance._data[self.name]
 
 
-class ModelOptions(object):
-    """
-    This class is a container for all model configuration options. Its
-    primary purpose is to create an independent instance of a model's
-    options for every class.
-    """
-
-    def __init__(self, klass, namespace=None, roles=None, export_level=DEFAULT,
-                 serialize_when_none=None, export_order=False):
-        """
-        :param klass:
-            The class which this options instance belongs to.
-        :param namespace:
-            A namespace identifier that can be used with persistence layers.
-        :param roles:
-            Allows to specify certain subsets of the model's fields for
-            serialization.
-        :param serialize_when_none:
-            When ``False``, serialization skips fields that are None.
-            Default: ``True``
-        :param export_order:
-            Specifies whether to maintain the original field order when exporting
-            the model. This entails returning an ``OrderedDictionary`` instead of
-            a regular dictionary.
-            Default: ``False``
-        """
-        self.klass = klass
-        self.namespace = namespace
-        self.roles = roles or {}
-        self.export_level = export_level
-        if serialize_when_none is True:
-            self.export_level = DEFAULT
-        elif serialize_when_none is False:
-            self.export_level = NONEMPTY
-        self.export_order = export_order
-
-
 class ModelMeta(type):
     """
     Metaclass for Models.
@@ -106,30 +71,21 @@ class ModelMeta(type):
 
     def __new__(mcs, name, bases, attrs):
         """
-        This metaclass adds four attributes to host classes: mcs._fields,
-        mcs._serializables, mcs._validator_functions, and mcs._options.
-
-        This function creates those attributes like this:
-
-        ``mcs._fields`` is list of fields that are Schematics types
-        ``mcs._serializables`` is a list of ``Serializable`` objects
-        ``mcs._validator_functions`` are class-level validation functions
-        ``mcs._options`` is the end result of parsing the ``Options`` class
+        This metaclass parses the declarative Model into a corresponding Schema,
+        then adding it as the `_schema` attribute to the host class.
         """
 
         # Structures used to accumulate meta info
         fields = OrderedDict()
-        serializables = {}
         validator_functions = {}  # Model level
+        options_members = {}
 
         # Accumulate metas info from parent classes
         for base in reversed(bases):
-            if hasattr(base, '_fields'):
-                fields.update(deepcopy(base._fields))
-            if hasattr(base, '_serializables'):
-                serializables.update(deepcopy(base._serializables))
-            if hasattr(base, '_validator_functions'):
-                validator_functions.update(base._validator_functions)
+            if hasattr(base, '_schema'):
+                fields.update(deepcopy(base._schema.fields))
+                options_members.update(dict(base._schema.options))
+                validator_functions.update(base._schema.validators)
 
         # Parse this class's attributes into meta structures
         for key, value in iteritems(attrs):
@@ -137,28 +93,21 @@ class ModelMeta(type):
                 validator_functions[key[9:]] = prepare_validator(value, 4)
             if isinstance(value, BaseType):
                 fields[key] = value
-            if isinstance(value, Serializable):
-                serializables[key] = value
-
-        # Parse meta options
-        options = mcs._read_options(name, bases, attrs)
-
-        # Convert list of types into fields for new klass
-        fields.sort(key=lambda i: i[1]._position_hint)
-        for key, field in iteritems(fields):
-            attrs[key] = FieldDescriptor(key)
-        for key, serializable in iteritems(serializables):
-            attrs[key] = serializable
-
-        # Ready meta data to be klass attributes
-        attrs['_fields'] = fields
-        attrs['_field_list'] = list(fields.items())
-        attrs['_serializables'] = serializables
-        attrs['_validator_functions'] = validator_functions
-        attrs['_options'] = options
+                # Convert list of types into fields for new klass
+                attrs[key] = FieldDescriptor(key)
+            elif isinstance(value, Serializable):
+                fields[key] = value.type
 
         klass = type.__new__(mcs, name, bases, attrs)
         klass = str_compat(klass)
+
+        # Parse meta options
+        options = mcs._read_options(name, bases, attrs, options_members)
+
+        # Parse meta data into klass schema
+        fields.sort(key=lambda i: i[1]._position_hint)
+        klass._schema = schema.Schema(name, model=klass, options=options,
+            validators=validator_functions, *(schema.Field(k, t) for k, t in fields.items()))
 
         # Register class on ancestor models
         klass._subclasses = []
@@ -166,53 +115,68 @@ class ModelMeta(type):
             if isinstance(base, ModelMeta):
                 base._subclasses.append(klass)
 
-        # Finalize fields
-        for field_name, field in fields.items():
-            field._setup(field_name, klass)
-        for field_name, field in serializables.items():
-            field._setup(field_name, klass)
-
-        klass._valid_input_keys = (
-            set(itertools.chain(*(field.get_input_keys() for field in fields.values())))
-          | set(serializables))
-
         return klass
 
     @classmethod
-    def _read_options(mcs, name, bases, attrs):
+    def _read_options(mcs, name, bases, attrs, options_members):
         """
-        Parses `ModelOptions` instance into the options value attached to
-        `Model` instances.
+        Parses model `Options` class into a `SchemaOptions` instance.
         """
-        options_members = {}
-
-        for base in reversed(bases):
-            if hasattr(base, "_options"):
-                for key, value in inspect.getmembers(base._options):
-                    if not key.startswith("_") and not key == "klass":
-                        options_members[key] = value
-
-        options_class = attrs.get('__optionsclass__', ModelOptions)
+        options_class = attrs.get('__optionsclass__', schema.SchemaOptions)
         if 'Options' in attrs:
             for key, value in inspect.getmembers(attrs['Options']):
-                if not key.startswith("_"):
-                    if key == "roles":
-                        roles = options_members.get("roles", {}).copy()
-                        roles.update(value)
+                if key.startswith("_"):
+                    continue
+                elif key == "roles":
+                    roles = options_members.get("roles", {}).copy()
+                    roles.update(value)
+                    options_members[key] = roles
+                else:
+                    options_members[key] = value
+        return options_class(**options_members)
 
-                        options_members["roles"] = roles
-                    else:
-                        options_members[key] = value
 
-        return options_class(mcs, **options_members)
+class class_property(property):
+    def __get__(self, instance, type):
+        if instance is None:
+            return super(class_property, self).__get__(type, type)
+        return super(class_property, self).__get__(instance, type)
 
-    @property
+
+class ModelCompatibilityMixin(object):
+    """Compatibility layer for previous deprecated Schematics Model API."""
+
+    @class_property  # deprecated
+    def _valid_input_keys(cls):
+        return cls._schema.valid_input_keys
+
+    @class_property  # deprecated
+    def _options(cls):
+        return cls._schema.options
+
+    @class_property  # deprecated
     def fields(cls):
-        return cls._fields
+        return cls._schema.fields
+
+    @class_property  # deprecated
+    def _fields(cls):
+        return cls._schema.fields
+
+    @class_property  # deprecated
+    def _field_list(cls):
+        return list(cls._schema.fields.iteritems())
+
+    @class_property  # deprecated
+    def _serializables(cls):
+        return cls._schema._serializables
+
+    @class_property  # deprecated
+    def _validator_functions(cls):
+        return cls._schema.validators
 
 
 @metaclass(ModelMeta)
-class Model(object):
+class Model(ModelCompatibilityMixin, object):
 
     """
     Enclosure for fields and validation. Same pattern deployed by Django
@@ -230,8 +194,6 @@ class Model(object):
     :param bool strict:
         Complain about unrecognized keys. Default: True
     """
-
-    __optionsclass__ = ModelOptions
 
     def __init__(self, raw_data=None, trusted_data=None, deserialize_mapping=None,
                  init=True, partial=True, strict=True, validate=False, app_data=None,
@@ -418,4 +380,3 @@ class Model(object):
 
 
 __all__ = module_exports(__name__)
-
