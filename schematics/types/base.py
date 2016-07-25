@@ -6,6 +6,7 @@ import itertools
 import functools
 import random
 import string
+from collections import Iterable
 
 import six
 from six import iteritems
@@ -180,8 +181,8 @@ class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
         self.required = required
         self._default = default
         self.serialized_name = serialized_name
-        if choices and not isinstance(choices, (list, tuple)):
-            raise TypeError('"choices" must be a list or tuple')
+        if choices and (isinstance(choices, str) or not isinstance(choices, Iterable)):
+            raise TypeError('"choices" must be a non-string Iterable')
         self.choices = choices
         self.deserialize_from = deserialize_from
 
