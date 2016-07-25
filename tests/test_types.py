@@ -42,6 +42,11 @@ def test_type_repr():
     assert repr(DateTimeType()) == "<DateTimeType() instance>"
 
 
+@pytest.mark.parametrize('choice_type', [list, tuple, set, frozenset])
+def test_choices(choice_type):
+    assert BaseType(choices=choice_type('foo'))
+
+
 def test_string_choices():
     with pytest.raises(TypeError):
         BaseType(choices='foo')
