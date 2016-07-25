@@ -15,9 +15,15 @@ from schematics.exceptions import (
 )
 
 
+@pytest.mark.parametrize('choice_type', [list, tuple, set, frozenset])
+def test_choices(choice_type):
+    assert BaseType(choices=choice_type('foo'))
+
+
 def test_string_choices():
     with pytest.raises(TypeError):
         BaseType(choices='foo')
+
 
 def test_int():
     with pytest.raises(ConversionError):
