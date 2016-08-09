@@ -80,10 +80,10 @@ def _validate_model(cls, data, context):
             value = data[field_name]
             try:
                 cls._validator_functions[field_name](cls, data, value, context)
-            except FieldError as exc:
+            except (DataError, FieldError) as exc:
                 field = cls._fields[field_name]
                 serialized_field_name = field.serialized_name or field_name
-                errors[serialized_field_name] = exc.messages
+                errors[serialized_field_name] = exc.messages if isinstance(exc, FieldError) else exc.errors
                 invalid_fields.append(field_name)
 
     for field_name in invalid_fields:
