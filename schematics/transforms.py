@@ -299,13 +299,13 @@ class Role(collections.Set):
     """
     A ``Role`` object can be used to filter specific fields against a sequence.
 
-    The ``Role`` is two things: a set of names and a function.  The function
-    describes how filter taking a field name as input and then returning either
-    ``True`` or ``False``, indicating that field should or should not be
-    skipped.
+    The ``Role`` contains two things: a set of names and a function.
+    The function describes how to filter, taking a field name as input and then
+    returning ``True`` or ``False`` to indicate that field should or should not
+    be skipped.
 
     A ``Role`` can be operated on as a ``Set`` object representing the fields
-    is has an opinion on.  When Roles are combined with other roles, the
+    it has an opinion on.  When Roles are combined with other roles, only the
     filtering behavior of the first role is used.
     """
 
@@ -353,7 +353,7 @@ class Role(collections.Set):
     @staticmethod
     def wholelist(name, value, seq):
         """
-        Accepts a field name, value, and a field list.  This functions
+        Accepts a field name, value, and a field list.  This function
         implements acceptance of all fields by never requesting a field be
         skipped, thus returns False for all input.
 
@@ -370,7 +370,7 @@ class Role(collections.Set):
     def whitelist(name, value, seq):
         """
         Implements the behavior of a whitelist by requesting a field be skipped
-        whenever it's name is not in the list of fields.
+        whenever its name is not in the list of fields.
 
         :param name:
             The field name to inspect.
@@ -388,7 +388,7 @@ class Role(collections.Set):
     def blacklist(name, value, seq):
         """
         Implements the behavior of a blacklist by requesting a field be skipped
-        whenever it's name is found in the list of fields.
+        whenever its name is found in the list of fields.
 
         :param k:
             The field name to inspect.
