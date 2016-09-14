@@ -52,6 +52,8 @@ class CompoundType(BaseType):
         return to_native_converter(self, value, context)
 
     def to_primitive(self, value, context=None):
+        if value is None:
+            return None
         context = context or get_export_context(to_primitive_converter)
         return to_primitive_converter(self, value, context)
 

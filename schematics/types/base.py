@@ -347,6 +347,8 @@ class UUIDType(BaseType):
         return value
 
     def to_primitive(self, value, context=None):
+        if value is None:
+            return None
         return str(value)
 
 
@@ -502,6 +504,8 @@ class DecimalType(BaseType):
         return get_value_in(self.min_value, self.max_value)
 
     def to_primitive(self, value, context=None):
+        if value is None:
+            return None
         return str(value)
 
     def to_native(self, value, context=None):
@@ -641,6 +645,8 @@ class DateType(BaseType):
             raise ConversionError(self.conversion_errmsg.format(value, ", ".join(self.formats)))
 
     def to_primitive(self, value, context=None):
+        if value is None:
+            return None
         return value.strftime(self.serialized_format)
 
 
@@ -868,6 +874,8 @@ class DateTimeType(BaseType):
             return None
 
     def to_primitive(self, value, context=None):
+        if value is None:
+            return None
         if callable(self.serialized_format):
             return self.serialized_format(value)
         return value.strftime(self.serialized_format)
@@ -916,6 +924,8 @@ class TimestampType(DateTimeType):
                                             convert_tz=True, drop_tzinfo=drop_tzinfo, **kwargs)
 
     def to_primitive(self, value, context=None):
+        if value is None:
+            return None
         if value.tzinfo is None:
             value = value.replace(tzinfo=self.UTC)
         else:

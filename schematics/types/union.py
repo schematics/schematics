@@ -86,6 +86,8 @@ class UnionType(BaseType):
         return field.to_native(value, context)
 
     def to_primitive(self, value, context=None):
+        if value is None:
+            return None
         field, _ = self._resolve(value, context)
         return field.to_primitive(value, context)
 
