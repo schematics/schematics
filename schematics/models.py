@@ -128,8 +128,12 @@ class ModelMeta(type):
         options_class = attrs.get('__optionsclass__', schema.SchemaOptions)
         if 'Options' in attrs:
             for key, value in inspect.getmembers(attrs['Options']):
-                if key.startswith("_"):
+                if key.startswith("__"):
                     continue
+                elif key.startswith("_"):
+                    extras = options_members.get("extras", {}).copy()
+                    extras.update({key: value})
+                    options_members["extras"] = extras
                 elif key == "roles":
                     roles = options_members.get("roles", {}).copy()
                     roles.update(value)
