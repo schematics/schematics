@@ -70,7 +70,7 @@ class ModelOptions(object):
     """
 
     def __init__(self, klass, namespace=None, roles=None, export_level=DEFAULT,
-                 serialize_when_none=None, export_order=False):
+                 serialize_when_none=None, export_order=False, extras=None):
         """
         :param klass:
             The class which this options instance belongs to.
@@ -87,6 +87,8 @@ class ModelOptions(object):
             the model. This entails returning an ``OrderedDictionary`` instead of
             a regular dictionary.
             Default: ``False``
+        :param extras:
+            Specifies extra parameters to be added to the model's _options.
         """
         self.klass = klass
         self.namespace = namespace
@@ -97,6 +99,10 @@ class ModelOptions(object):
         elif serialize_when_none is False:
             self.export_level = NONEMPTY
         self.export_order = export_order
+        self.extras = extras or {}
+
+        for k, v in self.extras.items():
+            setattr(self, k, v)
 
 
 class ModelMeta(type):
@@ -195,7 +201,14 @@ class ModelMeta(type):
         options_class = attrs.get('__optionsclass__', ModelOptions)
         if 'Options' in attrs:
             for key, value in inspect.getmembers(attrs['Options']):
-                if not key.startswith("_"):
+                if key.startswith("__"):
+                    continue
+                elif key.startswith("_"):
+                    extras = options_members.get("extras", {}).copy()
+                    extras.update({key: value})
+
+                    options_members["extras"] = extras
+                else:
                     if key == "roles":
                         roles = options_members.get("roles", {}).copy()
                         roles.update(value)
