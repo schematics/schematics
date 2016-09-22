@@ -6,7 +6,7 @@ from operator import itemgetter
 import pickle
 from random import shuffle
 import sys
-from test import mapping_tests
+from . import mapping_tests
 
 import pytest
 
