@@ -332,7 +332,7 @@ def test_string_to_native_and_to_primitive():
     for input, expected in strings:
         res = field.to_native(input)
         assert res == expected
-        assert type(res) is str
+        assert type(res) is str or res is None
         field.to_primitive(input) == field.to_native(input)
 
 
