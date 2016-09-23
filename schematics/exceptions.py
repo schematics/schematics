@@ -40,6 +40,12 @@ class ErrorMessage(object):
         else:
             return False
 
+    def __hash__(self):
+        if self.info:
+            return hash((self.summary, self._info_as_str()))
+        else:
+            return hash(self.summary)
+
 
 class BaseError(Exception):
     pass
@@ -90,6 +96,9 @@ class FieldError(BaseError, Sequence):
         elif isinstance(other, list):
             return other == self.messages
         return False
+
+    def __hash__(self):
+        return hash(tuple(self.messages))
 
     def __contains__(self, value):
         return value in self.messages

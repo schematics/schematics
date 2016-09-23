@@ -375,6 +375,8 @@ class StringType(BaseType):
         return random_string(get_value_in(self.min_length, self.max_length))
 
     def to_native(self, value, context=None):
+        # if value is None:
+        #     return None
         if isinstance(value, str):
             return value
         if isinstance(value, self.allow_casts):
@@ -388,6 +390,8 @@ class StringType(BaseType):
             else:
                 return str(value)
         raise ConversionError(self.messages['convert'].format(value))
+
+    # to_primitive = to_native
 
     def validate_length(self, value, context=None):
         length = len(value)

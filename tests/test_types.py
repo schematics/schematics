@@ -312,6 +312,7 @@ def test_string_to_native_and_to_primitive():
 
     if sys.version_info[0] == 2:
         strings = [
+            (None, None),
             (u'abcdefg',   u'abcdefg'),
             ( 'abcdefg',   u'abcdefg'),
             (u'abc éíçßµ', u'abc éíçßµ'),
@@ -320,6 +321,7 @@ def test_string_to_native_and_to_primitive():
         ]
     else:
         strings = [
+            (None, None),
             ( 'abcdefg',   'abcdefg'),
             (b'abcdefg',   'abcdefg'),
             ( 'abc éíçßµ', 'abc éíçßµ'),
