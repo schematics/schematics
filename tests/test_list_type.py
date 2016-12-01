@@ -236,3 +236,15 @@ def test_mock_object_with_model_type():
         age = IntType(required=True)
 
     assert isinstance(ListType(ModelType(User), required=True).mock()[-1], User)
+
+
+def test_list_default_not_shared():
+    class Foo(Model):
+        foo = ListType(IntType, default=[])
+
+    one = Foo()
+    one.foo.append(1)
+
+    two = Foo()
+    assert len(one.foo) == 1
+    assert len(two.foo) == 0

@@ -159,3 +159,16 @@ def test_key_type():
     assert d == {
         "categories": {1: {"slug": "math"}}
     }
+
+
+def test_dict_default_not_shared():
+    class Foo(Model):
+        foo = DictType(IntType, default=dict())
+
+    one = Foo()
+    one.foo['a'] = 3
+
+    two = Foo()
+
+    assert one.foo['a'] == 3
+    assert 'a' not in two.foo
