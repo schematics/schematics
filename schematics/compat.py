@@ -23,9 +23,11 @@ if PY2:
     from itertools import imap as map
     from itertools import izip as zip
     iteritems = operator.methodcaller('iteritems')
+    itervalues = operator.methodcaller('itervalues')
 else:
     string_type = str
     iteritems = operator.methodcaller('items')
+    itervalues = operator.methodcaller('values')
 
 
 def metaclass(metaclass):

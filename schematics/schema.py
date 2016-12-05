@@ -1,8 +1,9 @@
 
+from .compat import iteritems, itervalues
 from .common import DEFAULT, NONEMPTY
 from .datastructures import OrderedDict
 from .types import BaseType
-from .types.serializable import ComputedType
+from .types.serializable import Serializable
 
 import itertools
 import inspect
@@ -20,12 +21,20 @@ class SchemaCompatibilityMixin(object):
         return self.options
 
     @property  # deprecated
+    def _validator_functions(self):
+        return self.validators
+
+    @property  # deprecated
+    def _fields(self):
+        return self.fields
+
+    @property  # deprecated
     def _valid_input_keys(self):
         return self.valid_input_keys
 
     @property  # deprecated
     def _serializables(self):
-        return OrderedDict((k, t) for k, t in self.fields.items() if isinstance(t, ComputedType))
+        return OrderedDict((k, t) for k, t in iteritems(self.fields) if isinstance(t, Serializable))
 
 
 class Schema(SchemaCompatibilityMixin, object):
@@ -33,7 +42,7 @@ class Schema(SchemaCompatibilityMixin, object):
     def __init__(self, name, *fields, **kw):
         self.name = name
         self.model = kw.get('model', None)
-        self.options = kw.get('options', SchemaOptions(self.model))
+        self.options = kw.get('options', SchemaOptions())
         self.validators = kw.get('validators', {})
         self.fields = OrderedDict()
         for field in fields:
@@ -41,11 +50,11 @@ class Schema(SchemaCompatibilityMixin, object):
 
     @property
     def valid_input_keys(self):
-        return set(itertools.chain(*(t.get_input_keys() for t in self.fields.values())))
+        return set(itertools.chain(*(t.get_input_keys() for t in itervalues(self.fields))))
 
     def append_field(self, field):
         self.fields[field.name] = field.type
-        field.type._setup(field.name, self.model)
+        field.type._setup(field.name, self.model)  # TODO: remove model reference
 
 
 class SchemaOptions(object):
@@ -70,6 +79,6 @@ class SchemaOptions(object):
 class Field(object):
 
     def __init__(self, name, field_type):
-        assert isinstance(field_type, BaseType)
+        assert isinstance(field_type, (BaseType, Serializable))
         self.name = name
         self.type = field_type
