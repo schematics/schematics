@@ -12,6 +12,7 @@ from .datastructures import Context
 from .exceptions import *
 from .undefined import Undefined
 from .util import listify
+from .iteration import atoms
 
 try:
     from collections import OrderedDict
@@ -262,33 +263,6 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
     return data
 
 
-def atoms(cls, instance_or_dict):
-    """
-    Iterator for the atomic components of a model definition and relevant
-    data that creates a 3-tuple of the field's name, its type instance and
-    its value.
-
-    :param cls:
-        The model definition.
-    :param instance_or_dict:
-        The structure where fields from cls are mapped to values. The only
-        expectation for this structure is that it implements a ``Mapping``
-        interface.
-    """
-    field_getter = serializable_getter = instance_or_dict.get
-    try:
-        field_getter = instance_or_dict._data.get
-    except AttributeError:
-        pass
-
-    sequences = ((cls._field_list, field_getter),
-                 (cls._serializables.items(), serializable_getter))
-    for sequence, get in sequences:
-        for field_name, field in sequence:
-            yield (field_name, field, get(field_name, Undefined))
-
-
-
 ###
 # Field filtering
 ###
@@ -530,8 +504,8 @@ def get_export_context(field_converter=to_native_converter, **options):
 ###
 
 
-def convert(cls, instance_or_dict, **kwargs):
-    return import_loop(cls, instance_or_dict, import_converter, **kwargs)
+def convert(cls, mutable, raw_data, **kwargs):
+    return import_loop(cls, mutable, raw_data, import_converter, **kwargs)
 
 
 def to_native(cls, instance_or_dict, **kwargs):

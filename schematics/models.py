@@ -9,6 +9,7 @@ from types import FunctionType
 from .common import * # pylint: disable=redefined-builtin
 from .datastructures import OrderedDict, Context
 from .exceptions import *
+from .iteration import atoms
 from .transforms import (
     atoms, export_loop,
     convert, to_native, to_primitive,

@@ -9,7 +9,7 @@ from .common import * # pylint: disable=redefined-builtin
 from .datastructures import Context
 from .exceptions import FieldError, DataError
 from .transforms import import_loop, validation_converter
-from .undefined import Undefined
+from .iteration import atoms
 
 
 def validate(cls, instance_or_dict, trusted_data=None, partial=False, strict=False,
