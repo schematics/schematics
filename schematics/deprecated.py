@@ -2,6 +2,7 @@
 from .compat import iteritems
 from .datastructures import OrderedDict
 from .types.serializable import Serializable
+import transforms
 
 import warnings
 import functools
@@ -97,6 +98,12 @@ class ModelCompatibilityMixin(object):
     @deprecated
     def _validator_functions(cls):
         return cls._schema.validators
+
+    @classmethod
+    @deprecated
+    def convert(cls, raw_data, context=None, **kw):
+        return transforms.convert(cls._schema, raw_data, oo=True,
+            context=context, **kw)
 
 
 def patch_models():
