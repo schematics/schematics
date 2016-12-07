@@ -582,7 +582,7 @@ def test_serializable_setter_init():
         def country_name(self, value):
             self.country_code = {"United States": "US"}.get(value)
 
-    location = Location({"country_name": "United States"})
+    location = Location({"country_name": "United States"}, validate=True)
     assert location.country_code == "US"
 
     d = location.serialize()
