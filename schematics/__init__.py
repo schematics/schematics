@@ -2,6 +2,10 @@
 
 __version__ = '2.0.0.a1'
 
+# TODO: remove deprecated API
+from . import deprecated
+deprecated.patch_all()
+
 from .models import Model, ModelMeta
 
 types.compound.Model = Model
