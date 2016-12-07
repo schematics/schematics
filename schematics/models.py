@@ -231,11 +231,11 @@ class Model(object):
         """
         if raw_data and raw_data is not self:
             self._raw_data.update(raw_data)
-        kw['trusted_data'] = self._data
-        kw['convert'] = getattr(context, 'convert', None) or kw.get('convert', True)
-        should_validate = getattr(context, 'validate', None) or kw.get('validate', False)
+        kwargs['trusted_data'] = self._data
+        kwargs['convert'] = getattr(context, 'convert', None) or kwargs.get('convert', True)
+        should_validate = getattr(context, 'validate', None) or kwargs.get('validate', False)
         func = validate if should_validate else convert
-        return func(self._schema, self, self._raw_data, oo=True, context=context, **kw)
+        return func(self._schema, self, self._raw_data, oo=True, context=context, **kwargs)
 
     def export(self, field_converter=None, role=None, app_data=None, **kwargs):
         return export_loop(self._schema, self, field_converter=field_converter,
