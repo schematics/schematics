@@ -2,7 +2,7 @@
 from .compat import iteritems
 from .datastructures import OrderedDict
 from .types.serializable import Serializable
-import transforms
+from . import transforms
 
 import warnings
 import functools
