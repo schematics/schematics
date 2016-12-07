@@ -149,5 +149,5 @@ def test_serializable_inheritance():
     assert A.s is A._serializables['s'] is not B._serializables['s']
     assert B.s is B._serializables['s']
     assert A.s.type is not B.s.type
-    assert A.s.func is B.s.func
+    assert A.s.fget is B.s.fget
 
