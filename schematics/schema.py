@@ -50,7 +50,12 @@ class SchemaOptions(object):
 
 class Field(object):
 
+    __slots__ = ('name', 'type')
+
     def __init__(self, name, field_type):
         assert isinstance(field_type, (BaseType, Serializable))
         self.name = name
         self.type = field_type
+
+    def is_settable(self):
+        return getattr(self.type, 'fset', None) is not None
