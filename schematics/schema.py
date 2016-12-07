@@ -1,5 +1,5 @@
 
-from .compat import iteritems, itervalues
+from .compat import itervalues
 from .common import DEFAULT, NONEMPTY
 from .datastructures import OrderedDict
 from .types import BaseType
@@ -9,35 +9,7 @@ import itertools
 import inspect
 
 
-class SchemaCompatibilityMixin(object):
-    """Compatibility layer for previous deprecated Schematics Model API."""
-
-    @property  # deprecated
-    def __name__(self):
-        return self.name
-
-    @property  # deprecated
-    def _options(self):
-        return self.options
-
-    @property  # deprecated
-    def _validator_functions(self):
-        return self.validators
-
-    @property  # deprecated
-    def _fields(self):
-        return self.fields
-
-    @property  # deprecated
-    def _valid_input_keys(self):
-        return self.valid_input_keys
-
-    @property  # deprecated
-    def _serializables(self):
-        return OrderedDict((k, t) for k, t in iteritems(self.fields) if isinstance(t, Serializable))
-
-
-class Schema(SchemaCompatibilityMixin, object):
+class Schema(object):
 
     def __init__(self, name, *fields, **kw):
         self.name = name
