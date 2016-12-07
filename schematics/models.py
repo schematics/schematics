@@ -11,8 +11,8 @@ from .datastructures import OrderedDict, Context
 from .exceptions import *
 from .iteration import atoms
 from .transforms import (
-    atoms, export_loop,
-    convert, to_native, to_primitive,
+    export_loop, convert,
+    to_native, to_primitive,
 )
 from .validate import validate, prepare_validator
 from .types import BaseType
@@ -20,8 +20,6 @@ from .types.serializable import Serializable
 from .undefined import Undefined
 from .util import get_ident
 from . import schema
-
-ModelOptions = schema.SchemaOptions  # deprecated alias
 
 
 class FieldDescriptor(object):
@@ -45,6 +43,7 @@ class FieldDescriptor(object):
             return cls._fields[self.name]
         else:
             value = instance._data.get(self.name, Undefined)
+            value = instance._raw_data.get(self.name, value)
             if value is Undefined:
                 raise UndefinedValueError(instance, self.name)
             else:
@@ -56,12 +55,13 @@ class FieldDescriptor(object):
         """
         field = instance._fields[self.name]
         value = field.pre_setattr(value)
-        instance._data[self.name] = value
+        instance._raw_data[self.name] = value
 
     def __delete__(self, instance):
         """
         Deletes the field's value.
         """
+        del instance._raw_data[self.name]
         del instance._data[self.name]
 
 
@@ -88,27 +88,32 @@ class ModelMeta(type):
                 options_members.update(dict(base._schema.options))
                 validator_functions.update(base._schema.validators)
 
-        # Parse this class's attributes into meta structures
+        # Parse this class's attributes into schema structures
         for key, value in iteritems(attrs):
             if key.startswith('validate_') and isinstance(value, (FunctionType, classmethod)):
                 validator_functions[key[9:]] = prepare_validator(value, 4)
             if isinstance(value, BaseType):
                 fields[key] = value
-                # Convert list of types into fields for new klass
-                attrs[key] = FieldDescriptor(key)
             elif isinstance(value, Serializable):
-                fields[key] = value.type
+                fields[key] = value
+
+        # Convert declared fields into descriptors for new class
+        fields.sort(key=lambda i: i[1]._position_hint)
+        for key, field in iteritems(fields):
+            if isinstance(field, BaseType):
+                attrs[key] = FieldDescriptor(key)
+            elif isinstance(field, Serializable):
+                attrs[key] = field
 
         klass = type.__new__(mcs, name, bases, attrs)
         klass = str_compat(klass)
 
-        # Parse meta options
+        # Parse schema options
         options = mcs._read_options(name, bases, attrs, options_members)
 
-        # Parse meta data into klass schema
-        fields.sort(key=lambda i: i[1]._position_hint)
+        # Parse meta data into new schema
         klass._schema = schema.Schema(name, model=klass, options=options,
-            validators=validator_functions, *(schema.Field(k, t) for k, t in fields.items()))
+            validators=validator_functions, *(schema.Field(k, t) for k, t in iteritems(fields)))
 
         # Register class on ancestor models
         klass._subclasses = []
@@ -137,47 +142,8 @@ class ModelMeta(type):
         return options_class(**options_members)
 
 
-class class_property(property):
-    def __get__(self, instance, type):
-        if instance is None:
-            return super(class_property, self).__get__(type, type)
-        return super(class_property, self).__get__(instance, type)
-
-
-class ModelCompatibilityMixin(object):
-    """Compatibility layer for previous deprecated Schematics Model API."""
-
-    @class_property  # deprecated
-    def _valid_input_keys(cls):
-        return cls._schema.valid_input_keys
-
-    @class_property  # deprecated
-    def _options(cls):
-        return cls._schema.options
-
-    @class_property  # deprecated
-    def fields(cls):
-        return cls._schema.fields
-
-    @class_property  # deprecated
-    def _fields(cls):
-        return cls._schema.fields
-
-    @class_property  # deprecated
-    def _field_list(cls):
-        return list(cls._schema.fields.iteritems())
-
-    @class_property  # deprecated
-    def _serializables(cls):
-        return cls._schema._serializables
-
-    @class_property  # deprecated
-    def _validator_functions(cls):
-        return cls._schema.validators
-
-
 @metaclass(ModelMeta)
-class Model(ModelCompatibilityMixin, object):
+class Model(object):
 
     """
     Enclosure for fields and validation. Same pattern deployed by Django
@@ -200,15 +166,18 @@ class Model(ModelCompatibilityMixin, object):
                  init=True, partial=True, strict=True, validate=False, app_data=None,
                  **kwargs):
 
-        self._initial = raw_data or {}
+        self._raw_data = {}  # input data
+        self._data = dict(trusted_data) if trusted_data else {}  # validated data
 
         kwargs.setdefault('init_values', init)
         kwargs.setdefault('apply_defaults', init)
 
-        self._data = self.convert(raw_data,
-                                  trusted_data=trusted_data, mapping=deserialize_mapping,
-                                  partial=partial, strict=strict, validate=validate, new=True,
-                                  app_data=app_data, **kwargs)
+        self._raw_data = self._convert(raw_data,
+            trusted_data=trusted_data, mapping=deserialize_mapping,
+            partial=partial, strict=strict, validate=validate, new=True,
+            app_data=app_data, **kwargs)
+        if validate:
+            self.validate()
 
     def validate(self, partial=False, convert=True, app_data=None, **kwargs):
         """
@@ -224,11 +193,21 @@ class Model(ModelCompatibilityMixin, object):
             are known to have the right datatypes (e.g., when validating immediately
             after the initial import). Default: True
         """
-        data = self.convert(self, validate=True, partial=partial, convert=convert,
-                            app_data=app_data, **kwargs)
-
-        if convert:
-            self._data.update(**data)
+        if not self._raw_data and partial:
+            return  # no input data to validate
+        data = self._convert(self, validate=True,
+            partial=partial, convert=convert, app_data=app_data, **kwargs)
+        if not data:
+            return
+        self._data.update(data)
+        # trigger post-update callbacks (ie.: custom property setters)
+        # TODO: possibly optimize by not calling setters with unchanged data
+        for key, value in iteritems(data):
+            try:
+                setattr(self, key, value)
+            except AttributeError:
+                pass
+        self._raw_data = {}
 
     def import_data(self, raw_data, recursive=False, **kwargs):
         """
@@ -237,35 +216,39 @@ class Model(ModelCompatibilityMixin, object):
         :param raw_data:
             The data to be imported.
         """
-        self._data = self.convert(raw_data, trusted_data=self, recursive=recursive, **kwargs)
+        data = self._convert(raw_data, recursive=recursive, **kwargs)
+        self._raw_data.update(data)
+        self.validate(convert=False)
         return self
 
-    @classmethod
-    def convert(cls, raw_data, context=None, **kw):
+    def _convert(self, raw_data=None, context=None, **kwargs):
         """
-        Converts the raw data into richer Python constructs according to the
-        fields on the model
+        Converts the instance raw data into richer Python constructs according
+        to the fields on the model, validating data if requested.
 
         :param raw_data:
-            The data to be converted
+            New data to be imported and converted
         """
-        _validate = getattr(context, 'validate', None) or kw.get('validate', False)
-        if _validate:
-            return validate(cls, raw_data, oo=True, context=context, **kw)
-        else:
-            return convert(cls, raw_data, oo=True, context=context, **kw)
+        if raw_data and raw_data is not self:
+            self._raw_data.update(raw_data)
+        kw['trusted_data'] = self._data
+        kw['convert'] = getattr(context, 'convert', None) or kw.get('convert', True)
+        should_validate = getattr(context, 'validate', None) or kw.get('validate', False)
+        func = validate if should_validate else convert
+        return func(self._schema, self, self._raw_data, oo=True, context=context, **kw)
 
     def export(self, field_converter=None, role=None, app_data=None, **kwargs):
-        return export_loop(self.__class__, self, field_converter=field_converter,
+        return export_loop(self._schema, self, field_converter=field_converter,
                            role=role, app_data=app_data, **kwargs)
 
     def to_native(self, role=None, app_data=None, **kwargs):
-        return to_native(self.__class__, self, role=role, app_data=app_data, **kwargs)
+        return to_native(self._schema, self, role=role, app_data=app_data, **kwargs)
 
     def to_primitive(self, role=None, app_data=None, **kwargs):
-        return to_primitive(self.__class__, self, role=role, app_data=app_data, **kwargs)
+        return to_primitive(self._schema, self, role=role, app_data=app_data, **kwargs)
 
     def serialize(self, *args, **kwargs):
+        self.validate()
         return self.to_primitive(*args, **kwargs)
 
     def atoms(self):
@@ -274,10 +257,11 @@ class Model(ModelCompatibilityMixin, object):
         data that creates a 3-tuple of the field's name, its type instance and
         its value.
         """
-        return atoms(self.__class__, self)
+        return atoms(self._schema, self)
 
     def __iter__(self):
-        return (k for k in self._fields if k in self._data)
+        return (k for k in self._schema.fields if k in self._data
+            and getattr(self._schema.fields[k], 'fset', None) is None)
 
     def keys(self):
         return list(iter(self))
@@ -315,26 +299,26 @@ class Model(ModelCompatibilityMixin, object):
         return cls(values)
 
     def __getitem__(self, name):
-        if name in self._fields or name in self._serializables:
+        if name in self._schema.fields:
             return getattr(self, name)
         else:
             raise UnknownFieldError(self, name)
 
     def __setitem__(self, name, value):
-        if name in self._fields:
+        if name in self._schema.fields:
             return setattr(self, name, value)
         else:
             raise UnknownFieldError(self, name)
 
     def __delitem__(self, name):
-        if name in self._fields:
+        if name in self._schema.fields:
             return delattr(self, name)
         else:
             raise UnknownFieldError(self, name)
 
     def __contains__(self, name):
-        return name in self._data \
-            or name in self._serializables and getattr(self, name, Undefined) is not Undefined
+        return (name in self._data and getattr(self, name, Undefined) is not Undefined) \
+            or name in self._serializables
 
     def __len__(self):
         return len(self._data)
