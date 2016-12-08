@@ -261,10 +261,9 @@ class Model(object):
         :param raw_data:
             The data to be imported.
         """
-        should_validate = kwargs.get('validate', False)
         data = self._convert(raw_data, recursive=recursive, **kwargs)
         self._data.update(data)
-        if should_validate:
+        if kwargs.get('validate', False):
             self.validate(convert=False)
         return self
 
@@ -276,8 +275,11 @@ class Model(object):
         :param raw_data:
             New data to be imported and converted
         """
-        raw_data = raw_data or {}
-        raw_data.update(self._data.raw)
+        input_data = raw_data or {}
+        if hasattr(input_data, '_data'):
+            input_data = input_data._data.raw
+        raw_data = dict(self._data.raw)
+        raw_data.update(input_data)
         kwargs['trusted_data'] = kwargs.get('trusted_data') or {}
         kwargs['trusted_data'].update(self._data.valid)
         kwargs['convert'] = getattr(context, 'convert', kwargs.get('convert', True))
@@ -382,7 +384,10 @@ class Model(object):
         else:
             memo.add(key)
         try:
-            return self._data == other._data
+            for k in self:
+                if self.get(k) != other.get(k):
+                    return False
+            return True
         finally:
             memo.remove(key)
 
