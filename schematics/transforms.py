@@ -4,7 +4,6 @@ from __future__ import unicode_literals, absolute_import
 
 import collections
 import itertools
-import operator
 import types
 
 from .common import * # pylint: disable=redefined-builtin
@@ -20,13 +19,11 @@ except ImportError:
     from .datastructures import OrderedDict
 
 
-
 ###
 # Transform loops
 ###
 
-
-def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
+def import_loop(cls, mutable, raw_data=None, field_converter=None, trusted_data=None,
                 mapping=None, partial=False, strict=False, init_values=False,
                 apply_defaults=False, convert=True, validate=False, new=False,
                 oo=False, recursive=False, app_data=None, context=None):
@@ -61,13 +58,9 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
         The context object is created upon the initial invocation of ``import_loop``
         and is then propagated through the entire process.
     """
-    if instance_or_dict is None:
-        got_data = False
-    else:
-        got_data = True
-
-    if got_data and not isinstance(instance_or_dict, (cls, dict)):
-        raise ConversionError('Model conversion requires a model or dict')
+    if raw_data is None:
+        raw_data = mutable
+    got_data = raw_data is not None
 
     context = Context._make(context)
     try:
@@ -92,7 +85,7 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
             'app_data': app_data if app_data is not None else {}
         })
 
-    instance_or_dict = context.field_converter.pre(cls, instance_or_dict, context)
+    raw_data = context.field_converter.pre(cls, raw_data, context)
 
     _field_converter = context.field_converter
     _model_mapping = context.mapping.get('model_mapping')
@@ -110,20 +103,20 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
             all_fields = all_fields | mapped_keys
         if context.strict:
             # Check for rogues if strict is set
-            rogue_fields = set(instance_or_dict) - all_fields
+            rogue_fields = set(raw_data) - all_fields
             if rogue_fields:
                 for field in rogue_fields:
                     errors[field] = 'Rogue field'
 
-    for field_name, field in cls._field_list:
-
-        value = Undefined
+    not_setter = lambda atom: getattr(atom.field, 'fset', None) is None
+    atoms_filter = None if context.validate else not_setter
+    for field_name, field, value in atoms(cls, raw_data, filter=atoms_filter):
         serialized_field_name = field.serialized_name or field_name
 
-        if got_data:
+        if got_data and value is Undefined:
             for key in field.get_input_keys(context.mapping):
-                if key and key in instance_or_dict:
-                    value = instance_or_dict[key]
+                if key and key != field_name and key in raw_data:
+                    value = raw_data[key]
                     break
 
         if value is Undefined:
@@ -159,6 +152,11 @@ def import_loop(cls, instance_or_dict, field_converter=None, trusted_data=None,
             continue
 
         data[field_name] = value
+
+    if not context.validate:
+        has_setter = lambda atom: hasattr(atom.field, 'fset') and atom.field.fset
+        for field_name, field, value in atoms(cls, raw_data, filter=has_setter):
+            data[field_name] = value
 
     if errors:
         raise DataError(errors, data)
@@ -504,7 +502,7 @@ def get_export_context(field_converter=to_native_converter, **options):
 ###
 
 
-def convert(cls, mutable, raw_data, **kwargs):
+def convert(cls, mutable, raw_data=None, **kwargs):
     return import_loop(cls, mutable, raw_data, import_converter, **kwargs)
 
 
