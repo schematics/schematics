@@ -3,6 +3,7 @@
 from __future__ import unicode_literals, absolute_import
 
 import inspect
+import functools
 
 from .common import * # pylint: disable=redefined-builtin
 from .datastructures import Context
@@ -79,6 +80,7 @@ def mutate(schema, mutable, raw_data):
         except AttributeError:
             # TODO: aggregate serializable errors into errors dict
             pass
+    raw_data.update(mutable)
 
 
 def _validate_model(cls, data, context):
