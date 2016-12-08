@@ -7,7 +7,7 @@ import inspect
 from types import FunctionType
 
 from .common import * # pylint: disable=redefined-builtin
-from .datastructures import OrderedDict, Context
+from .datastructures import OrderedDict, Context, ChainMap, MappingProxyType
 from .exceptions import *
 from .iteration import atoms
 from .transforms import (
@@ -43,7 +43,6 @@ class FieldDescriptor(object):
             return cls._fields[self.name]
         else:
             value = instance._data.get(self.name, Undefined)
-            value = instance._raw_data.get(self.name, value)
             if value is Undefined:
                 raise UndefinedValueError(instance, self.name)
             else:
@@ -55,13 +54,12 @@ class FieldDescriptor(object):
         """
         field = instance._fields[self.name]
         value = field.pre_setattr(value)
-        instance._raw_data[self.name] = value
+        instance._data[self.name] = value
 
     def __delete__(self, instance):
         """
         Deletes the field's value.
         """
-        del instance._raw_data[self.name]
         del instance._data[self.name]
 
 
@@ -142,6 +140,53 @@ class ModelMeta(type):
         return options_class(**options_members)
 
 
+class ModelDict(ChainMap):
+
+    __slots__ = ['_raw', '__valid', '_valid', '_data']
+
+    def __init__(self, raw=None, valid=None):
+        self._raw = raw if raw is not None else {}
+        self.__valid = valid if valid is not None else {}
+        self._valid = MappingProxyType(self.__valid)
+        super(ModelDict, self).__init__(self._raw, self._valid)
+
+    @property
+    def raw(self):
+        return self._raw
+
+    @raw.setter
+    def raw(self, value):
+        self._raw = value
+        self.maps[0] = self._raw
+
+    @property
+    def valid(self):
+        return self._valid
+
+    @valid.setter
+    def valid(self, value):
+        self._valid = MappingProxyType(value)
+        self.maps[1] = self._valid
+
+    def __delitem__(self, key):
+        did_delete = False
+        try:
+            del self.__valid[key]
+            did_delete = True
+        except KeyError:
+            pass
+        try:
+            del self._raw[key]
+            did_delete = True
+        except KeyError:
+            pass
+        if not did_delete:
+            raise KeyError(key)
+
+    def __repr__(self):
+        return repr(dict(self))
+
+
 @metaclass(ModelMeta)
 class Model(object):
 
@@ -166,16 +211,16 @@ class Model(object):
                  init=True, partial=True, strict=True, validate=False, app_data=None,
                  **kwargs):
 
-        self._raw_data = {}  # input data
-        self._data = dict(trusted_data) if trusted_data else {}  # validated data
+        self._data = ModelDict(valid=trusted_data)
 
         kwargs.setdefault('init_values', init)
         kwargs.setdefault('apply_defaults', init)
 
-        self._raw_data = self._convert(raw_data,
+        data = self._convert(raw_data,
             trusted_data=trusted_data, mapping=deserialize_mapping,
             partial=partial, strict=strict, validate=validate, new=True,
             app_data=app_data, **kwargs)
+        self._data.raw = data
         if validate:
             self.validate()
 
@@ -193,13 +238,13 @@ class Model(object):
             are known to have the right datatypes (e.g., when validating immediately
             after the initial import). Default: True
         """
-        if not self._raw_data and partial:
+        if not self._data.raw and partial:
             return  # no input data to validate
-        data = self._convert(self, validate=True,
+        data = self._convert(self._data.raw, validate=True,
             partial=partial, convert=convert, app_data=app_data, **kwargs)
         if not data:
             return
-        self._data.update(data)
+        self._data.valid = data
         # trigger post-update callbacks (ie.: custom property setters)
         # TODO: possibly optimize by not calling setters with unchanged data
         for key, value in iteritems(data):
@@ -207,7 +252,7 @@ class Model(object):
                 setattr(self, key, value)
             except AttributeError:
                 pass
-        self._raw_data = {}
+        self._data.raw = {}
 
     def import_data(self, raw_data, recursive=False, **kwargs):
         """
@@ -216,9 +261,11 @@ class Model(object):
         :param raw_data:
             The data to be imported.
         """
+        should_validate = kwargs.get('validate', False)
         data = self._convert(raw_data, recursive=recursive, **kwargs)
-        self._raw_data.update(data)
-        self.validate(convert=False)
+        self._data.update(data)
+        if should_validate:
+            self.validate(convert=False)
         return self
 
     def _convert(self, raw_data=None, context=None, **kwargs):
@@ -229,13 +276,14 @@ class Model(object):
         :param raw_data:
             New data to be imported and converted
         """
-        if raw_data and raw_data is not self:
-            self._raw_data.update(raw_data)
-        kwargs['trusted_data'] = self._data
-        kwargs['convert'] = getattr(context, 'convert', None) or kwargs.get('convert', True)
-        should_validate = getattr(context, 'validate', None) or kwargs.get('validate', False)
+        raw_data = raw_data or {}
+        raw_data.update(self._data.raw)
+        kwargs['trusted_data'] = kwargs.get('trusted_data') or {}
+        kwargs['trusted_data'].update(self._data.valid)
+        kwargs['convert'] = getattr(context, 'convert', kwargs.get('convert', True))
+        should_validate = getattr(context, 'validate', kwargs.get('validate', False))
         func = validate if should_validate else convert
-        return func(self._schema, self, self._raw_data, oo=True, context=context, **kwargs)
+        return func(self._schema, self, raw_data=raw_data, oo=True, context=context, **kwargs)
 
     def export(self, field_converter=None, role=None, app_data=None, **kwargs):
         return export_loop(self._schema, self, field_converter=field_converter,
