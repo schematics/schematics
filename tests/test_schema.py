@@ -133,17 +133,11 @@ def test_object_model_equivalence():
     player = Player(input_data, strict=False, validate=False, init=False)
 
     data = convert(schema, data, partial=True)
-    p0 = player._data.copy()
-    p1 = player._raw_data.copy()
-    p0.update(p1)
-    assert data == p0
+    assert data == player._data
 
     data = validate(schema, data, convert=False, partial=False)
     player.validate()
-    p0 = player._data.copy()
-    p1 = player._raw_data.copy()
-    p0.update(p1)
-    assert data == p0
+    assert data == player._data
 
     data = to_primitive(schema, data)
     player_dict = player.serialize()
