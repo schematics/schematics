@@ -2,18 +2,18 @@
 
 from __future__ import unicode_literals, absolute_import
 
-import functools
 import inspect
 
 from .common import * # pylint: disable=redefined-builtin
 from .datastructures import Context
 from .exceptions import FieldError, DataError
 from .transforms import import_loop, validation_converter
+from .undefined import Undefined
 from .iteration import atoms
 
 
-def validate(cls, instance_or_dict, trusted_data=None, partial=False, strict=False,
-             convert=True, context=None, **kwargs):
+def validate(schema, mutable, raw_data=None, trusted_data=None,
+             partial=False, strict=False, convert=True, context=None, **kwargs):
     """
     Validate some untrusted data using a model. Trusted data can be passed in
     the `trusted_data` parameter.
@@ -42,22 +42,43 @@ def validate(cls, instance_or_dict, trusted_data=None, partial=False, strict=Fal
         If errors are found, they are raised as a ValidationError with a list
         of errors attached.
     """
+    if raw_data is None:
+        raw_data = mutable
+
     context = context or get_validation_context(partial=partial, strict=strict, convert=convert)
 
     errors = {}
+    mutate(schema, mutable, raw_data)
     try:
-        data = import_loop(cls, instance_or_dict, trusted_data=trusted_data,
+        data = import_loop(schema, mutable, raw_data, trusted_data=trusted_data,
                            context=context, **kwargs)
     except DataError as exc:
         errors = exc.messages
         data = exc.partial_data
 
-    errors.update(_validate_model(cls, data, context))
+    errors.update(_validate_model(schema, data, context))
 
     if errors:
         raise DataError(errors, data)
 
     return data
+
+
+def mutate(schema, mutable, raw_data):
+    """
+    Mutates the converted data before validation.
+
+    Allows fields to modify/create other data fields.
+    """
+    has_setter = lambda atom: hasattr(atom.field, 'fset') and atom.field.fset
+    for field_name, field, value in atoms(schema, raw_data, filter=has_setter):
+        if value is Undefined:
+            continue
+        try:
+            field.fset(mutable, value)
+        except AttributeError:
+            # TODO: aggregate serializable errors into errors dict
+            pass
 
 
 def _validate_model(cls, data, context):
