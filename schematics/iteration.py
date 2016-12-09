@@ -48,7 +48,7 @@ def atoms(schema, instance_or_dict, keys=atom._fields, filter=None):
                 value = Undefined
             atom_dict['value'] = value
 
-        atom_tuple = atom(**{k: atom_dict.get(k) for k in keys})
+        atom_tuple = atom(**dict((k, atom_dict.get(k)) for k in keys))
         if filter is None:
             yield atom_tuple
         elif filter(atom_tuple):
