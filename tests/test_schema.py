@@ -38,7 +38,7 @@ def player_schema():
 
 @pytest.fixture
 def player_data():
-    return {'id': '1', 'full_name': 'Arthur Dent', 'towel': True}
+    return {'id': '42', 'full_name': 'Arthur Dent', 'towel': True}
 
 
 def test_functional_schema_required(player_schema):
@@ -52,16 +52,16 @@ def test_functional_schema(player_schema, player_data):
 
     data = input_data  # state = 'RAW'
 
-    expected = {'id': 1, 'full_name': 'Arthur Dent'}
+    expected = {'id': 42, 'full_name': 'Arthur Dent'}
     data = convert(schema, data, partial=True)
     assert data == expected  # state = 'CONVERTED'
 
-    expected = {'id': 1, 'first_name': 'Arthur', 'last_name': 'Dent',
+    expected = {'id': 42, 'first_name': 'Arthur', 'last_name': 'Dent',
                 'full_name': 'Arthur Dent'}
     data = validate(schema, data, convert=False, partial=False)
     assert data == expected  # state = 'VALIDATED'
 
-    expected = {'id': 1, 'first_name': 'Arthur', 'last_name': 'Dent',
+    expected = {'id': 42, 'first_name': 'Arthur', 'last_name': 'Dent',
                 'full_name': 'Arthur Dent'}
     data = to_primitive(schema, data)
     assert data == expected  # state = 'SERIALIZED'
@@ -127,7 +127,7 @@ def test_object_model_equivalence():
         def full_name(self, value):
             set_full_name(self, value)
 
-    input_data = {'id': '1', 'full_name': 'Arthur Dent', 'towel': True}
+    input_data = {'id': '42', 'full_name': 'Arthur Dent', 'towel': True}
 
     data = input_data.copy()
     player = Player(input_data, strict=False, validate=False, init=False)
