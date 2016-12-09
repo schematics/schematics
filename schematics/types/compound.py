@@ -2,12 +2,10 @@
 
 from __future__ import unicode_literals, absolute_import
 
-import collections
 from collections import Iterable, Sequence, Mapping
 import itertools
 
 from ..common import * # pylint: disable=redefined-builtin
-from ..datastructures import OrderedDict
 from ..exceptions import *
 from ..transforms import (
     export_loop,
@@ -111,6 +109,8 @@ class ModelType(CompoundType):
     def pre_setattr(self, value):
         if value is not None \
           and not isinstance(value, Model):
+            if not isinstance(value, dict):
+                raise ConversionError('Model conversion requires a model or dict')
             value = self.model_class(value)
         return value
 
