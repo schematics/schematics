@@ -142,7 +142,7 @@ class ModelMeta(type):
 
 class ModelDict(ChainMap):
 
-    __slots__ = ['_raw', '__valid', '_valid', '_data']
+    __slots__ = ['_raw', '__valid', '_valid']
 
     def __init__(self, raw=None, valid=None):
         self._raw = raw if raw is not None else {}
@@ -240,7 +240,7 @@ class Model(object):
         """
         if not self._data.raw and partial:
             return  # no input data to validate
-        data = self._convert(self._data.raw, validate=True,
+        data = self._convert(validate=True,
             partial=partial, convert=convert, app_data=app_data, **kwargs)
         if not data:
             return
@@ -261,9 +261,9 @@ class Model(object):
         :param raw_data:
             The data to be imported.
         """
-        data = self._convert(raw_data, recursive=recursive, **kwargs)
+        data = self._convert(raw_data, trusted_data=dict(self), recursive=recursive, **kwargs)
         self._data.update(data)
-        if kwargs.get('validate', False):
+        if kwargs.get('validate'):
             self.validate(convert=False)
         return self
 
@@ -275,13 +275,8 @@ class Model(object):
         :param raw_data:
             New data to be imported and converted
         """
-        input_data = raw_data or {}
-        if hasattr(input_data, '_data'):
-            input_data = input_data._data.raw
-        raw_data = dict(self._data.raw)
-        raw_data.update(input_data)
+        raw_data = dict(raw_data) if raw_data else self._data.raw
         kwargs['trusted_data'] = kwargs.get('trusted_data') or {}
-        kwargs['trusted_data'].update(self._data.valid)
         kwargs['convert'] = getattr(context, 'convert', kwargs.get('convert', True))
         should_validate = getattr(context, 'validate', kwargs.get('validate', False))
         func = validate if should_validate else convert
