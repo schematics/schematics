@@ -1,7 +1,6 @@
 
 from .common import * # pylint: disable=redefined-builtin
 from .undefined import Undefined
-from .inspection import LOG
 
 from collections import namedtuple
 
@@ -50,7 +49,6 @@ def atoms(schema, instance_or_dict, keys=atom._fields, filter=None):
             atom_dict['value'] = value
 
         atom_tuple = atom(**{k: atom_dict.get(k) for k in keys})
-        LOG(atom_tuple)
         if filter is None:
             yield atom_tuple
         elif filter(atom_tuple):
