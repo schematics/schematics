@@ -131,6 +131,8 @@ def import_loop(cls, mutable, raw_data=None, field_converter=None, trusted_data=
             if field.is_compound:
                 if context.trusted_data and context.recursive:
                     td = context.trusted_data.get(field_name)
+                    if not isinstance(td, (dict, Model)):
+                        td = {field_name: td}
                 else:
                     td = {}
                 if _model_mapping:
