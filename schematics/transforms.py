@@ -12,6 +12,7 @@ from .exceptions import *
 from .undefined import Undefined
 from .util import listify
 from .iteration import atoms
+from .models import Model
 
 try:
     from collections import OrderedDict
