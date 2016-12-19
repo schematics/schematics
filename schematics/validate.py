@@ -76,7 +76,7 @@ def mutate(schema, mutable, raw_data):
         if value is Undefined:
             continue
         try:
-            field.fset(mutable, value)
+            field.__set__(mutable, value)
         except AttributeError:
             # TODO: aggregate serializable errors into errors dict
             pass

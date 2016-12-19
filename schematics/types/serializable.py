@@ -9,6 +9,7 @@ from types import FunctionType
 from ..common import *
 from ..exceptions import *
 from ..undefined import Undefined
+from ..transforms import get_import_context
 
 from .base import BaseType, TypeMeta
 
@@ -87,6 +88,7 @@ class Serializable(object):
     def __set__(self, instance, value):
         if self.fset is None:
             raise AttributeError("can't set attribute %s" % self.name)
+        value = self.type.convert(value, get_import_context(oo=True))
         value = self.type.pre_setattr(value)
         self.fset(instance, value)
 
