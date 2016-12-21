@@ -10,7 +10,7 @@ def _callback_wrap(data, schema, func, *args, **kwargs):
 
 
 class Machine(object):
-    """ A poor mans state machine. """
+    """ A poor man's state machine. """
 
     states = ('raw', 'converted', 'validated', 'serialized')
     transitions = (
