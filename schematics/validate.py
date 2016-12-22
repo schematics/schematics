@@ -46,18 +46,19 @@ def validate(schema, mutable, raw_data=None, trusted_data=None,
     if raw_data is None:
         raw_data = mutable
 
-    context = context or get_validation_context(partial=partial, strict=strict, convert=convert)
+    context = context or get_validation_context(partial=partial, strict=strict,
+        convert=convert)
 
     errors = {}
     mutate(schema, mutable, raw_data)
     try:
         data = import_loop(schema, mutable, raw_data, trusted_data=trusted_data,
-                           context=context, **kwargs)
+            context=context, **kwargs)
     except DataError as exc:
         errors = exc.messages
         data = exc.partial_data
 
-    errors.update(_validate_model(schema, data, context))
+    errors.update(_validate_model(schema, mutable, data, context))
 
     if errors:
         raise DataError(errors, data)
@@ -83,31 +84,31 @@ def mutate(schema, mutable, raw_data):
     raw_data.update(mutable)
 
 
-def _validate_model(cls, data, context):
+def _validate_model(schema, mutable, data, context):
     """
     Validate data using model level methods.
 
-    :param cls:
-        The Model class to validate ``data`` against.
-
+    :param schema:
+        The Schema to validate ``data`` against.
+    :param mutable:
+        A mapping or instance that will be passed to the validator containing
+        the original data and that can be mutated.
     :param data:
         A dict with data to validate. Invalid items are removed from it.
-
     :returns:
         Errors of the fields that did not pass validation.
     """
     errors = {}
     invalid_fields = []
-    for field_name, field in iteritems(cls._fields):
-        if field_name in cls._validator_functions and field_name in data:
-            value = data[field_name]
-            try:
-                cls._validator_functions[field_name](cls, data, value, context)
-            except FieldError as exc:
-                field = cls._fields[field_name]
-                serialized_field_name = field.serialized_name or field_name
-                errors[serialized_field_name] = exc.messages
-                invalid_fields.append(field_name)
+
+    has_validator = lambda atom: atom.name in schema._validator_functions
+    for field_name, field, value in atoms(schema, data, filter=has_validator):
+        try:
+            schema._validator_functions[field_name](mutable, data, value, context)
+        except FieldError as exc:
+            serialized_field_name = field.serialized_name or field_name
+            errors[serialized_field_name] = exc.messages
+            invalid_fields.append(field_name)
 
     for field_name in invalid_fields:
         data.pop(field_name)
