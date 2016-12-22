@@ -30,7 +30,6 @@ def atoms(schema, mapping, keys=Atom._fields, filter=None):
     :type filter: Callable[[Atom], bool]
     :param filter:
         Function to filter out atoms from the iteration.
-
     """
     atom_dict = Atom()._asdict()
     keys_set = set(keys)
@@ -58,3 +57,14 @@ def atoms(schema, mapping, keys=Atom._fields, filter=None):
             yield atom_tuple
         elif filter(atom_tuple):
             yield atom_tuple
+
+
+class atom_filter:
+
+    @staticmethod
+    def has_setter(atom):
+        return getattr(atom.field, 'fset', None) is not None
+
+    @staticmethod
+    def not_setter(atom):
+        return not atom_filter.has_setter(atom)

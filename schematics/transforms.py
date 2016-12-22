@@ -11,7 +11,7 @@ from .datastructures import Context
 from .exceptions import *
 from .undefined import Undefined
 from .util import listify
-from .iteration import atoms
+from .iteration import atoms, atom_filter
 
 try:
     from collections import OrderedDict
@@ -108,8 +108,10 @@ def import_loop(cls, mutable, raw_data=None, field_converter=None, trusted_data=
                 for field in rogue_fields:
                     errors[field] = 'Rogue field'
 
-    not_setter = lambda atom: getattr(atom.field, 'fset', None) is None
-    atoms_filter = None if context.validate else not_setter
+    atoms_filter = None
+    if not context.validate:
+        # optimization: convert without validate doesn't require to touch setters
+        atoms_filter = atom_filter.not_setter
     for field_name, field, value in atoms(cls, raw_data, filter=atoms_filter):
         serialized_field_name = field.serialized_name or field_name
 
@@ -154,8 +156,7 @@ def import_loop(cls, mutable, raw_data=None, field_converter=None, trusted_data=
         data[field_name] = value
 
     if not context.validate:
-        has_setter = lambda atom: hasattr(atom.field, 'fset') and atom.field.fset
-        for field_name, field, value in atoms(cls, raw_data, filter=has_setter):
+        for field_name, field, value in atoms(cls, raw_data, filter=atom_filter.has_setter):
             data[field_name] = value
 
     if errors:

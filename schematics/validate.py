@@ -10,7 +10,7 @@ from .datastructures import Context
 from .exceptions import FieldError, DataError
 from .transforms import import_loop, validation_converter
 from .undefined import Undefined
-from .iteration import atoms
+from .iteration import atoms, atom_filter
 
 
 def validate(schema, mutable, raw_data=None, trusted_data=None,
@@ -19,11 +19,13 @@ def validate(schema, mutable, raw_data=None, trusted_data=None,
     Validate some untrusted data using a model. Trusted data can be passed in
     the `trusted_data` parameter.
 
-    :param cls:
-        The model class to use as source for validation. If given an instance,
-        will also run instance-level validators on the data.
-    :param instance_or_dict:
-        A ``dict`` or ``dict``-like structure for incoming data.
+    :param schema:
+        The Schema to use as source for validation.
+    :param mutable:
+        A mapping or instance that can be changed during validation by Schema
+        functions.
+    :param raw_data:
+        A mapping or instance containing new data to be validated.
     :param partial:
         Allow partial data to validate; useful for PATCH requests.
         Essentially drops the ``required=True`` arguments from field
@@ -50,7 +52,7 @@ def validate(schema, mutable, raw_data=None, trusted_data=None,
         convert=convert)
 
     errors = {}
-    mutate(schema, mutable, raw_data)
+    _mutate(schema, mutable, raw_data)
     try:
         data = import_loop(schema, mutable, raw_data, trusted_data=trusted_data,
             context=context, **kwargs)
@@ -66,14 +68,12 @@ def validate(schema, mutable, raw_data=None, trusted_data=None,
     return data
 
 
-def mutate(schema, mutable, raw_data):
+def _mutate(schema, mutable, raw_data):
     """
-    Mutates the converted data before validation.
-
-    Allows fields to modify/create other data fields.
+    Mutates the converted data before validation. Allows Schema fields
+    to modify/create data values.
     """
-    has_setter = lambda atom: hasattr(atom.field, 'fset') and atom.field.fset
-    for field_name, field, value in atoms(schema, raw_data, filter=has_setter):
+    for field_name, field, value in atoms(schema, raw_data, filter=atom_filter.has_setter):
         if value is Undefined:
             continue
         try:
