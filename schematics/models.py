@@ -239,20 +239,18 @@ class Model(object):
             after the initial import). Default: True
         """
         if not self._data.raw and partial:
-            return  # no input data to validate
-        data = self._convert(validate=True,
-            partial=partial, convert=convert, app_data=app_data, **kwargs)
-        if not data:
-            return
-        self._data.valid = data
-        # trigger post-update callbacks (ie.: custom property setters)
-        # TODO: possibly optimize by not calling setters with unchanged data
-        for key, value in iteritems(data):
-            try:
-                setattr(self, key, value)
-            except AttributeError:
-                pass
-        self._data.raw = {}
+            return  # no new input data to validate
+        try:
+            data = self._convert(validate=True,
+                partial=partial, convert=convert, app_data=app_data, **kwargs)
+            self._data.valid = data
+        except DataError as e:
+            valid = dict(self._data.valid)
+            valid.update(e.partial_data)
+            self._data.valid = valid
+            raise
+        finally:
+            self._data.raw = {}
 
     def import_data(self, raw_data, recursive=False, **kwargs):
         """
