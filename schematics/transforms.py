@@ -93,6 +93,9 @@ def import_loop(cls, mutable, raw_data=None, field_converter=None, trusted_data=
     data = dict(context.trusted_data) if context.trusted_data else {}
     errors = {}
 
+    if context.validate:
+        _mutate(cls, mutable, raw_data)
+
     if got_data:
         # Determine all acceptable field input names
         all_fields = cls._valid_input_keys
@@ -165,6 +168,22 @@ def import_loop(cls, mutable, raw_data=None, field_converter=None, trusted_data=
     data = context.field_converter.post(cls, data, context)
 
     return data
+
+
+def _mutate(schema, mutable, raw_data):
+    """
+    Mutates the converted data before validation. Allows Schema fields
+    to modify/create data values.
+    """
+    for field_name, field, value in atoms(schema, raw_data, filter=atom_filter.has_setter):
+        if value is Undefined:
+            continue
+        try:
+            field.__set__(mutable, value)
+        except AttributeError:
+            # TODO: aggregate serializable errors into errors dict
+            pass
+    raw_data.update(mutable)
 
 
 def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_error_on_role=True,

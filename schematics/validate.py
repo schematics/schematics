@@ -52,7 +52,6 @@ def validate(schema, mutable, raw_data=None, trusted_data=None,
         convert=convert)
 
     errors = {}
-    _mutate(schema, mutable, raw_data)
     try:
         data = import_loop(schema, mutable, raw_data, trusted_data=trusted_data,
             context=context, **kwargs)
@@ -66,22 +65,6 @@ def validate(schema, mutable, raw_data=None, trusted_data=None,
         raise DataError(errors, data)
 
     return data
-
-
-def _mutate(schema, mutable, raw_data):
-    """
-    Mutates the converted data before validation. Allows Schema fields
-    to modify/create data values.
-    """
-    for field_name, field, value in atoms(schema, raw_data, filter=atom_filter.has_setter):
-        if value is Undefined:
-            continue
-        try:
-            field.__set__(mutable, value)
-        except AttributeError:
-            # TODO: aggregate serializable errors into errors dict
-            pass
-    raw_data.update(mutable)
 
 
 def _validate_model(schema, mutable, data, context):
