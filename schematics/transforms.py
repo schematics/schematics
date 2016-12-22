@@ -2,7 +2,6 @@
 
 from __future__ import unicode_literals, absolute_import
 
-import collections
 import itertools
 import types
 
@@ -12,6 +11,7 @@ from .exceptions import *
 from .undefined import Undefined
 from .util import listify
 from .iteration import atoms, atom_filter
+from .role import Role
 
 try:
     from collections import OrderedDict
@@ -22,6 +22,7 @@ except ImportError:
 ###
 # Transform loops
 ###
+
 
 def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_data=None,
                 mapping=None, partial=False, strict=False, init_values=False,
@@ -175,8 +176,8 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
 
 def _mutate(schema, mutable, raw_data, context):
     """
-    Mutates the converted data before validation. Allows Schema fields
-    to modify/create data values.
+    Mutates the converted data before validation. Allows Schema fields to modify
+    and create data values on mutable.
     """
     errors = {}
     for field_name, field, value in atoms(schema, raw_data, filter=atom_filter.has_setter):
@@ -294,114 +295,6 @@ def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise
 # Field filtering
 ###
 
-@str_compat
-class Role(collections.Set):
-
-    """
-    A ``Role`` object can be used to filter specific fields against a sequence.
-
-    The ``Role`` contains two things: a set of names and a function.
-    The function describes how to filter, taking a field name as input and then
-    returning ``True`` or ``False`` to indicate that field should or should not
-    be skipped.
-
-    A ``Role`` can be operated on as a ``Set`` object representing the fields
-    it has an opinion on.  When Roles are combined with other roles, only the
-    filtering behavior of the first role is used.
-    """
-
-    def __init__(self, function, fields):
-        self.function = function
-        self.fields = set(fields)
-
-    def _from_iterable(self, iterable):
-        return Role(self.function, iterable)
-
-    def __contains__(self, value):
-        return value in self.fields
-
-    def __iter__(self):
-        return iter(self.fields)
-
-    def __len__(self):
-        return len(self.fields)
-
-    def __eq__(self, other):
-        return (self.function.__name__ == other.function.__name__ and
-                self.fields == other.fields)
-
-    def __str__(self):
-        return '%s(%s)' % (self.function.__name__,
-                           ', '.join("'%s'" % f for f in self.fields))
-
-    def __repr__(self):
-        return '<Role %s>' % str(self)
-
-    # edit role fields
-    def __add__(self, other):
-        fields = self.fields.union(other)
-        return self._from_iterable(fields)
-
-    def __sub__(self, other):
-        fields = self.fields.difference(other)
-        return self._from_iterable(fields)
-
-    # apply role to field
-    def __call__(self, name, value):
-        return self.function(name, value, self.fields)
-
-    # static filter functions
-    @staticmethod
-    def wholelist(name, value, seq):
-        """
-        Accepts a field name, value, and a field list.  This function
-        implements acceptance of all fields by never requesting a field be
-        skipped, thus returns False for all input.
-
-        :param name:
-            The field name to inspect.
-        :param value:
-            The field's value.
-        :param seq:
-            The list of fields associated with the ``Role``.
-        """
-        return False
-
-    @staticmethod
-    def whitelist(name, value, seq):
-        """
-        Implements the behavior of a whitelist by requesting a field be skipped
-        whenever its name is not in the list of fields.
-
-        :param name:
-            The field name to inspect.
-        :param value:
-            The field's value.
-        :param seq:
-            The list of fields associated with the ``Role``.
-        """
-
-        if seq is not None and len(seq) > 0:
-            return name not in seq
-        return True
-
-    @staticmethod
-    def blacklist(name, value, seq):
-        """
-        Implements the behavior of a blacklist by requesting a field be skipped
-        whenever its name is found in the list of fields.
-
-        :param k:
-            The field name to inspect.
-        :param v:
-            The field's value.
-        :param seq:
-            The list of fields associated with the ``Role``.
-        """
-        if seq is not None and len(seq) > 0:
-            return name in seq
-        return False
-
 
 def wholelist(*field_list):
     """
@@ -431,7 +324,6 @@ def blacklist(*field_list):
     return Role(Role.blacklist, field_list)
 
 
-
 ###
 # Field converter interface
 ###
@@ -458,7 +350,6 @@ class BasicConverter(Converter):
         return self.func(*args)
 
 
-
 ###
 # Standard export converters
 ###
@@ -472,7 +363,6 @@ def to_native_converter(field, value, context):
 @BasicConverter
 def to_primitive_converter(field, value, context):
     return field.export(value, PRIMITIVE, context)
-
 
 
 ###
@@ -494,7 +384,6 @@ def validation_converter(field, value, context):
     if value is None or value is Undefined:
         return value
     return field.validate(value, context)
-
 
 
 ###
@@ -525,7 +414,6 @@ def get_export_context(field_converter=to_native_converter, **options):
     return Context(**export_options)
 
 
-
 ###
 # Import and export functions
 ###
@@ -543,6 +431,4 @@ def to_primitive(cls, instance_or_dict, **kwargs):
     return export_loop(cls, instance_or_dict, to_primitive_converter, **kwargs)
 
 
-
 __all__ = module_exports(__name__)
-
