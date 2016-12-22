@@ -23,21 +23,24 @@ except ImportError:
 # Transform loops
 ###
 
-def import_loop(cls, mutable, raw_data=None, field_converter=None, trusted_data=None,
+def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_data=None,
                 mapping=None, partial=False, strict=False, init_values=False,
                 apply_defaults=False, convert=True, validate=False, new=False,
                 oo=False, recursive=False, app_data=None, context=None):
     """
     The import loop is designed to take untrusted data and convert it into the
-    native types, as described in ``cls``.  It does this by calling
+    native types, as described in ``schema``.  It does this by calling
     ``field_converter`` on every field.
 
     Errors are aggregated and returned by throwing a ``ModelConversionError``.
 
-    :param cls:
-        The class for the model.
-    :param instance_or_dict:
-        A dict of data to be converted into types according to ``cls``.
+    :param schema:
+        The Schema to use as source for validation.
+    :param mutable:
+        A mapping or instance that can be changed during validation by Schema
+        functions.
+    :param raw_data:
+        A mapping to be converted into types according to ``schema``.
     :param field_converter:
         This function is applied to every field found in ``instance_or_dict``.
     :param trusted_data:
@@ -85,7 +88,7 @@ def import_loop(cls, mutable, raw_data=None, field_converter=None, trusted_data=
             'app_data': app_data if app_data is not None else {}
         })
 
-    raw_data = context.field_converter.pre(cls, raw_data, context)
+    raw_data = context.field_converter.pre(schema, raw_data, context)
 
     _field_converter = context.field_converter
     _model_mapping = context.mapping.get('model_mapping')
@@ -93,12 +96,12 @@ def import_loop(cls, mutable, raw_data=None, field_converter=None, trusted_data=
     data = dict(context.trusted_data) if context.trusted_data else {}
     errors = {}
 
-    if context.validate:
-        _mutate(cls, mutable, raw_data)
+    if got_data and context.validate:
+        _mutate(schema, mutable, raw_data, context)
 
     if got_data:
         # Determine all acceptable field input names
-        all_fields = cls._valid_input_keys
+        all_fields = schema._valid_input_keys
         if context.mapping:
             mapped_keys = (set(itertools.chain(*(
                           listify(input_keys) for target_key, input_keys in context.mapping.items()
@@ -115,7 +118,7 @@ def import_loop(cls, mutable, raw_data=None, field_converter=None, trusted_data=
     if not context.validate:
         # optimization: convert without validate doesn't require to touch setters
         atoms_filter = atom_filter.not_setter
-    for field_name, field, value in atoms(cls, raw_data, filter=atoms_filter):
+    for field_name, field, value in atoms(schema, raw_data, filter=atoms_filter):
         serialized_field_name = field.serialized_name or field_name
 
         if got_data and value is Undefined:
@@ -159,18 +162,18 @@ def import_loop(cls, mutable, raw_data=None, field_converter=None, trusted_data=
         data[field_name] = value
 
     if not context.validate:
-        for field_name, field, value in atoms(cls, raw_data, filter=atom_filter.has_setter):
+        for field_name, field, value in atoms(schema, raw_data, filter=atom_filter.has_setter):
             data[field_name] = value
 
     if errors:
         raise DataError(errors, data)
 
-    data = context.field_converter.post(cls, data, context)
+    data = context.field_converter.post(schema, data, context)
 
     return data
 
 
-def _mutate(schema, mutable, raw_data):
+def _mutate(schema, mutable, raw_data, context):
     """
     Mutates the converted data before validation. Allows Schema fields
     to modify/create data values.
@@ -179,6 +182,7 @@ def _mutate(schema, mutable, raw_data):
         if value is Undefined:
             continue
         try:
+            value = context.field_converter(field, value, context)
             field.__set__(mutable, value)
         except AttributeError:
             # TODO: aggregate serializable errors into errors dict
@@ -186,18 +190,18 @@ def _mutate(schema, mutable, raw_data):
     raw_data.update(mutable)
 
 
-def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_error_on_role=True,
+def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise_error_on_role=True,
                 export_level=None, app_data=None, context=None):
     """
     The export_loop function is intended to be a general loop definition that
     can be used for any form of data shaping, such as application of roles or
     how a field is transformed.
 
-    :param cls:
-        The model definition.
+    :param schema:
+        The Schema to use as source for validation.
     :param instance_or_dict:
-        The structure where fields from cls are mapped to values. The only
-        expectionation for this structure is that it implements a ``dict``
+        The structure where fields from schema are mapped to values. The only
+        expectation for this structure is that it implements a ``dict``
         interface.
     :param field_converter:
         This function is applied to every field found in ``instance_or_dict``.
@@ -230,24 +234,24 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
             'app_data': app_data if app_data is not None else {}
         })
 
-    instance_or_dict = context.field_converter.pre(cls, instance_or_dict, context)
+    instance_or_dict = context.field_converter.pre(schema, instance_or_dict, context)
 
-    if cls._options.export_order:
+    if schema._options.export_order:
         data = OrderedDict()
     else:
         data = {}
 
-    filter_func = cls._options.roles.get(context.role)
+    filter_func = schema._options.roles.get(context.role)
     if filter_func is None:
         if context.role and context.raise_error_on_role:
             error_msg = '%s Model has no role "%s"'
-            raise ValueError(error_msg % (cls.__name__, context.role))
+            raise ValueError(error_msg % (schema.__name__, context.role))
         else:
-            filter_func = cls._options.roles.get("default")
+            filter_func = schema._options.roles.get("default")
 
     _field_converter = context.field_converter
 
-    for field_name, field, value in atoms(cls, instance_or_dict):
+    for field_name, field, value in atoms(schema, instance_or_dict):
         serialized_name = field.serialized_name or field_name
 
         if filter_func is not None and filter_func(field_name, value):
@@ -276,7 +280,7 @@ def export_loop(cls, instance_or_dict, field_converter=None, role=None, raise_er
 
         data[serialized_name] = value
 
-    data = context.field_converter.post(cls, data, context)
+    data = context.field_converter.post(schema, data, context)
 
     return data
 
