@@ -10,7 +10,7 @@ from schematics.exceptions import DataError
 
 def test_reason_why_we_must_bind_fields():
     class Person(Model):
-        name = StringType(required=True)
+        name = StringType()
 
     p1 = Person()
     p2 = Person()
@@ -23,8 +23,7 @@ def test_reason_why_we_must_bind_fields():
 
     p1.name = "Jóhann"
     p1.validate()
-    with pytest.raises(DataError):
-        p2.validate()
+    p2.validate()
 
     assert p1 != p2
     assert id(p1) != id(p2)

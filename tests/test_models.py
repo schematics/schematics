@@ -184,6 +184,7 @@ def test_validation_uses_internal_state():
 
 def test_validation_fails_if_internal_state_is_invalid():
     class User(Model):
+        status = StringType()
         name = StringType(required=True)
         age = IntType(required=True)
 
@@ -196,8 +197,9 @@ def test_validation_fails_if_internal_state_is_invalid():
         "age": ["This field is required."],
     }
 
-    assert u.name is None
-    assert u.age is None
+    assert u.status is None
+    with pytest.raises(UndefinedValueError):
+        u.name == u.age
 
 
 def test_returns_nice_conversion_errors():
