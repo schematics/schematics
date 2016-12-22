@@ -97,7 +97,7 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
     errors = {}
 
     if got_data and context.validate:
-        _mutate(schema, mutable, raw_data, context)
+        errors = _mutate(schema, mutable, raw_data, context)
 
     if got_data:
         # Determine all acceptable field input names
@@ -178,16 +178,21 @@ def _mutate(schema, mutable, raw_data, context):
     Mutates the converted data before validation. Allows Schema fields
     to modify/create data values.
     """
+    errors = {}
     for field_name, field, value in atoms(schema, raw_data, filter=atom_filter.has_setter):
         if value is Undefined:
             continue
         try:
             value = context.field_converter(field, value, context)
             field.__set__(mutable, value)
+        except (FieldError, CompoundError) as exc:
+            serialized_field_name = field.serialized_name or field_name
+            errors[serialized_field_name] = exc
+            continue
         except AttributeError:
-            # TODO: aggregate serializable errors into errors dict
             pass
     raw_data.update(mutable)
+    return errors
 
 
 def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise_error_on_role=True,
