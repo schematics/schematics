@@ -31,7 +31,7 @@ def atoms(schema, mapping, keys=Atom._fields, filter=None):
     :param filter:
         Function to filter out atoms from the iteration.
     """
-    atom_dict = Atom()._asdict()
+    atom_dict = dict.fromkeys(Atom._fields)
     keys_set = set(keys)
     if not keys_set.issubset(atom_dict):
         raise TypeError('invalid key specified')
