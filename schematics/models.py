@@ -291,8 +291,14 @@ class Model(object):
         return to_primitive(self._schema, self, role=role, app_data=app_data, **kwargs)
 
     def serialize(self, *args, **kwargs):
-        self.validate()
-        return self.to_primitive(*args, **kwargs)
+        raw_data = self._data.raw
+        try:
+            self.validate(apply_defaults=True)
+        except DataError:
+            pass
+        data = self.to_primitive(*args, **kwargs)
+        self._data.raw = raw_data
+        return data
 
     def atoms(self):
         """
