@@ -153,6 +153,10 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
                 value = _field_converter(field, value, field_context)
             except (FieldError, CompoundError) as exc:
                 errors[serialized_field_name] = exc
+                if context.apply_defaults:
+                    value = field.default
+                    if value is not Undefined:
+                        data[field_name] = value
                 if isinstance(exc, DataError):
                     data[field_name] = exc.partial_data
                 continue
