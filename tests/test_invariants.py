@@ -6,10 +6,9 @@ from schematics.exceptions import DataError, ValidationError
 from schematics.models import Model
 
 
-def test_dont_serialize_invalid_data():
+def test_dont_serialize_untrusted_data():
     """
-    Serialization must always contain just the subset of valid
-    data from the model.
+    Serialization MUST ONLY contain the subset of validated data.
     """
     class Player(Model):
         code = StringType(max_length=4, default=None, serialize_when_none=True)
@@ -23,9 +22,7 @@ def test_dont_serialize_invalid_data():
 
 def test_dont_overwrite_with_invalid_data():
     """
-    Model-level validators are black-boxes and we should not assume
-    that we can set the instance data at any time.
-
+    Model-level validators MAY deny data from being set.
     """
     class Player(Model):
         id = IntType()
@@ -45,9 +42,10 @@ def test_dont_overwrite_with_invalid_data():
     assert p1.name == 'Douglas'
 
 
-def test_model_state_after_multiple_validation():
+def test_keep_valid_data_after_multiple_validation():
     """
-    Validation must maintain a sane state after multiple operations.
+    Validation MUST maintain a sane state after multiple operations. Valid
+    data MUST NEVER be lost or overwritten.
     """
     class Player(Model):
         id = IntType()
@@ -71,15 +69,16 @@ def test_model_state_after_multiple_validation():
 
 
 def test_dont_forget_required_fields_after_multiple_validation():
-        """
-        Validation should not forget about required fields, even when invalid
-        data is cleared from input, since it doesn't rely on actual input.
-        """
-        class Player(Model):
-            code = StringType(required=True)
+    """
+    Validation MUST NOT forget about required fields when
+    clearing untrusted data. Model init data also MUST NOT influence
+    the requirement checks.
+    """
+    class Player(Model):
+        code = StringType(required=True)
 
-        p1 = Player()
-        with pytest.raises(DataError):
-            p1.validate()
-        with pytest.raises(DataError):
-            p1.validate()
+    p1 = Player()
+    with pytest.raises(DataError):
+        p1.validate()
+    with pytest.raises(DataError):
+        p1.validate()
