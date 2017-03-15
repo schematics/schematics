@@ -23,16 +23,19 @@ if PY2:
     from itertools import imap as map
     from itertools import izip as zip
     iteritems = operator.methodcaller('iteritems')
+    itervalues = operator.methodcaller('itervalues')
 else:
     string_type = str
     iteritems = operator.methodcaller('items')
+    itervalues = operator.methodcaller('values')
 
 
 def metaclass(metaclass):
     def make_class(cls):
         attrs = cls.__dict__.copy()
-        del attrs['__dict__']
-        del attrs['__weakref__']
+        if attrs.get('__dict__'):
+            del attrs['__dict__']
+            del attrs['__weakref__']
         return metaclass(cls.__name__, cls.__bases__, attrs)
     return make_class
 

@@ -530,6 +530,65 @@ def test_serialize_print_none_always_gets_you_something():
     assert d == {}
 
 
+def test_serializable_setter():
+    class Location(Model):
+        country_code = StringType()
+
+        @serializable
+        def country_name(self):
+            return "United States" if self.country_code == "US" else "Unknown"
+
+        @country_name.setter
+        def country_name(self, value):
+            self.country_code = {"United States": "US"}.get(value)
+
+    location = Location()
+    location.country_name = "United States"
+    assert location.country_code == "US"
+
+    d = location.serialize()
+    assert d == {"country_code": "US", "country_name": "United States"}
+
+
+def test_serializable_setter_override():
+    class Player(Model):
+        _id = IntType()
+
+        @serializable(IntType())
+        def id(self):
+            return self._id
+
+        @id.setter
+        def id(self, value):
+            self._id = value
+
+    p = Player()
+    p.id = "1"
+    p.validate()
+
+    assert type(1) == type(p.id)
+    assert 1 == p.id
+
+
+def test_serializable_setter_init():
+    class Location(Model):
+        country_code = StringType()
+
+        @serializable
+        def country_name(self):
+            return "United States" if self.country_code == "US" else "Unknown"
+
+        @country_name.setter
+        def country_name(self, value):
+            self.country_code = {"United States": "US"}.get(value)
+
+    location = Location({"country_name": "United States"}, validate=True)
+    assert location.country_code == "US"
+
+    d = location.serialize()
+    assert d == {"country_code": "US", "country_name": "United States"}
+
+
 def test_roles_work_with_subclassing():
     class Address(Model):
         private_key = StringType()

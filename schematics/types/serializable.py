@@ -9,7 +9,7 @@ from types import FunctionType
 from ..common import *
 from ..exceptions import *
 from ..undefined import Undefined
-from ..util import setdefault
+from ..transforms import get_import_context
 
 from .base import BaseType, TypeMeta
 
@@ -56,16 +56,21 @@ def serializable(arg=None, **kwargs):
         serialized_type = serialized_type(**kwargs)
 
     if decorator:
-        return Serializable(func, serialized_type)
+        return Serializable(type=serialized_type, fget=func)
     else:
         return partial(Serializable, type=serialized_type)
 
 
+def calculated(type, fget, fset=None):
+    return Serializable(type=type, fget=fget, fset=fset)
+
+
 class Serializable(object):
 
-    def __init__(self, func, type):
-        self.func = func
+    def __init__(self, fget, type, fset=None):
         self.type = type
+        self.fget = fget
+        self.fset = fset
 
     def __getattr__(self, name):
         return getattr(self.type, name)
@@ -74,14 +79,33 @@ class Serializable(object):
         if instance is None:
             return self
         else:
-            value = self.func(instance)
+            value = self.fget(instance)
             if value is Undefined:
                 raise UndefinedValueError(instance, self.name)
             else:
                 return value
 
+    def __set__(self, instance, value):
+        if self.fset is None:
+            raise AttributeError("can't set attribute %s" % self.name)
+        value = self.type.pre_setattr(value)
+        self.fset(instance, value)
+
+    def setter(self, fset):
+        self.fset = fset
+        return self
+
+    def _repr_info(self):
+        return self.type.__class__.__name__
+
     def __deepcopy__(self, memo):
-        return self.__class__(self.func, copy.deepcopy(self.type))
+        return self.__class__(self.fget, type=copy.deepcopy(self.type), fset=self.fset)
+
+    def __repr__(self):
+        type_ = "%s(%s) instance" % (self.__class__.__name__, self._repr_info() or '')
+        model = " on %s" % self.owner_model.__name__ if self.owner_model else ''
+        field = " as '%s'" % self.name if self.name else ''
+        return "<%s>" % (type_ + model + field)
 
 
 __all__ = module_exports(__name__)

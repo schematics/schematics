@@ -2,27 +2,30 @@
 
 from __future__ import unicode_literals, absolute_import
 
-import functools
 import inspect
+import functools
 
 from .common import * # pylint: disable=redefined-builtin
 from .datastructures import Context
 from .exceptions import FieldError, DataError
 from .transforms import import_loop, validation_converter
 from .undefined import Undefined
+from .iteration import atoms, atom_filter
 
 
-def validate(cls, instance_or_dict, trusted_data=None, partial=False, strict=False,
-             convert=True, context=None, **kwargs):
+def validate(schema, mutable, raw_data=None, trusted_data=None,
+             partial=False, strict=False, convert=True, context=None, **kwargs):
     """
     Validate some untrusted data using a model. Trusted data can be passed in
     the `trusted_data` parameter.
 
-    :param cls:
-        The model class to use as source for validation. If given an instance,
-        will also run instance-level validators on the data.
-    :param instance_or_dict:
-        A ``dict`` or ``dict``-like structure for incoming data.
+    :param schema:
+        The Schema to use as source for validation.
+    :param mutable:
+        A mapping or instance that can be changed during validation by Schema
+        functions.
+    :param raw_data:
+        A mapping or instance containing new data to be validated.
     :param partial:
         Allow partial data to validate; useful for PATCH requests.
         Essentially drops the ``required=True`` arguments from field
@@ -42,17 +45,21 @@ def validate(cls, instance_or_dict, trusted_data=None, partial=False, strict=Fal
         If errors are found, they are raised as a ValidationError with a list
         of errors attached.
     """
-    context = context or get_validation_context(partial=partial, strict=strict, convert=convert)
+    if raw_data is None:
+        raw_data = mutable
+
+    context = context or get_validation_context(partial=partial, strict=strict,
+        convert=convert)
 
     errors = {}
     try:
-        data = import_loop(cls, instance_or_dict, trusted_data=trusted_data,
-                           context=context, **kwargs)
+        data = import_loop(schema, mutable, raw_data, trusted_data=trusted_data,
+            context=context, **kwargs)
     except DataError as exc:
         errors = exc.messages
         data = exc.partial_data
 
-    errors.update(_validate_model(cls, data, context))
+    errors.update(_validate_model(schema, mutable, data, context))
 
     if errors:
         raise DataError(errors, data)
@@ -60,31 +67,31 @@ def validate(cls, instance_or_dict, trusted_data=None, partial=False, strict=Fal
     return data
 
 
-def _validate_model(cls, data, context):
+def _validate_model(schema, mutable, data, context):
     """
     Validate data using model level methods.
 
-    :param cls:
-        The Model class to validate ``data`` against.
-
+    :param schema:
+        The Schema to validate ``data`` against.
+    :param mutable:
+        A mapping or instance that will be passed to the validator containing
+        the original data and that can be mutated.
     :param data:
         A dict with data to validate. Invalid items are removed from it.
-
     :returns:
         Errors of the fields that did not pass validation.
     """
     errors = {}
     invalid_fields = []
-    for field_name, field in iteritems(cls._fields):
-        if field_name in cls._validator_functions and field_name in data:
-            value = data[field_name]
-            try:
-                cls._validator_functions[field_name](cls, data, value, context)
-            except FieldError as exc:
-                field = cls._fields[field_name]
-                serialized_field_name = field.serialized_name or field_name
-                errors[serialized_field_name] = exc.messages
-                invalid_fields.append(field_name)
+
+    has_validator = lambda atom: atom.name in schema._validator_functions
+    for field_name, field, value in atoms(schema, data, filter=has_validator):
+        try:
+            schema._validator_functions[field_name](mutable, data, value, context)
+        except FieldError as exc:
+            serialized_field_name = field.serialized_name or field_name
+            errors[serialized_field_name] = exc.messages
+            invalid_fields.append(field_name)
 
     for field_name in invalid_fields:
         data.pop(field_name)

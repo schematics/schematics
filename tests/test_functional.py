@@ -67,15 +67,13 @@ def test_validate_with_instance_level_validators():
         id = IntType()
 
         def validate_id(self, data, value, context):
-            if p1._initial['id'] != value:
-                p1._data['id'] = p1._initial['id']
+            if self.id:
                 raise ValidationError('Cannot change id')
 
-    p1 = Player({'id': 4})
-    p1.id = 3
+    p1 = Player(trusted_data={'id': 4})
 
     try:
-        validate(Player, p1)
+        validate(Player, p1, {'id': 3})
     except DataError as e:
         assert 'id' in e.messages
         assert 'Cannot change id' in e.messages['id']
