@@ -236,3 +236,22 @@ def test_mock_object_with_model_type():
         age = IntType(required=True)
 
     assert isinstance(ListType(ModelType(User), required=True).mock()[-1], User)
+
+
+def test_issue_453_list_model_field_recursive_import():
+    class User(Model):
+        name = StringType()
+
+    class Card(Model):
+        id = IntType(default=1)
+        users = ListType(ModelType(User), min_size=1, required=True)
+
+    card = Card()
+    card.users = [
+        User({'name': 'foo'}),
+        User({'name': 'bar'}),
+        User({'name': 'baz'}),
+    ]
+    card.import_data({'id': '2', 'users': [User({'name': 'xyz'})]},
+        recursive=True)
+    assert card.serialize() == {'id': 2, 'users': [{'name': 'xyz'}]}

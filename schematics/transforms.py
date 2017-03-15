@@ -140,6 +140,8 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
             if field.is_compound:
                 if context.trusted_data and context.recursive:
                     td = context.trusted_data.get(field_name)
+                    if not all(hasattr(td, attr) for attr in ('keys', '__getitem__')):
+                        td = {field_name: td}
                 else:
                     td = {}
                 if _model_mapping:
