@@ -3,11 +3,21 @@ from .compat import iteritems
 from .undefined import Undefined
 from collections import namedtuple
 
+try:
+    # optional type checking
+    import typing
+    if typing.TYPE_CHECKING:
+        from typing import Mapping, Tuple, Callable, Optional, Any, Iterable
+        from .schema import Schema
+except ImportError:
+    pass
+
 Atom = namedtuple('Atom', ('name', 'field', 'value'))
 Atom.__new__.__defaults__ = (None,) * len(Atom._fields)
 
 
 def atoms(schema, mapping, keys=Atom._fields, filter=None):
+    # type: (Schema, Mapping, Tuple[str, str, str], Optional[Callable[[Atom], bool]]) -> Iterable[Atom]
     """
     Iterator for the atomic components of a model definition and relevant
     data that creates a 3-tuple of the field's name, its type instance and
