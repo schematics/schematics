@@ -16,6 +16,7 @@ def atoms(schema, mapping, keys=Atom._fields, filter=None):
     :type schema: schematics.schema.Schema
     :param schema:
         The Schema definition.
+    :type mapping: Mapping
     :param mapping:
         The structure where fields from schema are mapped to values. The only
         expectation for this structure is that it implements a ``Mapping``
@@ -27,9 +28,11 @@ def atoms(schema, mapping, keys=Atom._fields, filter=None):
             `field`: the field descriptor object
             `value`: the current value set on the field
         Specifying invalid keys will raise an exception.
-    :type filter: Callable[[Atom], bool]
+    :type filter: Optional[Callable[[Atom], bool]]
     :param filter:
         Function to filter out atoms from the iteration.
+
+    :rtype: Iterable[Atom]
     """
     atom_dict = dict.fromkeys(Atom._fields)
     keys_set = set(keys)
