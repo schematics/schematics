@@ -406,7 +406,8 @@ class StringType(BaseType):
 
 class NumberType(BaseType):
 
-    """A number field.
+    """A generic number field.
+    Converts to and validates against `number_type` parameter.
     """
 
     MESSAGES = {
