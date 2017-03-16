@@ -27,7 +27,7 @@ of the stable release. To do this, add the ``--pre`` option when installing via 
 About
 =====
 
-**Project documentation:** http://schematics.readthedocs.org/en/latest/
+**Project documentation:** https://schematics.readthedocs.io/en/latest/
 
 Schematics is a Python library to combine types into structures, validate them,
 and transform the shapes of your data based on simple descriptions.
@@ -42,12 +42,12 @@ may not make sense.
 
 Some common use cases:
 
-+ Design and document specific `data structures <https://schematics.readthedocs.org/en/latest/usage/models.html>`_
-+ `Convert structures <https://schematics.readthedocs.org/en/latest/usage/exporting.html#converting-data>`_ to and from different formats such as JSON or MsgPack
-+ `Validate <https://schematics.readthedocs.org/en/latest/usage/validation.html>`_ API inputs
-+ `Remove fields based on access rights <https://schematics.readthedocs.org/en/latest/usage/exporting.html>`_ of some data's recipient
++ Design and document specific `data structures <https://schematics.readthedocs.io/en/latest/usage/models.html>`_
++ `Convert structures <https://schematics.readthedocs.io/en/latest/usage/exporting.html#converting-data>`_ to and from different formats such as JSON or MsgPack
++ `Validate <https://schematics.readthedocs.io/en/latest/usage/validation.html>`_ API inputs
++ `Remove fields based on access rights <https://schematics.readthedocs.io/en/latest/usage/exporting.html>`_ of some data's recipient
 + Define message formats for communications protocols, like an RPC
-+ Custom `persistence layers <https://schematics.readthedocs.org/en/latest/usage/models.html#model-configuration>`_
++ Custom `persistence layers <https://schematics.readthedocs.io/en/latest/usage/models.html#model-configuration>`_
 
 
 Example
