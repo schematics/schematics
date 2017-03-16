@@ -11,8 +11,10 @@ import random
 import re
 import string
 import uuid
+from collections import Iterable
 
 from ..common import * # pylint: disable=redefined-builtin
+from ..compat import string_type
 from ..datastructures import OrderedDict
 from ..exceptions import *
 from ..undefined import Undefined
@@ -139,11 +141,11 @@ class BaseType(object):
         resulting dict with instance level `messages` and assign to
         `self.messages`.
     :param metadata:
-        Dictionary for storing custom metadata associated with the field.  
-        To encourage compatibility with external tools, we suggest these keys 
+        Dictionary for storing custom metadata associated with the field.
+        To encourage compatibility with external tools, we suggest these keys
         for common metadata:
         - *label* : Brief human-readable label
-        - *description* : Explanation of the purpose of the field. Used for 
+        - *description* : Explanation of the purpose of the field. Used for
           help, tooltips, documentation, etc.
     """
 
@@ -166,8 +168,8 @@ class BaseType(object):
         self.required = required
         self._default = default
         self.serialized_name = serialized_name
-        if choices and not isinstance(choices, (list, tuple)):
-            raise TypeError('"choices" must be a list or tuple')
+        if choices and (isinstance(choices, string_type) or not isinstance(choices, Iterable)):
+            raise TypeError('"choices" must be a non-string Iterable')
         self.choices = choices
         self.deserialize_from = listify(deserialize_from)
 
