@@ -34,17 +34,13 @@ def atoms(schema, mapping, keys=Atom._fields, filter=None):
 
     :rtype: Iterable[Atom]
     """
-    atom_dict = dict.fromkeys(Atom._fields)
-    keys_set = set(keys)
-    if not keys_set.issubset(atom_dict):
+    if not set(keys).issubset(Atom._fields):
         raise TypeError('invalid key specified')
 
-    has_value = (mapping is not None) and ('value' in keys_set)
+    has_value = (mapping is not None) and ('value' in keys)
 
     for field_name, field in iteritems(schema.fields):
-        atom_dict['name'] = field_name
-        atom_dict['field'] = field
-        atom_dict['value'] = Undefined
+        value = Undefined
 
         if has_value:
             try:
@@ -53,9 +49,8 @@ def atoms(schema, mapping, keys=Atom._fields, filter=None):
                 value = mapping.get(field_name, Undefined)
             except Exception:
                 value = Undefined
-            atom_dict['value'] = value
 
-        atom_tuple = Atom(**dict((k, atom_dict.get(k)) for k in keys))
+        atom_tuple = Atom(name=field_name, field=field, value=value)
         if filter is None:
             yield atom_tuple
         elif filter(atom_tuple):
