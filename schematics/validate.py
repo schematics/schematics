@@ -56,7 +56,7 @@ def validate(schema, mutable, raw_data=None, trusted_data=None,
         data = import_loop(schema, mutable, raw_data, trusted_data=trusted_data,
             context=context, **kwargs)
     except DataError as exc:
-        errors = exc.messages
+        errors = exc.errors
         data = exc.partial_data
 
     errors.update(_validate_model(schema, mutable, data, context))
@@ -90,7 +90,7 @@ def _validate_model(schema, mutable, data, context):
             schema._validator_functions[field_name](mutable, data, value, context)
         except FieldError as exc:
             serialized_field_name = field.serialized_name or field_name
-            errors[serialized_field_name] = exc.messages
+            errors[serialized_field_name] = exc.errors
             invalid_fields.append(field_name)
 
     for field_name in invalid_fields:
@@ -126,4 +126,3 @@ def prepare_validator(func, argcount):
 
 
 __all__ = module_exports(__name__)
-

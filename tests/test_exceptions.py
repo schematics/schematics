@@ -86,7 +86,7 @@ def test_error_eq():
     assert ValidationError("A") != ValidationError("A", "B")
 
 
-def test_error_pop():
+def _test_error_pop():
     err = ValidationError("A", "B", "C")
     assert err.pop() == "C"
     assert err == ValidationError("A", "B")
@@ -117,3 +117,51 @@ def test_error_failures():
     with pytest.raises(TypeError):
         CompoundError(['hello'])
 
+
+def test_to_primitive():
+    error = BaseError('', errors={
+        'a': [ErrorMessage('a1'), ErrorMessage('a2')],
+        'b': {
+            'd': ErrorMessage('d_val'),
+            'e': ErrorMessage('e_val'),
+        },
+        'c': ErrorMessage('this is an error')
+    })
+    assert error.to_primitive() == {
+        'a': ['"a1"', '"a2"'],
+        'b': {
+            'd': '"d_val"',
+            'e': '"e_val"'
+        },
+        'c': '"this is an error"'
+    }
+
+
+def test_to_primitive_list():
+    error = BaseError(None, errors=[ErrorMessage('a1'), ErrorMessage('a2')])
+    assert error.to_primitive() == ['"a1"', '"a2"']
+
+
+def test_autopopulate_message_on_none():
+    errors = {
+        'a': [ErrorMessage('a1'), ErrorMessage('a2')],
+        'b': {
+            'd': ErrorMessage('d_val'),
+            'e': ErrorMessage('e_val'),
+        },
+        'c': ErrorMessage('this is an error')
+    }
+    e = BaseError(None, errors)
+    assert str(e) == str(BaseError._to_primitive(errors))
+
+
+@pytest.mark.parametrize("e", [
+    BaseError("", errors=["a", "b"]),
+    ConversionError(ErrorMessage("foo"), ErrorMessage("bar")),
+    CompoundError({"a": ValidationError(ErrorMessage("foo"))})
+])
+def test_exceptions_is_hashable(e):
+    """exceptions must be hashable, as the logging module expects this
+    for log.exception()
+    """
+    hash(e)
