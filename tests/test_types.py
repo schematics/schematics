@@ -299,7 +299,7 @@ def test_string_regex():
         StringType(regex='\d+').validate("a")
 
 
-def test_string_to_native():
+def test_string_to_native_and_to_primitive():
     field = StringType()
 
     with pytest.raises(ConversionError):
@@ -308,9 +308,16 @@ def test_string_to_native():
         field.to_native(b'\xE0\xA0') # invalid UTF-8 sequence
     with pytest.raises(ConversionError):
         field.to_native(True)
+    with pytest.raises(ConversionError):
+        field.to_primitive(3.14)
+    with pytest.raises(ConversionError):
+        field.to_primitive(b'\xE0\xA0') # invalid UTF-8 sequence
+    with pytest.raises(ConversionError):
+        field.to_primitive(True)
 
     if sys.version_info[0] == 2:
         strings = [
+            (None, None),
             (u'abcdefg',   u'abcdefg'),
             ( 'abcdefg',   u'abcdefg'),
             (u'abc éíçßµ', u'abc éíçßµ'),
@@ -319,6 +326,7 @@ def test_string_to_native():
         ]
     else:
         strings = [
+            (None, None),
             ( 'abcdefg',   'abcdefg'),
             (b'abcdefg',   'abcdefg'),
             ( 'abc éíçßµ', 'abc éíçßµ'),
@@ -329,7 +337,8 @@ def test_string_to_native():
     for input, expected in strings:
         res = field.to_native(input)
         assert res == expected
-        assert type(res) is str
+        assert type(res) is str or res is None
+        field.to_primitive(input) == field.to_native(input)
 
 
 def test_string_max_length_is_enforced():
