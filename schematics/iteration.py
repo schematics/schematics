@@ -50,7 +50,10 @@ def atoms(schema, mapping, keys=Atom._fields, filter=None):
             except Exception:
                 value = Undefined
 
-        atom_tuple = Atom(name=field_name, field=field, value=value)
+        atom_tuple = Atom(
+            name=field_name if 'name' in keys else None,
+            field=field if 'field' in keys else None,
+            value=value)
         if filter is None:
             yield atom_tuple
         elif filter(atom_tuple):
