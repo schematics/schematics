@@ -3,7 +3,7 @@ import pytest
 from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.types.compound import ModelType, ListType
-from schematics.exceptions import ValidationError
+from schematics.exceptions import ValidationError, ModelConversionError
 
 
 def test_simple_embedded_models():
@@ -168,3 +168,26 @@ def test_export_loop_with_subclassed_model():
 
     native = product.to_native()
     assert 'bucket_name' in native['asset']
+
+
+def test_conversion_error_recursive_overhead():
+    conversions = [0]
+
+    class Leaf(Model):
+        pass
+    next_model = Leaf
+    data = 'not a mapping'
+
+    for i in range(20):
+        class Recursive(Model):
+            x = ModelType(next_model, required=True)
+
+            def __init__(self, *args, **kwargs):
+                super(type(self), self).__init__(*args, **kwargs)
+                conversions[0] += 1
+                assert conversions[0] < 25
+        next_model = Recursive
+        data = {'x': data}
+
+    with pytest.raises(ModelConversionError):
+        next_model(data)
