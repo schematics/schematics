@@ -268,6 +268,8 @@ def test_conversion_with_validation(input, import_, two_pass, input_instance, in
                 m = M(input, init=init)
                 m.validate(partial=partial)
             else:
+                # variant = none
+                # partial = true
                 M(input, init=init, partial=partial, validate=True)
         else:
             input.validate(init_values=init, partial=partial)
@@ -296,7 +298,7 @@ def test_conversion_with_validation(input, import_, two_pass, input_instance, in
     assert list((k, type(v)) for k, v in sub_err_dict.items()) \
         == [(2, ValidationError), (3, ValidationError)]
     assert len(err_dict) == 1
-    ##  assert len(errors['modelfield']['modelfield']) == 2
+    assert len(errors['modelfield']['modelfield']) == 2 + (0 if partial else 1)
     assert len(errors['modelfield']) == 2
     assert len(errors) == 2
 

@@ -150,6 +150,11 @@ def test_frozen_dict():
     with pytest.raises(TypeError):
         frozen_dict["bar"] = "baz"
 
+    assert hash(frozen_dict) == hash(FrozenDict({"foo": "bar"}))
+    assert str(frozen_dict) == str({"foo": "bar"}) == repr(frozen_dict)
+    assert list(frozen_dict) == list({"foo": "bar"})
+    assert frozen_dict == {"foo": "bar"}
+
 
 def test_frozen_list():
     frozen_list = FrozenList([0, 1, 2])
@@ -161,3 +166,6 @@ def test_frozen_list():
 
     with pytest.raises(TypeError):
         frozen_list[1] = "baz"
+
+    assert frozen_list == [0, 1, 2]
+    assert frozen_list != [0, 1, 3]
