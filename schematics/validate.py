@@ -56,7 +56,7 @@ def validate(schema, mutable, raw_data=None, trusted_data=None,
         data = import_loop(schema, mutable, raw_data, trusted_data=trusted_data,
             context=context, **kwargs)
     except DataError as exc:
-        errors = exc.errors
+        errors = dict(exc.errors)
         data = exc.partial_data
 
     errors.update(_validate_model(schema, mutable, data, context))

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+import json
 
 from schematics.exceptions import *
 
@@ -61,14 +62,14 @@ def test_error_from_mixed_list():
 
 def test_error_repr():
 
-    assert str(ValidationError('foo')) == 'ValidationError("foo")'
+    assert str(ValidationError('foo')) == '["foo"]'
 
     e = ValidationError(
             ('foo', None),
             ('bar', 98),
             ('baz', [1, 2, 3]))
 
-    assert str(e) == 'ValidationError(["foo", ("bar", 98), ("baz", <\'list\' object>)])'
+    assert str(e) == '["foo", "bar: 98", "baz: [1, 2, 3]"]'
 
     e = ValidationError(u'é')
     assert str(e) == repr(e)
@@ -128,18 +129,18 @@ def test_to_primitive():
         'c': ErrorMessage('this is an error')
     })
     assert error.to_primitive() == {
-        'a': ['"a1"', '"a2"'],
+        'a': ['a1', 'a2'],
         'b': {
-            'd': '"d_val"',
-            'e': '"e_val"'
+            'd': 'd_val',
+            'e': 'e_val'
         },
-        'c': '"this is an error"'
+        'c': 'this is an error'
     }
 
 
 def test_to_primitive_list():
     error = BaseError(None, errors=[ErrorMessage('a1'), ErrorMessage('a2')])
-    assert error.to_primitive() == ['"a1"', '"a2"']
+    assert error.to_primitive() == ['a1', 'a2']
 
 
 def test_autopopulate_message_on_none():
@@ -152,7 +153,7 @@ def test_autopopulate_message_on_none():
         'c': ErrorMessage('this is an error')
     }
     e = BaseError(None, errors)
-    assert str(e) == str(BaseError._to_primitive(errors))
+    assert str(e) == json.dumps(BaseError._to_primitive(errors))
 
 
 @pytest.mark.parametrize("e", [
@@ -165,3 +166,14 @@ def test_exceptions_is_hashable(e):
     for log.exception()
     """
     hash(e)
+
+
+@pytest.mark.parametrize("inp,out", [
+    (ConversionError(ErrorMessage("foo")), ["foo"])
+])
+def test_clean_str_representation(inp, out):
+    """
+    the string representation should be human-readable.  json's format
+    provides a legible format for complex data types.
+    """
+    assert str(inp) == json.dumps(out)

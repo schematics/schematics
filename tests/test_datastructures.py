@@ -137,3 +137,27 @@ def test_context():
     c._setdefaults(FooContext(x=9, z=9))
     assert c.__dict__ == dict(x=1, y=2, z=9)
 
+
+def test_frozen_dict():
+    frozen_dict = FrozenDict({
+        "foo": "bar"
+    })
+    assert frozen_dict["foo"] == "bar"
+    assert len(frozen_dict) == 1
+    with pytest.raises(TypeError):
+        del frozen_dict["foo"]
+
+    with pytest.raises(TypeError):
+        frozen_dict["bar"] = "baz"
+
+
+def test_frozen_list():
+    frozen_list = FrozenList([0, 1, 2])
+    assert frozen_list[0] == 0
+    assert len(frozen_list) == 3
+
+    with pytest.raises(TypeError):
+        del frozen_list[0]
+
+    with pytest.raises(TypeError):
+        frozen_list[1] = "baz"

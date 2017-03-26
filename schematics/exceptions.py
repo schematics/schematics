@@ -3,10 +3,13 @@
 from __future__ import unicode_literals, absolute_import
 
 import copy
+import json
 
-from collections import Sequence
+from collections import Sequence, Mapping
 
 from .common import *
+from .compat import string_type
+from .datastructures import FrozenDict, FrozenList
 
 
 @str_compat
@@ -26,6 +29,7 @@ class BaseError(Exception):
         and therefore immutable. As a result, it is not possible to
         mutate BaseError's error list or dict after initialization.
         """
+        errors = self._freeze(errors)
         if message is None and errors is not None:
             message = str(self._to_primitive(errors))
         super(BaseError, self).__init__(message)
@@ -33,42 +37,63 @@ class BaseError(Exception):
 
     @property
     def errors(self):
-        return copy.deepcopy(self._errors)
+        return self._errors
 
     @property
     def messages(self):
         """ an alias for errors, provided for compatibility with V1. """
-        return self.errors
+        return self._errors
 
     def to_primitive(self):
         """
         converts the errors dict to a primitive representation of dicts,
         list and strings.
         """
-        return self._to_primitive(self._errors)
+        if not hasattr(self, "_primitive"):
+            self._primitive = self._to_primitive(self._errors)
+        return self._primitive
+
+    @staticmethod
+    def _freeze(obj):
+        """ freeze common data structures to something immutable. """
+        if isinstance(obj, dict):
+            return FrozenDict(obj)
+        elif isinstance(obj, list):
+            return FrozenList(obj)
+        else:
+            return obj
 
     @classmethod
     def _to_primitive(cls, obj):
         """ recursive to_primitive for basic data types. """
-        if isinstance(obj, list):
+        if isinstance(obj, string_type):
+            return obj
+        if isinstance(obj, Sequence):
             return [cls._to_primitive(e) for e in obj]
-        elif isinstance(obj, dict):
+        elif isinstance(obj, Mapping):
             return dict(
                 (k, cls._to_primitive(v)) for k, v in obj.items()
             )
         else:
             return str(obj)
 
+    def __repr__(self):
+        return json.dumps(self.to_primitive())
+
+    __str__ = __repr__
+
     def __hash__(self):
-        if not hasattr(self, "_hash"):
-            if isinstance(self._errors, list):
-                self._hash = hash(tuple(self._errors))
-            if isinstance(self._errors, dict):
-                dict_as_tuple = tuple([
-                    (k, self._errors[k]) for k in sorted(self._errors)
-                ])
-                self._hash = hash(dict_as_tuple)
-        return self._hash
+        return hash(self._errors)
+
+    def __eq__(self, other):
+        if type(self) is type(other):
+            return self._errors == other._errors
+        else:
+            return self._errors == other
+        return False
+
+    def __ne__(self, other):
+        return not (self == other)
 
 
 @str_compat
@@ -84,9 +109,9 @@ class ErrorMessage(object):
 
     def __str__(self):
         if self.info:
-            return '("%s", %s)' % (self.summary, self._info_as_str())
+            return '%s: %s' % (self.summary, self._info_as_str())
         else:
-            return '"%s"' % self.summary
+            return '%s' % self.summary
 
     def _info_as_str(self):
         if isinstance(self.info, int):
@@ -94,7 +119,7 @@ class ErrorMessage(object):
         elif isinstance(self.info, string_type):
             return '"%s"' % self.info
         else:
-            return "<'%s' object>" % self.info.__class__.__name__
+            return str(self.info)
 
     def __eq__(self, other):
         if isinstance(other, ErrorMessage):
@@ -103,6 +128,9 @@ class ErrorMessage(object):
             return self.summary == other
         else:
             return False
+
+    def __ne__(self, other):
+        return not (self == other)
 
     def __hash__(self):
         return hash((self.summary, self.type, self.info))
@@ -147,16 +175,6 @@ class FieldError(BaseError, Sequence):
 
         super(FieldError, self).__init__(None, errors=errors)
 
-    def __eq__(self, other):
-        if type(other) is type(self):
-            return other.errors == self.errors
-        elif isinstance(other, list):
-            return other == self.errors
-        return False
-
-    def __hash__(self):
-        return super(FieldError, self).__hash__()
-
     def __contains__(self, value):
         return value in self.errors
 
@@ -168,15 +186,6 @@ class FieldError(BaseError, Sequence):
 
     def __len__(self):
         return len(self.errors)
-
-    def __repr__(self):
-        if len(self.errors) == 1:
-            msg_repr = str(self.errors[0])
-        else:
-            msg_repr = '[' + str.join(', ', map(str, self.errors)) + ']'
-        return '%s(%s)' % (self.__class__.__name__, msg_repr)
-
-    __str__ = __repr__
 
 
 class ConversionError(FieldError, TypeError):

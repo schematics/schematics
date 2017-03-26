@@ -3,7 +3,7 @@
 
 from __future__ import unicode_literals, absolute_import
 
-from collections import MutableMapping, KeysView, ValuesView, ItemsView
+from collections import Mapping, MutableMapping, KeysView, ValuesView, ItemsView, Sequence
 from copy import deepcopy
 from operator import eq
 
@@ -443,6 +443,72 @@ except ImportError:
 
         def __repr__(self):
             return '{0.__class__.__name__}({1})'.format(self, self._map)
+
+
+class FrozenDict(Mapping):
+
+    def __init__(self, value):
+        self._value = dict(value)
+
+    def __getitem__(self, key):
+        return self._value[key]
+
+    def __iter__(self):
+        return iter(self._value)
+
+    def __len__(self):
+        return len(self._value)
+
+    def __hash__(self):
+        if not hasattr(self, "_hash"):
+            _hash = 0
+            for k, v in self._value.items():
+                _hash ^= hash(k)
+                _hash ^= hash(v)
+            self._hash = _hash
+        return self._hash
+
+    def __repr__(self):
+        return repr(self._value)
+
+    def __str__(self):
+        return str(self._value)
+
+
+class FrozenList(Sequence):
+
+    def __init__(self, value):
+        self._list = list(value)
+
+    def __getitem__(self, index):
+        return self._list[index]
+
+    def __len__(self):
+        return len(self._list)
+
+    def __hash__(self):
+        if not hasattr(self, "_hash"):
+            _hash = 0
+            for e in self._list:
+                _hash ^= hash(e)
+            self._hash = _hash
+        return self._hash
+
+    def __repr__(self):
+        return repr(self._list)
+
+    def __str__(self):
+        return str(self._list)
+
+    def __eq__(self, other):
+        if len(self) != len(other):
+            return False
+        for i in range(len(self)):
+            if self[i] != other[i]:
+                return False
+        return True
+
+
 
 
 __all__ = module_exports(__name__)
