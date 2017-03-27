@@ -101,11 +101,11 @@ def import_loop(cls, instance_or_dict, field_converter, context=None,
                 if field.required and not partial:
                     errors[serialized_field_name] = [field.messages['required']]
             else:
-                try:
+                if _func_has_mapping(field_converter):
                     mapping_by_model = mapping.get('model_mapping', {})
                     model_mapping = mapping_by_model.get(field_name, {})
                     raw_value = field_converter(field, raw_value, mapping=model_mapping)
-                except Exception:
+                else:
                     raw_value = field_converter(field, raw_value)
 
             data[field_name] = raw_value
@@ -410,9 +410,9 @@ def blacklist(*field_list):
 def convert(cls, instance_or_dict, context=None, partial=True, strict=False,
             mapping=None):
     def field_converter(field, value, mapping=None):
-        try:
+        if _func_has_mapping(field.to_native):
             return field.to_native(value, mapping=mapping)
-        except Exception:
+        else:
             return field.to_native(value)
 #   field_converter = lambda field, value: field.to_native(value)
     data = import_loop(cls, instance_or_dict, field_converter, context=context,
@@ -607,3 +607,13 @@ def flatten(cls, instance_or_dict, role=None, raise_error_on_role=True,
     flattened = flatten_to_dict(data, prefix=prefix, ignore_none=ignore_none)
 
     return flattened
+
+
+def _func_has_mapping(func):
+    """
+    Check if function has the mapping argument.
+
+    This is a fix for the issue of nested models retrying the call on conversion
+    errors (issue #470).
+    """
+    return 'mapping' in func.__code__.co_varnames
