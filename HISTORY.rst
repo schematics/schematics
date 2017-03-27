@@ -1,3 +1,7 @@
+1.1.2 / 2017-03-27
+==================
+* [Bug] (`#478 <https://github.com/schematics/schematics/pull/478>`_) Fix dangerous performance issue with ModelConversionError in nested models
+
 1.1.1 / 2015-11-03
 ==================
 * [Bug] (`befa202 <https://github.com/schematics/schematics/commit/befa202c3b3202aca89fb7ef985bdca06f9da37c>`_) Fix Unicode issue with DecimalType
