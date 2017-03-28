@@ -59,7 +59,7 @@ def py_native_string(source):
     return source
 
 
-def str_compat(class_):
+def str_compat(class_, with_repr=False):
     """
     On Python 2, patches the ``__str__`` and ``__repr__`` methods on the given class
     so that the class can be written for Python 3 and Unicode.
@@ -68,6 +68,8 @@ def str_compat(class_):
         if '__str__' in class_.__dict__ and '__unicode__' not in class_.__dict__:
             class_.__unicode__ = class_.__str__
             class_.__str__ = py_native_string(class_.__unicode__)
+    if with_repr:
+        repr_compat(class_)
     return class_
 
 

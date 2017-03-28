@@ -104,7 +104,7 @@ class ModelMeta(type):
                 attrs[key] = field
 
         klass = type.__new__(mcs, name, bases, attrs)
-        klass = str_compat(klass)
+        klass = str_compat(klass, with_repr=True)
 
         # Parse schema options
         options = mcs._read_options(name, bases, attrs, options_members)
