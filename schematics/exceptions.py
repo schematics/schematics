@@ -124,7 +124,11 @@ class ErrorMessage(object):
 
     def __eq__(self, other):
         if isinstance(other, ErrorMessage):
-            return self.__dict__ == other.__dict__
+            return (
+                self.summary == other.summary and
+                self.type == other.type and
+                self.info == other.info
+            )
         elif isinstance(other, string_type):
             return self.summary == other
         else:
