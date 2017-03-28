@@ -60,7 +60,7 @@ def test_error_from_mixed_list():
     assert [msg.info for msg in e.messages] == [99, None, 0, 1]
 
 
-def test_error_repr():
+def test_error_str():
 
     assert str(ValidationError('foo')) == '["foo"]'
 
@@ -71,8 +71,14 @@ def test_error_repr():
 
     assert str(e) == '["foo", "bar: 98", "baz: [1, 2, 3]"]'
 
+
+def test_error_repr():
+
+    e = BaseError({"foo": "bar"})
+    assert repr(e) == "<BaseError: {'foo': 'bar'}>"
+
     e = ValidationError(u'é')
-    assert str(e) == repr(e)
+    assert repr(e) == u'<ValidationError: [ErrorMessage(é)]>'
 
 
 def test_error_list_conversion():
@@ -85,12 +91,6 @@ def test_error_eq():
     assert ValidationError("A") != ConversionError("A")
     assert ValidationError("A", "B") == ValidationError("A", "B") == ["A", "B"]
     assert ValidationError("A") != ValidationError("A", "B")
-
-
-def _test_error_pop():
-    err = ValidationError("A", "B", "C")
-    assert err.pop() == "C"
-    assert err == ValidationError("A", "B")
 
 
 def test_error_message_object():
@@ -120,7 +120,7 @@ def test_error_failures():
 
 
 def test_to_primitive():
-    error = BaseError('', errors={
+    error = BaseError({
         'a': [ErrorMessage('a1'), ErrorMessage('a2')],
         'b': {
             'd': ErrorMessage('d_val'),
@@ -139,7 +139,7 @@ def test_to_primitive():
 
 
 def test_to_primitive_list():
-    error = BaseError(None, errors=[ErrorMessage('a1'), ErrorMessage('a2')])
+    error = BaseError([ErrorMessage('a1'), ErrorMessage('a2')])
     assert error.to_primitive() == ['a1', 'a2']
 
 
@@ -152,12 +152,12 @@ def test_autopopulate_message_on_none():
         },
         'c': ErrorMessage('this is an error')
     }
-    e = BaseError(None, errors)
+    e = BaseError(errors)
     assert str(e) == json.dumps(BaseError._to_primitive(errors))
 
 
 @pytest.mark.parametrize("e", [
-    BaseError("", errors=["a", "b"]),
+    BaseError(["a", "b"]),
     ConversionError(ErrorMessage("foo"), ErrorMessage("bar")),
     CompoundError({"a": ValidationError(ErrorMessage("foo"))})
 ])

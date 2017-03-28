@@ -2,7 +2,6 @@
 
 from __future__ import unicode_literals, absolute_import
 
-import copy
 import json
 
 from collections import Sequence, Mapping
@@ -15,7 +14,7 @@ from .datastructures import FrozenDict, FrozenList
 @str_compat
 class BaseError(Exception):
 
-    def __init__(self, message, errors=None, *args):
+    def __init__(self, errors):
         """
         The base class for all Schematics errors.
 
@@ -30,19 +29,16 @@ class BaseError(Exception):
         mutate BaseError's error list or dict after initialization.
         """
         errors = self._freeze(errors)
-        if message is None and errors is not None:
-            message = str(self._to_primitive(errors))
-        super(BaseError, self).__init__(message)
-        self._errors = errors
+        super(BaseError, self).__init__(errors)
 
     @property
     def errors(self):
-        return self._errors
+        return self.args[0]
 
     @property
     def messages(self):
         """ an alias for errors, provided for compatibility with V1. """
-        return self._errors
+        return self.errors
 
     def to_primitive(self):
         """
@@ -50,7 +46,7 @@ class BaseError(Exception):
         list and strings.
         """
         if not hasattr(self, "_primitive"):
-            self._primitive = self._to_primitive(self._errors)
+            self._primitive = self._to_primitive(self.errors)
         return self._primitive
 
     @staticmethod
@@ -77,19 +73,20 @@ class BaseError(Exception):
         else:
             return str(obj)
 
-    def __repr__(self):
+    def __str__(self):
         return json.dumps(self.to_primitive())
 
-    __str__ = __repr__
+    def __repr__(self):
+        return "<%s: %s>" % (self.__class__.__name__, repr(self.errors))
 
     def __hash__(self):
-        return hash(self._errors)
+        return hash(self.errors)
 
     def __eq__(self, other):
         if type(self) is type(other):
-            return self._errors == other._errors
+            return self.errors == other.errors
         else:
-            return self._errors == other
+            return self.errors == other
         return False
 
     def __ne__(self, other):
@@ -173,7 +170,7 @@ class FieldError(BaseError, Sequence):
         for error in errors:
             error.type = self.type or type(self)
 
-        super(FieldError, self).__init__(None, errors=errors)
+        super(FieldError, self).__init__(errors)
 
     def __contains__(self, value):
         return value in self.errors
@@ -215,7 +212,7 @@ class CompoundError(BaseError):
                 errors[key] = value.errors
             else:
                 errors[key] = value
-        super(CompoundError, self).__init__(None, errors)
+        super(CompoundError, self).__init__(errors)
 
 
 class DataError(CompoundError):
