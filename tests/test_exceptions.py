@@ -72,15 +72,6 @@ def test_error_str():
     assert str(e) == '["foo", "bar: 98", "baz: [1, 2, 3]"]'
 
 
-def test_error_repr():
-
-    e = BaseError({"foo": "bar"})
-    assert repr(e) == "<BaseError: {'foo': 'bar'}>"
-
-    e = ValidationError(u'é')
-    assert repr(e) == u'<ValidationError: [ErrorMessage(é)]>'
-
-
 def test_error_list_conversion():
     err = ValidationError("A", "B", "C")
     assert list(err) == err.messages
@@ -99,6 +90,17 @@ def test_error_message_object():
     assert ErrorMessage('foo') != 'bar'
     assert ErrorMessage('foo', 1) == ErrorMessage('foo', 1)
     assert ErrorMessage('foo', 1) != ErrorMessage('foo', 2)
+
+
+@pytest.mark.parametrize("error", [
+    ErrorMessage('foo', info='bar'),
+    BaseError([ErrorMessage('foo', info='bar')]),
+    BaseError({"foo": "bar"}),
+    ValidationError(u'é')
+])
+def test_repr(error):
+    print(repr(error))
+    assert error == eval(repr(error))
 
 
 def test_error_failures():

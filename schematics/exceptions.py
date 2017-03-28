@@ -77,7 +77,7 @@ class BaseError(Exception):
         return json.dumps(self.to_primitive())
 
     def __repr__(self):
-        return "<%s: %s>" % (self.__class__.__name__, repr(self.errors))
+        return "%s(%s)" % (self.__class__.__name__, repr(self.errors))
 
     def __hash__(self):
         return hash(self.errors)
@@ -102,7 +102,11 @@ class ErrorMessage(object):
         self.info = info
 
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, str(self))
+        return '%s(%s, %s)' % (
+            self.__class__.__name__,
+            repr(self.summary),
+            repr(self.info)
+        )
 
     def __str__(self):
         if self.info:
