@@ -95,16 +95,12 @@ def test_error_message_object():
 @pytest.mark.parametrize("error", [
     ErrorMessage('foo', info='bar'),
     BaseError([ErrorMessage('foo', info='bar')]),
-    BaseError({"foo": "bar"})
+    BaseError({"foo": "bar"}),
+    ErrorMessage(u'é'),
+    ValidationError(u'é')
 ])
-def test_repr(error):
-    print(repr(error))
+def test_exception_repr(error):
     assert error == eval(repr(error))
-
-
-def test_error_repr():
-    e = ValidationError(u'é')
-    assert repr(e) == u"ValidationError([ErrorMessage('é', None)])"
 
 
 def test_error_failures():

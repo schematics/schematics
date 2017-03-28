@@ -1,9 +1,9 @@
-
-from .compat import str_compat
+from .compat import str_compat, repr_compat
 
 import collections
 
 
+@repr_compat
 @str_compat
 class Role(collections.Set):
 

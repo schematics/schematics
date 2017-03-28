@@ -7,7 +7,7 @@ import json
 from collections import Sequence, Mapping
 
 from .common import *
-from .compat import string_type
+from .compat import string_type, str_compat
 from .datastructures import FrozenDict, FrozenList
 
 
@@ -102,7 +102,7 @@ class ErrorMessage(object):
         self.info = info
 
     def __repr__(self):
-        return '%s(%s, %s)' % (
+        return "%s(%s, %s)" % (
             self.__class__.__name__,
             repr(self.summary),
             repr(self.info)
@@ -141,7 +141,6 @@ class ErrorMessage(object):
         return hash((self.summary, self.type, self.info))
 
 
-@str_compat
 class FieldError(BaseError, Sequence):
 
     type = None
