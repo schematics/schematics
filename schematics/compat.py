@@ -68,7 +68,11 @@ def str_compat(class_):
         if '__str__' in class_.__dict__ and '__unicode__' not in class_.__dict__:
             class_.__unicode__ = class_.__str__
             class_.__str__ = py_native_string(class_.__unicode__)
+    return class_
+
+
+def repr_compat(class_):
+    if PY2:
         if '__repr__' in class_.__dict__:
             class_.__repr__ = py_native_string(class_.__repr__)
     return class_
-

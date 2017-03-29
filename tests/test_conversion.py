@@ -268,38 +268,38 @@ def test_conversion_with_validation(input, import_, two_pass, input_instance, in
                 m = M(input, init=init)
                 m.validate(partial=partial)
             else:
+                # variant = none
+                # partial = true
                 M(input, init=init, partial=partial, validate=True)
         else:
             input.validate(init_values=init, partial=partial)
 
     errors = excinfo.value.errors
 
-    err_list = errors.pop('listfield')
+    err_list = errors['listfield']
     assert type(err_list) is ValidationError
     assert len(err_list) == 1
 
-    err_list = errors['modelfield'].pop('listfield')
+    err_list = errors['modelfield']['listfield']
     assert type(err_list) is ValidationError
     assert len(err_list) == 2
 
-    err_list = errors['modelfield']['modelfield'].pop('intfield')
+    err_list = errors['modelfield']['modelfield']['intfield']
     assert len(err_list) == 1
 
     if not partial:
-        err_list = errors['modelfield']['modelfield'].pop('reqfield')
+        err_list = errors['modelfield']['modelfield']['reqfield']
         assert len(err_list) == 1
         if init_to_none:
             partial_data['modelfield']['modelfield'].pop('reqfield')
 
-    err_dict = errors['modelfield']['modelfield'].pop('matrixfield')
-    sub_err_dict = err_dict.pop(1)
+    err_dict = errors['modelfield']['modelfield']['matrixfield']
+    sub_err_dict = err_dict[1]
     assert list((k, type(v)) for k, v in sub_err_dict.items()) \
         == [(2, ValidationError), (3, ValidationError)]
-    assert err_dict == {}
-
-    assert errors['modelfield'].pop('modelfield') == {}
-    assert errors.pop('modelfield') == {}
-    assert errors == {}
+    assert len(err_dict) == 1
+    assert len(errors['modelfield']['modelfield']) == 2 + (0 if partial else 1)
+    assert len(errors['modelfield']) == 2
+    assert len(errors) == 2
 
     assert excinfo.value.partial_data == partial_data
-

@@ -2,9 +2,95 @@
 
 from __future__ import unicode_literals, absolute_import
 
-from collections import Sequence
+import json
+
+from collections import Sequence, Mapping
 
 from .common import *
+from .compat import string_type, str_compat
+from .datastructures import FrozenDict, FrozenList
+
+
+@str_compat
+class BaseError(Exception):
+
+    def __init__(self, errors):
+        """
+        The base class for all Schematics errors.
+
+        message should be a human-readable message,
+        while errors is a machine-readable list, or dictionary.
+
+        if None is passed as the message, and error is populated,
+        the primitive representation will be serialized.
+
+        the Python logging module expects exceptions to be hashable
+        and therefore immutable. As a result, it is not possible to
+        mutate BaseError's error list or dict after initialization.
+        """
+        errors = self._freeze(errors)
+        super(BaseError, self).__init__(errors)
+
+    @property
+    def errors(self):
+        return self.args[0]
+
+    @property
+    def messages(self):
+        """ an alias for errors, provided for compatibility with V1. """
+        return self.errors
+
+    def to_primitive(self):
+        """
+        converts the errors dict to a primitive representation of dicts,
+        list and strings.
+        """
+        if not hasattr(self, "_primitive"):
+            self._primitive = self._to_primitive(self.errors)
+        return self._primitive
+
+    @staticmethod
+    def _freeze(obj):
+        """ freeze common data structures to something immutable. """
+        if isinstance(obj, dict):
+            return FrozenDict(obj)
+        elif isinstance(obj, list):
+            return FrozenList(obj)
+        else:
+            return obj
+
+    @classmethod
+    def _to_primitive(cls, obj):
+        """ recursive to_primitive for basic data types. """
+        if isinstance(obj, string_type):
+            return obj
+        if isinstance(obj, Sequence):
+            return [cls._to_primitive(e) for e in obj]
+        elif isinstance(obj, Mapping):
+            return dict(
+                (k, cls._to_primitive(v)) for k, v in obj.items()
+            )
+        else:
+            return str(obj)
+
+    def __str__(self):
+        return json.dumps(self.to_primitive())
+
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, repr(self.errors))
+
+    def __hash__(self):
+        return hash(self.errors)
+
+    def __eq__(self, other):
+        if type(self) is type(other):
+            return self.errors == other.errors
+        else:
+            return self.errors == other
+        return False
+
+    def __ne__(self, other):
+        return not (self == other)
 
 
 @str_compat
@@ -16,13 +102,17 @@ class ErrorMessage(object):
         self.info = info
 
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, str(self))
+        return "%s(%s, %s)" % (
+            self.__class__.__name__,
+            repr(self.summary),
+            repr(self.info)
+        )
 
     def __str__(self):
         if self.info:
-            return '("%s", %s)' % (self.summary, self._info_as_str())
+            return '%s: %s' % (self.summary, self._info_as_str())
         else:
-            return '"%s"' % self.summary
+            return '%s' % self.summary
 
     def _info_as_str(self):
         if isinstance(self.info, int):
@@ -30,22 +120,27 @@ class ErrorMessage(object):
         elif isinstance(self.info, string_type):
             return '"%s"' % self.info
         else:
-            return "<'%s' object>" % self.info.__class__.__name__
+            return str(self.info)
 
     def __eq__(self, other):
         if isinstance(other, ErrorMessage):
-            return self.__dict__ == other.__dict__
+            return (
+                self.summary == other.summary and
+                self.type == other.type and
+                self.info == other.info
+            )
         elif isinstance(other, string_type):
             return self.summary == other
         else:
             return False
 
+    def __ne__(self, other):
+        return not (self == other)
 
-class BaseError(Exception):
-    pass
+    def __hash__(self):
+        return hash((self.summary, self.type, self.info))
 
 
-@str_compat
 class FieldError(BaseError, Sequence):
 
     type = None
@@ -66,54 +161,35 @@ class FieldError(BaseError, Sequence):
                 items = [arg]
         else:
             items = args
-        self.messages = []
+        errors = []
         for item in items:
             if isinstance(item, string_type):
-                self.messages.append(ErrorMessage(item))
+                errors.append(ErrorMessage(item))
             elif isinstance(item, tuple):
-                self.messages.append(ErrorMessage(*item))
+                errors.append(ErrorMessage(*item))
             elif isinstance(item, ErrorMessage):
-                self.messages.append(item)
+                errors.append(item)
             elif isinstance(item, self.__class__):
-                self.messages.extend(item.messages)
+                errors.extend(item.errors)
             else:
                 raise TypeError("'{0}()' object is neither a {1} nor an error message."\
                                 .format(type(item).__name__, type(self).__name__))
-        for message in self.messages:
-            message.type = self.type or type(self)
+        for error in errors:
+            error.type = self.type or type(self)
 
-        super(FieldError, self).__init__(self.messages)
-
-    def __eq__(self, other):
-        if type(other) is type(self):
-            return other.messages == self.messages
-        elif isinstance(other, list):
-            return other == self.messages
-        return False
+        super(FieldError, self).__init__(errors)
 
     def __contains__(self, value):
-        return value in self.messages
+        return value in self.errors
 
     def __getitem__(self, index):
-        return self.messages[index]
+        return self.errors[index]
 
     def __iter__(self):
-        return iter(self.messages)
+        return iter(self.errors)
 
     def __len__(self):
-        return len(self.messages)
-
-    def __repr__(self):
-        if len(self.messages) == 1:
-            msg_repr = str(self.messages[0])
-        else:
-            msg_repr = '[' + str.join(', ', map(str, self.messages)) + ']'
-        return '%s(%s)' % (self.__class__.__name__, msg_repr)
-
-    __str__ = __repr__
-
-    def pop(self, *args):
-        return self.messages.pop(*args)
+        return len(self.errors)
 
 
 class ConversionError(FieldError, TypeError):
@@ -138,14 +214,12 @@ class CompoundError(BaseError):
     def __init__(self, errors):
         if not isinstance(errors, dict):
             raise TypeError("Compound errors must be reported as a dictionary.")
-        self.errors = {}
         for key, value in errors.items():
             if isinstance(value, CompoundError):
-                self.errors[key] = value.errors
+                errors[key] = value.errors
             else:
-                self.errors[key] = value
-        self.messages = self.errors # v1
-        super(CompoundError, self).__init__(self.errors)
+                errors[key] = value
+        super(CompoundError, self).__init__(errors)
 
 
 class DataError(CompoundError):

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+import json
 
 from schematics.exceptions import *
 
@@ -59,19 +60,16 @@ def test_error_from_mixed_list():
     assert [msg.info for msg in e.messages] == [99, None, 0, 1]
 
 
-def test_error_repr():
+def test_error_str():
 
-    assert str(ValidationError('foo')) == 'ValidationError("foo")'
+    assert str(ValidationError('foo')) == '["foo"]'
 
     e = ValidationError(
             ('foo', None),
             ('bar', 98),
             ('baz', [1, 2, 3]))
 
-    assert str(e) == 'ValidationError(["foo", ("bar", 98), ("baz", <\'list\' object>)])'
-
-    e = ValidationError(u'é')
-    assert str(e) == repr(e)
+    assert str(e) == '["foo", "bar: 98", "baz: [1, 2, 3]"]'
 
 
 def test_error_list_conversion():
@@ -86,18 +84,23 @@ def test_error_eq():
     assert ValidationError("A") != ValidationError("A", "B")
 
 
-def test_error_pop():
-    err = ValidationError("A", "B", "C")
-    assert err.pop() == "C"
-    assert err == ValidationError("A", "B")
-
-
 def test_error_message_object():
 
     assert ErrorMessage('foo') == 'foo'
     assert ErrorMessage('foo') != 'bar'
     assert ErrorMessage('foo', 1) == ErrorMessage('foo', 1)
     assert ErrorMessage('foo', 1) != ErrorMessage('foo', 2)
+
+
+@pytest.mark.parametrize("error", [
+    ErrorMessage('foo', info='bar'),
+    BaseError([ErrorMessage('foo', info='bar')]),
+    BaseError({"foo": "bar"}),
+    ErrorMessage(u'é'),
+    ValidationError(u'é')
+])
+def test_exception_repr(error):
+    assert error == eval(repr(error))
 
 
 def test_error_failures():
@@ -117,3 +120,62 @@ def test_error_failures():
     with pytest.raises(TypeError):
         CompoundError(['hello'])
 
+
+def test_to_primitive():
+    error = BaseError({
+        'a': [ErrorMessage('a1'), ErrorMessage('a2')],
+        'b': {
+            'd': ErrorMessage('d_val'),
+            'e': ErrorMessage('e_val'),
+        },
+        'c': ErrorMessage('this is an error')
+    })
+    assert error.to_primitive() == {
+        'a': ['a1', 'a2'],
+        'b': {
+            'd': 'd_val',
+            'e': 'e_val'
+        },
+        'c': 'this is an error'
+    }
+
+
+def test_to_primitive_list():
+    error = BaseError([ErrorMessage('a1'), ErrorMessage('a2')])
+    assert error.to_primitive() == ['a1', 'a2']
+
+
+def test_autopopulate_message_on_none():
+    errors = {
+        'a': [ErrorMessage('a1'), ErrorMessage('a2')],
+        'b': {
+            'd': ErrorMessage('d_val'),
+            'e': ErrorMessage('e_val'),
+        },
+        'c': ErrorMessage('this is an error')
+    }
+    e = BaseError(errors)
+    assert json.loads(str(e)) == BaseError._to_primitive(errors)
+
+
+@pytest.mark.parametrize("e", [
+    BaseError(["a", "b"]),
+    ConversionError(ErrorMessage("foo"), ErrorMessage("bar")),
+    CompoundError({"a": ValidationError(ErrorMessage("foo"))})
+])
+def test_exceptions_is_hashable(e):
+    """exceptions must be hashable, as the logging module expects this
+    for log.exception()
+    """
+    hash(e)
+
+
+@pytest.mark.parametrize("inp,out", [
+    (ConversionError(ErrorMessage("foo")), ["foo"])
+])
+def test_clean_str_representation(inp, out):
+    """
+    the string representation should be human-readable.  json's format
+    provides a legible format for complex data types.
+    """
+    assert str(inp) == json.dumps(out)
