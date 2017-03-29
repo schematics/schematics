@@ -155,7 +155,7 @@ def test_autopopulate_message_on_none():
         'c': ErrorMessage('this is an error')
     }
     e = BaseError(errors)
-    assert str(e) == json.dumps(BaseError._to_primitive(errors))
+    assert json.loads(str(e)) == BaseError._to_primitive(errors)
 
 
 @pytest.mark.parametrize("e", [

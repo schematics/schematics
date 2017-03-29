@@ -7,6 +7,7 @@ import inspect
 from types import FunctionType
 
 from .common import * # pylint: disable=redefined-builtin
+from .compat import str_compat, repr_compat
 from .datastructures import OrderedDict, Context, ChainMap, MappingProxyType
 from .exceptions import *
 from .iteration import atoms
@@ -104,7 +105,7 @@ class ModelMeta(type):
                 attrs[key] = field
 
         klass = type.__new__(mcs, name, bases, attrs)
-        klass = str_compat(klass, with_repr=True)
+        klass = repr_compat(str_compat(klass))
 
         # Parse schema options
         options = mcs._read_options(name, bases, attrs, options_members)
