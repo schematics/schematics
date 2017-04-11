@@ -47,6 +47,38 @@ def test_ip_type():
     assert IPAddressType().validate('fe80::223:6caf:fe76:c12d')
 
 
+def test_mac_type():
+    addrs = [
+        '00-00-00-00-00-00',
+        '03:0F:25:B7:10:1E',
+        '030F25B7104E',
+        '030F25:B7104E',
+        '030F25-B7104E',
+        '030F.25B7.104E',
+    ]
+    for addr in addrs:
+        assert MACAddressType().validate(addr)
+
+    addrs = [
+        '00-00-00-00-00',
+        '00:00-00-00-00-00',
+        '00:00-00-00-00-00',
+        '030F25B7104',
+        '030F25B7104Z',
+        '30F25:B7104E',
+        '030F2-B7104E',
+        '030F:25B7.104E',
+    ]
+    for addr in addrs:
+        with pytest.raises(ValidationError):
+            MACAddressType().validate(addr)
+
+    mock = MACAddressType(required=True).mock()
+    assert MACAddressType().validate(mock)
+
+    s = MACAddressType().to_primitive(value='00-00-00-00-00-00')
+    assert MACAddressType().validate(s)
+
 def test_url_type_with_valid_urls():
 
     field = URLType()

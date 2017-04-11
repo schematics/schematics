@@ -82,6 +82,33 @@ class IPv6Type(IPAddressType):
         return '.'.join(str(random.randrange(256)) for _ in range(4))
 
 
+### MAC address
+
+class MACAddressType(StringType):
+
+    REGEX = re.compile(r"""
+                         (
+                             ^([0-9a-f]{2}[-]){5}([0-9a-f]{2})$
+                            |^([0-9a-f]{2}[:]){5}([0-9a-f]{2})$
+                            |^([0-9a-f]{12})
+                            |^([0-9a-f]{6}[-:]([0-9a-f]{6}))$
+                            |^([0-9a-f]{4}(\.[0-9a-f]{4}){2})$
+                         )
+                         """, re.I + re.X)
+
+    def _mock(self, context=None):
+        return ':'.join(random.choice('0123456789abcdef')+random.choice('0123456789abcdef')
+                        for _ in range(6))
+
+    def validate_(self, value, context=None):
+        if not bool(self.REGEX.match(value)):
+            raise ValidationError('Invalid MAC address')
+
+    def to_primitive(self, value, context=None):
+        value = value.replace(':', '').replace('.', '').replace('-', '')
+        return ':'.join(value[i:i+2] for i in range(0, len(value), 2))
+
+
 ### URI patterns
 
 GEN_DELIMS = set(':/?#[]@')
