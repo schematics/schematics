@@ -509,3 +509,12 @@ def test_builtin_validation_exception():
     with pytest.raises(ValueError):
         raise ValidationError('message')
 
+
+def test_lazy_conversion_exception():
+
+    class Foo(Model):
+        bar = BooleanType()
+
+    foo = Foo(dict(bar='a'), lazy=True)
+    with pytest.raises(DataError):
+        foo.validate()

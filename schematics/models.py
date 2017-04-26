@@ -55,7 +55,7 @@ class FieldDescriptor(object):
         """
         field = instance._fields[self.name]
         value = field.pre_setattr(value)
-        instance._data[self.name] = value
+        instance._data.converted[self.name] = value
 
     def __delete__(self, instance):
         """
@@ -143,22 +143,32 @@ class ModelMeta(type):
 
 class ModelDict(ChainMap):
 
-    __slots__ = ['_raw', '__valid', '_valid']
+    __slots__ = ['_unsafe', '_converted', '__valid', '_valid']
 
-    def __init__(self, raw=None, valid=None):
-        self._raw = raw if raw is not None else {}
+    def __init__(self, unsafe=None, converted=None, valid=None):
+        self._unsafe = unsafe if unsafe is not None else {}
+        self._converted = converted if converted is not None else {}
         self.__valid = valid if valid is not None else {}
         self._valid = MappingProxyType(self.__valid)
-        super(ModelDict, self).__init__(self._raw, self._valid)
+        super(ModelDict, self).__init__(self._unsafe, self._converted, self._valid)
 
     @property
-    def raw(self):
-        return self._raw
+    def unsafe(self):
+        return self._unsafe
 
-    @raw.setter
-    def raw(self, value):
-        self._raw = value
-        self.maps[0] = self._raw
+    @unsafe.setter
+    def unsafe(self, value):
+        self._unsafe = value
+        self.maps[0] = self._unsafe
+
+    @property
+    def converted(self):
+        return self._converted
+
+    @converted.setter
+    def converted(self, value):
+        self._converted = value
+        self.maps[1] = self._converted
 
     @property
     def valid(self):
@@ -167,20 +177,16 @@ class ModelDict(ChainMap):
     @valid.setter
     def valid(self, value):
         self._valid = MappingProxyType(value)
-        self.maps[1] = self._valid
+        self.maps[2] = self._valid
 
     def __delitem__(self, key):
         did_delete = False
-        try:
-            del self.__valid[key]
-            did_delete = True
-        except KeyError:
-            pass
-        try:
-            del self._raw[key]
-            did_delete = True
-        except KeyError:
-            pass
+        for data in [self.__valid, self._converted, self._unsafe]:
+            try:
+                del data[key]
+                did_delete = True
+            except KeyError:
+                pass
         if not did_delete:
             raise KeyError(key)
 
@@ -210,18 +216,20 @@ class Model(object):
 
     def __init__(self, raw_data=None, trusted_data=None, deserialize_mapping=None,
                  init=True, partial=True, strict=True, validate=False, app_data=None,
-                 **kwargs):
-
-        self._data = ModelDict(valid=trusted_data)
-
+                 lazy=False, **kwargs):
         kwargs.setdefault('init_values', init)
         kwargs.setdefault('apply_defaults', init)
 
+        if lazy:
+            self._data = ModelDict(unsafe=raw_data, valid=trusted_data)
+            return
+
+        self._data = ModelDict(valid=trusted_data)
         data = self._convert(raw_data,
             trusted_data=trusted_data, mapping=deserialize_mapping,
             partial=partial, strict=strict, validate=validate, new=True,
             app_data=app_data, **kwargs)
-        self._data.raw = data
+        self._data.converted = data
         if validate:
             self.validate()
 
@@ -239,7 +247,7 @@ class Model(object):
             are known to have the right datatypes (e.g., when validating immediately
             after the initial import). Default: True
         """
-        if not self._data.raw and partial:
+        if not self._data.converted and partial:
             return  # no new input data to validate
         try:
             data = self._convert(validate=True,
@@ -251,7 +259,7 @@ class Model(object):
             self._data.valid = valid
             raise
         finally:
-            self._data.raw = {}
+            self._data.converted = {}
 
     def import_data(self, raw_data, recursive=False, **kwargs):
         """
@@ -261,7 +269,7 @@ class Model(object):
             The data to be imported.
         """
         data = self._convert(raw_data, trusted_data=dict(self), recursive=recursive, **kwargs)
-        self._data.update(data)
+        self._data.converted.update(data)
         if kwargs.get('validate'):
             self.validate(convert=False)
         return self
@@ -274,9 +282,14 @@ class Model(object):
         :param raw_data:
             New data to be imported and converted
         """
-        raw_data = dict(raw_data) if raw_data else self._data.raw
+        raw_data = dict(raw_data) if raw_data else self._data.converted
         kwargs['trusted_data'] = kwargs.get('trusted_data') or {}
         kwargs['convert'] = getattr(context, 'convert', kwargs.get('convert', True))
+        if self._data.unsafe:
+            self._data.unsafe.update(raw_data)
+            raw_data = self._data.unsafe
+            self._data.unsafe = {}
+            kwargs['convert'] = True
         should_validate = getattr(context, 'validate', kwargs.get('validate', False))
         func = validate if should_validate else convert
         return func(self._schema, self, raw_data=raw_data, oo=True, context=context, **kwargs)
@@ -292,13 +305,13 @@ class Model(object):
         return to_primitive(self._schema, self, role=role, app_data=app_data, **kwargs)
 
     def serialize(self, *args, **kwargs):
-        raw_data = self._data.raw
+        raw_data = self._data.converted
         try:
             self.validate(apply_defaults=True)
         except DataError:
             pass
         data = self.to_primitive(*args, **kwargs)
-        self._data.raw = raw_data
+        self._data.converted = raw_data
         return data
 
     def atoms(self):
