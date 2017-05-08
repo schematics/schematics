@@ -509,3 +509,24 @@ def test_builtin_validation_exception():
     with pytest.raises(ValueError):
         raise ValidationError('message')
 
+
+def test_lazy_conversion_exception():
+
+    class Foo(Model):
+        bar = BooleanType()
+
+    foo = Foo(dict(bar='a'), lazy=True)
+    with pytest.raises(DataError):
+        foo.validate()
+
+
+def test_lazy_conversion_and_validation_exception_bundling():
+
+    class Signup(Model):
+        name = StringType(max_length=3)
+        call_me = BooleanType()
+
+    user = Signup({'name': u'Arthur', 'call_me': 'Dent'}, lazy=True)
+    with pytest.raises(DataError) as exception:
+        user.validate()
+    assert set(('name', 'call_me')).issubset(exception.value.errors)
