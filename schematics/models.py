@@ -225,7 +225,7 @@ class Model(object):
         if validate:
             self.validate()
 
-    def validate(self, partial=False, convert=True, app_data=None, **kwargs):
+    def validate(self, partial=False, convert=True, app_data=None, role=None, **kwargs):
         """
         Validates the state of the model. If the data is invalid, raises a ``DataError``
         with error messages.
@@ -243,7 +243,7 @@ class Model(object):
             return  # no new input data to validate
         try:
             data = self._convert(validate=True,
-                partial=partial, convert=convert, app_data=app_data, **kwargs)
+                partial=partial, convert=convert, app_data=app_data, role=role, **kwargs)
             self._data.valid = data
         except DataError as e:
             valid = dict(self._data.valid)
@@ -266,7 +266,7 @@ class Model(object):
             self.validate(convert=False)
         return self
 
-    def _convert(self, raw_data=None, context=None, **kwargs):
+    def _convert(self, raw_data=None, context=None, role=None, **kwargs):
         """
         Converts the instance raw data into richer Python constructs according
         to the fields on the model, validating data if requested.
@@ -279,7 +279,7 @@ class Model(object):
         kwargs['convert'] = getattr(context, 'convert', kwargs.get('convert', True))
         should_validate = getattr(context, 'validate', kwargs.get('validate', False))
         func = validate if should_validate else convert
-        return func(self._schema, self, raw_data=raw_data, oo=True, context=context, **kwargs)
+        return func(self._schema, self, raw_data=raw_data, oo=True, context=context, role=role, **kwargs)
 
     def export(self, field_converter=None, role=None, app_data=None, **kwargs):
         return export_loop(self._schema, self, field_converter=field_converter,

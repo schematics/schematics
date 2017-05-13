@@ -27,7 +27,7 @@ except ImportError:
 def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_data=None,
                 mapping=None, partial=False, strict=False, init_values=False,
                 apply_defaults=False, convert=True, validate=False, new=False,
-                oo=False, recursive=False, app_data=None, context=None):
+                oo=False, recursive=False, app_data=None, context=None, role=None):
     """
     The import loop is designed to take untrusted data and convert it into the
     native types, as described in ``schema``.  It does this by calling
@@ -75,6 +75,7 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
         context._setdefaults({
             'initialized': True,
             'field_converter': field_converter,
+            'role': role,
             'trusted_data': trusted_data or {},
             'mapping': mapping or {},
             'partial': partial,
@@ -102,7 +103,13 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
 
     if got_data:
         # Determine all acceptable field input names
-        all_fields = schema._valid_input_keys
+        filter_func = schema._options.roles.get(role or context.role)
+        if filter_func is not None:
+            all_fields = set(key
+                             for key in schema._valid_input_keys
+                             if not filter_func(key, None))
+        else:
+            all_fields = schema._valid_input_keys
         if context.mapping:
             mapped_keys = (set(itertools.chain(*(
                           listify(input_keys) for target_key, input_keys in context.mapping.items()
@@ -119,8 +126,14 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
     if not context.validate:
         # optimization: convert without validate doesn't require to touch setters
         atoms_filter = atom_filter.not_setter
+
+    filter_func = schema._options.roles.get(role or context.role)
+
     for field_name, field, value in atoms(schema, raw_data, filter=atoms_filter):
         serialized_field_name = field.serialized_name or field_name
+
+        if filter_func is not None and filter_func(field_name, value):
+            continue
 
         if got_data and value is Undefined:
             for key in field.get_input_keys(context.mapping):
