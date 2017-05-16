@@ -2,6 +2,13 @@
 
 from __future__ import unicode_literals, absolute_import
 
+try:
+    import typing
+except ImportError:
+    pass
+else:
+    T = typing.TypeVar("T")
+
 from collections import Iterable, Sequence, Mapping
 import itertools
 
@@ -84,7 +91,10 @@ class ModelType(CompoundType):
     def fields(self):
         return self.model_class.fields
 
-    def __init__(self, model_spec, **kwargs):
+    def __init__(self,
+                 model_spec,  # type: typing.Type[T]
+                 **kwargs):
+        # type: (...) -> T
 
         if isinstance(model_spec, ModelMeta):
             self.model_class = model_spec
@@ -156,7 +166,11 @@ class ListType(CompoundType):
     primitive_type = list
     native_type = list
 
-    def __init__(self, field, min_size=None, max_size=None, **kwargs):
+    def __init__(self,
+                 field,  # type: T
+                 min_size=None, max_size=None, **kwargs):
+        # type: (...) -> typing.List[T]
+
         self.field = self._init_field(field, kwargs)
         self.min_size = min_size
         self.max_size = max_size
@@ -259,6 +273,8 @@ class DictType(CompoundType):
     native_type = dict
 
     def __init__(self, field, coerce_key=None, **kwargs):
+        # type: (...) -> typing.Dict[str, T]
+
         self.field = self._init_field(field, kwargs)
         self.coerce_key = coerce_key or str
         super(DictType, self).__init__(**kwargs)
