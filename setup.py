@@ -16,9 +16,10 @@ setup(
     license='BSD',
     version=version,
     description='Python Data Structures for Humans',
-    author=u'James Dennis, Jökull Sólberg, Jóhann Þorvaldur Bergþórsson, Kalle Tuure',
-    author_email='jdennis@gmail.com, jokull@plainvanillagames.com, johann@plainvanillagames.com, kalle@goodtimes.fi',
+    author=u'James Dennis, Jökull Sólberg, Jóhann Þorvaldur Bergþórsson, Kalle Tuure, Paul Eipper',
+    author_email='jdennis@gmail.com, jokull@plainvanillagames.com, johann@plainvanillagames.com, kalle@goodtimes.fi, paul@nkey.com.br',
     url='https://github.com/schematics/schematics',
+    download_url='https://github.com/schematics/schematics/archive/v%s.tar.gz' % version,
     packages=['schematics', 'schematics.types', 'schematics.contrib'],
     classifiers=[
         'Intended Audience :: Developers',
@@ -32,6 +33,7 @@ setup(
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
     install_requires=[],
 )
