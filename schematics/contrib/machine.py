@@ -5,8 +5,8 @@ from ..validate import validate
 import functools
 
 
-def _callback_wrap(data, schema, func, *args, **kwargs):
-    return func(schema, data, *args, **kwargs)
+def _callback_wrap(data, schema, transform, *args, **kwargs):
+    return transform(schema, data, *args, **kwargs)
 
 
 class Machine(object):
@@ -20,9 +20,9 @@ class Machine(object):
         {'trigger': 'serialize', 'from': 'validated', 'to': 'serialized'}
     )
     callbacks = {
-        'convert': functools.partial(_callback_wrap, func=convert, partial=True),
-        'validate': functools.partial(_callback_wrap, func=validate, convert=False, partial=False),
-        'serialize': functools.partial(_callback_wrap, func=to_primitive)
+        'convert': functools.partial(_callback_wrap, transform=convert, partial=True),
+        'validate': functools.partial(_callback_wrap, transform=validate, convert=False, partial=False),
+        'serialize': functools.partial(_callback_wrap, transform=to_primitive)
     }
 
     def __init__(self, data, *args):
