@@ -1,0 +1,41 @@
+@import url(https://fonts.googleapis.com/css?family=Fira+Mono:400,700);
+
+pre,
+span.pre,
+code,
+.code {
+  font-family: 'Fira Mono', 'Inconsolata', 'Consolas',
+               'Menlo', 'DejaVu Sans Mono',
+               'Liberation Mono', 'Lucida Console',
+               monospace !important;
+}
+
+dl dt {
+  font-size: 100% !important;
+}
+
+dl dt em {
+  font-weight: normal !important;
+}
+
+div.highlight pre,
+div.highlight .code {
+  font-size: 14px !important;
+}
+
+tt.literal,
+code.literal {
+  color: #995533 !important;
+}
+
+.rst-content code.literal {
+  border: 0;
+  background-color: inherit;
+  font-size: 14px;
+  font-weight: normal !important;
+  padding: 0px 3px;
+}
+
+code.descname {
+  font-size: 16px;
+}

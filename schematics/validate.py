@@ -1,112 +1,128 @@
-from .exceptions import BaseError, ValidationError, ModelConversionError
-from .transforms import import_loop
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals, absolute_import
+
+import inspect
+import functools
+
+from .common import * # pylint: disable=redefined-builtin
+from .datastructures import Context
+from .exceptions import FieldError, DataError
+from .transforms import import_loop, validation_converter
+from .undefined import Undefined
+from .iteration import atoms, atom_filter
 
 
-def validate(cls, instance_or_dict, partial=False, strict=False, context=None):
+def validate(schema, mutable, raw_data=None, trusted_data=None,
+             partial=False, strict=False, convert=True, context=None, **kwargs):
     """
     Validate some untrusted data using a model. Trusted data can be passed in
-    the `context` parameter.
+    the `trusted_data` parameter.
 
-    :param cls:
-        The model class to use as source for validation. If given an instance,
-        will also run instance-level validators on the data.
-    :param instance_or_dict:
-        A ``dict`` or ``dict``-like structure for incoming data.
+    :param schema:
+        The Schema to use as source for validation.
+    :param mutable:
+        A mapping or instance that can be changed during validation by Schema
+        functions.
+    :param raw_data:
+        A mapping or instance containing new data to be validated.
     :param partial:
         Allow partial data to validate; useful for PATCH requests.
         Essentially drops the ``required=True`` arguments from field
         definitions. Default: False
     :param strict:
         Complain about unrecognized keys. Default: False
-    :param context:
+    :param trusted_data:
         A ``dict``-like structure that may contain already validated data.
+    :param convert:
+        Controls whether to perform import conversion before validating.
+        Can be turned off to skip an unnecessary conversion step if all values
+        are known to have the right datatypes (e.g., when validating immediately
+        after the initial import). Default: True
 
     :returns: data
-        data dict contains the valid raw_data plus the context data.
+        ``dict`` containing the valid raw_data plus ``trusted_data``.
         If errors are found, they are raised as a ValidationError with a list
         of errors attached.
     """
-    data = {}
+    if raw_data is None:
+        raw_data = mutable
+
+    context = context or get_validation_context(partial=partial, strict=strict,
+        convert=convert)
+
     errors = {}
-
-    # Function for validating an individual field
-    def field_converter(field, value):
-        value = field.to_native(value)
-        field.validate(value)
-        return value
-
-    # Loop across fields and coerce values
     try:
-        data = import_loop(cls, instance_or_dict, field_converter,
-                           context=context, partial=partial, strict=strict)
-    except ModelConversionError as mce:
-        errors = mce.messages
+        data = import_loop(schema, mutable, raw_data, trusted_data=trusted_data,
+            context=context, **kwargs)
+    except DataError as exc:
+        errors = dict(exc.errors)
+        data = exc.partial_data
 
-    # Check if unknown fields are present
-    if strict:
-        rogue_field_errors = _check_for_unknown_fields(cls, data)
-        errors.update(rogue_field_errors)
-
-    # Model level validation
-    instance_errors = _validate_model(cls, data)
-    errors.update(instance_errors)
+    errors.update(_validate_model(schema, mutable, data, context))
 
     if errors:
-        raise ValidationError(errors)
+        raise DataError(errors, data)
 
     return data
 
 
-def _validate_model(cls, data):
+def _validate_model(schema, mutable, data, context):
     """
     Validate data using model level methods.
 
-    :param cls:
-        The Model class to validate ``data`` against.
-
+    :param schema:
+        The Schema to validate ``data`` against.
+    :param mutable:
+        A mapping or instance that will be passed to the validator containing
+        the original data and that can be mutated.
     :param data:
         A dict with data to validate. Invalid items are removed from it.
-
     :returns:
         Errors of the fields that did not pass validation.
     """
     errors = {}
     invalid_fields = []
-    for field_name, field in cls._fields.iteritems():
-        if field_name in cls._validator_functions and field_name in data:
-            value = data[field_name]
-            try:
-                context = data
-                cls._validator_functions[field_name](cls, context, value)
-            except BaseError as exc:
-                field = cls._fields[field_name]
-                serialized_field_name = field.serialized_name or field_name
-                errors[serialized_field_name] = exc.messages
-                invalid_fields.append(field_name)
+
+    has_validator = lambda atom: atom.name in schema._validator_functions
+    for field_name, field, value in atoms(schema, data, filter=has_validator):
+        try:
+            schema._validator_functions[field_name](mutable, data, value, context)
+        except FieldError as exc:
+            serialized_field_name = field.serialized_name or field_name
+            errors[serialized_field_name] = exc.errors
+            invalid_fields.append(field_name)
 
     for field_name in invalid_fields:
-        data.pop(field_name, None)  # get rid of the invalid field
+        data.pop(field_name)
 
     return errors
 
 
-def _check_for_unknown_fields(cls, data):
-    """
-    Checks for keys in a dictionary that don't exist as fields on a model.
+def get_validation_context(**options):
+    validation_options = {
+        'field_converter': validation_converter,
+        'partial': False,
+        'strict': False,
+        'convert': True,
+        'validate': True,
+        'new': False,
+    }
+    validation_options.update(options)
+    return Context(**validation_options)
 
-    :param cls:
-        The ``Model`` class to validate ``data`` against.
 
-    :param data:
-        A dict with keys to validate.
+def prepare_validator(func, argcount):
+    if isinstance(func, classmethod):
+        func = func.__get__(object).__func__
+    if len(inspect.getargspec(func).args) < argcount:
+        @functools.wraps(func)
+        def newfunc(*args, **kwargs):
+            if not kwargs or kwargs.pop('context', 0) is 0:
+                args = args[:-1]
+            return func(*args, **kwargs)
+        return newfunc
+    return func
 
-    :returns:
-        Errors of the fields that were not present in ``cls``.
-    """
-    errors = {}
-    fields = set(getattr(cls, '_initial', {})) | set(data)
-    rogues_found = fields - set(cls._fields)
-    if rogues_found:
-        for field_name in rogues_found:
-            errors[field_name] = [u'%s is an illegal field.' % field_name]
-    return errors
+
+__all__ = module_exports(__name__)

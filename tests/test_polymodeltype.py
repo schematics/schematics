@@ -2,7 +2,7 @@ import pytest
 
 from schematics.models import Model
 from schematics.types import StringType
-from schematics.types.compound import PolyModelType
+from schematics.types.compound import PolyModelType, ListType
 
 
 class A(Model): # fallback model (doesn't define a claim method)
@@ -39,7 +39,7 @@ class Foo(Model):
     base   = PolyModelType(A)       # accepts any subclass for import and export
     strict = PolyModelType([A, B])  # accepts [A, B] for import and export
     nfb    = PolyModelType([B, C])  # no fallback since A not present
-    cfn    = PolyModelType([B, C], claim_function=claim_func, strict=False)
+    cfn    = PolyModelType([B, C], claim_function=claim_func)
 
 
 def test_subclass_registry():
@@ -83,7 +83,7 @@ def test_enumerated_polymorphic(): # strict
 
 def test_external_claim_function(): # cfn
 
-    foo = Foo({'cfn': {'stringB': 'bbb', 'stringC': 'ccc'}})
+    foo = Foo({'cfn': {'stringB': 'bbb', 'stringC': 'ccc'}}, strict=False)
     assert type(foo.cfn) is B
 
 def test_multiple_matches():
@@ -115,4 +115,16 @@ def test_refuse_unrelated_export():
         foo = Foo()
         foo.strict = Aaa()
         foo.to_primitive()
+
+
+def test_specify_model_by_name():
+
+    class M(Model):
+        single = PolyModelType('M')
+        multi = PolyModelType([A, 'M', C])
+        nested = ListType(ListType(PolyModelType('M')))
+
+    assert M.single.is_allowed_model(M())
+    assert M.multi.is_allowed_model(M())
+    assert M.nested.field.field.is_allowed_model(M())
 

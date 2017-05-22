@@ -4,13 +4,13 @@ Schematics
 
 .. rubric:: Python Data Structures for Humans™.
 
-.. image:: https://secure.travis-ci.org/schematics/schematics.png?branch=master
-  :target: https://secure.travis-ci.org/schematics/schematics
-  :alt: Build Status
+.. image:: https://travis-ci.org/schematics/schematics.svg?branch=development
+   :target: https://travis-ci.org/schematics/schematics
+   :alt: Build Status
 
-.. image:: https://coveralls.io/repos/schematics/schematics/badge.png
-  :target: https://coveralls.io/r/schematics/schematics
-  :alt: Coverage
+.. image:: https://coveralls.io/repos/github/schematics/schematics/badge.svg?branch=development
+   :target: https://coveralls.io/github/schematics/schematics?branch=development 
+   :alt: Coverage
 
 .. toctree::
    :hidden:
@@ -24,6 +24,9 @@ Schematics
 .. contents::
    :local:
    :depth: 1
+
+
+**Please note that the documentation is currently somewhat out of date.**
 
 
 About
@@ -80,8 +83,8 @@ Let's try validating without a name value, since it's required. ::
   Traceback (most recent call last):
     File "<stdin>", line 1, in <module>
     File "schematics/models.py", line 231, in validate
-      raise ModelValidationError(e.messages)
-  schematics.exceptions.ModelValidationError: {'name': [u'This field is required.']}
+      raise DataError(e.messages)
+  schematics.exceptions.DataError: {'name': ['This field is required.']}
 
 Add the field and validation passes::
 
@@ -162,5 +165,5 @@ Testing & Coverage
 
 Run ``coverage`` and check the missing statements. ::
 
-  $ `coverage run --source schematics -m py.test && coverage report`
+  $ coverage run --source schematics -m py.test && coverage report
 

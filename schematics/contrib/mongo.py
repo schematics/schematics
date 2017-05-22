@@ -2,16 +2,14 @@
 a part of the pymongo distribution.
 """
 
-from schematics.types import BaseType
-from schematics.exceptions import ConversionError, ValidationError
+from __future__ import unicode_literals, absolute_import
 
 import bson
 
-try:
-    unicode #PY2
-except:
-    import codecs
-    unicode = str #PY3
+from ..common import * # pylint: disable=redefined-builtin
+from ..types import BaseType
+from ..exceptions import ConversionError
+
 
 class ObjectIdType(BaseType):
 
@@ -23,7 +21,7 @@ class ObjectIdType(BaseType):
     """
 
     MESSAGES = {
-        'convert': u"Couldn't interpret value as an ObjectId.",
+        'convert': "Couldn't interpret value as an ObjectId.",
     }
 
     def __init__(self, auto_fill=False, **kwargs):
@@ -33,7 +31,7 @@ class ObjectIdType(BaseType):
     def to_native(self, value, context=None):
         if not isinstance(value, bson.objectid.ObjectId):
             try:
-                value = bson.objectid.ObjectId(unicode(value))
+                value = bson.objectid.ObjectId(str(value))
             except bson.objectid.InvalidId:
                 raise ConversionError(self.messages['convert'])
         return value
@@ -41,10 +39,3 @@ class ObjectIdType(BaseType):
     def to_primitive(self, value, context=None):
         return str(value)
 
-    def validate_id(self, value):
-        if not isinstance(value, bson.objectid.ObjectId):
-            try:
-                value = bson.objectid.ObjectId(unicode(value))
-            except Exception:
-                raise ValidationError('Invalid ObjectId')
-        return True

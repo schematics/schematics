@@ -5,12 +5,12 @@ from schematics.models import Model
 from schematics.types.base import StringType
 from schematics.types.compound import ListType, ModelType
 from schematics.types.serializable import serializable
-from schematics.exceptions import ValidationError
+from schematics.exceptions import DataError
 
 
 def test_reason_why_we_must_bind_fields():
     class Person(Model):
-        name = StringType(required=True)
+        name = StringType()
 
     p1 = Person()
     p2 = Person()
@@ -23,8 +23,7 @@ def test_reason_why_we_must_bind_fields():
 
     p1.name = "Jóhann"
     p1.validate()
-    with pytest.raises(ValidationError):
-        p2.validate()
+    p2.validate()
 
     assert p1 != p2
     assert id(p1) != id(p2)
@@ -55,7 +54,7 @@ def test_reason_why_we_must_bind_fields_model_field():
 
     p2.location = {}
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(DataError):
         p2.validate()
 
     assert p1 != p2
@@ -113,3 +112,41 @@ def test_serializable_doesnt_keep_global_state():
 
     assert id(location_US._serializables["country_name"]) == id(
         location_IS._serializables["country_name"])
+
+
+def test_field_inheritance():
+
+    class A(Model):
+        field1 = StringType()
+        field2 = StringType()
+
+    class B(A):
+        field2 = StringType(required=True)
+        field3 = StringType()
+
+    assert A.field1 is A._fields['field1'] is not B._fields['field1']
+    assert A.field2 is A._fields['field2'] is not B._fields['field2']
+    assert 'field3' not in A._fields
+
+    assert B.field1 is B._fields['field1']
+    assert B.field2 is B._fields['field2']
+    assert B.field3 is B._fields['field3']
+
+    assert A.field2.required is False and B.field2.required is True
+
+
+def test_serializable_inheritance():
+
+    class A(Model):
+        @serializable
+        def s(self):
+            pass
+
+    class B(A):
+        pass
+
+    assert A.s is A._serializables['s'] is not B._serializables['s']
+    assert B.s is B._serializables['s']
+    assert A.s.type is not B.s.type
+    assert A.s.fget is B.s.fget
+

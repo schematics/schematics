@@ -1,19 +1,13 @@
 # -*- coding: utf-8 -*-
 import pytest
 
+from schematics.common import *
 from schematics.models import Model
 from schematics.types import StringType, LongType, IntType, MD5Type
 from schematics.types.compound import ModelType, DictType, ListType
 from schematics.types.serializable import serializable
 from schematics.transforms import blacklist, whitelist, wholelist, export_loop
 
-import six
-from six import iteritems
-try:
-    unicode #PY2
-except:
-    import codecs
-    unicode = str #PY3
 
 def test_serializable():
     class Location(Model):
@@ -74,11 +68,12 @@ def test_serializable_with_serializable_name():
     assert d == {"cc": "US", "cn": "United States"}
 
 
-def test_serializable_with_custom_serializable_class():
-    class PlayerIdType(LongType):
+class PlayerIdType(LongType):
+    def to_primitive(self, value, context=None):
+        return str(value)
 
-        def to_primitive(self, value, context=None):
-            return unicode(value)
+
+def test_serializable_with_custom_serializable_class():
 
     class Player(Model):
         id = LongType()
@@ -94,6 +89,42 @@ def test_serializable_with_custom_serializable_class():
 
     d = player.serialize()
     assert d == {"id": 1, "player_id": "1"}
+
+
+def test_serializable_with_type_as_positional_argument():
+
+    class Player(Model):
+        id = LongType()
+
+        @serializable(PlayerIdType)
+        def player_id(self):
+            return self.id
+
+    player = Player({"id": 1})
+
+    assert player.id == 1
+    assert player.player_id == 1
+
+    d = player.serialize()
+    assert d == {"id": 1, "player_id": "1"}
+
+
+def test_serializable_with_type_and_options():
+
+    class Player(Model):
+        id = LongType()
+
+        @serializable(PlayerIdType(), serialized_name='playerId')
+        def player_id(self):
+            return self.id
+
+    player = Player({"id": 1})
+
+    assert player.id == 1
+    assert player.player_id == 1
+
+    d = player.serialize()
+    assert d == {"id": 1, "playerId": "1"}
 
 
 def test_serializable_with_model():
@@ -475,7 +506,7 @@ def test_serialize_none_fields_if_field_says_so():
 
     q = TestModel({'inst_id': 1})
 
-    d = export_loop(TestModel, q, lambda field, value: None)
+    d = export_loop(TestModel, q, lambda field, value, context: None)
     assert d == {'inst_id': None}
 
 
@@ -485,7 +516,7 @@ def test_serialize_none_fields_if_export_loop_says_so():
 
     q = TestModel({'inst_id': 1})
 
-    d = export_loop(TestModel, q, lambda field, value: None, print_none=True)
+    d = export_loop(TestModel, q, lambda field, value, context: None, export_level=DEFAULT)
     assert d == {'inst_id': None}
 
 
@@ -495,8 +526,67 @@ def test_serialize_print_none_always_gets_you_something():
 
     q = TestModel()
 
-    d = export_loop(TestModel, q, lambda field, value: None, print_none=True)
+    d = export_loop(TestModel, q, lambda field, value, context: None, export_level=DEFAULT)
     assert d == {}
+
+
+def test_serializable_setter():
+    class Location(Model):
+        country_code = StringType()
+
+        @serializable
+        def country_name(self):
+            return "United States" if self.country_code == "US" else "Unknown"
+
+        @country_name.setter
+        def country_name(self, value):
+            self.country_code = {"United States": "US"}.get(value)
+
+    location = Location()
+    location.country_name = "United States"
+    assert location.country_code == "US"
+
+    d = location.serialize()
+    assert d == {"country_code": "US", "country_name": "United States"}
+
+
+def test_serializable_setter_override():
+    class Player(Model):
+        _id = IntType()
+
+        @serializable(IntType())
+        def id(self):
+            return self._id
+
+        @id.setter
+        def id(self, value):
+            self._id = value
+
+    p = Player()
+    p.id = "1"
+    p.validate()
+
+    assert type(1) == type(p.id)
+    assert 1 == p.id
+
+
+def test_serializable_setter_init():
+    class Location(Model):
+        country_code = StringType()
+
+        @serializable
+        def country_name(self):
+            return "United States" if self.country_code == "US" else "Unknown"
+
+        @country_name.setter
+        def country_name(self, value):
+            self.country_code = {"United States": "US"}.get(value)
+
+    location = Location({"country_name": "United States"}, validate=True)
+    assert location.country_code == "US"
+
+    d = location.serialize()
+    assert d == {"country_code": "US", "country_name": "United States"}
 
 
 def test_roles_work_with_subclassing():
@@ -760,7 +850,7 @@ def test_role_set_operations():
             n += 1
 
     class User(Model):
-        id = IntType(default=six.next(count(42)))
+        id = IntType(default=next(count(42)))
         name = StringType()
         email = StringType()
         password = StringType()
@@ -801,7 +891,7 @@ def test_role_set_operations():
 
     user = User(
         dict(
-            (k, v) for k, v in iteritems(data)
+            (k, v) for k, v in data.items()
             if k in User._options.roles['create']  # filter by 'create' role
         )
     )
@@ -823,7 +913,7 @@ def test_role_set_operations():
 
     d = user.serialize(role='empty')
 
-    assert d is None
+    assert d == {}
 
     d = user.serialize(role='everything')
 

@@ -1,7 +1,7 @@
-include README.rst
-include setup.py
-include requirements.txt
-include tox.ini
+include AUTHORS
+include HISTORY.rst
 include LICENSE
-graft docs
-graft tests
+include README.rst
+include test-requirements.txt
+include tox.ini
+global-exclude .DS_Store

@@ -34,8 +34,8 @@ def test_to_primitive():
 def test_validate_id():
     oid = ObjectIdType()
 
-    assert oid.validate_id(FAKE_OID) is True
-    assert oid.validate_id(str(FAKE_OID)) is True
+    oid.validate(FAKE_OID)
+    oid.validate(str(FAKE_OID))
 
-    with pytest.raises(ValidationError):
-        oid.validate_id('foo')
+    with pytest.raises(ConversionError):
+        oid.validate('foo')

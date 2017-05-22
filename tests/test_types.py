@@ -1,43 +1,95 @@
+# -*- coding: utf-8 -*-
+
 import datetime
-import decimal
+from decimal import Decimal
+from fractions import Fraction
+import random
+import sys
 import uuid
 
 import pytest
 
-from schematics.types import (
-    BaseType, StringType, DateTimeType, DateType, IntType, EmailType, LongType,
-    URLType, MultilingualStringType, UUIDType, IPv4Type, MD5Type, BooleanType,
-    GeoPointType, FloatType, DecimalType, force_unicode
-)
+from schematics.datastructures import Context
+from schematics.models import Model
+from schematics.types import *
+from schematics.types.compound import *
 from schematics.types.base import get_range_endpoints
-from schematics.exceptions import (
-    ValidationError, ConversionError, MockCreationError
-)
+from schematics.exceptions import ConversionError, ValidationError, DataError
+
+try:
+    from schematics.compat import bytes, str
+except ImportError:
+    pass
+
+
+_uuid = uuid.UUID('3ce85e48-3028-409c-a07c-c8ee3d16d5c4')
+
+
+def test_type_repr():
+
+    class Bar(Model):
+        pass
+
+    class Foo(Model):
+        intfield = IntType()
+        modelfield = ModelType(Bar)
+        listfield = ListType(ListType(StringType))
+
+    assert repr(Foo.intfield) == "<IntType() instance on Foo as 'intfield'>"
+    assert repr(Foo.listfield) == "<ListType(ListType) instance on Foo as 'listfield'>"
+    assert repr(Foo.listfield.field.field) == "<StringType() instance on Foo>"
+    assert repr(Foo.modelfield) == "<ModelType(Bar) instance on Foo as 'modelfield'>"
+    assert repr(DateTimeType()) == "<DateTimeType() instance>"
+
+
+@pytest.mark.parametrize('choice_type', [list, tuple, set, frozenset])
+def test_choices(choice_type):
+    assert BaseType(choices=choice_type('foo'))
 
 
 def test_string_choices():
     with pytest.raises(TypeError):
         BaseType(choices='foo')
 
-def test_int():
-    with pytest.raises(ConversionError):
-        IntType().validate('foo')
-
-    assert IntType.validate(5001) == None
-
 
 def test_date():
     today = datetime.date(2013, 3, 1)
 
     date_type = DateType()
+
+    with pytest.raises(ConversionError):
+        date_type.to_native("2013/03/01")
+
     assert date_type("2013-03-01") == today
 
     assert date_type.to_primitive(today) == "2013-03-01"
 
     assert date_type.to_native(today) is today
 
+    assert type(date_type._mock()) is datetime.date
+
+
+def test_date_formats():
+    today = datetime.date(2013, 3, 1)
+
+    date_type = DateType(formats='%d.%m.%Y')
+
     with pytest.raises(ConversionError):
-        date_type.to_native('foo')
+        date_type.to_native("2013-03-01")
+
+    assert date_type("1.3.2013") == today
+
+    assert date_type.to_primitive(today) == "2013-03-01"
+
+    date_type = DateType(formats=('%d.%m.%Y', '%d/%m/%Y'))
+
+    with pytest.raises(ConversionError):
+        date_type.to_native("2013-03-01")
+
+    assert date_type("1.3.2013") == today
+    assert date_type("1/3/2013") == today
+
+    assert date_type.to_primitive(today) == "2013-03-01"
 
 
 def test_datetime():
@@ -79,19 +131,107 @@ def test_datetime_accepts_datetime():
 
 
 def test_int():
+    intfield = IntType()
+    i = lambda x: (intfield(x), type(intfield(x)))
+    # from int
+    assert i(3) == (3, int)
+    # from bool
+    assert i(True) == (1, int)
+    # from float
+    assert i(3.0) == (3, int)
     with pytest.raises(ConversionError):
-        IntType()('a')
-    assert IntType()(1) == 1
+        i(3.2)
+    # from string
+    assert i("3") == (3, int)
+    with pytest.raises(ConversionError):
+        i("3.0")
+    with pytest.raises(ConversionError):
+        i("a")
+    # from decimal
+    assert i(Decimal("3")) == (3, int)
+    assert i(Decimal("3.0")) == (3, int)
+    with pytest.raises(ConversionError):
+        i(Decimal("3.2"))
+    # from fraction
+    assert i(Fraction(30, 10)) == (3, int)
+    with pytest.raises(ConversionError):
+        i(Fraction(7, 2))
+    # from uuid
+    with pytest.raises(ConversionError):
+        i(_uuid)
+
+
+def test_int_strict():
+    intfield = IntType(strict=True)
+    i = lambda x: (intfield(x), type(intfield(x)))
+    # from int
+    assert i(3) == (3, int)
+    # from bool
+    assert i(True) == (1, int)
+    # from float
+    with pytest.raises(ConversionError):
+        i(3.0)
+    # from string
+    assert i("3") == (3, int)
+    with pytest.raises(ConversionError):
+        i("3.0")
+    # from decimal
+    with pytest.raises(ConversionError):
+        assert i(Decimal("3")) == (3, int)
+    with pytest.raises(ConversionError):
+        assert i(Decimal("3.0")) == (3, int)
+    # from fraction
+    with pytest.raises(ConversionError):
+        assert i(Fraction(30, 10)) == (3, int)
+    # from uuid
+    with pytest.raises(ConversionError):
+        i(_uuid)
+
+
+def test_float():
+    floatfield = FloatType()
+    f = lambda x: (floatfield(x), type(floatfield(x)))
+    # from int
+    assert f(3) == (3.0, float)
+    # from bool
+    assert f(True) == (1.0, float)
+    # from float
+    assert f(3.2) == (3.2, float)
+    # from string
+    assert f("3") == (3.0, float)
+    assert f("3.2") == (3.2, float)
+    assert f("3.210987e6") == (3210987, float)
+    with pytest.raises(ConversionError):
+        f("a")
+    # from decimal
+    assert f(Decimal("3")) == (3.0, float)
+    assert f(Decimal("3.2")) == (3.2, float)
+    # from fraction
+    assert f(Fraction(7, 2)) == (3.5, float)
+    # from uuid
+    with pytest.raises(ConversionError):
+        f(_uuid)
+
+
+def test_int_validation():
+    with pytest.raises(ConversionError):
+        IntType().validate('foo')
+    assert IntType().validate(5001) == 5001
 
 
 def test_custom_validation_functions():
     class UppercaseType(BaseType):
 
-        def validate_uppercase(self, value):
+        def validate_uppercase(self, value, context=None):
             if value.upper() != value:
                 raise ValidationError("Value must be uppercase!")
 
+        def validate_without_context(self, value):
+            pass
+
     field = UppercaseType()
+
+    field.validate("UPPERCASE")
 
     with pytest.raises(ValidationError):
         field.validate("lowercase")
@@ -100,7 +240,7 @@ def test_custom_validation_functions():
 def test_custom_validation_function_and_inheritance():
     class UppercaseType(StringType):
 
-        def validate_uppercase(self, value):
+        def validate_uppercase(self, value, context=None):
             if value.upper() != value:
                 raise ValidationError("Value must be uppercase!")
 
@@ -111,7 +251,7 @@ def test_custom_validation_function_and_inheritance():
 
             super(MUppercaseType, self).__init__(**kwargs)
 
-        def validate_contains_m_chars(self, value):
+        def validate_contains_m_chars(self, value, context=None):
             if value.count("M") != self.number_of_m_chars:
                 raise ValidationError(
                     "Value must contain {0} 'm' characters".format(self.number_of_m_chars))
@@ -127,35 +267,23 @@ def test_custom_validation_function_and_inheritance():
         field.validate("MM")
 
 
-def test_email_type_with_invalid_email():
-    with pytest.raises(ValidationError):
-        EmailType().validate(u'sdfg\U0001f636\U0001f46e')
-
-
-def test_url_type_with_invalid_url():
-    with pytest.raises(ValidationError):
-        URLType().validate(u'http:example.com')
-
-
-def test_url_type_with_unreachable_url():
-    with pytest.raises(ValidationError):
-        URLType(verify_exists=True).validate_url('http://127.0.0.1:99999/')
-
-
 def test_string_type_required():
-    field = StringType(required=True)
-    with pytest.raises(ValidationError):
-        field.validate(None)
+    class M(Model):
+        field = StringType(required=True)
+    with pytest.raises(DataError):
+        M({'field': None}).validate()
 
 
 def test_string_type_accepts_none():
-    field = StringType()
-    field.validate(None)
+    class M(Model):
+        field = StringType()
+    M({'field': None}).validate()
 
 
 def test_string_required_accepts_empty_string():
-    field = StringType(required=True)
-    field.validate('')
+    class M(Model):
+        field = StringType()
+    M({'field': ''}).validate()
 
 
 def test_string_min_length_doesnt_accept_empty_string():
@@ -172,8 +300,36 @@ def test_string_regex():
 
 
 def test_string_to_native():
+    field = StringType()
+
     with pytest.raises(ConversionError):
-        StringType().to_native(3.14)
+        field.to_native(3.14)
+    with pytest.raises(ConversionError):
+        field.to_native(b'\xE0\xA0') # invalid UTF-8 sequence
+    with pytest.raises(ConversionError):
+        field.to_native(True)
+
+    if sys.version_info[0] == 2:
+        strings = [
+            (u'abcdefg',   u'abcdefg'),
+            ( 'abcdefg',   u'abcdefg'),
+            (u'abc éíçßµ', u'abc éíçßµ'),
+            ( '\xC3\xA4',  u'ä'),
+            (  12345,      u'12345'),
+        ]
+    else:
+        strings = [
+            ( 'abcdefg',   'abcdefg'),
+            (b'abcdefg',   'abcdefg'),
+            ( 'abc éíçßµ', 'abc éíçßµ'),
+            (b'\xC3\xA4',  'ä'),
+            (  12345,      '12345'),
+        ]
+
+    for input, expected in strings:
+        res = field.to_native(input)
+        assert res == expected
+        assert type(res) is str
 
 
 def test_string_max_length_is_enforced():
@@ -187,13 +343,13 @@ def test_multilingualstring_should_only_take_certain_types():
     mls(None)
     mls({})
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         mls(123)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         mls([])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConversionError):
         mls('foo')
 
 
@@ -250,7 +406,7 @@ def test_multilingual_string_should_emit_string_with_explicit_locale():
 
     assert mls.to_primitive(
         {'en_US': 'snake', 'fr_FR': 'serpent'},
-        context={'locale': 'fr_FR'}) == 'serpent'
+        context=Context(app_data={'locale': 'fr_FR'})) == 'serpent'
 
 
 def test_multilingual_string_should_require_a_locale():
@@ -267,7 +423,7 @@ def test_multilingual_string_without_matching_locale_should_explode():
         mls.to_primitive({'fr_FR': 'serpent'})
 
     with pytest.raises(ConversionError):
-        mls.to_primitive({'en_US': 'snake'}, context={'locale': 'fr_FR'})
+        mls.to_primitive({'en_US': 'snake'}, context=Context(app_data={'locale': 'fr_FR'}))
 
 
 def test_multilingual_string_should_accept_lists_of_locales():
@@ -280,11 +436,11 @@ def test_multilingual_string_should_accept_lists_of_locales():
     mls = MultilingualStringType(default_locale=['foo', 'fr_FR', 'es_MX'])
 
     assert mls.to_primitive(strings) == 'serpent'
-    assert mls.to_primitive(strings, context={'locale': ['es_MX', 'bar']}) == 'serpiente'
+    assert mls.to_primitive(strings, context=Context(app_data={'locale': ['es_MX', 'bar']})) == 'serpiente'
 
     mls = MultilingualStringType()
 
-    assert mls.to_primitive(strings, context={'locale': ['foo', 'es_MX', 'fr_FR']}) == 'serpiente'
+    assert mls.to_primitive(strings, context=Context(app_data={'locale': ['foo', 'es_MX', 'fr_FR']})) == 'serpiente'
 
 
 def test_boolean_to_native():
@@ -299,3 +455,67 @@ def test_boolean_to_native():
     for bad_value in ['TrUe', 'foo', 2, None, 1.0]:
         with pytest.raises(ConversionError):
             bool_field.to_native(bad_value)
+
+
+def test_geopoint_mock():
+    geo = GeoPointType(required=True)
+    geo_point = geo.mock()
+    assert geo_point[0] >= -90
+    assert geo_point[0] <= 90
+    assert geo_point[1] >= -180
+    assert geo_point[1] <= 180
+
+
+def test_geopoint_to_native():
+    geo = GeoPointType(required=True)
+
+    with pytest.raises(ConversionError):
+        native = geo.to_native((10,))
+
+    with pytest.raises(ConversionError):
+        native = geo.to_native({'1':'-20', '2': '18'})
+
+    with pytest.raises(ConversionError):
+        native = geo.to_native(['-20',  '18'])
+
+    with pytest.raises(ConversionError):
+        native = geo.to_native('-20, 18')
+
+    class Point(object):
+
+        def __len__(self):
+            return 2
+
+    with pytest.raises(ConversionError):
+        native = geo.to_native(Point())
+
+    native = geo.to_native([89, -12])
+    assert native == [89, -12]
+
+    latitude = random.uniform(-90, 90)
+    longitude = random.uniform(-180, 180)
+    point = [latitude, longitude]
+
+    native = geo.to_native(point)
+    assert native == point
+
+
+def test_geopoint_range():
+    geo = GeoPointType(required=True)
+
+    with pytest.raises(ValidationError) as ve:
+        geo.validate((-91, 110))
+
+    with pytest.raises(ValidationError) as ve:
+        geo.validate((90.12345, 65))
+
+    with pytest.raises(ValidationError) as ve:
+        geo.validate((23, -181))
+
+    with pytest.raises(ValidationError) as ve:
+        geo.validate((28.2342323, 181.123141))
+
+def test_metadata():
+    metadata = {'description': 'amazing', 'extra': {'abc': 1}}
+    assert StringType(metadata=metadata).metadata == metadata
+    assert StringType().metadata == {}
