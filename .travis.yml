@@ -16,12 +16,10 @@ install:
   - pip install tox
   - pip install python-coveralls
 
-script: tox
+script: tox -e $(echo py${TRAVIS_PYTHON_VERSION} | tr -d . | sed -e 's/pypypy/pypy/')
 
 after_success:
   - coveralls
 
-cache:
-  directories:
-    - $HOME/.cache/pip
-    - .tox
+cache: pip
+
