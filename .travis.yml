@@ -4,7 +4,7 @@ matrix:
   include:
     # latest python and system-provided python versions
     - python: 3.6
-      env: TOX_ENV=py26,py27,py33,py34,py36,pypy,pypy3
+      env: TOX_ENV=py26,py27,py32,py33,py34,py36,pypy,pypy3
     # extra python versions that need downloading
     - python: 3.5
       env: TOX_ENV=py35
