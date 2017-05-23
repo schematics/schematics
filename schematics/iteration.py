@@ -1,4 +1,3 @@
-
 from .compat import iteritems
 from .undefined import Undefined
 from collections import namedtuple
@@ -44,9 +43,7 @@ def atoms(schema, mapping, keys=Atom._fields, filter=None):
 
         if has_value:
             try:
-                value = getattr(mapping, field_name)
-            except AttributeError:
-                value = mapping.get(field_name, Undefined)
+                value = mapping[field_name]
             except Exception:
                 value = Undefined
 

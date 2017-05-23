@@ -10,6 +10,50 @@ from schematics.types import StringType, IntType, ListType, ModelType
 from schematics.exceptions import *
 
 
+def test_dict_methods_in_model():
+    """
+    a regression test to ensure that an issue where attributes on
+    dictionaries are not being misintrepreted as actual schematics
+    fields.
+    """
+
+    class M(Model):
+        items, values, get = IntType(), IntType(), IntType()
+
+    m = M({"items": 1, "values": 1, "get": 1})
+    m.validate()
+
+
+def test_dict_methods_in_model_atoms():
+    """
+    atoms should return the raw values, and not call any overriden methods.
+    """
+    class M(Model):
+        get = IntType()
+    m = M({"get": 1})
+    atom = list(m.atoms())[0]
+    assert atom.name == "get"
+    assert atom.value == 1
+
+
+def test_nested_model_override_mapping_methods():
+    """
+    overriding mapping methods on child models should not cause issues
+    with validation on the parent.
+    """
+
+    class Nested(Model):
+        items, values, get, keys = IntType(), IntType(), IntType(), IntType()
+
+    class Root(Model):
+        keys = ModelType(Nested)
+
+    root = Root({"keys": {"items": 1, "values": 1, "get": 1, "keys": 1}})
+    root.validate()
+    for key in ["items", "values", "get", "keys"]:
+        assert getattr(root.keys, key) == 1
+
+
 def test_init_with_dict():
 
     class M(Model):
