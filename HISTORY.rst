@@ -1,3 +1,145 @@
+2.0.0 / 2017-05-22
+==================
+**[BREAKING CHANGE]**
+ Version 2.0 introduces many API changes, and it is not fully backwards-compatible with 1.x code.
+
+`Full Changelog <https://github.com/schematics/schematics/compare/v1.1.2...v2.0.0>`_
+
+-  Add syntax highlighting to README examples
+   `#486 <https://github.com/schematics/schematics/pull/486>`__
+   (`gabisurita <https://github.com/gabisurita>`__)
+-  Encode Unsafe data state in Model
+   `#484 <https://github.com/schematics/schematics/pull/484>`__
+   (`lkraider <https://github.com/lkraider>`__)
+-  Add MACAddressType
+   `#482 <https://github.com/schematics/schematics/pull/482>`__
+   (`aleksej-paschenko <https://github.com/aleksej-paschenko>`__)
+
+2.0.0.b1 / 2017-04-06
+=====================
+-  Enhancing and addressing some issues around exceptions:
+   `#477 <https://github.com/schematics/schematics/pull/477>`__
+   (`toumorokoshi <https://github.com/toumorokoshi>`__)
+-  Allow primitive and native types to be inspected
+   `#431 <https://github.com/schematics/schematics/pull/431>`__
+   (`chadrik <https://github.com/chadrik>`__)
+-  Atoms iterator performance improvement
+   `#476 <https://github.com/schematics/schematics/pull/476>`__
+   (`vovanbo <https://github.com/vovanbo>`__)
+-  Fixes 453: Recursive import\_loop with ListType
+   `#475 <https://github.com/schematics/schematics/pull/475>`__
+   (`lkraider <https://github.com/lkraider>`__)
+-  Schema API
+   `#466 <https://github.com/schematics/schematics/pull/466>`__
+   (`lkraider <https://github.com/lkraider>`__)
+-  Tweak code example to avoid sql injection
+   `#462 <https://github.com/schematics/schematics/pull/462>`__
+   (`Ian-Foote <https://github.com/Ian-Foote>`__)
+-  Convert readthedocs links for their .org -> .io migration for hosted
+   projects `#454 <https://github.com/schematics/schematics/pull/454>`__
+   (`adamchainz <https://github.com/adamchainz>`__)
+-  Support all non-string Iterables as choices (dev branch)
+   `#436 <https://github.com/schematics/schematics/pull/436>`__
+   (`di <https://github.com/di>`__)
+-  When testing if a values is None or Undefined, use 'is'.
+   `#425 <https://github.com/schematics/schematics/pull/425>`__
+   (`chadrik <https://github.com/chadrik>`__)
+
+2.0.0a1 / 2016-05-03
+====================
+-  Restore v1 to\_native behavior; simplify converter code
+   `#412 <https://github.com/schematics/schematics/pull/412>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  Change conversion rules for booleans
+   `#407 <https://github.com/schematics/schematics/pull/407>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  Test for Model.\_\_init\_\_ context passing to types
+   `#399 <https://github.com/schematics/schematics/pull/399>`__
+   (`sheilatron <https://github.com/sheilatron>`__)
+-  Code normalization for Python 3 + general cleanup
+   `#391 <https://github.com/schematics/schematics/pull/391>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  Add support for arbitrary field metadata.
+   `#390 <https://github.com/schematics/schematics/pull/390>`__
+   (`chadrik <https://github.com/chadrik>`__)
+-  Introduce MixedType
+   `#380 <https://github.com/schematics/schematics/pull/380>`__
+   (`bintoro <https://github.com/bintoro>`__)
+
+2.0.0.dev2 / 2016-02-06
+=======================
+-  Type maintenance
+   `#383 <https://github.com/schematics/schematics/pull/383>`__
+   (`bintoro <https://github.com/bintoro>`__)
+
+2.0.0.dev1 / 2016-02-01
+=======================
+-  Performance optimizations
+   `#378 <https://github.com/schematics/schematics/pull/378>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  Validation refactoring + exception redesign
+   `#374 <https://github.com/schematics/schematics/pull/374>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  Fix typo: serilaizataion --> serialization
+   `#373 <https://github.com/schematics/schematics/pull/373>`__
+   (`jeffwidman <https://github.com/jeffwidman>`__)
+-  Add support for undefined values
+   `#372 <https://github.com/schematics/schematics/pull/372>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  Serializable improvements
+   `#371 <https://github.com/schematics/schematics/pull/371>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  Unify import/export interface across all types
+   `#368 <https://github.com/schematics/schematics/pull/368>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  Correctly decode bytestrings in Python 3
+   `#365 <https://github.com/schematics/schematics/pull/365>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  Fix NumberType.to\_native()
+   `#364 <https://github.com/schematics/schematics/pull/364>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  Make sure field.validate() uses a native type
+   `#363 <https://github.com/schematics/schematics/pull/363>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  Don't validate ListType items twice
+   `#362 <https://github.com/schematics/schematics/pull/362>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  Collect field validators as bound methods
+   `#361 <https://github.com/schematics/schematics/pull/361>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  Propagate environment during recursive import/export/validation
+   `#359 <https://github.com/schematics/schematics/pull/359>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  DateTimeType & TimestampType major rewrite
+   `#358 <https://github.com/schematics/schematics/pull/358>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  Always export empty compound objects as {} / []
+   `#351 <https://github.com/schematics/schematics/pull/351>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  export\_loop cleanup
+   `#350 <https://github.com/schematics/schematics/pull/350>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  Fix FieldDescriptor.\_\_delete\_\_ to not touch model
+   `#349 <https://github.com/schematics/schematics/pull/349>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  Add validation method for latitude and longitude ranges in
+   GeoPointType
+   `#347 <https://github.com/schematics/schematics/pull/347>`__
+   (`wraziens <https://github.com/wraziens>`__)
+-  Fix longitude values for GeoPointType mock and add tests
+   `#344 <https://github.com/schematics/schematics/pull/344>`__
+   (`wraziens <https://github.com/wraziens>`__)
+-  Add support for self-referential ModelType fields
+   `#335 <https://github.com/schematics/schematics/pull/335>`__
+   (`bintoro <https://github.com/bintoro>`__)
+-  avoid unnecessary code path through try/except
+   `#327 <https://github.com/schematics/schematics/pull/327>`__
+   (`scavpy <https://github.com/scavpy>`__)
+-  Get mock object for ModelType and ListType
+   `#306 <https://github.com/schematics/schematics/pull/306>`__
+   (`kaiix <https://github.com/kaiix>`__)
+
+
 1.1.2 / 2017-03-27
 ==================
 * [Bug] (`#478 <https://github.com/schematics/schematics/pull/478>`_) Fix dangerous performance issue with ModelConversionError in nested models
@@ -44,7 +186,7 @@
 
 1.0.2 / 2015-02-12
 ==================
-* [Bug](`#280 <https://github.com/schematics/schematics/issues/280`_) Fix the circular import issue.
+* [Bug] (`#280 <https://github.com/schematics/schematics/issues/280>`_) Fix the circular import issue.
 
 1.0.1 / 2015-02-01
 ==================
@@ -89,7 +231,7 @@
 * [Feature] (`#227 <https://github.com/schematics/schematics/pull/227>`_) Transforms cleanup
 * [Feature] (`#228 <https://github.com/schematics/schematics/pull/228>`_) Compound cleanup
 * [Feature] (`#229 <https://github.com/schematics/schematics/pull/229>`_) UUID cleanup
-* [Feature] (`#230 <https://github.com/schematics/schematics/pull/231>`_) Booleans as numbers
+* [Feature] (`#231 <https://github.com/schematics/schematics/pull/231>`_) Booleans as numbers
 
 
 0.9.4 / 2013-12-08
