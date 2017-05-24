@@ -18,9 +18,9 @@ def test_dict_methods_in_model():
     """
 
     class M(Model):
-        items, values, get = IntType(), IntType(), IntType()
+        items, values, get, keys = IntType(), IntType(), IntType(), IntType()
 
-    m = M({"items": 1, "values": 1, "get": 1})
+    m = M({"items": 1, "values": 1, "get": 1, "keys": 1})
     m.validate()
 
 

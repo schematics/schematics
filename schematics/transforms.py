@@ -6,7 +6,6 @@ import itertools
 import types
 
 from .common import * # pylint: disable=redefined-builtin
-from .compat import _dict
 from .datastructures import Context
 from .exceptions import *
 from .undefined import Undefined
@@ -199,7 +198,7 @@ def _mutate(schema, mutable, raw_data, context):
             continue
         except AttributeError:
             pass
-    raw_data.update(_dict(mutable))
+    raw_data.update((key, mutable[key]) for key in mutable)
     return errors
 
 
