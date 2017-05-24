@@ -7,7 +7,7 @@ import inspect
 from types import FunctionType
 
 from .common import * # pylint: disable=redefined-builtin
-from .compat import str_compat, repr_compat
+from .compat import str_compat, repr_compat, _dict
 from .datastructures import OrderedDict, Context, ChainMap, MappingProxyType
 from .exceptions import *
 from .iteration import atoms
@@ -268,7 +268,7 @@ class Model(object):
         :param raw_data:
             The data to be imported.
         """
-        data = self._convert(raw_data, trusted_data=dict(self), recursive=recursive, **kwargs)
+        data = self._convert(raw_data, trusted_data=_dict(self), recursive=recursive, **kwargs)
         self._data.converted.update(data)
         if kwargs.get('validate'):
             self.validate(convert=False)
@@ -282,7 +282,7 @@ class Model(object):
         :param raw_data:
             New data to be imported and converted
         """
-        raw_data = dict(raw_data) if raw_data else self._data.converted
+        raw_data = _dict(raw_data) if raw_data else self._data.converted
         kwargs['trusted_data'] = kwargs.get('trusted_data') or {}
         kwargs['convert'] = getattr(context, 'convert', kwargs.get('convert', True))
         if self._data.unsafe:

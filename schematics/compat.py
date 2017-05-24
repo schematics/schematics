@@ -76,3 +76,7 @@ def repr_compat(class_):
         if '__repr__' in class_.__dict__:
             class_.__repr__ = py_native_string(class_.__repr__)
     return class_
+
+
+def _dict(mapping):
+    return dict((key, mapping[key]) for key in mapping)
