@@ -37,6 +37,8 @@ def atoms(schema, mapping, keys=Atom._fields, filter=None):
     if not set(keys).issubset(Atom._fields):
         raise TypeError('invalid key specified')
 
+    has_name = 'name' in keys
+    has_field = 'field' in keys
     has_value = (mapping is not None) and ('value' in keys)
 
     for field_name, field in iteritems(schema.fields):
@@ -49,8 +51,8 @@ def atoms(schema, mapping, keys=Atom._fields, filter=None):
                 value = Undefined
 
         atom_tuple = Atom(
-            name=field_name if 'name' in keys else None,
-            field=field if 'field' in keys else None,
+            name=field_name if has_name else None,
+            field=field if has_field else None,
             value=value)
         if filter is None:
             yield atom_tuple
