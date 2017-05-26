@@ -1,3 +1,4 @@
+
 from .compat import iteritems
 from .datastructures import OrderedDict
 from .types.serializable import Serializable
@@ -7,12 +8,16 @@ import warnings
 import functools
 
 
+class SchematicsDeprecationWarning(DeprecationWarning):
+    pass
+
+
 def deprecated(func):
     @functools.wraps(func)
     def new_func(*args, **kwargs):
         warnings.warn(
             "Call to deprecated function {0}.".format(func.__name__),
-            category=DeprecationWarning,
+            category=SchematicsDeprecationWarning,
             stacklevel=2
         )
         return func(*args, **kwargs)
