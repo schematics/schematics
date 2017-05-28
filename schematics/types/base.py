@@ -839,6 +839,8 @@ class DateTimeType(BaseType):
                 value = float(value)
             except ValueError:
                 dt = self.from_string(value)
+            except TypeError:
+                raise ConversionError(self.messages['parse'].format(value))
             else:
                 dt = self.from_timestamp(value)
             if not dt:
