@@ -98,6 +98,14 @@ def test_parse_reject_tzd():
     assert dt == datetime(2015, 11, 8, 12, 34)
 
 
+def test_parse_reject_invalid_type():
+
+    field = DateTimeType()
+
+    with pytest.raises(ConversionError):
+        field.to_native(['2017-04-30'])
+
+
 def test_parse_from_timestamp():
 
     field = DateTimeType()
