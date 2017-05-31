@@ -414,6 +414,51 @@ def test_deep_errors_with_dicts():
     }
 
 
+def test_custom_validator_raising_dicterror():
+    class Foo(Model):
+        bar = DictType(IntType(required=True), required=True)
+        eggs = IntType(required=True, min_value=10)
+
+        @classmethod
+        def validate_bar(cls, data, value):
+            errors = {}
+
+            if 'a' not in value:
+                errors['a'] = ValidationError('Key a must be set.')
+            if 'b' not in value:
+                errors['b'] = ValidationError('Key b must be set.')
+
+            if errors:
+                raise DataError(errors)
+
+    valid_data = {
+        'bar': {
+            'a': 1,
+            'b': 1,
+        },
+        'eggs': 10
+    }
+    foo = Foo(valid_data)
+    foo.validate()
+
+    invalid_data = foo.serialize()
+    del invalid_data['bar']['a']
+    invalid_data['eggs'] = 1
+
+    foo = Foo(invalid_data)
+    with pytest.raises(DataError) as exception:
+        foo.validate()
+
+    messages = exception.value.messages
+
+    assert messages == {
+        'bar': {
+            'a': [u'Key a must be set.']
+        },
+        'eggs': [u'Int value should be greater than or equal to 10.']
+    }
+
+
 def test_type_validator_inheritance():
 
     class CustomIntType(IntType):
