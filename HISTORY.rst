@@ -1,3 +1,18 @@
+2.0.1 / 2017-05-30
+==================
+- Support for raising DataError inside custom validate_fieldname methods.
+   `#441 <https://github.com/schematics/schematics/pull/441>`__
+   (`alexhayes <https://github.com/alexhayes>`__)
+- Add specialized SchematicsDeprecationWarning.
+   (`lkraider <https://github.com/lkraider>`__)
+- DateTimeType to_native method should handle type errors gracefully.
+   `#491 <https://github.com/schematics/schematics/pull/491>`__
+   (`e271828- <https://github.com/e271828->`__)
+- Allow fields names to override the mapping-interface methods.
+   `#489 <https://github.com/schematics/schematics/pull/489>`__
+   (`toumorokoshi <https://github.com/toumorokoshi>`__)
+   (`lkraider <https://github.com/lkraider>`__)
+
 2.0.0 / 2017-05-22
 ==================
 **[BREAKING CHANGE]**
