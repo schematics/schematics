@@ -35,11 +35,6 @@ class BaseError(Exception):
     def errors(self):
         return self.args[0]
 
-    @property
-    def messages(self):
-        """ an alias for errors, provided for compatibility with V1. """
-        return self.errors
-
     def to_primitive(self):
         """
         converts the errors dict to a primitive representation of dicts,
@@ -206,8 +201,6 @@ class StopValidationError(ValidationError):
     """Exception raised when no more validation need occur."""
     type = ValidationError
 
-StopValidation = StopValidationError # v1
-
 
 class CompoundError(BaseError):
 
@@ -227,9 +220,6 @@ class DataError(CompoundError):
     def __init__(self, errors, partial_data=None):
         super(DataError, self).__init__(errors)
         self.partial_data = partial_data
-
-ModelConversionError = DataError # v1
-ModelValidationError = DataError # v1
 
 
 class MockCreationError(ValueError):

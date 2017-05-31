@@ -110,6 +110,15 @@ class ModelCompatibilityMixin(object):
             context=context, **kw)
 
 
+class BaseErrorV1Mixin(object):
+
+    @property
+    @deprecated
+    def messages(self):
+        """ an alias for errors, provided for compatibility with V1. """
+        return self.errors
+
+
 def patch_models():
     global models_Model
     from . import schema
@@ -130,6 +139,15 @@ def patch_schema():
     schema.Schema = Schema
 
 
+def patch_exceptions():
+    from . import exceptions
+    exceptions.BaseError.messages = BaseErrorV1Mixin.messages
+    exceptions.ModelConversionError = exceptions.DataError  # v1
+    exceptions.ModelValidationError = exceptions.DataError  # v1
+    exceptions.StopValidation = exceptions.StopValidationError  # v1
+
+
 def patch_all():
     patch_schema()
     patch_models()
+    patch_exceptions()
