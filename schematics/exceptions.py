@@ -6,6 +6,7 @@ import json
 
 from collections import Sequence, Mapping
 
+from schematics.translator import LazyText
 from .common import *
 from .compat import string_type, str_compat
 from .datastructures import FrozenDict, FrozenList
@@ -158,8 +159,8 @@ class FieldError(BaseError, Sequence):
             items = args
         errors = []
         for item in items:
-            if isinstance(item, string_type):
-                errors.append(ErrorMessage(item))
+            if isinstance(item, (string_type, LazyText)):
+                errors.append(ErrorMessage(str(item)))
             elif isinstance(item, tuple):
                 errors.append(ErrorMessage(*item))
             elif isinstance(item, ErrorMessage):

@@ -17,6 +17,7 @@ except ImportError: # PY2
 
 from ..common import * # pylint: disable=redefined-builtin
 from ..exceptions import ValidationError, StopValidationError
+from ..translator import _
 
 from .base import StringType, fill_template
 
@@ -59,7 +60,7 @@ class IPAddressType(StringType):
 
     def validate_(self, value, context=None):
         if not self.valid_ip(value):
-            raise ValidationError('Invalid IP%s address' % (self.VERSION or ''))
+            raise ValidationError(_('Invalid IP%s address', lazy=False) % (self.VERSION or ''))
 
 
 class IPv4Type(IPAddressType):
@@ -76,7 +77,7 @@ class IPv6Type(IPAddressType):
     """A field that stores a valid IPv6 address."""
 
     VERSION = 'v6'
-    REGEX = re.compile('^%s$' % IPV6, re.I + re.X)
+    REGEX = re.compile(r'^%s$' % IPV6, re.I + re.X)
 
     def _mock(self, context=None):
         return '.'.join(str(random.randrange(256)) for _ in range(4))
@@ -102,7 +103,7 @@ class MACAddressType(StringType):
 
     def validate_(self, value, context=None):
         if not bool(self.REGEX.match(value)):
-            raise ValidationError('Invalid MAC address')
+            raise ValidationError(_('Invalid MAC address'))
 
     def to_primitive(self, value, context=None):
         value = value.replace(':', '').replace('.', '').replace('-', '')
@@ -250,7 +251,7 @@ class EmailType(StringType):
     """
 
     MESSAGES = {
-        'email': "Not a well-formed email address."
+        'email': _("Not a well-formed email address.")
     }
 
     EMAIL_REGEX = re.compile(r"""^(
