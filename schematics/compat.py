@@ -7,7 +7,7 @@ import operator
 import sys
 
 
-__all__ = ['PY2', 'PY3', 'string_type', 'iteritems', 'metaclass', 'py_native_string', 'str_compat']
+__all__ = ['PY2', 'PY3', 'string_type', 'iteritems', 'metaclass', 'py_native_string', 'reraise', 'str_compat']
 
 
 PY2 = sys.version_info[0] == 2
@@ -24,10 +24,19 @@ if PY2:
     from itertools import izip as zip
     iteritems = operator.methodcaller('iteritems')
     itervalues = operator.methodcaller('itervalues')
+
+    # reraise code taken from werzeug BSD license at https://github.com/pallets/werkzeug/blob/master/LICENSE
+    exec('def reraise(tp, value, tb=None):\n raise tp, value, tb')
 else:
     string_type = str
     iteritems = operator.methodcaller('items')
     itervalues = operator.methodcaller('values')
+
+    # reraise code taken from werzeug BSD license at https://github.com/pallets/werkzeug/blob/master/LICENSE
+    def reraise(tp, value, tb=None):
+        if value.__traceback__ is not tb:
+            raise value.with_traceback(tb)
+        raise value
 
 
 def metaclass(metaclass):

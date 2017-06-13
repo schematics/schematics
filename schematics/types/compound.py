@@ -19,7 +19,7 @@ from ..transforms import (
     get_import_context, get_export_context,
     to_native_converter, to_primitive_converter)
 from ..translator import _
-from ..util import get_all_subclasses
+from ..util import get_all_subclasses, import_string
 
 from .base import BaseType, get_value_in
 
@@ -92,16 +92,25 @@ class ModelType(CompoundType):
     def fields(self):
         return self.model_class.fields
 
+    @property
+    def model_class(self):
+        if self._model_class:
+            return self._model_class
+
+        model_class = import_string(self.model_name)
+        self._model_class = model_class
+        return model_class
+
     def __init__(self,
                  model_spec,  # type: typing.Type[T]
                  **kwargs):
         # type: (...) -> T
 
         if isinstance(model_spec, ModelMeta):
-            self.model_class = model_spec
+            self._model_class = model_spec
             self.model_name = self.model_class.__name__
         elif isinstance(model_spec, string_type):
-            self.model_class = None
+            self._model_class = None
             self.model_name = model_spec
         else:
             raise TypeError("ModelType: Expected a model, got an argument "
@@ -117,11 +126,11 @@ class ModelType(CompoundType):
 
     def _setup(self, field_name, owner_model):
         # Resolve possible name-based model reference.
-        if not self.model_class:
+        if not self._model_class:
             if self.model_name == owner_model.__name__:
-                self.model_class = owner_model
+                self._model_class = owner_model
             else:
-                raise Exception("ModelType: Unable to resolve model '{}'.".format(self.model_name))
+                pass  # Intentionally left blank, it will be setup later.
         super(ModelType, self)._setup(field_name, owner_model)
 
     def pre_setattr(self, value):
@@ -133,14 +142,14 @@ class ModelType(CompoundType):
         return value
 
     def _convert(self, value, context):
-
-        if isinstance(value, self.model_class):
+        field_model_class = self.model_class
+        if isinstance(value, field_model_class):
             model_class = type(value)
         elif isinstance(value, dict):
-            model_class = self.model_class
+            model_class = field_model_class
         else:
             raise ConversionError(
-                _("Input must be a mapping or '%s' instance") % self.model_class.__name__)
+                _("Input must be a mapping or '%s' instance") % field_model_class.__name__)
         if context.convert and context.oo:
             return model_class(value, context=context)
         else:

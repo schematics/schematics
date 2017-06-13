@@ -4,6 +4,7 @@ from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.types.compound import ModelType, ListType
 from schematics.exceptions import DataError
+from schematics.util import ImportStringError
 
 
 def test_simple_embedded_models():
@@ -263,3 +264,21 @@ def test_model_app_data_pass_to_type():
     thing = Thing(input, app_data=app_data)
     assert thing.x == 'thingiez'
     assert thing.to_primitive(app_data=app_data) == {'x': 'thingie'}
+
+
+class OuterModel:
+    class InnerModel(Model):
+        test = StringType()
+
+
+def test_deep_string_search():
+    class TestModel(Model):
+        deep_model = ModelType('test_model_type.OuterModel.InnerModel')
+
+    test = TestModel(dict(deep_model=dict(test='Abc')))
+    assert test.validate() is None
+
+    class TestModel2(Model):
+        invalid_model = ModelType('a.c.d.e')
+    with pytest.raises(ImportStringError):
+        TestModel2(dict(invalid_model=dict(a='1')))
