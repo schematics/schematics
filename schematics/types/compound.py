@@ -11,6 +11,7 @@ from ..transforms import (
     export_loop,
     get_import_context, get_export_context,
     to_native_converter, to_primitive_converter)
+from ..translator import _
 
 from .base import BaseType, get_value_in
 
@@ -116,7 +117,7 @@ class ModelType(CompoundType):
         if value is not None \
           and not isinstance(value, Model):
             if not isinstance(value, dict):
-                raise ConversionError('Model conversion requires a model or dict')
+                raise ConversionError(_('Model conversion requires a model or dict'))
             value = self.model_class(value)
         return value
 
@@ -128,7 +129,7 @@ class ModelType(CompoundType):
             model_class = self.model_class
         else:
             raise ConversionError(
-                "Input must be a mapping or '%s' instance" % self.model_class.__name__)
+                _("Input must be a mapping or '%s' instance") % self.model_class.__name__)
         if context.convert and context.oo:
             return model_class(value, context=context)
         else:
@@ -175,11 +176,11 @@ class ListType(CompoundType):
         min_size = self.min_size or 1
         max_size = self.max_size or 1
         if min_size > max_size:
-            message = 'Minimum list size is greater than maximum list size.'
+            message = _('Minimum list size is greater than maximum list size.')
             raise MockCreationError(message)
         random_length = get_value_in(min_size, max_size)
 
-        return [self.field._mock(context) for _ in range(random_length)]
+        return [self.field._mock(context) for dummy in range(random_length)]
 
     def _coerce(self, value):
         if isinstance(value, list):
@@ -190,7 +191,7 @@ class ListType(CompoundType):
             return value
         elif isinstance(value, Iterable):
             return value
-        raise ConversionError('Could not interpret the value as a list')
+        raise ConversionError(_('Could not interpret the value as a list'))
 
     def _convert(self, value, context):
         value = self._coerce(value)
@@ -210,15 +211,15 @@ class ListType(CompoundType):
 
         if self.min_size is not None and list_length < self.min_size:
             message = ({
-                True: 'Please provide at least %d item.',
-                False: 'Please provide at least %d items.',
+                True: _('Please provide at least %d item.'),
+                False: _('Please provide at least %d items.'),
             }[self.min_size == 1]) % self.min_size
             raise ValidationError(message)
 
         if self.max_size is not None and list_length > self.max_size:
             message = ({
-                True: 'Please provide no more than %d item.',
-                False: 'Please provide no more than %d items.',
+                True: _('Please provide no more than %d item.'),
+                False: _('Please provide no more than %d items.'),
             }[self.max_size == 1]) % self.max_size
             raise ValidationError(message)
 
@@ -271,7 +272,7 @@ class DictType(CompoundType):
 
     def _convert(self, value, context, safe=False):
         if not isinstance(value, Mapping):
-            raise ConversionError('Only mappings may be used in a DictType')
+            raise ConversionError(_('Only mappings may be used in a DictType'))
 
         data = {}
         errors = {}
@@ -363,8 +364,8 @@ class PolyModelType(CompoundType):
                     cls.__name__ for cls in self.model_classes))
             else:
                 instanceof_msg = self.model_classes[0].__name__
-            raise ConversionError('Please use a mapping for this field or '
-                                    'an instance of {}'.format(instanceof_msg))
+            raise ConversionError(_('Please use a mapping for this field or '
+                                    'an instance of {}').format(instanceof_msg))
 
         model_class = self.find_model(value)
         return model_class(value, context=context)

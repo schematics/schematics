@@ -7,6 +7,7 @@ from __future__ import unicode_literals, absolute_import
 import bson
 
 from ..common import * # pylint: disable=redefined-builtin
+from ..translator import _
 from ..types import BaseType
 from ..exceptions import ConversionError
 
@@ -21,7 +22,7 @@ class ObjectIdType(BaseType):
     """
 
     MESSAGES = {
-        'convert': "Couldn't interpret value as an ObjectId.",
+        'convert': _("Couldn't interpret value as an ObjectId."),
     }
 
     def __init__(self, auto_fill=False, **kwargs):
