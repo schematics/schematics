@@ -403,14 +403,14 @@ class StringType(BaseType):
     def validate_length(self, value, context=None):
         length = len(value)
         if self.max_length is not None and length > self.max_length:
-            raise ValidationError(str(self.messages['max_length']))
+            raise ValidationError(self.messages['max_length'])
 
         if self.min_length is not None and length < self.min_length:
-            raise ValidationError(str(self.messages['min_length']))
+            raise ValidationError(self.messages['min_length'])
 
     def validate_regex(self, value, context=None):
         if self.regex is not None and self.regex.match(value) is None:
-            raise ValidationError(str(self.messages['regex']))
+            raise ValidationError(self.messages['regex'])
 
 
 class NumberType(BaseType):
@@ -832,7 +832,7 @@ class DateTimeType(BaseType):
             try:
                 dt = self.parser(value)
             except:
-                raise ConversionError(str(self.messages['parse_external']).format(value))
+                raise ConversionError(self.messages['parse_external'].format(value))
         else:
             # Use built-in parser.
             try:

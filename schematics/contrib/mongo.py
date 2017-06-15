@@ -34,7 +34,7 @@ class ObjectIdType(BaseType):
             try:
                 value = bson.objectid.ObjectId(str(value))
             except bson.objectid.InvalidId:
-                raise ConversionError(str(self.messages['convert']))
+                raise ConversionError(self.messages['convert'])
         return value
 
     def to_primitive(self, value, context=None):

@@ -1,6 +1,8 @@
 # coding: utf-8
+from .compat import str_compat
 
 
+@str_compat
 class LazyText(object):
     def __init__(self, message):
         self.message = message
