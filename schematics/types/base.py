@@ -322,8 +322,7 @@ class BaseType(object):
     def validate_choices(self, value, context):
         if self.choices is not None:
             if value not in self.choices:
-                raise ValidationError(str(self.messages['choices'])
-                                      .format(str(self.choices)))
+                raise ValidationError(self.messages['choices'].format(str(self.choices)))
 
     def mock(self, context=None):
         if not self.required and not random.choice([True, False]):
@@ -353,7 +352,7 @@ class UUIDType(BaseType):
             try:
                 value = uuid.UUID(value)
             except (TypeError, ValueError):
-                raise ConversionError(str(self.messages['convert']).format(value))
+                raise ConversionError(self.messages['convert'].format(value))
         return value
 
     def to_primitive(self, value, context=None):
@@ -394,24 +393,24 @@ class StringType(BaseType):
                 try:
                     return str(value, 'utf-8')
                 except UnicodeError:
-                    raise ConversionError(str(self.messages['decode']).format(value))
+                    raise ConversionError(self.messages['decode'].format(value))
             elif isinstance(value, bool):
                 pass
             else:
                 return str(value)
-        raise ConversionError(str(self.messages['convert']).format(value))
+        raise ConversionError(self.messages['convert'].format(value))
 
     def validate_length(self, value, context=None):
         length = len(value)
         if self.max_length is not None and length > self.max_length:
-            raise ValidationError(self.messages['max_length'])
+            raise ValidationError(str(self.messages['max_length']))
 
         if self.min_length is not None and length < self.min_length:
-            raise ValidationError(self.messages['min_length'])
+            raise ValidationError(str(self.messages['min_length']))
 
     def validate_regex(self, value, context=None):
         if self.regex is not None and self.regex.match(value) is None:
-            raise ValidationError(self.messages['regex'])
+            raise ValidationError(str(self.messages['regex']))
 
 
 class NumberType(BaseType):
@@ -456,16 +455,16 @@ class NumberType(BaseType):
             if isinstance(value, (string_type, numbers.Integral)):
                 return native_value
 
-        raise ConversionError(str(self.messages['number_coerce'])
+        raise ConversionError(self.messages['number_coerce']
                               .format(value, self.number_type.lower()))
 
     def validate_range(self, value, context=None):
         if self.min_value is not None and value < self.min_value:
-            raise ValidationError(str(self.messages['number_min'])
+            raise ValidationError(self.messages['number_min']
                                   .format(self.number_type, self.min_value))
 
         if self.max_value is not None and value > self.max_value:
-            raise ValidationError(str(self.messages['number_max'])
+            raise ValidationError(self.messages['number_max']
                                   .format(self.number_type, self.max_value))
 
         return value
@@ -659,7 +658,7 @@ class DateType(BaseType):
             except (ValueError, TypeError):
                 continue
         else:
-            raise ConversionError(str(self.conversion_errmsg).format(value, ", ".join(self.formats)))
+            raise ConversionError(self.conversion_errmsg.format(value, ", ".join(self.formats)))
 
     def to_primitive(self, value, context=None):
         return value.strftime(self.serialized_format)
@@ -806,12 +805,12 @@ class DateTimeType(BaseType):
             if value.tzinfo is None:
                 if not self.drop_tzinfo:
                     if self.tzd == 'require':
-                        raise ConversionError(str(self.messages['tzd_require']).format(value))
+                        raise ConversionError(self.messages['tzd_require'].format(value))
                     if self.tzd == 'utc':
                         value = value.replace(tzinfo=self.UTC)
             else:
                 if self.tzd == 'reject':
-                    raise ConversionError(str(self.messages['tzd_reject']).format(value))
+                    raise ConversionError(self.messages['tzd_reject'].format(value))
                 if self.convert_tz:
                     value = value.astimezone(self.UTC)
                 if self.drop_tzinfo:
@@ -841,20 +840,20 @@ class DateTimeType(BaseType):
             except ValueError:
                 dt = self.from_string(value)
             except TypeError:
-                raise ConversionError(str(self.messages['parse']).format(value))
+                raise ConversionError(self.messages['parse'].format(value))
             else:
                 dt = self.from_timestamp(value)
             if not dt:
-                raise ConversionError(str(self.messages['parse']).format(value))
+                raise ConversionError(self.messages['parse'].format(value))
 
         if dt.tzinfo is None:
             if self.tzd == 'require':
-                raise ConversionError(str(self.messages['parse_tzd_require']).format(value))
+                raise ConversionError(self.messages['parse_tzd_require'].format(value))
             if self.tzd == 'utc' and not self.drop_tzinfo:
                 dt = dt.replace(tzinfo=self.UTC)
         else:
             if self.tzd == 'reject':
-                raise ConversionError(str(self.messages['parse_tzd_reject']).format(value))
+                raise ConversionError(self.messages['parse_tzd_reject'].format(value))
             if self.convert_tz:
                 dt = dt.astimezone(self.UTC)
             if self.drop_tzinfo:
@@ -993,19 +992,19 @@ class GeoPointType(BaseType):
         latitude, longitude = self._normalize(value)
         if latitude < -90:
             raise ValidationError(
-                str(self.messages['point_min']).format('Latitude', latitude, '-90')
+                self.messages['point_min'].format('Latitude', latitude, '-90')
             )
         if latitude > 90:
             raise ValidationError(
-                str(self.messages['point_max']).format('Latitude', latitude, '90')
+                self.messages['point_max'].format('Latitude', latitude, '90')
             )
         if longitude < -180:
             raise ValidationError(
-                str(self.messages['point_min']).format('Longitude', longitude, -180)
+                self.messages['point_min'].format('Longitude', longitude, -180)
             )
         if longitude > 180:
             raise ValidationError(
-                str(self.messages['point_max']).format('Longitude', longitude, 180)
+                self.messages['point_max'].format('Longitude', longitude, 180)
             )
 
 
@@ -1109,10 +1108,10 @@ class MultilingualStringType(BaseType):
             len_of_value = len(localized) if localized else 0
 
             if self.max_length is not None and len_of_value > self.max_length:
-                raise ValidationError(str(self.messages['max_length']).format(locale))
+                raise ValidationError(self.messages['max_length'].format(locale))
 
             if self.min_length is not None and len_of_value < self.min_length:
-                raise ValidationError(str(self.messages['min_length']).format(locale))
+                raise ValidationError(self.messages['min_length'].format(locale))
 
     def validate_regex(self, value, context=None):
         if self.regex is None and self.locale_regex is None:
@@ -1121,11 +1120,11 @@ class MultilingualStringType(BaseType):
         for locale, localized in value.items():
             if self.regex is not None and self.regex.match(localized) is None:
                 raise ValidationError(
-                    str(self.messages['regex_localized']).format(locale))
+                    self.messages['regex_localized'].format(locale))
 
             if self.locale_regex is not None and self.locale_regex.match(locale) is None:
                 raise ValidationError(
-                    str(self.messages['regex_locale']).format(locale))
+                    self.messages['regex_locale'].format(locale))
 
 
 __all__ = [name for name, obj in globals().items() if isinstance(obj, TypeMeta)]

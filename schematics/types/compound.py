@@ -117,7 +117,7 @@ class ModelType(CompoundType):
         if value is not None \
           and not isinstance(value, Model):
             if not isinstance(value, dict):
-                raise ConversionError('Model conversion requires a model or dict')
+                raise ConversionError(_('Model conversion requires a model or dict'))
             value = self.model_class(value)
         return value
 
@@ -129,7 +129,7 @@ class ModelType(CompoundType):
             model_class = self.model_class
         else:
             raise ConversionError(
-                _("Input must be a mapping or '%s' instance", lazy=False) % self.model_class.__name__)
+                _("Input must be a mapping or '%s' instance") % self.model_class.__name__)
         if context.convert and context.oo:
             return model_class(value, context=context)
         else:
@@ -176,7 +176,7 @@ class ListType(CompoundType):
         min_size = self.min_size or 1
         max_size = self.max_size or 1
         if min_size > max_size:
-            message = _('Minimum list size is greater than maximum list size.', lazy=False)
+            message = _('Minimum list size is greater than maximum list size.')
             raise MockCreationError(message)
         random_length = get_value_in(min_size, max_size)
 
@@ -191,7 +191,7 @@ class ListType(CompoundType):
             return value
         elif isinstance(value, Iterable):
             return value
-        raise ConversionError(_('Could not interpret the value as a list', lazy=False))
+        raise ConversionError(_('Could not interpret the value as a list'))
 
     def _convert(self, value, context):
         value = self._coerce(value)
@@ -211,15 +211,15 @@ class ListType(CompoundType):
 
         if self.min_size is not None and list_length < self.min_size:
             message = ({
-                True: _('Please provide at least %d item.', lazy=False),
-                False: _('Please provide at least %d items.', lazy=False),
+                True: _('Please provide at least %d item.'),
+                False: _('Please provide at least %d items.'),
             }[self.min_size == 1]) % self.min_size
             raise ValidationError(message)
 
         if self.max_size is not None and list_length > self.max_size:
             message = ({
-                True: _('Please provide no more than %d item.', lazy=False),
-                False: _('Please provide no more than %d items.', lazy=False),
+                True: _('Please provide no more than %d item.'),
+                False: _('Please provide no more than %d items.'),
             }[self.max_size == 1]) % self.max_size
             raise ValidationError(message)
 

@@ -60,7 +60,7 @@ class IPAddressType(StringType):
 
     def validate_(self, value, context=None):
         if not self.valid_ip(value):
-            raise ValidationError(_('Invalid IP%s address', lazy=False) % (self.VERSION or ''))
+            raise ValidationError(_('Invalid IP%s address') % (self.VERSION or ''))
 
 
 class IPv4Type(IPAddressType):

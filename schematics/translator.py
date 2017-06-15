@@ -6,6 +6,12 @@ class LazyText(object):
         translator = _.real_translator
         return translator(self.message) if translator else self.message
 
+    def __mod__(self, other):
+        return str(self) % other
+
+    def format(self, *args, **kwargs):
+        return str(self).format(*args, **kwargs)
+
 
 class Translator(object):
     """A placeholder which could call a function like lazy_gettext and make messages translatable."""
