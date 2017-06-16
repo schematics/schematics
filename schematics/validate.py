@@ -87,7 +87,8 @@ def _validate_model(schema, mutable, data, context):
     has_validator = lambda atom: atom.name in schema._validator_functions
     for field_name, field, value in atoms(schema, data, filter=has_validator):
         try:
-            schema._validator_functions[field_name](mutable, data, value, context)
+            if field_name in data:
+                schema._validator_functions[field_name](mutable, data, value, context)
         except (FieldError, DataError) as exc:
             serialized_field_name = field.serialized_name or field_name
             errors[serialized_field_name] = exc.errors
