@@ -2,6 +2,11 @@
 
 from __future__ import unicode_literals, absolute_import
 
+try:
+    import typing
+except ImportError:
+    pass
+
 import copy
 import datetime
 import decimal
@@ -344,6 +349,11 @@ class UUIDType(BaseType):
         'convert': _("Couldn't interpret '{0}' value as UUID."),
     }
 
+
+    def __init__(self, **kwargs):
+        # type: (...) -> uuid.UUID
+        super(UUIDType, self).__init__(**kwargs)
+
     def _mock(self, context=None):
         return uuid.uuid4()
 
@@ -376,6 +386,8 @@ class StringType(BaseType):
     }
 
     def __init__(self, regex=None, max_length=None, min_length=None, **kwargs):
+        # type: (...) -> typing.Text
+
         self.regex = re.compile(regex) if regex else None
         self.max_length = max_length
         self.min_length = min_length
@@ -429,6 +441,8 @@ class NumberType(BaseType):
     }
 
     def __init__(self, min_value=None, max_value=None, strict=False, **kwargs):
+        # type: (...) -> typing.Union[int, float]
+
         self.min_value = min_value
         self.max_value = max_value
         self.strict = strict
@@ -479,6 +493,10 @@ class IntType(NumberType):
     native_type = int
     number_type = 'Int'
 
+    def __init__(self, **kwargs):
+        # type: (...) -> int
+        super(IntType, self).__init__(**kwargs)
+
 
 LongType = IntType
 
@@ -491,6 +509,10 @@ class FloatType(NumberType):
     primitive_type = float
     native_type = float
     number_type = 'Float'
+
+    def __init__(self, **kwargs):
+        # type: (...) -> float
+        super(FloatType, self).__init__(**kwargs)
 
 
 class DecimalType(BaseType):
@@ -508,8 +530,9 @@ class DecimalType(BaseType):
     }
 
     def __init__(self, min_value=None, max_value=None, **kwargs):
-        self.min_value, self.max_value = min_value, max_value
+        # type: (...) -> decimal.Decimal
 
+        self.min_value, self.max_value = min_value, max_value
         super(DecimalType, self).__init__(**kwargs)
 
     def _mock(self, context=None):
@@ -595,6 +618,10 @@ class BooleanType(BaseType):
     TRUE_VALUES = ('True', 'true', '1')
     FALSE_VALUES = ('False', 'false', '0')
 
+    def __init__(self, **kwargs):
+        # type: (...) -> bool
+        super(BooleanType, self).__init__(**kwargs)
+
     def _mock(self, context=None):
         return random.choice([True, False])
 
@@ -629,6 +656,7 @@ class DateType(BaseType):
     }
 
     def __init__(self, formats=None, **kwargs):
+        # type: (...) -> datetime.date
 
         if formats:
             self.formats = listify(formats)
@@ -767,6 +795,7 @@ class DateTimeType(BaseType):
 
     def __init__(self, formats=None, serialized_format=None, parser=None,
                  tzd='allow', convert_tz=False, drop_tzinfo=False, **kwargs):
+        # type: (...) -> datetime.datetime
 
         if tzd not in ('require', 'allow', 'utc', 'reject'):
             raise ValueError("DateTimeType.__init__() got an invalid value for parameter 'tzd'")
@@ -925,6 +954,7 @@ class UTCDateTimeType(DateTimeType):
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
     def __init__(self, formats=None, parser=None, tzd='utc', convert_tz=True, drop_tzinfo=True, **kwargs):
+        # type: (...) -> datetime.datetime
         super(UTCDateTimeType, self).__init__(formats=formats, parser=parser, tzd=tzd,
                                               convert_tz=convert_tz, drop_tzinfo=drop_tzinfo, **kwargs)
 
@@ -939,6 +969,7 @@ class TimestampType(DateTimeType):
     primitive_type = float
 
     def __init__(self, formats=None, parser=None, drop_tzinfo=False, **kwargs):
+        # type: (...) -> datetime.datetime
         super(TimestampType, self).__init__(formats=formats, parser=parser, tzd='require',
                                             convert_tz=True, drop_tzinfo=drop_tzinfo, **kwargs)
 
