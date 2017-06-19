@@ -484,6 +484,30 @@ def test_model_field_validate_structure():
         Card({'user': [1, 2]})
 
 
+def test_model_field_validate_only_when_field_is_set():
+    class M(Model):
+        foo = StringType(required=True)
+
+        def validate_foo(self, data, value):
+            if data['foo'] and 'foo' not in data['foo']:
+                raise ValidationError('Illegal value')
+
+    m = M({})
+    with pytest.raises(DataError) as e:
+        m.validate()
+        assert isinstance(e['foo'], ConversionError)
+        assert 'This field is required' in e['foo']
+
+    m = M({'foo': 'bar'})
+    with pytest.raises(DataError) as e:
+        m.validate()
+        assert isinstance(e['foo'][0], ErrorMessage)
+        assert 'Illegal value' in e['foo'][0]
+
+    m = M({'foo': 'foobar'})
+    m.validate()
+
+
 def test_model_deserialize_from_with_list():
     class User(Model):
         username = StringType(deserialize_from=['name', 'user'])
@@ -702,4 +726,3 @@ def test_mock_recursive_model():
         m = ListType(ModelType('M', required=True), required=True)
 
     M.get_mock_object()
-
