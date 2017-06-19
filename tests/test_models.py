@@ -485,26 +485,45 @@ def test_model_field_validate_structure():
 
 
 def test_model_field_validate_only_when_field_is_set():
-    class M(Model):
+    class M0(Model):
+        bar = StringType()
+
+        def validate_bar(self, data, value):
+            if data['bar'] and 'bar' not in data['bar']:
+                raise ValidationError('Illegal value')
+
+    class M1(Model):
         foo = StringType(required=True)
 
         def validate_foo(self, data, value):
-            if data['foo'] and 'foo' not in data['foo']:
+            if 'foo' not in data['foo']:
                 raise ValidationError('Illegal value')
 
-    m = M({})
-    with pytest.raises(DataError) as e:
-        m.validate()
-        assert isinstance(e['foo'], ConversionError)
-        assert 'This field is required' in e['foo']
+    m = M0({})
+    m.validate()
 
-    m = M({'foo': 'bar'})
+    m = M0({'bar': 'foo'})
     with pytest.raises(DataError) as e:
         m.validate()
         assert isinstance(e['foo'][0], ErrorMessage)
         assert 'Illegal value' in e['foo'][0]
 
-    m = M({'foo': 'foobar'})
+    m = M0({'bar': 'foobar'})
+    m.validate()
+
+    m = M1({})
+    with pytest.raises(DataError) as e:
+        m.validate()
+        assert isinstance(e['foo'], ConversionError)
+        assert 'This field is required' in e['foo']
+
+    m = M1({'foo': 'bar'})
+    with pytest.raises(DataError) as e:
+        m.validate()
+        assert isinstance(e['foo'][0], ErrorMessage)
+        assert 'Illegal value' in e['foo'][0]
+
+    m = M1({'foo': 'foobar'})
     m.validate()
 
 
