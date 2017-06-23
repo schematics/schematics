@@ -7,6 +7,7 @@ import itertools
 
 from ..exceptions import ValidationError, ConversionError, ModelValidationError, StopValidation
 from ..transforms import export_loop, EMPTY_LIST, EMPTY_DICT
+
 from .base import BaseType
 
 from six import iteritems
@@ -357,10 +358,7 @@ class PolyModelType(MultiType):
         if self.claim_function:
             chosen_class = self.claim_function(self, data)
         else:
-            candidates = self.model_classes
-            if self.allow_subclasses:
-                candidates = itertools.chain.from_iterable(
-                                 ([m] + m._subclasses for m in candidates))
+            candidates = self._get_candidates()
             fallback = None
             matching_classes = []
             for cls in candidates:
@@ -399,6 +397,26 @@ class PolyModelType(MultiType):
             return shaped
         elif print_none:
             return shaped
+
+    def _get_candidates(self):
+        candidates = self.model_classes
+
+        if self.allow_subclasses:
+            candidates = itertools.chain.from_iterable(
+                ([m] + get_all_subclasses(m) for m in candidates)
+            )
+
+        return candidates
+
+
+def get_all_subclasses(cls):
+    all_subclasses = []
+
+    for subclass in cls.__subclasses__():
+        all_subclasses.append(subclass)
+        all_subclasses.extend(get_all_subclasses(subclass))
+
+    return all_subclasses
 
 
 from ..models import Model
