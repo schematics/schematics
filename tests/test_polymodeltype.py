@@ -3,6 +3,7 @@ import pytest
 from schematics.models import Model
 from schematics.types import StringType
 from schematics.types.compound import PolyModelType, ListType
+from schematics.util import get_all_subclasses
 
 
 class A(Model): # fallback model (doesn't define a claim method)
@@ -42,11 +43,13 @@ class Foo(Model):
     cfn    = PolyModelType([B, C], claim_function=claim_func)
 
 
-def test_subclass_registry():
+def test_get_all_subclasses():
+    assert A.__subclasses__() == [Aaa, B]
+    assert B.__subclasses__() == [C]
+    assert C.__subclasses__() == []
 
-    assert A._subclasses == [Aaa, B, C]
-    assert B._subclasses == [C]
-    assert C._subclasses == []
+    assert get_all_subclasses(A) == [Aaa, B, C]
+
 
 def test_inheritance_based_polymorphic(): # base
 
@@ -127,4 +130,3 @@ def test_specify_model_by_name():
     assert M.single.is_allowed_model(M())
     assert M.multi.is_allowed_model(M())
     assert M.nested.field.field.is_allowed_model(M())
-
