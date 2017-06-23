@@ -179,12 +179,6 @@ class ModelMeta(type):
             set_owner_model(field, klass)
             field.name = field_name
 
-        # Register class on ancestor models
-        klass._subclasses = []
-        for base in klass.__mro__[1:]:
-            if isinstance(base, ModelMeta):
-                base._subclasses.append(klass)
-
         return klass
 
     @classmethod
