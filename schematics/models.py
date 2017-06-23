@@ -114,12 +114,6 @@ class ModelMeta(type):
         klass._schema = schema.Schema(name, model=klass, options=options,
             validators=validator_functions, *(schema.Field(k, t) for k, t in iteritems(fields)))
 
-        # Register class on ancestor models
-        klass._subclasses = []
-        for base in klass.__mro__[1:]:
-            if isinstance(base, ModelMeta):
-                base._subclasses.append(klass)
-
         return klass
 
     @classmethod

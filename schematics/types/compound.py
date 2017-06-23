@@ -19,6 +19,7 @@ from ..transforms import (
     get_import_context, get_export_context,
     to_native_converter, to_primitive_converter)
 from ..translator import _
+from ..util import get_all_subclasses
 
 from .base import BaseType, get_value_in
 
@@ -393,10 +394,7 @@ class PolyModelType(CompoundType):
         if self.claim_function:
             chosen_class = self.claim_function(self, data)
         else:
-            candidates = self.model_classes
-            if self.allow_subclasses:
-                candidates = itertools.chain.from_iterable(
-                                 ([m] + m._subclasses for m in candidates))
+            candidates = self._get_candidates()
             fallback = None
             matching_classes = []
             for cls in candidates:
@@ -426,6 +424,15 @@ class PolyModelType(CompoundType):
 
         return model_instance.export(context=context)
 
+    def _get_candidates(self):
+        candidates = self.model_classes
+
+        if self.allow_subclasses:
+            candidates = itertools.chain.from_iterable(
+                ([m] + get_all_subclasses(m) for m in candidates)
+            )
+
+        return candidates
+
 
 __all__ = module_exports(__name__)
-
