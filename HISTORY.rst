@@ -1,3 +1,7 @@
+1.1.3 / 2017-06-27
+==================
+* [Bug] (`#503 <https://github.com/schematics/schematics/pull/503>`_) Possible memory issues because of _subclasses
+
 1.1.2 / 2017-03-27
 ==================
 * [Bug] (`#478 <https://github.com/schematics/schematics/pull/478>`_) Fix dangerous performance issue with ModelConversionError in nested models
