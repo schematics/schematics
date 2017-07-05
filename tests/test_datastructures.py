@@ -6,6 +6,18 @@ import pytest
 from schematics.datastructures import *
 
 
+def test_ordered_dict_pickleable():
+    d = OrderedDict()
+    d['z'] = 0
+    d['first'] = 1
+    d['second'] = 2
+
+    expected = d.items()
+    result = pickle.loads(pickle.dumps(d)).items()
+
+    assert expected == result
+
+
 def test_data_object_basics():
 
     d = DataObject({'x': 1, 'y': 2})
