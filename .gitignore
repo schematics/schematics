@@ -22,3 +22,4 @@ docs/_build
 .coverage
 *.sqlite3
 /.idea
+/.venv
