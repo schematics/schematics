@@ -343,14 +343,14 @@ def test_good_options_args():
     assert mo.roles == {}
 
 
-def test_bad_options_args():
+def test_kwargs_options_args():
     args = {
         'roles': None,
-        'badkw': None,
+        'foo': 'bar',
     }
 
-    with pytest.raises(TypeError):
-        ModelOptions(**args)
+    mo = ModelOptions(**args)
+    assert mo.foo == 'bar'
 
 
 def test_no_options_args():

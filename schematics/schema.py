@@ -32,7 +32,7 @@ class Schema(object):
 class SchemaOptions(object):
 
     def __init__(self, namespace=None, roles=None, export_level=DEFAULT,
-            serialize_when_none=None, export_order=False):
+            serialize_when_none=None, export_order=False, **kwargs):
         self.namespace = namespace
         self.roles = roles or {}
         self.export_level = export_level
@@ -41,6 +41,9 @@ class SchemaOptions(object):
         elif serialize_when_none is False:
             self.export_level = NONEMPTY
         self.export_order = export_order
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
     def __iter__(self):
         for key, value in inspect.getmembers(self):
