@@ -729,7 +729,7 @@ def test_new_role_signature():
     a = NewRole(dict(id='a id', name='a name'))
     a.serialize(role='public')
     assert new_role.call_count == 2
-    for i, args in enumerate([('id', 'a id', {'id', 'name'}), ('name', 'a name', {'id', 'name'})]):
+    for i, args in enumerate([('id', 'a id', set(['id', 'name'])), ('name', 'a name', set(['id', 'name']))]):
         call = new_role.call_args_list[i][0]
         assert call[0].name == NewRole.__name__
         assert call[1:] == args
@@ -738,7 +738,8 @@ def test_new_role_signature():
     a.serialize(role='public')
     assert old_role.call_count == 4
     # Ignore new calls
-    for i, args in enumerate(['ignore', ('id', 'a id', {'id', 'name'}), 'ignore', ('name', 'a name', {'id', 'name'})]):
+    for i, args in enumerate(
+            ['ignore', ('id', 'a id', set(['id', 'name'])), 'ignore', ('name', 'a name', set(['id', 'name']))]):
         if args == 'ignore':
             continue
         call = old_role.call_args_list[i][0]
