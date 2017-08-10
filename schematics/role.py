@@ -1,3 +1,5 @@
+import warnings
+
 from .compat import str_compat, repr_compat
 
 import collections
@@ -57,8 +59,13 @@ class Role(collections.Set):
         return self._from_iterable(fields)
 
     # apply role to field
-    def __call__(self, name, value):
-        return self.function(name, value, self.fields)
+    def __call__(self, schema, name, value):
+        try:
+            return self.function(schema, name, value, self.fields)
+        except TypeError:
+            warnings.warn('You have a role/filter function which uses a deprecated signature. '
+                          'It should be schema, field_name and value.')
+            return self.function(name, value, self.fields)
 
     # static filter functions
     @staticmethod

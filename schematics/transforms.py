@@ -4,6 +4,7 @@ from __future__ import unicode_literals, absolute_import
 
 import itertools
 import types
+import warnings
 
 from .common import * # pylint: disable=redefined-builtin
 from .datastructures import Context
@@ -253,7 +254,7 @@ def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise
     else:
         data = {}
 
-    filter_func = schema._options.roles.get(context.role)
+    filter_func = context.role if callable(context.role) else schema._options.roles.get(context.role)
     if filter_func is None:
         if context.role and context.raise_error_on_role:
             error_msg = '%s Model has no role "%s"'
@@ -266,8 +267,16 @@ def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise
     for field_name, field, value in atoms(schema, instance_or_dict):
         serialized_name = field.serialized_name or field_name
 
-        if filter_func is not None and filter_func(field_name, value):
-            continue
+        if filter_func is not None:
+            # Old role function checks run twice because users can either send Role or their own callable
+            try:
+                rv = filter_func(schema, field_name, value)
+            except TypeError:
+                warnings.warn('You have a role/filter function which uses a deprecated signature. '
+                              'It should be schema, field_name and value.')
+                rv = filter_func(field_name, value)
+            if rv:
+                continue
 
         _export_level = field.get_export_level(context)
 

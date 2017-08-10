@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import mock
 import pytest
 
 from schematics.common import PY2
 from schematics.models import Model, ModelOptions
+from schematics.role import Role
 from schematics.transforms import whitelist, blacklist
 from schematics.undefined import Undefined
 from schematics.types import StringType, IntType, ListType, ModelType
@@ -703,3 +705,58 @@ def test_mock_recursive_model():
 
     M.get_mock_object()
 
+
+def test_new_role_signature():
+    new_role = mock.Mock()
+    new_role.return_value = True
+    old_role = mock.Mock()
+    old_role.side_effect = [TypeError, True, TypeError, True]
+
+    class NewRole(Model):
+        id = StringType()
+        name = StringType()
+
+        class Options:
+            roles = {'public': Role(new_role, ('id', 'name'))}
+
+    class OldRole(Model):
+        id = StringType()
+        name = StringType()
+
+        class Options:
+            roles = {'public': Role(old_role, ('id', 'name'))}
+
+    a = NewRole(dict(id='a id', name='a name'))
+    a.serialize(role='public')
+    assert new_role.call_count == 2
+    for i, args in enumerate([('id', 'a id', {'id', 'name'}), ('name', 'a name', {'id', 'name'})]):
+        call = new_role.call_args_list[i][0]
+        assert call[0].name == NewRole.__name__
+        assert call[1:] == args
+
+    a = OldRole(dict(id='a id', name='a name'))
+    a.serialize(role='public')
+    assert old_role.call_count == 4
+    # Ignore new calls
+    for i, args in enumerate(['ignore', ('id', 'a id', {'id', 'name'}), 'ignore', ('name', 'a name', {'id', 'name'})]):
+        if args == 'ignore':
+            continue
+        call = old_role.call_args_list[i][0]
+        assert call == args
+
+    class A(Model):
+        name = StringType()
+
+    class B(Model):
+        a = ModelType(A)
+
+    recursive_role = mock.Mock(return_value=False)
+    b = B(dict(a=dict(name='Testing')))
+    assert b.serialize(role=Role(recursive_role, [])) == dict(a=dict(name='Testing'))
+    assert recursive_role.call_count == 2
+    first_call = recursive_role.call_args_list[0][0]
+    assert first_call[1] == 'a'
+    assert isinstance(first_call[2], A)
+    second_call = recursive_role.call_args_list[1][0]
+    assert second_call[1] == 'name'
+    assert second_call[2] == 'Testing'
