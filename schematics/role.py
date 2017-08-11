@@ -101,9 +101,9 @@ class Role(collections.Set):
         Implements the behavior of a blacklist by requesting a field be skipped
         whenever its name is found in the list of fields.
 
-        :param k:
+        :param name:
             The field name to inspect.
-        :param v:
+        :param value:
             The field's value.
         :param seq:
             The list of fields associated with the ``Role``.
