@@ -8,7 +8,7 @@ from types import FunctionType
 
 from .common import * # pylint: disable=redefined-builtin
 from .compat import str_compat, repr_compat, _dict
-from .datastructures import OrderedDict, Context, ChainMap, MappingProxyType
+from .datastructures import OrderedDict, Context, ChainMap
 from .exceptions import *
 from .iteration import atoms
 from .transforms import (
@@ -143,7 +143,7 @@ class ModelDict(ChainMap):
         self._unsafe = unsafe if unsafe is not None else {}
         self._converted = converted if converted is not None else {}
         self.__valid = valid if valid is not None else {}
-        self._valid = MappingProxyType(self.__valid)
+        self._valid = dict(**self.__valid)
         super(ModelDict, self).__init__(self._unsafe, self._converted, self._valid)
 
     @property
@@ -170,7 +170,7 @@ class ModelDict(ChainMap):
 
     @valid.setter
     def valid(self, value):
-        self._valid = MappingProxyType(value)
+        self._valid = dict(**value)
         self.maps[2] = self._valid
 
     def __delitem__(self, key):
