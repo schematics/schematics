@@ -139,7 +139,7 @@ class BaseType(object):
         converted into a rich python type. Default: []
     :param serialize_when_none:
         Dictates if the field should appear in the serialized data even if the
-        value is None. Default: True
+        value is None. Default: None.
     :param messages:
         Override the error messages with a dict. You can also do this by
         subclassing the Type and defining a `MESSAGES` dict attribute on the
