@@ -156,7 +156,7 @@ class BaseType(object):
     """
 
     primitive_type = None
-    native_type = None 
+    native_type = None
 
     MESSAGES = {
         'required': _("This field is required."),
@@ -677,6 +677,8 @@ class DateType(BaseType):
         )
 
     def to_native(self, value, context=None):
+        if isinstance(value, datetime.datetime):
+            return value.date()
         if isinstance(value, datetime.date):
             return value
 
