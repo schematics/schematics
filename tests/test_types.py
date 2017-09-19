@@ -66,6 +66,8 @@ def test_date():
 
     assert date_type.to_native(today) is today
 
+    assert date_type.to_native(datetime.datetime(2013, 3, 1)) == today
+
     assert type(date_type._mock()) is datetime.date
 
 
