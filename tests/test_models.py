@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import pickle
 import pytest
 
 from schematics.common import PY2
@@ -703,3 +703,7 @@ def test_mock_recursive_model():
 
     M.get_mock_object()
 
+
+def test_pickle_model():
+    inst = SimpleModel({'field1': 'foo'})
+    assert pickle.loads(pickle.dumps(inst)) == inst

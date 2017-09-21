@@ -423,27 +423,6 @@ except ImportError:
             'Clear maps[0], leaving maps[1:] intact.'
             self.maps[0].clear()
 
-try:
-    from types import MappingProxyType
-except ImportError:
-    from collections import Mapping
-
-    class MappingProxyType(Mapping):
-        def __init__(self, map):
-            self._map = map
-
-        def __len__(self):
-            return len(self._map)
-
-        def __iter__(self):
-            return iter(self._map)
-
-        def __getitem__(self, key):
-            return self._map[key]
-
-        def __repr__(self):
-            return '{0.__class__.__name__}({1})'.format(self, self._map)
-
 
 class FrozenDict(Mapping):
 
