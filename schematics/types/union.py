@@ -1,7 +1,7 @@
 import inspect
+from collections import OrderedDict
 
 from ..common import *
-from ..datastructures import OrderedDict
 from ..exceptions import ConversionError
 from ..translator import _
 from ..transforms import get_import_context, get_export_context

@@ -4,11 +4,12 @@ from __future__ import unicode_literals, absolute_import
 
 from copy import deepcopy
 import inspect
+from collections import OrderedDict
 from types import FunctionType
 
 from .common import * # pylint: disable=redefined-builtin
 from .compat import str_compat, repr_compat, _dict
-from .datastructures import OrderedDict, Context, ChainMap, MappingProxyType
+from .datastructures import Context, ChainMap, MappingProxyType
 from .exceptions import *
 from .iteration import atoms
 from .transforms import (
@@ -97,7 +98,10 @@ class ModelMeta(type):
                 fields[key] = value
 
         # Convert declared fields into descriptors for new class
-        fields.sort(key=lambda i: i[1]._position_hint)
+        fields = OrderedDict(sorted(
+            (kv for kv in fields.items()),
+            key=lambda i: i[1]._position_hint,
+        ))
         for key, field in iteritems(fields):
             if isinstance(field, BaseType):
                 attrs[key] = FieldDescriptor(key)

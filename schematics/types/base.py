@@ -16,11 +16,10 @@ import random
 import re
 import string
 import uuid
-from collections import Iterable
+from collections import Iterable, OrderedDict
 
 from ..common import * # pylint: disable=redefined-builtin
 from ..compat import string_type
-from ..datastructures import OrderedDict
 from ..exceptions import *
 from ..translator import _
 from ..undefined import Undefined

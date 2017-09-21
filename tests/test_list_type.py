@@ -1,6 +1,7 @@
+from collections import OrderedDict
+
 import pytest
 
-from schematics.datastructures import OrderedDict
 from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.types.compound import ModelType, ListType
