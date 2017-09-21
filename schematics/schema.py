@@ -1,7 +1,8 @@
 
+from collections import OrderedDict
+
 from .compat import itervalues
 from .common import DEFAULT, NONEMPTY
-from .datastructures import OrderedDict
 from .types import BaseType
 from .types.serializable import Serializable
 

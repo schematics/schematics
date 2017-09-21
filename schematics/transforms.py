@@ -4,6 +4,7 @@ from __future__ import unicode_literals, absolute_import
 
 import itertools
 import types
+from collections import OrderedDict
 
 from .common import * # pylint: disable=redefined-builtin
 from .datastructures import Context
@@ -12,11 +13,6 @@ from .undefined import Undefined
 from .util import listify
 from .iteration import atoms, atom_filter
 from .role import Role
-
-try:
-    from collections import OrderedDict
-except ImportError:
-    from .datastructures import OrderedDict
 
 
 ###

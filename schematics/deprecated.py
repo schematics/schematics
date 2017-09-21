@@ -1,6 +1,7 @@
 
+from collections import OrderedDict
+
 from .compat import iteritems
-from .datastructures import OrderedDict
 from .types.serializable import Serializable
 from . import transforms
 
