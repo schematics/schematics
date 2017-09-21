@@ -10,6 +10,8 @@ Types
 .. automodule:: schematics.types.compound
    :members:
 
+.. automodule:: schematics.types.net
+   :members:
 
 Usage
 =====

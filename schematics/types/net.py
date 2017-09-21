@@ -50,6 +50,7 @@ IPV6 = r"""(
 
 
 class IPAddressType(StringType):
+    """A field that stores a valid IPv4 or IPv6 address."""
 
     VERSION = None
     REGEX = re.compile('^%s|%s$' % (IPV4, IPV6), re.I + re.X)
@@ -88,6 +89,7 @@ class IPv6Type(IPAddressType):
 ### MAC address
 
 class MACAddressType(StringType):
+    """A field that stores a valid MAC address."""
 
     REGEX = re.compile(r"""
                          (
@@ -152,8 +154,12 @@ class URLType(StringType):
 
     """A field that validates the input as a URL.
 
-    If ``verify_exists=True``, the validation function will make sure
-    the URL is accessible (server responds with HTTP 2xx).
+    :param fqdn:
+        if ``True`` the validation function will ensure hostname in URL
+        is a Fully Qualified Domain Name.
+    :param verify_exists:
+        if ``True`` the validation function will make sure
+        the URL is accessible (server responds with HTTP 2xx).
     """
 
     MESSAGES = {
