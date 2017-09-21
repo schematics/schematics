@@ -80,7 +80,9 @@ class IPv6Type(IPAddressType):
     REGEX = re.compile(r'^%s$' % IPV6, re.I + re.X)
 
     def _mock(self, context=None):
-        return '.'.join(str(random.randrange(256)) for _ in range(4))
+        return '2001:db8:' + ':'.join(
+            '%x' % (random.randrange(1 << 16)) for _ in range(6)
+        )
 
 
 ### MAC address
@@ -98,8 +100,7 @@ class MACAddressType(StringType):
                          """, re.I + re.X)
 
     def _mock(self, context=None):
-        return ':'.join(random.choice('0123456789abcdef')+random.choice('0123456789abcdef')
-                        for _ in range(6))
+        return ':'.join('%02x' % (random.randrange(256)) for _ in range(6))
 
     def validate_(self, value, context=None):
         if not bool(self.REGEX.match(value)):

@@ -17,6 +17,9 @@ def test_ipv4_type():
     with pytest.raises(ValidationError):
         IPv4Type().validate('255.255.255.2555')
 
+    mock = IPv4Type(required=True).mock()
+    assert IPv4Type().validate(mock)
+
 
 def test_ipv6_type():
     field = IPv6Type()
@@ -40,6 +43,9 @@ def test_ipv6_type():
     for addr in addrs:
         with pytest.raises(ValidationError):
             field.validate(addr)
+
+    mock = IPv6Type(required=True).mock()
+    assert IPv6Type().validate(mock)
 
 
 def test_ip_type():
