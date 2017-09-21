@@ -63,6 +63,9 @@ class IPAddressType(StringType):
         if not self.valid_ip(value):
             raise ValidationError(_('Invalid IP%s address') % (self.VERSION or ''))
 
+    def _mock(self, context=None):
+        return random.choice([IPv4Type, IPv6Type])(required=self.required).mock()
+
 
 class IPv4Type(IPAddressType):
     """A field that stores a valid IPv4 address."""

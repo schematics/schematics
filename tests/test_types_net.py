@@ -52,6 +52,9 @@ def test_ip_type():
     assert IPAddressType().validate('255.255.255.255')
     assert IPAddressType().validate('fe80::223:6caf:fe76:c12d')
 
+    mock = IPAddressType(required=True).mock()
+    assert IPAddressType().validate(mock)
+
 
 def test_mac_type():
     addrs = [
