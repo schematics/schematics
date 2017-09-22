@@ -15,11 +15,12 @@ sudo: false
 
 install:
   - pip install tox
-  - pip install python-coveralls
+  - pip install python-coveralls codecov
 
 script: tox -e ${TOX_ENV}
 
 after_success:
   - coveralls
+  - codecov -e TOX_ENV
 
 cache: pip
