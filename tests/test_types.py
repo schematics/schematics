@@ -233,7 +233,7 @@ def test_number_mock(field_type, min_value, max_value):
 
 
 @pytest.mark.parametrize('field_type,value,primitive', [
-    (DecimalType, Decimal('1.3'), '1.3'),
+    (DecimalType, Decimal('1.3'), u'1.3'),
     (FloatType, 1.3, 1.3),
     (IntType, 13, 13),
 ])
