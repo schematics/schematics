@@ -37,12 +37,9 @@ def fill_template(template, min_length, max_length):
 
 
 def get_range_endpoints(min_length, max_length, padding=0, required_length=0):
-    if min_length is None and max_length is None:
+    if min_length is None:
         min_length = 0
-        max_length = 16
-    elif min_length is None:
-        min_length = 0
-    elif max_length is None:
+    if max_length is None:
         max_length = max(min_length * 2, 16)
 
     if padding:

@@ -136,11 +136,7 @@ def test_int():
     intfield = IntType()
     i = lambda x: (intfield(x), type(intfield(x)))
     with pytest.raises(ConversionError):
-        i(3.2)
-    with pytest.raises(ConversionError):
         i("3.0")
-    with pytest.raises(ConversionError):
-        i("a")
     # from decimal
     with pytest.raises(ConversionError):
         i(Decimal("3.2"))
@@ -179,16 +175,6 @@ def test_int_strict():
         i(_uuid)
 
 
-def test_float():
-    floatfield = FloatType()
-    f = lambda x: (floatfield(x), type(floatfield(x)))
-    with pytest.raises(ConversionError):
-        f("a")
-    # from uuid
-    with pytest.raises(ConversionError):
-        f(_uuid)
-
-
 @pytest.mark.parametrize('field_type,raw,expected', [
     (DecimalType, 0.3, Decimal('0.3')),
     (DecimalType, Decimal('0.'+10*'9'), Decimal('0.'+10*'9')),
@@ -218,6 +204,20 @@ def test_number_to_native(field_type, raw, expected):
     assert (got, type(got)) == (expected, type(expected))
 
 
+@pytest.mark.parametrize('field_type,raw,error_msg', [
+    (DecimalType, 'a', "Value 'a' is not decimal."),
+    (FloatType, 'abc', "Value 'abc' is not float."),
+    (FloatType, _uuid, "Value '{}' is not float.".format(_uuid)),
+    (IntType, '3.0', "Value '3.0' is not int."),
+    (IntType, 3.2, "Value '3.2' is not int."),
+    (IntType, _uuid, "Value '{}' is not int.".format(_uuid)),
+])
+def test_number_conversion_error(field_type, raw, error_msg):
+    with pytest.raises(ConversionError) as exc_info:
+        field_type()(raw)
+    assert exc_info.value.to_primitive() == [error_msg]
+
+
 @pytest.mark.parametrize('field_type,min_value,max_value', [
     (DecimalType, 1.3, 3.7),
     (FloatType, -1.3, 4.5),
@@ -230,6 +230,16 @@ def test_number_mock(field_type, min_value, max_value):
     mock = field.mock()
     assert type(mock) is field_type.native_type
     field.validate(mock)
+
+
+@pytest.mark.parametrize('field_type,value,primitive', [
+    (DecimalType, Decimal('1.3'), '1.3'),
+    (FloatType, 1.3, 1.3),
+    (IntType, 13, 13),
+])
+def test_number_to_primitive(field_type, value, primitive):
+    got = field_type().to_primitive(value)
+    assert (got, type(got)) == (primitive, type(primitive))
 
 
 def test_int_validation():
@@ -474,6 +484,8 @@ def test_boolean_to_native():
     for bad_value in ['TrUe', 'foo', 2, None, 1.0]:
         with pytest.raises(ConversionError):
             bool_field.to_native(bad_value)
+
+    assert type(BooleanType(required=True).mock()) is bool
 
 
 def test_geopoint_mock():
