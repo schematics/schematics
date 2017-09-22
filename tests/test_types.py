@@ -135,27 +135,16 @@ def test_datetime_accepts_datetime():
 def test_int():
     intfield = IntType()
     i = lambda x: (intfield(x), type(intfield(x)))
-    # from int
-    assert i(3) == (3, int)
-    # from bool
-    assert i(True) == (1, int)
-    # from float
-    assert i(3.0) == (3, int)
     with pytest.raises(ConversionError):
         i(3.2)
-    # from string
-    assert i("3") == (3, int)
     with pytest.raises(ConversionError):
         i("3.0")
     with pytest.raises(ConversionError):
         i("a")
     # from decimal
-    assert i(Decimal("3")) == (3, int)
-    assert i(Decimal("3.0")) == (3, int)
     with pytest.raises(ConversionError):
         i(Decimal("3.2"))
     # from fraction
-    assert i(Fraction(30, 10)) == (3, int)
     with pytest.raises(ConversionError):
         i(Fraction(7, 2))
     # from uuid
@@ -193,31 +182,46 @@ def test_int_strict():
 def test_float():
     floatfield = FloatType()
     f = lambda x: (floatfield(x), type(floatfield(x)))
-    # from int
-    assert f(3) == (3.0, float)
-    # from bool
-    assert f(True) == (1.0, float)
-    # from float
-    assert f(3.2) == (3.2, float)
-    # from string
-    assert f("3") == (3.0, float)
-    assert f("3.2") == (3.2, float)
-    assert f("3.210987e6") == (3210987, float)
     with pytest.raises(ConversionError):
         f("a")
-    # from decimal
-    assert f(Decimal("3")) == (3.0, float)
-    assert f(Decimal("3.2")) == (3.2, float)
-    # from fraction
-    assert f(Fraction(7, 2)) == (3.5, float)
     # from uuid
     with pytest.raises(ConversionError):
         f(_uuid)
 
 
+@pytest.mark.parametrize('field_type,raw,expected', [
+    (DecimalType, 0.3, Decimal('0.3')),
+    (DecimalType, Decimal('0.'+10*'9'), Decimal('0.'+10*'9')),
+    (DecimalType, False, Decimal(0)),
+    (FloatType, '-1.3', -1.3),
+    (FloatType, '3', 3.0),
+    (FloatType, '3.2', 3.2),
+    (FloatType, '3.210987e6', 3210987.0),
+    (FloatType, 3, 3.0),
+    (FloatType, 3.2, 3.2),
+    (FloatType, Decimal("3"), 3.0),
+    (FloatType, Decimal("3.2"), 3.2),
+    (FloatType, Fraction(7, 2), 3.5),
+    (FloatType, True, 1.0),
+    (IntType, '32', 32),
+    (IntType, 0.0, 0),
+    (IntType, 3, 3),
+    (IntType, Decimal("3"), 3),
+    (IntType, Decimal("3.0"), 3),
+    (IntType, False, 0),
+    (IntType, Fraction(30, 10), 3),
+    (IntType, True, 1),
+])
+def test_number_to_native(field_type, raw, expected):
+    field = field_type()
+    got = field.to_native(raw)
+    assert (got, type(got)) == (expected, type(expected))
+
+
 @pytest.mark.parametrize('field_type,min_value,max_value', [
-    (IntType, 0, 10),
+    (DecimalType, 1.3, 3.7),
     (FloatType, -1.3, 4.5),
+    (IntType, 0, 10),
 ])
 def test_number_mock(field_type, min_value, max_value):
     field = field_type(
