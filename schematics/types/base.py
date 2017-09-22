@@ -54,6 +54,8 @@ def get_range_endpoints(min_length, max_length, padding=0, required_length=0):
             'This field is too short to hold the mock data')
 
     min_length = max(min_length, required_length)
+    if max_length < min_length:
+        raise MockCreationError('Minimum is greater than maximum')
 
     return min_length, max_length
 

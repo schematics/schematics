@@ -188,12 +188,7 @@ class ListType(CompoundType):
         return self.field.__class__.__name__
 
     def _mock(self, context=None):
-        min_size = self.min_size or 1
-        max_size = self.max_size or 1
-        if min_size > max_size:
-            message = _('Minimum list size is greater than maximum list size.')
-            raise MockCreationError(message)
-        random_length = get_value_in(min_size, max_size)
+        random_length = get_value_in(self.min_size, self.max_size)
 
         return [self.field._mock(context) for dummy in range(random_length)]
 
