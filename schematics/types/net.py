@@ -50,6 +50,7 @@ IPV6 = r"""(
 
 
 class IPAddressType(StringType):
+    """A field that stores a valid IPv4 or IPv6 address."""
 
     VERSION = None
     REGEX = re.compile('^%s|%s$' % (IPV4, IPV6), re.I + re.X)
@@ -61,6 +62,9 @@ class IPAddressType(StringType):
     def validate_(self, value, context=None):
         if not self.valid_ip(value):
             raise ValidationError(_('Invalid IP%s address') % (self.VERSION or ''))
+
+    def _mock(self, context=None):
+        return random.choice([IPv4Type, IPv6Type])(required=self.required).mock()
 
 
 class IPv4Type(IPAddressType):
@@ -80,12 +84,15 @@ class IPv6Type(IPAddressType):
     REGEX = re.compile(r'^%s$' % IPV6, re.I + re.X)
 
     def _mock(self, context=None):
-        return '.'.join(str(random.randrange(256)) for _ in range(4))
+        return '2001:db8:' + ':'.join(
+            '%x' % (random.randrange(1 << 16)) for _ in range(6)
+        )
 
 
 ### MAC address
 
 class MACAddressType(StringType):
+    """A field that stores a valid MAC address."""
 
     REGEX = re.compile(r"""
                          (
@@ -98,8 +105,7 @@ class MACAddressType(StringType):
                          """, re.I + re.X)
 
     def _mock(self, context=None):
-        return ':'.join(random.choice('0123456789abcdef')+random.choice('0123456789abcdef')
-                        for _ in range(6))
+        return ':'.join('%02x' % (random.randrange(256)) for _ in range(6))
 
     def validate_(self, value, context=None):
         if not bool(self.REGEX.match(value)):
@@ -151,8 +157,12 @@ class URLType(StringType):
 
     """A field that validates the input as a URL.
 
-    If ``verify_exists=True``, the validation function will make sure
-    the URL is accessible (server responds with HTTP 2xx).
+    :param fqdn:
+        if ``True`` the validation function will ensure hostname in URL
+        is a Fully Qualified Domain Name.
+    :param verify_exists:
+        if ``True`` the validation function will make sure
+        the URL is accessible (server responds with HTTP 2xx).
     """
 
     MESSAGES = {

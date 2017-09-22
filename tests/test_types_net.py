@@ -17,6 +17,9 @@ def test_ipv4_type():
     with pytest.raises(ValidationError):
         IPv4Type().validate('255.255.255.2555')
 
+    mock = IPv4Type(required=True).mock()
+    assert IPv4Type().validate(mock)
+
 
 def test_ipv6_type():
     field = IPv6Type()
@@ -41,10 +44,16 @@ def test_ipv6_type():
         with pytest.raises(ValidationError):
             field.validate(addr)
 
+    mock = IPv6Type(required=True).mock()
+    assert IPv6Type().validate(mock)
+
 
 def test_ip_type():
     assert IPAddressType().validate('255.255.255.255')
     assert IPAddressType().validate('fe80::223:6caf:fe76:c12d')
+
+    mock = IPAddressType(required=True).mock()
+    assert IPAddressType().validate(mock)
 
 
 def test_mac_type():
