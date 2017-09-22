@@ -215,6 +215,19 @@ def test_float():
         f(_uuid)
 
 
+@pytest.mark.parametrize('field_type,min_value,max_value', [
+    (IntType, 0, 10),
+    (FloatType, -1.3, 4.5),
+])
+def test_number_mock(field_type, min_value, max_value):
+    field = field_type(
+        required=True, min_value=min_value, max_value=max_value
+    )
+    mock = field.mock()
+    assert type(mock) is field_type.native_type
+    field.validate(mock)
+
+
 def test_int_validation():
     with pytest.raises(ConversionError):
         IntType().validate('foo')

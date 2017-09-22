@@ -449,7 +449,10 @@ class NumberType(BaseType):
         super(NumberType, self).__init__(**kwargs)
 
     def _mock(self, context=None):
-        return get_value_in(self.min_value, self.max_value)
+        number = random.uniform(
+            *get_range_endpoints(self.min_value, self.max_value)
+        )
+        return self.native_type(number) if self.native_type else number
 
     def to_native(self, value, context=None):
         if isinstance(value, bool):
