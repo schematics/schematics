@@ -215,6 +215,7 @@ class Model(object):
     def __init__(self, raw_data=None, trusted_data=None, deserialize_mapping=None,
                  init=True, partial=True, strict=True, validate=False, app_data=None,
                  lazy=False, **kwargs):
+        # type: (Mapping, Mapping, Mapping, bool, bool, bool, bool, Mapping, bool, **bool) -> None
         kwargs.setdefault('init_values', init)
         kwargs.setdefault('apply_defaults', init)
 

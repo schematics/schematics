@@ -18,6 +18,10 @@ else:
     except ImportError:
         from _dummy_thread import get_ident
 
+from typing import *
+
+T = TypeVar('T')
+
 
 def setdefault(obj, attr, value, search_mro=False, overwrite_none=False):
     if search_mro:
@@ -47,6 +51,24 @@ class Constant(int):
         return self.name
 
     __str__ = __repr__
+
+
+@overload
+def listify(value):
+    # type: (AnyStr) -> List[AnyStr]
+    pass
+
+
+@overload
+def listify(value):
+    # type: (Optional[Sequence[T]]) -> List[T]
+    pass
+
+
+@overload
+def listify(value):
+    # type: (T) -> List[T]
+    pass
 
 
 def listify(value):

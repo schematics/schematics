@@ -9,15 +9,20 @@ from .types.serializable import Serializable
 import itertools
 import inspect
 
+from typing import *
+if TYPE_CHECKING:
+    from .models import Model
+
 
 class Schema(object):
 
     def __init__(self, name, *fields, **kw):
+        # type: (str, *Field, Any) -> None
         self.name = name
-        self.model = kw.get('model', None)
+        self.model = kw.get('model', None)  # type: Optional[Model]
         self.options = kw.get('options', SchemaOptions())
         self.validators = kw.get('validators', {})
-        self.fields = OrderedDict()
+        self.fields = OrderedDict()  # type: OrderedDict[str, Union[BaseType, Serializable]]
         for field in fields:
             self.append_field(field)
 
@@ -26,6 +31,7 @@ class Schema(object):
         return set(itertools.chain(*(t.get_input_keys() for t in itervalues(self.fields))))
 
     def append_field(self, field):
+        # type: (Field) -> None
         self.fields[field.name] = field.type
         field.type._setup(field.name, self.model)  # TODO: remove model reference
 
@@ -54,6 +60,7 @@ class Field(object):
     __slots__ = ('name', 'type')
 
     def __init__(self, name, field_type):
+        # type: (str, Union[BaseType, Serializable]) -> None
         assert isinstance(field_type, (BaseType, Serializable))
         self.name = name
         self.type = field_type

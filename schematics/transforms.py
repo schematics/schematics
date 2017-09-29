@@ -200,6 +200,7 @@ def _mutate(schema, mutable, raw_data, context):
 
 def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise_error_on_role=True,
                 export_level=None, app_data=None, context=None):
+    # type: (Schema, Union[Model, Mapping], Union[Converter, Callable], Optional[str], bool, Optional[str], Optional[Mapping], Optional[Context]) -> Dict[str, Any]
     """
     The export_loop function is intended to be a general loop definition that
     can be used for any form of data shaping, such as application of roles or
