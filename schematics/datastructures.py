@@ -10,6 +10,8 @@ from operator import eq
 from .common import *
 from .util import get_ident
 
+if False:
+    from typing import *
 
 
 class _ODKeysView(KeysView):
@@ -134,6 +136,7 @@ class Context(DataObject):
 
     @classmethod
     def _make(cls, obj):
+        # type: (Any) -> Context
         if obj is None:
             return cls()
         elif isinstance(obj, cls):
@@ -147,6 +150,7 @@ class Context(DataObject):
         super(Context, self).__setattr__(name, value)
 
     def _branch(self, **kwargs):
+        # type: (**Any) -> Context
         if not kwargs:
             return self
         items = dict(((k, v) for k, v in kwargs.items() if v is not None and v != self[k]))
@@ -156,6 +160,7 @@ class Context(DataObject):
             return self
 
     def _setdefaults(self, source):
+        # type: (Any) -> Context
         if not isinstance(source, dict):
             source = source.__dict__
         new_values = source.copy()

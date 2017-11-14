@@ -16,7 +16,7 @@ import random
 import re
 import string
 import uuid
-from collections import Iterable, OrderedDict
+from collections import OrderedDict
 
 from ..common import * # pylint: disable=redefined-builtin
 from ..compat import string_type
@@ -30,8 +30,9 @@ from typing import *
 if typing.TYPE_CHECKING:
     from ..models import Model
     from ..datastructures import Context
+    from ..util import Constant
 
-ValidatorType = Callable[[Any, Any], Any]
+ValidatorType = Callable[[Any, Context], Any]
 P = TypeVar('P')
 N = TypeVar('N')
 
@@ -128,32 +129,51 @@ class BaseType(Generic[P, N]):
     :param required:
         Invalidate field when value is None or is not supplied. Default:
         False.
+    :type required: bool
+
     :param default:
         When no data is provided default to this value. May be a callable.
         Default: None.
+    :type default: Any
+
     :param serialized_name:
         The name of this field defaults to the class attribute used in the
         model. However if the field has another name in foreign data set this
         argument. Serialized data will use this value for the key name too.
+    :type serialized_name: Optional[str]
+
+    :param choices:
+        A list of valid choices. This is the last step of the validator
+        chain.
+    :type choices: Optional[Iterable]
+
+    :param validators:
+        A list of callables. Each callable receives the value after it has been
+        converted into a rich python type. Default: []
+    :type validators: Optional[Iterable[ValidatorType]]
+
     :param deserialize_from:
         A name or list of named fields for which foreign data sets are
         searched to provide a value for the given field.  This only effects
         inbound data.
-    :param choices:
-        A list of valid choices. This is the last step of the validator
-        chain.
-    :param validators:
-        A list of callables. Each callable receives the value after it has been
-        converted into a rich python type. Default: []
+    :type deserialize_from: Optional[Union[str, Sequence[str]]]
+
+    :param export_level:
+    :type export_level: Optional[Constant]
+
     :param serialize_when_none:
         Dictates if the field should appear in the serialized data even if the
         value is None. Default: None.
+    :type serialize_when_none: Optional[Mapping[str, str]]
+
     :param messages:
         Override the error messages with a dict. You can also do this by
         subclassing the Type and defining a `MESSAGES` dict attribute on the
         class. A metaclass will merge all the `MESSAGES` and override the
         resulting dict with instance level `messages` and assign to
         `self.messages`.
+    :type messages: Optional[Mapping[str, str]]
+
     :param metadata:
         Dictionary for storing custom metadata associated with the field.
         To encourage compatibility with external tools, we suggest these keys
@@ -161,6 +181,7 @@ class BaseType(Generic[P, N]):
         - *label* : Brief human-readable label
         - *description* : Explanation of the purpose of the field. Used for
           help, tooltips, documentation, etc.
+    :type metadata: Optional[Mapping]
     """
 
     primitive_type = None  # type: Type[P]
@@ -180,7 +201,7 @@ class BaseType(Generic[P, N]):
                  choices=None, validators=None, deserialize_from=None,
                  export_level=None, serialize_when_none=None,
                  messages=None, metadata=None):
-        # type: (bool, Any, Optional[str], Optional[Iterable], Optional[Iterable[ValidatorType]], Optional[bool], Optional[Mapping[str, str]], Optional[Mapping[str, Any]]) -> None
+        # type: (bool, Any, Optional[str], Optional[Iterable], Optional[Iterable[ValidatorType]], Optional[Union[str, Sequence[str]]], Optional[str], Optional[Mapping[str, str]], Optional[Mapping[str, str]], Optional[Mapping]) -> None
         super(BaseType, self).__init__()
 
         self.required = required
@@ -191,7 +212,7 @@ class BaseType(Generic[P, N]):
         self.choices = choices
         self.deserialize_from = listify(deserialize_from)
 
-        self.validators = [getattr(self, validator_name) for validator_name in self._validators]
+        self.validators = [getattr(self, validator_name) for validator_name in self._validators]  # type: List[ValidatorType]
         if validators:
             self.validators += (prepare_validator(func, 2) for func in validators)
 
@@ -248,6 +269,7 @@ class BaseType(Generic[P, N]):
             self.export_level = None
 
     def get_export_level(self, context):
+        # type: (Context) -> Constant
         if self.owner_model:
             level = self.owner_model._options.export_level
         else:
@@ -458,7 +480,7 @@ class NumberType(BaseType[P, N]):
     }
 
     def __init__(self, min_value=None, max_value=None, strict=False, **kwargs):
-        # type: (...) -> typing.Union[int, float]
+        # type: (...) -> N
 
         self.min_value = min_value
         self.max_value = max_value
@@ -632,13 +654,14 @@ class BooleanType(BaseType[bool, bool]):
     FALSE_VALUES = ('False', 'false', '0')
 
     def __init__(self, **kwargs):
-        # type: (...) -> bool
+        # type: (...) -> N
         super(BooleanType, self).__init__(**kwargs)
 
     def _mock(self, context=None):
         return random.choice([True, False])
 
     def to_native(self, value, context=None):
+        # type: (Any, Optional[Context]) -> N
         if isinstance(value, string_type):
             if value in self.TRUE_VALUES:
                 value = True
@@ -845,7 +868,7 @@ class BaseDateTimeType(BaseType[P, datetime.datetime]):
                                                           minutes=random.choice([0, 30, 45])))
 
     def to_native(self, value, context=None):
-
+        # type: (Any, Optional[Context]) -> N
         if isinstance(value, datetime.datetime):
             if value.tzinfo is None:
                 if not self.drop_tzinfo:
@@ -907,6 +930,7 @@ class BaseDateTimeType(BaseType[P, datetime.datetime]):
         return dt
 
     def from_string(self, value):
+        # type: (Text) -> Optional[datetime.datetime]
         match = self.REGEX.match(value)
         if not match:
             return None
@@ -932,6 +956,7 @@ class BaseDateTimeType(BaseType[P, datetime.datetime]):
             return None
 
     def from_timestamp(self, value):
+        # type: (float) -> Optional[datetime.datetime]
         try:
             return datetime.datetime(1970, 1, 1, tzinfo=self.UTC) + datetime.timedelta(seconds=value)
         except (ValueError, TypeError):
@@ -975,7 +1000,7 @@ class UTCDateTimeType(DateTimeType):
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
     def __init__(self, formats=None, parser=None, tzd='utc', convert_tz=True, drop_tzinfo=True, **kwargs):
-        # type: (...) -> datetime.datetime
+        # type: (...) -> N
         super(UTCDateTimeType, self).__init__(formats=formats, parser=parser, tzd=tzd,
                                               convert_tz=convert_tz, drop_tzinfo=drop_tzinfo, **kwargs)
 
@@ -990,7 +1015,7 @@ class TimestampType(BaseDateTimeType[float]):
     primitive_type = float
 
     def __init__(self, formats=None, parser=None, drop_tzinfo=False, **kwargs):
-        # type: (...) -> datetime.datetime
+        # type: (...) -> N
         super(TimestampType, self).__init__(formats=formats, parser=parser, tzd='require',
                                             convert_tz=True, drop_tzinfo=drop_tzinfo, **kwargs)
 
@@ -1032,6 +1057,7 @@ class GeoPointType(BaseType[List[Union[float, int]], List[Union[float, int]]]):
     def to_native(self, value, context=None):
         """Make sure that a geo-value is of type (x, y)
         """
+        # type: (Any, Optional[Context]) -> N
         if not isinstance(value, (tuple, list, dict)):
             raise ConversionError(_('GeoPointType can only accept tuples, lists, or dicts'))
         elements = self._normalize(value)
@@ -1104,6 +1130,7 @@ class MultilingualStringType(BaseType[str, Text]):
         return random_string(get_value_in(self.min_length, self.max_length))
 
     def to_native(self, value, context=None):
+        # type: (Any, Optional[Context]) -> N
         """Make sure a MultilingualStringType value is a dict or None."""
 
         if not (value is None or isinstance(value, dict)):
@@ -1112,6 +1139,7 @@ class MultilingualStringType(BaseType[str, Text]):
         return value
 
     def to_primitive(self, value, context=None):
+        # type: (N, Optional[Context]) -> P
         """
         Use a combination of ``default_locale`` and ``context.app_data['locale']`` to return
         the best localized string.

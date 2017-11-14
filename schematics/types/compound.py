@@ -2,13 +2,6 @@
 
 from __future__ import unicode_literals, absolute_import
 
-try:
-    import typing
-except ImportError:
-    pass
-else:
-    T = typing.TypeVar("T")
-
 from collections import Iterable, Sequence, Mapping
 import itertools
 
@@ -22,6 +15,14 @@ from ..translator import _
 from ..util import get_all_subclasses
 
 from .base import BaseType, get_value_in
+
+if False:
+    from typing import *
+    from ..datastructures import Context
+
+import typing
+
+T = typing.TypeVar("T")
 
 
 class CompoundType(BaseType):
@@ -41,25 +42,33 @@ class CompoundType(BaseType):
         super(CompoundType, self)._setup(field_name, owner_model)
 
     def convert(self, value, context=None):
+        # type: (Any, Optional[Context]) -> Any
         context = context or get_import_context()
         return self._convert(value, context)
 
     def _convert(self, value, context):
+        # type: (Any, Context) -> Any
         raise NotImplementedError
 
     def export(self, value, format, context=None):
+        # type: (Any, Constant, Optional[Context]) -> Dict[str, Any]
         context = context or get_export_context()
         return self._export(value, format, context)
 
     def _export(self, value, format, context):
+        # type: (Any, Constant, Context) -> Dict[str, Any]
         raise NotImplementedError
 
     def to_native(self, value, context=None):
+        # type: (Any, Optional[Context]) -> Any
         context = context or get_export_context(to_native_converter)
+        # calls self.export() with proper format
         return to_native_converter(self, value, context)
 
     def to_primitive(self, value, context=None):
+        # type: (Any, Optional[Context]) -> Any
         context = context or get_export_context(to_primitive_converter)
+        # calls self.export() with proper format
         return to_primitive_converter(self, value, context)
 
     def _init_field(self, field, options):
@@ -93,7 +102,7 @@ class ModelType(CompoundType):
         return self.model_class.fields
 
     def __init__(self,
-                 model_spec,  # type: typing.Type[T]
+                 model_spec,  # type: typing.Union[str, typing.Type[T]]
                  **kwargs):
         # type: (...) -> T
 
@@ -133,7 +142,7 @@ class ModelType(CompoundType):
         return value
 
     def _convert(self, value, context):
-
+        # type: (Any, Context) -> Any
         if isinstance(value, self.model_class):
             model_class = type(value)
         elif isinstance(value, dict):
@@ -147,6 +156,7 @@ class ModelType(CompoundType):
             return model_class.convert(value, context=context)
 
     def _export(self, value, format, context):
+        # type: (Any, Constant, Context) -> Dict[str, Any]
         if isinstance(value, Model):
             model_class = type(value)
         else:

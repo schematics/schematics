@@ -9,8 +9,8 @@ from .types.serializable import Serializable
 import itertools
 import inspect
 
-from typing import *
-if TYPE_CHECKING:
+if False:
+    from typing import *
     from .models import Model
 
 
@@ -28,6 +28,7 @@ class Schema(object):
 
     @property
     def valid_input_keys(self):
+        # type: () -> Set[str]
         return set(itertools.chain(*(t.get_input_keys() for t in itervalues(self.fields))))
 
     def append_field(self, field):

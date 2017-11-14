@@ -24,24 +24,27 @@ def atoms(schema, mapping, keys=Atom._fields, filter=None):
     data that creates a 3-tuple of the field's name, its type instance and
     its value.
 
-    :type schema: schematics.schema.Schema
     :param schema:
         The Schema definition.
-    :type mapping: Mapping
+    :type schema: Schema
+
     :param mapping:
         The structure where fields from schema are mapped to values. The only
         expectation for this structure is that it implements a ``Mapping``
         interface.
-    :type keys: Tuple[str, str, str]
+    :type mapping: Mapping
+
     :param keys:
         Tuple specifying the output of the iterator. Valid keys are:
             `name`: the field name
             `field`: the field descriptor object
             `value`: the current value set on the field
         Specifying invalid keys will raise an exception.
-    :type filter: Optional[Callable[[Atom], bool]]
+    :type keys: Tuple[str, str, str]
+
     :param filter:
         Function to filter out atoms from the iteration.
+    :type filter: Optional[Callable[[Atom], bool]]
 
     :rtype: Iterator[Atom]
     """
