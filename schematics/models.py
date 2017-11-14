@@ -23,6 +23,9 @@ from .undefined import Undefined
 from .util import get_ident
 from . import schema
 
+if False:
+    from typing import *
+
 
 class FieldDescriptor(object):
     """
@@ -200,22 +203,39 @@ class Model(object):
     models, SQLAlchemy declarative extension and other developer friendly
     libraries.
 
-    :param Mapping raw_data:
+    :param raw_data:
         The data to be imported into the model instance.
-    :param Mapping deserialize_mapping:
+    :type raw_data: Mapping
+
+    :type trusted_data: Mapping
+
+    :param deserialize_mapping:
         Can be used to provide alternative input names for fields. Values may be
         strings or lists of strings, keyed by the actual field name.
-    :param bool partial:
+    :type deserialize_mapping: Mapping
+
+    :type init: bool
+
+    :param partial:
         Allow partial data to validate. Essentially drops the ``required=True``
         settings from field definitions. Default: True
-    :param bool strict:
+    :type partial: bool
+
+    :param strict:
         Complain about unrecognized keys. Default: True
+    :type strict: bool
+
+    :type validate: bool
+
+    :type app_data: Optional[Container]
+
+    :type lazy: bool
     """
 
     def __init__(self, raw_data=None, trusted_data=None, deserialize_mapping=None,
                  init=True, partial=True, strict=True, validate=False, app_data=None,
                  lazy=False, **kwargs):
-        # type: (Mapping, Mapping, Mapping, bool, bool, bool, bool, Mapping, bool, **bool) -> None
+        # type: (Mapping, Mapping, Mapping, bool, bool, bool, bool, Optional[Container], bool, Any) -> None
         kwargs.setdefault('init_values', init)
         kwargs.setdefault('apply_defaults', init)
 

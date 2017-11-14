@@ -58,6 +58,7 @@ class Role(collections.Set):
 
     # apply role to field
     def __call__(self, name, value):
+        # type: (str, Any) -> bool
         return self.function(name, value, self.fields)
 
     # static filter functions
