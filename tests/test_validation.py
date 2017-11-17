@@ -575,3 +575,13 @@ def test_lazy_conversion_and_validation_exception_bundling():
     with pytest.raises(DataError) as exception:
         user.validate()
     assert set(('name', 'call_me')).issubset(exception.value.errors)
+
+
+def test_validate_required_on_init():
+    class Foo(Model):
+        bar = BooleanType(required=True)
+        baz = BooleanType()
+
+    foo = Foo({'baz': 0}, partial=True, validate=True)
+    foo.bar = 1
+    assert foo.serialize() == {'bar': True, 'baz': False}
