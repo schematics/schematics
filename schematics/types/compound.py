@@ -373,16 +373,18 @@ class PolyModelType(CompoundType):
 
         if value is None:
             return None
-        if self.is_allowed_model(value):
-            return value
-        if not isinstance(value, dict):
-            if len(self.model_classes) > 1:
-                instanceof_msg = 'one of: {}'.format(', '.join(
-                    cls.__name__ for cls in self.model_classes))
-            else:
-                instanceof_msg = self.model_classes[0].__name__
-            raise ConversionError(_('Please use a mapping for this field or '
-                                    'an instance of {}').format(instanceof_msg))
+
+        if not context.validate:
+            if self.is_allowed_model(value):
+                return value
+            if not isinstance(value, dict):
+                if len(self.model_classes) > 1:
+                    instanceof_msg = 'one of: {}'.format(', '.join(
+                        cls.__name__ for cls in self.model_classes))
+                else:
+                    instanceof_msg = self.model_classes[0].__name__
+                raise ConversionError(_('Please use a mapping for this field or '
+                                        'an instance of {}').format(instanceof_msg))
 
         model_class = self.find_model(value)
         return model_class(value, context=context)

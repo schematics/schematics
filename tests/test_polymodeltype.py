@@ -1,6 +1,6 @@
 import pytest
 
-from schematics.models import Model
+from schematics.models import Model, DataError
 from schematics.types import StringType
 from schematics.types.compound import PolyModelType, ListType
 from schematics.util import get_all_subclasses
@@ -14,6 +14,7 @@ class Aaa(A):
 
 class B(A):
     stringB = StringType()
+    regexp_test = StringType(regex='^[0-9]$', required=False)
     @classmethod
     def _claim_polymorphic(cls, data):
         return data.get('stringB') == 'bbb'
@@ -130,3 +131,13 @@ def test_specify_model_by_name():
     assert M.single.is_allowed_model(M())
     assert M.multi.is_allowed_model(M())
     assert M.nested.field.field.is_allowed_model(M())
+
+
+def test_validate_recursively():
+    # Should validate
+    foo = Foo({'strict': {'stringB': 'bbb', 'regexp_test': '1'}})
+    foo.validate()
+
+    foo = Foo({'strict': {'stringB': 'bbb', 'regexp_test': 'a'}})
+    with pytest.raises(DataError):
+        foo.validate()
