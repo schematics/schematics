@@ -392,31 +392,35 @@ class PolyModelType(CompoundType):
     def find_model(self, data):
         """Finds the intended type by consulting potential classes or `claim_function`."""
 
-        chosen_class = None
         if self.claim_function:
-            chosen_class = self.claim_function(self, data)
-        else:
-            candidates = self._get_candidates()
-            fallback = None
-            matching_classes = []
-            for cls in candidates:
-                match = None
-                if '_claim_polymorphic' in cls.__dict__:
-                    match = cls._claim_polymorphic(data)
-                elif not fallback: # The first model that doesn't define the hook
-                    fallback = cls # can be used as a default if there's no match.
-                if match:
-                    matching_classes.append(cls)
-            if not matching_classes and fallback:
-                chosen_class = fallback
-            elif len(matching_classes) == 1:
-                chosen_class = matching_classes[0]
+            kls = self.claim_function(self, data)
+            if not kls:
+                raise Exception("Input for polymorphic field did not match any model")
+            return kls
+
+        fallback = None
+        matching_classes = []
+        for kls in self._get_candidates():
+            try:
+                # If a model defines a _claim_polymorphic method, use
+                # it to see if the model matches the data.
+                kls_claim = kls._claim_polymorphic
+            except AttributeError:
+                # The first model that doesn't define the hook can be
+                # used as a default if there's no match.
+                if not fallback:
+                    fallback = kls
             else:
-                raise Exception("Got ambiguous input for polymorphic field")
-        if chosen_class:
-            return chosen_class
-        else:
-            raise Exception("Input for polymorphic field did not match any model")
+                if kls_claim(data):
+                    matching_classes.append(kls)
+
+        if not matching_classes and fallback:
+            return fallback
+
+        elif len(matching_classes) != 1:
+            raise Exception("Got ambiguous input for polymorphic field")
+
+        return matching_classes[0]
 
     def _export(self, model_instance, format, context):
 
