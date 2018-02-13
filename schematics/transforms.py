@@ -249,7 +249,8 @@ def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise
     else:
         data = {}
 
-    filter_func = schema._options.roles.get(context.role)
+    filter_func = (context.role if callable(context.role) else
+        schema._options.roles.get(context.role))
     if filter_func is None:
         if context.role and context.raise_error_on_role:
             error_msg = '%s Model has no role "%s"'
