@@ -343,14 +343,27 @@ def test_good_options_args():
     assert mo.roles == {}
 
 
-def test_kwargs_options_args():
-    args = {
-        'roles': None,
-        'foo': 'bar',
-    }
+def test_options_custom_args():
+    class Foo(Model):
+        class Options:
+            _foo = 'bar'
 
-    mo = ModelOptions(**args)
-    assert mo.foo == 'bar'
+    f = Foo()
+    assert f._options._foo == 'bar'
+
+
+def test_options_custom_args_inheritance():
+    class Foo(Model):
+        class Options:
+            _foo = 'bar'
+
+    class Moo(Foo):
+        class Options:
+            _bar = 'baz'
+
+    m = Moo()
+    assert m._options._foo == 'bar'
+    assert m._options._bar == 'baz'
 
 
 def test_no_options_args():
