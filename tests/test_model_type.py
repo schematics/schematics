@@ -282,3 +282,33 @@ def test_deep_string_search():
         invalid_model = ModelType('a.c.d.e')
     with pytest.raises(ImportStringError):
         TestModel2(dict(invalid_model=dict(a='1')))
+
+
+def test_recursive_string_self_reference():
+    class RecursiveTestModel(Model):
+        recursive_model = ModelType('RecursiveTestModel')
+        test = StringType()
+
+    test = RecursiveTestModel(dict(recursive_model=dict(test='Abc')))
+    assert test.validate() is None
+    assert test.recursive_model.test == 'Abc'
+
+
+def test_circular_string_reference():
+    class TestModel1(Model):
+        model2 = ModelType('TestModel2')
+        name = StringType()
+
+    class TestModel2(Model):
+        model1 = ModelType('TestModel1')
+        description = StringType()
+
+    data1 = {'name': 'Test1'}
+    data2 = {'description': 'Test2', 'model1': data1}
+
+    # TODO: we might want to support locals import late binding someday/somehow
+    with pytest.raises(ImportStringError):
+        test = TestModel1({
+            'name': 'Root',
+            'model2': data2
+        })
