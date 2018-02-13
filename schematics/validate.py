@@ -84,7 +84,10 @@ def _validate_model(schema, mutable, data, context):
     errors = {}
     invalid_fields = []
 
-    has_validator = lambda atom: atom.value is not Undefined and atom.name in schema._validator_functions
+    has_validator = lambda atom: (
+        atom.value is not Undefined and
+        atom.name in schema._validator_functions
+    )
     for field_name, field, value in atoms(schema, data, filter=has_validator):
         try:
             schema._validator_functions[field_name](mutable, data, value, context)
