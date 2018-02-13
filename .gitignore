@@ -21,3 +21,5 @@ docs/_build
 /.cache
 .coverage
 *.sqlite3
+/.idea
+/.venv
