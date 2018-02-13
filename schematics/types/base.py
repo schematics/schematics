@@ -37,12 +37,9 @@ def fill_template(template, min_length, max_length):
 
 
 def get_range_endpoints(min_length, max_length, padding=0, required_length=0):
-    if min_length is None and max_length is None:
+    if min_length is None:
         min_length = 0
-        max_length = 16
-    elif min_length is None:
-        min_length = 0
-    elif max_length is None:
+    if max_length is None:
         max_length = max(min_length * 2, 16)
 
     if padding:
@@ -449,7 +446,10 @@ class NumberType(BaseType):
         super(NumberType, self).__init__(**kwargs)
 
     def _mock(self, context=None):
-        return get_value_in(self.min_value, self.max_value)
+        number = random.uniform(
+            *get_range_endpoints(self.min_value, self.max_value)
+        )
+        return self.native_type(number) if self.native_type else number
 
     def to_native(self, value, context=None):
         if isinstance(value, bool):
@@ -514,51 +514,29 @@ class FloatType(NumberType):
         super(FloatType, self).__init__(**kwargs)
 
 
-class DecimalType(BaseType):
+class DecimalType(NumberType):
 
     """A fixed-point decimal number field.
     """
 
     primitive_type = str
     native_type = decimal.Decimal
-
-    MESSAGES = {
-        'number_coerce': _("Number '{0}' failed to convert to a decimal."),
-        'number_min': _("Value should be greater than or equal to {0}."),
-        'number_max': _("Value should be less than or equal to {0}."),
-    }
-
-    def __init__(self, min_value=None, max_value=None, **kwargs):
-        # type: (...) -> decimal.Decimal
-
-        self.min_value, self.max_value = min_value, max_value
-        super(DecimalType, self).__init__(**kwargs)
-
-    def _mock(self, context=None):
-        return get_value_in(self.min_value, self.max_value)
+    number_type = 'Decimal'
 
     def to_primitive(self, value, context=None):
         return str(value)
 
     def to_native(self, value, context=None):
-        if not isinstance(value, decimal.Decimal):
-            if not isinstance(value, string_type):
-                value = str(value)
-            try:
-                value = decimal.Decimal(value)
-            except (TypeError, decimal.InvalidOperation):
-                raise ConversionError(self.messages['number_coerce'].format(value))
+        if isinstance(value, decimal.Decimal):
+            return value
 
-        return value
-
-    def validate_range(self, value, context=None):
-        if self.min_value is not None and value < self.min_value:
-            error_msg = self.messages['number_min'].format(self.min_value)
-            raise ValidationError(error_msg)
-
-        if self.max_value is not None and value > self.max_value:
-            error_msg = self.messages['number_max'].format(self.max_value)
-            raise ValidationError(error_msg)
+        if not isinstance(value, (string_type, bool)):
+            value = str(value)
+        try:
+            value = decimal.Decimal(value)
+        except (TypeError, decimal.InvalidOperation):
+            raise ConversionError(self.messages['number_coerce'].format(
+                value, self.number_type.lower()))
 
         return value
 
