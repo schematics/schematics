@@ -1,8 +1,8 @@
 
+import functools
+
 from ..transforms import convert, to_primitive
 from ..validate import validate
-
-import functools
 
 
 def _callback_wrap(data, schema, transform, *args, **kwargs):

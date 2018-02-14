@@ -1,13 +1,13 @@
 
+import itertools
+import inspect
+
 from collections import OrderedDict
 
 from .compat import itervalues
 from .common import DEFAULT, NONEMPTY
 from .types import BaseType
 from .types.serializable import Serializable
-
-import itertools
-import inspect
 
 
 class Schema(object):

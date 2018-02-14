@@ -1,12 +1,12 @@
 
+import warnings
+import functools
+
 from collections import OrderedDict
 
 from .compat import iteritems
 from .types.serializable import Serializable
 from . import transforms
-
-import warnings
-import functools
 
 
 class SchematicsDeprecationWarning(DeprecationWarning):

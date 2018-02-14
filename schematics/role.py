@@ -1,6 +1,6 @@
-from .compat import str_compat, repr_compat
-
 import collections
+
+from .compat import str_compat, repr_compat
 
 
 @repr_compat
