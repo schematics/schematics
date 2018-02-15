@@ -132,6 +132,39 @@ def test_datetime_accepts_datetime():
     assert dt_type.to_primitive(dt) == output
 
 
+def test_timedelta():
+    type_ = TimedeltaType()
+    delta = datetime.timedelta(seconds=10)
+    assert type_(delta.total_seconds()) == delta
+
+
+@pytest.mark.parametrize('value', (
+    42.42,
+    10000,
+    0,
+))
+def test_timedelta_to_native_valid_conversion(value):
+    type_ = TimedeltaType()
+    assert type_.to_native(value) == datetime.timedelta(seconds=value)
+
+
+@pytest.mark.parametrize('value', (
+    'foo',
+    '42.42',
+    [],
+))
+def test_timedelta_to_native_invalid_conversion(value):
+    type_ = TimedeltaType()
+    with pytest.raises(ConversionError):
+        type_.to_native(value)
+
+
+def test_timedelta_mock():
+    type_ = TimedeltaType()
+    mocked = type_.mock()
+    assert isinstance(mocked, datetime.timedelta)
+
+
 def test_int():
     intfield = IntType()
     i = lambda x: (intfield(x), type(intfield(x)))
