@@ -18,6 +18,9 @@ else:
     except ImportError:
         from _dummy_thread import get_ident
 
+__all__ = ['get_ident', 'setdefault', 'Constant', 'listify',
+    'get_all_subclasses', 'ImportStringError', 'import_string']
+
 
 def setdefault(obj, attr, value, search_mro=False, overwrite_none=False):
     if search_mro:
@@ -60,26 +63,6 @@ def listify(value):
         return list(value)
     else:
         return [value]
-
-
-def module_exports(module_name):
-    module_globals = sys.modules[module_name].__dict__
-    return [
-        name for name, obj in module_globals.items()
-        if name[0] != '_'
-          and (getattr(obj, '__module__', None) == module_name
-                or isinstance(obj, Constant))
-    ]
-
-
-def package_exports(package_name):
-    package_globals = sys.modules[package_name].__dict__
-    return [
-        name for name, obj in package_globals.items()
-        if name[0] != '_'
-          and (getattr(obj, '__module__', '').startswith(package_name + '.')
-                or isinstance(obj, Constant))
-    ]
 
 
 def get_all_subclasses(cls):
@@ -188,4 +171,6 @@ def import_string(import_name, silent=False):
                 sys.exc_info()[2])
 
 
-__all__ = module_exports(__name__)
+if PY2:
+    # Python 2 names cannot be unicode
+    __all__ = [n.encode('ascii') for n in __all__]

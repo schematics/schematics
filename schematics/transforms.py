@@ -6,13 +6,15 @@ import itertools
 import types
 from collections import OrderedDict
 
-from .common import * # pylint: disable=redefined-builtin
+from .common import *
 from .datastructures import Context
 from .exceptions import *
 from .undefined import Undefined
 from .util import listify
 from .iteration import atoms, atom_filter
 from .role import Role
+
+__all__ = []
 
 
 ###
@@ -432,6 +434,3 @@ def to_native(cls, instance_or_dict, **kwargs):
 
 def to_primitive(cls, instance_or_dict, **kwargs):
     return export_loop(cls, instance_or_dict, to_primitive_converter, **kwargs)
-
-
-__all__ = module_exports(__name__)

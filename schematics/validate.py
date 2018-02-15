@@ -5,12 +5,14 @@ from __future__ import unicode_literals, absolute_import
 import inspect
 import functools
 
-from .common import * # pylint: disable=redefined-builtin
+from .common import *
 from .datastructures import Context
 from .exceptions import FieldError, DataError
 from .transforms import import_loop, validation_converter
 from .undefined import Undefined
-from .iteration import atoms, atom_filter
+from .iteration import atoms
+
+__all__ = []
 
 
 def validate(schema, mutable, raw_data=None, trusted_data=None,
@@ -126,6 +128,3 @@ def prepare_validator(func, argcount):
             return func(*args, **kwargs)
         return newfunc
     return func
-
-
-__all__ = module_exports(__name__)

@@ -18,13 +18,18 @@ import string
 import uuid
 from collections import Iterable, OrderedDict
 
-from ..common import * # pylint: disable=redefined-builtin
-from ..compat import string_type
+from ..common import *
 from ..exceptions import *
 from ..translator import _
 from ..undefined import Undefined
 from ..util import listify
 from ..validate import prepare_validator, get_validation_context
+
+__all__ = [
+    'BaseType', 'UUIDType', 'StringType', 'MultilingualStringType',
+    'NumberType', 'IntType', 'LongType', 'FloatType', 'DecimalType',
+    'HashType', 'MD5Type', 'SHA1Type', 'BooleanType', 'GeoPointType',
+    'DateType', 'DateTimeType', 'UTCDateTimeType', 'TimestampType']
 
 
 def fill_template(template, min_length, max_length):
@@ -1139,4 +1144,6 @@ class MultilingualStringType(BaseType):
                     self.messages['regex_locale'].format(locale))
 
 
-__all__ = [name for name, obj in globals().items() if isinstance(obj, TypeMeta)]
+if PY2:
+    # Python 2 names cannot be unicode
+    __all__ = [n.encode('ascii') for n in __all__]

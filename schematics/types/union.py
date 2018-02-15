@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals, absolute_import
+
 import inspect
 from collections import OrderedDict
 
@@ -6,6 +10,8 @@ from ..exceptions import ConversionError
 from ..translator import _
 from ..transforms import get_import_context, get_export_context
 from .base import BaseType
+
+__all__ = ['UnionType']
 
 
 def _valid_init_args(type_):
@@ -91,4 +97,6 @@ class UnionType(BaseType):
         return field.to_primitive(value, context)
 
 
-__all__ = module_exports(__name__)
+if PY2:
+    # Python 2 names cannot be unicode
+    __all__ = [n.encode('ascii') for n in __all__]

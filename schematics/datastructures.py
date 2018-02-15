@@ -6,6 +6,8 @@ from collections import Mapping, Sequence
 
 from .compat import *
 
+__all__ = []
+
 
 class DataObject(object):
     """

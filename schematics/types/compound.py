@@ -12,7 +12,7 @@ else:
 from collections import Iterable, Sequence, Mapping
 import itertools
 
-from ..common import * # pylint: disable=redefined-builtin
+from ..common import *
 from ..exceptions import *
 from ..transforms import (
     export_loop,
@@ -22,6 +22,9 @@ from ..translator import _
 from ..util import get_all_subclasses, import_string
 
 from .base import BaseType, get_value_in
+
+__all__ = ['CompoundType', 'MultiType', 'ModelType', 'ListType', 'DictType',
+    'PolyModelType']
 
 
 class CompoundType(BaseType):
@@ -445,4 +448,6 @@ class PolyModelType(CompoundType):
         return candidates
 
 
-__all__ = module_exports(__name__)
+if PY2:
+    # Python 2 names cannot be unicode
+    __all__ = [n.encode('ascii') for n in __all__]

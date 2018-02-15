@@ -7,7 +7,7 @@ import inspect
 from collections import OrderedDict
 from types import FunctionType
 
-from .common import * # pylint: disable=redefined-builtin
+from .common import *
 from .compat import str_compat, repr_compat, _dict
 from .datastructures import Context, ChainMap, MappingProxyType
 from .exceptions import *
@@ -22,6 +22,8 @@ from .types.serializable import Serializable
 from .undefined import Undefined
 from .util import get_ident
 from . import schema
+
+__all__ = []
 
 
 class FieldDescriptor(object):
@@ -430,6 +432,3 @@ class Model(object):
             <Person: Mr. Pink>
         """
         return None
-
-
-__all__ = module_exports(__name__)

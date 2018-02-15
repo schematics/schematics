@@ -6,10 +6,15 @@ import json
 
 from collections import Sequence, Mapping
 
-from schematics.translator import LazyText
+from .translator import LazyText
 from .common import *
 from .compat import string_type, str_compat
 from .datastructures import FrozenDict, FrozenList
+
+__all__ = [
+    'BaseError', 'ErrorMessage', 'FieldError', 'ConversionError',
+    'ValidationError', 'StopValidationError', 'CompoundError', 'DataError',
+    'MockCreationError', 'UndefinedValueError', 'UnknownFieldError']
 
 
 @str_compat
@@ -242,4 +247,6 @@ class UnknownFieldError(KeyError):
         super(UnknownFieldError, self).__init__(msg)
 
 
-__all__ = module_exports(__name__)
+if PY2:
+    # Python 2 names cannot be unicode
+    __all__ = [n.encode('ascii') for n in __all__]
