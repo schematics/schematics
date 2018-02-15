@@ -140,17 +140,17 @@ def test_timedelta():
 
 @pytest.mark.parametrize('value', (
     42.42,
+    '42.42',
     10000,
     0,
 ))
 def test_timedelta_to_native_valid_conversion(value):
     type_ = TimedeltaType()
-    assert type_.to_native(value) == datetime.timedelta(seconds=value)
+    assert type_.to_native(value) == datetime.timedelta(seconds=float(value))
 
 
 @pytest.mark.parametrize('value', (
     'foo',
-    '42.42',
     [],
 ))
 def test_timedelta_to_native_invalid_conversion(value):
@@ -161,7 +161,7 @@ def test_timedelta_to_native_invalid_conversion(value):
 
 def test_timedelta_mock():
     type_ = TimedeltaType()
-    mocked = type_.mock()
+    mocked = type_._mock()
     assert isinstance(mocked, datetime.timedelta)
 
 

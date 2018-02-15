@@ -993,7 +993,7 @@ class TimedeltaType(BaseType):
             return value
 
         try:
-            return datetime.timedelta(seconds=value)
+            return datetime.timedelta(seconds=float(value))
         except (ValueError, TypeError):
             raise ConversionError(self.messages['convert'].format(value))
 
