@@ -966,8 +966,7 @@ class TimestampType(DateTimeType):
         else:
             value = value.astimezone(self.UTC)
         delta = value - self.EPOCH
-        ts = (delta.days * 24 * 3600) + delta.seconds + delta.microseconds / 1E6
-        return ts
+        return delta.total_seconds()
 
 
 class TimedeltaType(BaseType):
