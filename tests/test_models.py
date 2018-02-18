@@ -5,7 +5,6 @@ import pytest
 from schematics.common import PY2
 from schematics.models import Model, ModelOptions
 from schematics.transforms import whitelist, blacklist
-from schematics.undefined import Undefined
 from schematics.types import StringType, IntType, ListType, ModelType
 from schematics.exceptions import *
 
@@ -758,3 +757,17 @@ def test_mock_recursive_model():
         m = ListType(ModelType('M', required=True), required=True)
 
     M.get_mock_object()
+
+
+def test_append_field_to_model():
+
+    class M(Model):
+        a = IntType()
+
+    M._append_field('b', StringType())
+
+    input_data = {'a': 1, 'b': 'b'}
+
+    m = M(input_data)
+    assert m.b == 'b'
+    assert m.serialize() == input_data

@@ -343,6 +343,21 @@ class Model(object):
         return getattr(self, key, default)
 
     @classmethod
+    def _append_field(cls, field_name, field_type):
+        """
+        Add a new field to this class.
+
+        :type field_name: str
+        :param field_name:
+            The name of the field to add.
+        :type field_type: BaseType
+        :param field_type:
+            The type to use for the field.
+        """
+        cls._schema.append_field(schema.Field(field_name, field_type))
+        setattr(cls, field_name, FieldDescriptor(field_name))
+
+    @classmethod
     def get_mock_object(cls, context=None, overrides={}):
         """Get a mock object.
 
