@@ -1058,9 +1058,9 @@ class GeoPointType(BaseType[List[Union[float, int]], List[Union[float, int]]]):
             return list(value)
 
     def to_native(self, value, context=None):
+        # type: (Any, Optional[Context]) -> N
         """Make sure that a geo-value is of type (x, y)
         """
-        # type: (Any, Optional[Context]) -> N
         if not isinstance(value, (tuple, list, dict)):
             raise ConversionError(_('GeoPointType can only accept tuples, lists, or dicts'))
         elements = self._normalize(value)

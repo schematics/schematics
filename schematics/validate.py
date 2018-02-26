@@ -72,7 +72,7 @@ def validate(schema, mutable, raw_data=None, trusted_data=None,
     context = context or get_validation_context(partial=partial, strict=strict,
         convert=convert)
 
-    errors = {}
+    errors = {}  # type: Dict[str, List[ErrorMessage]]
     try:
         data = import_loop(schema, mutable, raw_data, trusted_data=trusted_data,
             context=context, **kwargs)

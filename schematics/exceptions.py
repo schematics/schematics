@@ -211,14 +211,16 @@ class StopValidationError(ValidationError):
 class CompoundError(BaseError):
 
     def __init__(self, errors):
+        # type: (Dict[str, Union[List[ErrorMessage], CompoundError]]) -> None
         if not isinstance(errors, dict):
             raise TypeError("Compound errors must be reported as a dictionary.")
+        errors_ = {}  # type: Dict[str, List[ErrorMessage]]
         for key, value in errors.items():
             if isinstance(value, CompoundError):
-                errors[key] = value.errors
+                errors_[key] = value.errors
             else:
-                errors[key] = value
-        super(CompoundError, self).__init__(errors)
+                errors_[key] = value
+        super(CompoundError, self).__init__(errors_)
 
 
 class DataError(CompoundError):
