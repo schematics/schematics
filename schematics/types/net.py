@@ -2,7 +2,6 @@
 
 from __future__ import unicode_literals, absolute_import
 
-import encodings.idna
 import random
 import re
 
@@ -15,11 +14,13 @@ except ImportError: # PY2
     from urlparse import urlunsplit
     from urllib import quote as urlquote
 
-from ..common import * # pylint: disable=redefined-builtin
+from ..common import *
 from ..exceptions import ValidationError, StopValidationError
 from ..translator import _
 
 from .base import StringType, fill_template
+
+__all__ = ['IPAddressType', 'IPv4Type', 'IPv6Type', 'MACAddressType', 'URLType', 'EmailType']
 
 
 ### Character ranges
@@ -283,5 +284,6 @@ class EmailType(StringType):
             raise StopValidationError(self.messages['email'])
 
 
-__all__ = module_exports(__name__)
-
+if PY2:
+    # Python 2 names cannot be unicode
+    __all__ = [n.encode('ascii') for n in __all__]

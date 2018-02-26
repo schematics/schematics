@@ -13,6 +13,8 @@ from ..transforms import get_import_context
 
 from .base import BaseType, TypeMeta
 
+__all__ = ['calculated', 'serializable', 'Serializable']
+
 
 def serializable(arg=None, **kwargs):
     """A serializable is a way to define dynamic serializable fields that are
@@ -108,4 +110,6 @@ class Serializable(object):
         return "<%s>" % (type_ + model + field)
 
 
-__all__ = module_exports(__name__)
+if PY2:
+    # Python 2 names cannot be unicode
+    __all__ = [n.encode('ascii') for n in __all__]

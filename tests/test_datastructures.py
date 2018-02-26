@@ -1,9 +1,7 @@
-import copy
-import pickle
-
 import pytest
+import copy
 
-from schematics.datastructures import *
+from schematics.datastructures import Context, DataObject, FrozenDict, FrozenList
 
 
 def test_data_object_basics():

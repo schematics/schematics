@@ -225,7 +225,11 @@ def test_compound_fields():
 
 
 def test_mock_object():
-    assert ListType(IntType, required=True).mock() is not None
+    assert type(ListType(IntType, required=True).mock()) is list
+
+    assert ListType(
+        StringType, min_size=0, max_size=0, required=True,
+    ).mock() == []
 
     with pytest.raises(MockCreationError) as exception:
         ListType(IntType, min_size=10, max_size=1, required=True).mock()
@@ -236,7 +240,10 @@ def test_mock_object_with_model_type():
         name = StringType(required=True)
         age = IntType(required=True)
 
-    assert isinstance(ListType(ModelType(User), required=True).mock()[-1], User)
+    assert isinstance(
+        ListType(ModelType(User), min_size=1, required=True).mock()[-1],
+        User
+    )
 
 
 def test_issue_453_list_model_field_recursive_import():

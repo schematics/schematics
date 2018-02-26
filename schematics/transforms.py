@@ -6,7 +6,7 @@ import itertools
 import types
 from collections import OrderedDict
 
-from .common import * # pylint: disable=redefined-builtin
+from .common import *
 from .datastructures import Context
 from .exceptions import *
 from .undefined import Undefined
@@ -20,6 +20,9 @@ if False:
     from .models import Model
     from .schema import Schema
     from .util import Constant
+
+__all__ = []
+
 
 ###
 # Transform loops
@@ -298,7 +301,8 @@ def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise
     else:
         data = {}
 
-    filter_func = schema.options.roles.get(context.role)
+    filter_func = (context.role if callable(context.role) else
+        schema._options.roles.get(context.role))
     if filter_func is None:
         if context.role and context.raise_error_on_role:
             error_msg = '%s Model has no role "%s"'
@@ -485,6 +489,3 @@ def to_native(cls, instance_or_dict, **kwargs):
 
 def to_primitive(cls, instance_or_dict, **kwargs):
     return export_loop(cls, instance_or_dict, to_primitive_converter, **kwargs)
-
-
-__all__ = module_exports(__name__)

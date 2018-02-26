@@ -2,36 +2,14 @@
 # pylint: skip-file
 
 from __future__ import unicode_literals, absolute_import
+from collections import Mapping, Sequence
 
-from collections import Mapping, MutableMapping, KeysView, ValuesView, ItemsView, Sequence
-from copy import deepcopy
-from operator import eq
+from .compat import *
 
-from .common import *
-from .util import get_ident
+__all__ = []
 
 if False:
     from typing import *
-
-
-class _ODKeysView(KeysView):
-    def __reversed__(self):
-        for key in reversed(self._mapping):
-            yield key
-
-
-class _ODValuesView(ValuesView):
-    def __reversed__(self):
-        for key in reversed(self._mapping):
-            yield self._mapping[key]
-
-
-class _ODItemsView(ItemsView):
-    def __reversed__(self):
-        for key in reversed(self._mapping):
-            yield (key, self._mapping[key])
-
-
 
 class DataObject(object):
     """
@@ -366,8 +344,3 @@ class FrozenList(Sequence):
             if self[i] != other[i]:
                 return False
         return True
-
-
-
-
-__all__ = module_exports(__name__)

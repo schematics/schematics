@@ -1,7 +1,12 @@
+"""
+Core loop over the data structures according to a defined schema.
+"""
+
+from __future__ import unicode_literals, absolute_import
+from collections import namedtuple
 
 from .compat import iteritems
 from .undefined import Undefined
-from collections import namedtuple
 
 from typing import *
 
@@ -17,8 +22,8 @@ Atom = NamedTuple('Atom',
 Atom.__new__.__defaults__ = (None,) * len(Atom._fields)
 
 
-def atoms(schema, mapping, keys=Atom._fields, filter=None):
-    # type: (Schema, Mapping, Tuple[str, str, str], Optional[Callable[[Atom], bool]]) -> Iterator[Atom]
+def atoms(schema, mapping, keys=tuple(Atom._fields), filter=None):
+    # type: (Schema, Mapping, Tuple[str, str, str], Optional[Callable[[Atom], bool]]) -> Iterable[Atom]
     """
     Iterator for the atomic components of a model definition and relevant
     data that creates a 3-tuple of the field's name, its type instance and
@@ -75,6 +80,7 @@ def atoms(schema, mapping, keys=Atom._fields, filter=None):
 
 
 class atom_filter:
+    """Group for the default filter functions."""
 
     @staticmethod
     def has_setter(atom):

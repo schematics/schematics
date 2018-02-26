@@ -1,17 +1,81 @@
+2.1.0 / Unreleased
+==================
+**[BREAKING CHANGE]**
+
+- Drop Python 2.6 support
+  `#517 <https://github.com/schematics/schematics/pull/517>`__
+  (`rooterkyberian <https://github.com/rooterkyberian>`__)
+
+Other changes:
+
+- Allow to create Model fields dinamically
+  `#512 <https://github.com/schematics/schematics/pull/512>`__
+  (`lkraider <https://github.com/lkraider>`__)
+- Allow ModelOptions to have extra parameters
+  `#449 <https://github.com/schematics/schematics/pull/449>`__
+  (`rmb938 <https://github.com/rmb938>`__)
+  `#506 <https://github.com/schematics/schematics/pull/506>`__
+  (`ekampf <https://github.com/ekampf>`__)
+- Accept callables as serialize roles
+  `#508 <https://github.com/schematics/schematics/pull/508>`__
+  (`lkraider <https://github.com/lkraider>`__)
+  (`jaysonsantos <https://github.com/jaysonsantos>`__)
+- Simplify PolyModelType.find_model for readability
+  `#537 <https://github.com/schematics/schematics/pull/537>`__
+  (`kstrauser <https://github.com/kstrauser>`__)
+- Enable PolyModelType recursive validation
+  `#535 <https://github.com/schematics/schematics/pull/535>`__
+  (`javiertejero <https://github.com/javiertejero>`__)
+- Documentation fixes
+  `#509 <https://github.com/schematics/schematics/pull/509>`__
+  (`Tuoris <https://github.com/Tuoris>`__)
+  `#514 <https://github.com/schematics/schematics/pull/514>`__
+  (`tommyzli <https://github.com/tommyzli>`__)
+  `#518 <https://github.com/schematics/schematics/pull/518>`__
+  (`rooterkyberian <https://github.com/rooterkyberian>`__)
+- Fix Model.init validation when partial is True
+  `#531 <https://github.com/schematics/schematics/issues/531>`__
+  (`lkraider <https://github.com/lkraider>`__)
+- Minor number types refactor and mocking fixes
+  `#519 <https://github.com/schematics/schematics/pull/519>`__
+  (`rooterkyberian <https://github.com/rooterkyberian>`__)
+  `#520 <https://github.com/schematics/schematics/pull/520>`__
+  (`rooterkyberian <https://github.com/rooterkyberian>`__)
+- Add ability to import models as strings
+  `#496 <https://github.com/schematics/schematics/pull/496>`__
+  (`jaysonsantos <https://github.com/jaysonsantos>`__)
+- Add EnumType
+  `#504 <https://github.com/schematics/schematics/pull/504>`__
+  (`ekamil <https://github.com/ekamil>`__)
+- Dynamic models: Possible memory issues because of _subclasses
+  `#502 <https://github.com/schematics/schematics/pull/502>`__
+  (`mjrk <https://github.com/mjrk>`__)
+- Add type hints to constructors of field type classes
+  `#488 <https://github.com/schematics/schematics/pull/488>`__
+  (`KonishchevDmitry <https://github.com/KonishchevDmitry>`__)
+- Regression: Do not call field validator if field has not been set
+  `#499 <https://github.com/schematics/schematics/pull/499>`__
+  (`cmonfort <https://github.com/cmonfort>`__)
+- Add possibility to translate strings and add initial pt_BR translations
+  `#495 <https://github.com/schematics/schematics/pull/495>`__
+  (`jaysonsantos <https://github.com/jaysonsantos>`__)
+  (`lkraider <https://github.com/lkraider>`__)
+
+
 2.0.1 / 2017-05-30
 ==================
 - Support for raising DataError inside custom validate_fieldname methods.
-   `#441 <https://github.com/schematics/schematics/pull/441>`__
-   (`alexhayes <https://github.com/alexhayes>`__)
+  `#441 <https://github.com/schematics/schematics/pull/441>`__
+  (`alexhayes <https://github.com/alexhayes>`__)
 - Add specialized SchematicsDeprecationWarning.
-   (`lkraider <https://github.com/lkraider>`__)
+  (`lkraider <https://github.com/lkraider>`__)
 - DateTimeType to_native method should handle type errors gracefully.
-   `#491 <https://github.com/schematics/schematics/pull/491>`__
-   (`e271828- <https://github.com/e271828->`__)
+  `#491 <https://github.com/schematics/schematics/pull/491>`__
+  (`e271828- <https://github.com/e271828->`__)
 - Allow fields names to override the mapping-interface methods.
-   `#489 <https://github.com/schematics/schematics/pull/489>`__
-   (`toumorokoshi <https://github.com/toumorokoshi>`__)
-   (`lkraider <https://github.com/lkraider>`__)
+  `#489 <https://github.com/schematics/schematics/pull/489>`__
+  (`toumorokoshi <https://github.com/toumorokoshi>`__)
+  (`lkraider <https://github.com/lkraider>`__)
 
 2.0.0 / 2017-05-22
 ==================
@@ -154,6 +218,9 @@
    `#306 <https://github.com/schematics/schematics/pull/306>`__
    (`kaiix <https://github.com/kaiix>`__)
 
+1.1.3 / 2017-06-27
+==================
+* [Maintenance] (`#501 <https://github.com/schematics/schematics/issues/501>`_) Dynamic models: Possible memory issues because of _subclasses
 
 1.1.2 / 2017-03-27
 ==================

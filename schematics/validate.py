@@ -5,12 +5,14 @@ from __future__ import unicode_literals, absolute_import
 import inspect
 import functools
 
-from .common import * # pylint: disable=redefined-builtin
+from .common import *
 from .datastructures import Context
 from .exceptions import FieldError, DataError
 from .transforms import import_loop, validation_converter
 from .undefined import Undefined
-from .iteration import atoms, atom_filter
+from .iteration import atoms
+
+__all__ = []
 
 if False:
     from typing import *
@@ -112,7 +114,10 @@ def _validate_model(schema, mutable, data, context):
     errors = {}
     invalid_fields = []
 
-    has_validator = lambda atom: atom.name in schema._validator_functions
+    has_validator = lambda atom: (
+        atom.value is not Undefined and
+        atom.name in schema._validator_functions
+    )
     for field_name, field, value in atoms(schema, data, filter=has_validator):
         try:
             schema._validator_functions[field_name](mutable, data, value, context)
@@ -151,6 +156,3 @@ def prepare_validator(func, argcount):
             return func(*args, **kwargs)
         return newfunc
     return func
-
-
-__all__ = module_exports(__name__)

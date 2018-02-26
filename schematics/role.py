@@ -1,7 +1,7 @@
-from .compat import str_compat, repr_compat
-
 import collections
 from typing import Any
+
+from .compat import str_compat, repr_compat
 
 
 @repr_compat

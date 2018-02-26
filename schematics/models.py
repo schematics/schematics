@@ -7,7 +7,7 @@ import inspect
 from collections import OrderedDict
 from types import FunctionType
 
-from .common import * # pylint: disable=redefined-builtin
+from .common import *
 from .compat import str_compat, repr_compat, _dict
 from .datastructures import Context, ChainMap, MappingProxyType
 from .exceptions import *
@@ -25,6 +25,9 @@ from . import schema
 
 if False:
     from typing import *
+
+__all__ = []
+
 
 
 class FieldDescriptor(object):
@@ -131,8 +134,12 @@ class ModelMeta(type):
         options_class = attrs.get('__optionsclass__', schema.SchemaOptions)
         if 'Options' in attrs:
             for key, value in inspect.getmembers(attrs['Options']):
-                if key.startswith("_"):
+                if key.startswith("__"):
                     continue
+                elif key.startswith("_"):
+                    extras = options_members.get("extras", {}).copy()
+                    extras.update({key: value})
+                    options_members["extras"] = extras
                 elif key == "roles":
                     roles = options_members.get("roles", {}).copy()
                     roles.update(value)
@@ -250,7 +257,7 @@ class Model(object):
             app_data=app_data, **kwargs)
         self._data.converted = data
         if validate:
-            self.validate()
+            self.validate(partial=partial, app_data=app_data, **kwargs)
 
     def validate(self, partial=False, convert=True, app_data=None, **kwargs):
         """
@@ -358,6 +365,21 @@ class Model(object):
         return getattr(self, key, default)
 
     @classmethod
+    def _append_field(cls, field_name, field_type):
+        """
+        Add a new field to this class.
+
+        :type field_name: str
+        :param field_name:
+            The name of the field to add.
+        :type field_type: BaseType
+        :param field_type:
+            The type to use for the field.
+        """
+        cls._schema.append_field(schema.Field(field_name, field_type))
+        setattr(cls, field_name, FieldDescriptor(field_name))
+
+    @classmethod
     def get_mock_object(cls, context=None, overrides={}):
         """Get a mock object.
 
@@ -447,6 +469,3 @@ class Model(object):
             <Person: Mr. Pink>
         """
         return None
-
-
-__all__ = module_exports(__name__)

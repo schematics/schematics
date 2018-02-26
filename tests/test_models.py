@@ -5,7 +5,6 @@ import pytest
 from schematics.common import PY2
 from schematics.models import Model, ModelOptions
 from schematics.transforms import whitelist, blacklist
-from schematics.undefined import Undefined
 from schematics.types import StringType, IntType, ListType, ModelType
 from schematics.exceptions import *
 
@@ -343,14 +342,27 @@ def test_good_options_args():
     assert mo.roles == {}
 
 
-def test_bad_options_args():
-    args = {
-        'roles': None,
-        'badkw': None,
-    }
+def test_options_custom_args():
+    class Foo(Model):
+        class Options:
+            _foo = 'bar'
 
-    with pytest.raises(TypeError):
-        ModelOptions(**args)
+    f = Foo()
+    assert f._options._foo == 'bar'
+
+
+def test_options_custom_args_inheritance():
+    class Foo(Model):
+        class Options:
+            _foo = 'bar'
+
+    class Moo(Foo):
+        class Options:
+            _bar = 'baz'
+
+    m = Moo()
+    assert m._options._foo == 'bar'
+    assert m._options._bar == 'baz'
 
 
 def test_no_options_args():
@@ -482,6 +494,49 @@ def test_model_field_validate_structure():
 
     with pytest.raises(DataError):
         Card({'user': [1, 2]})
+
+
+def test_model_field_validate_only_when_field_is_set():
+    class M0(Model):
+        bar = StringType()
+
+        def validate_bar(self, data, value):
+            if data['bar'] and 'bar' not in data['bar']:
+                raise ValidationError('Illegal value')
+
+    class M1(Model):
+        foo = StringType(required=True)
+
+        def validate_foo(self, data, value):
+            if 'foo' not in data['foo']:
+                raise ValidationError('Illegal value')
+
+    m = M0({})
+    m.validate()
+
+    m = M0({'bar': 'foo'})
+    with pytest.raises(DataError) as e:
+        m.validate()
+        assert isinstance(e['foo'][0], ErrorMessage)
+        assert 'Illegal value' in e['foo'][0]
+
+    m = M0({'bar': 'foobar'})
+    m.validate()
+
+    m = M1({})
+    with pytest.raises(DataError) as e:
+        m.validate()
+        assert isinstance(e['foo'], ConversionError)
+        assert 'This field is required' in e['foo']
+
+    m = M1({'foo': 'bar'})
+    with pytest.raises(DataError) as e:
+        m.validate()
+        assert isinstance(e['foo'][0], ErrorMessage)
+        assert 'Illegal value' in e['foo'][0]
+
+    m = M1({'foo': 'foobar'})
+    m.validate()
 
 
 def test_model_deserialize_from_with_list():
@@ -703,3 +758,16 @@ def test_mock_recursive_model():
 
     M.get_mock_object()
 
+
+def test_append_field_to_model():
+
+    class M(Model):
+        a = IntType()
+
+    M._append_field('b', StringType())
+
+    input_data = {'a': 1, 'b': 'b'}
+
+    m = M(input_data)
+    assert m.b == 'b'
+    assert m.serialize() == input_data

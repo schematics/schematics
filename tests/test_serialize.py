@@ -1001,3 +1001,24 @@ def test_serializable_with_list_and_default_role():
             },
         ]
     }
+
+
+def test_callable_role():
+    acl_fields = {
+        'user_id_1': ['name'],
+        'user_id_2': ['name', 'password'],
+    }
+
+    class User(Model):
+        name = StringType()
+        password = StringType()
+
+    u = User({'name': 'A', 'password': 'B'})
+
+    user_1_acl = whitelist(*acl_fields['user_id_1'])
+    d = u.serialize(role=user_1_acl)
+    assert d == {'name': 'A'}
+
+    user_2_acl = whitelist(*acl_fields['user_id_2'])
+    d = u.serialize(role=user_2_acl)
+    assert d == {'name': 'A', 'password': 'B'}
