@@ -245,6 +245,48 @@ def test_validation_fails_if_internal_state_is_invalid():
         u.name == u.age
 
 
+def test_validation_using_role():
+    class Address(Model):
+        class Options:
+            roles = {
+                'full': whitelist('zipcode'),
+                'short': whitelist()
+            }
+        zipcode = StringType(required=True)
+
+    class User(Model):
+        class Options:
+            roles = {
+                'full': whitelist('name', 'age', 'address'),
+                'short': whitelist('name', 'address')
+            }
+        name = StringType(required=True)
+        age = IntType(required=True)
+        address = ModelType(Address, required=True)
+
+    with pytest.raises(DataError) as exception:
+        u = User({
+            'name': 'Bob',
+            'address': {
+                'zipcode': '156013'
+            },
+        }, role='short')
+        u.validate(role='short')
+
+    errors = exception.value.messages
+
+    assert list(errors.keys()) == ['address']
+    assert errors['address'] == {"zipcode": "Rogue field"}
+
+    u = User({
+        'name': 'Bob',
+        'age': 20,
+        'address': {
+            'zipcode': '156013'
+        }
+    }, role='full', validate=True)
+
+
 def test_returns_nice_conversion_errors():
     class User(Model):
         name = StringType(required=True)

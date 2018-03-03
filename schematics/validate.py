@@ -16,7 +16,8 @@ __all__ = []
 
 
 def validate(schema, mutable, raw_data=None, trusted_data=None,
-             partial=False, strict=False, convert=True, context=None, **kwargs):
+             partial=False, strict=False, convert=True, context=None,
+             role=None, **kwargs):
     """
     Validate some untrusted data using a model. Trusted data can be passed in
     the `trusted_data` parameter.
@@ -56,7 +57,7 @@ def validate(schema, mutable, raw_data=None, trusted_data=None,
     errors = {}
     try:
         data = import_loop(schema, mutable, raw_data, trusted_data=trusted_data,
-            context=context, **kwargs)
+            context=context, role=role, **kwargs)
     except DataError as exc:
         errors = dict(exc.errors)
         data = exc.partial_data
