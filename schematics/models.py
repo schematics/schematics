@@ -383,6 +383,10 @@ class Model(object):
 
     @classmethod
     def _all_metadata(cls):
+        """
+        Collate all metadata from fields defined on this Model for simpler usage elsewhere
+        in this class.
+        """
         metadata = {}
         for type_instance in atoms(cls._schema, None):
             name = type_instance.name
@@ -400,6 +404,9 @@ class Model(object):
 
     @classmethod
     def get_helptext(cls):
+        """
+        Generate user friendly description of this Model.
+        """
         docstring = cls.__doc__.lstrip().rstrip()
         lines = [docstring]
         for metadata in cls._all_metadata().values():
@@ -421,6 +428,9 @@ class Model(object):
 
     @classmethod
     def get_example_usage(cls):
+        """
+        Generate example python code to use this Model.
+        """
         lines = ['%s({' % cls.__name__]
         for metadata in cls._all_metadata().values():
             lines.append("    '{name}': {value},".format(**metadata))
@@ -430,6 +440,9 @@ class Model(object):
 
     @classmethod
     def get_api_docstring(cls):
+        """
+        Generate a sphinx apidoc compatible docstring for use in generating documentation for this model.
+        """
         parameter_lines = []
         for metadata in cls._all_metadata().values():
             line = ":param{native_type} {name}:".format(

@@ -5,7 +5,7 @@ import pytest
 from schematics.common import PY2
 from schematics.models import Model, ModelOptions
 from schematics.transforms import whitelist, blacklist
-from schematics.types import StringType, IntType, ListType, ModelType
+from schematics.types import StringType, IntType, ListType, ModelType, HelpTextMetadata
 from schematics.exceptions import *
 
 
@@ -771,3 +771,67 @@ def test_append_field_to_model():
     m = M(input_data)
     assert m.b == 'b'
     assert m.serialize() == input_data
+
+
+def get_helptest_model():
+    class Person(Model):
+        """
+        This model describes a person.
+        """
+
+        name = StringType(
+            required=True,
+            metadata=HelpTextMetadata('Name', 'A Persons name', 'Joe Stummer')
+        )
+        age = IntType(
+            required=True,
+            metadata=HelpTextMetadata('age', 'Age, in years.', 24)
+        )
+    return Person
+
+
+expected_helptext = """This model describes a person.
+  name (Name)
+    Example: Joe Stummer
+    A Persons name
+  age (age)
+    Example: 24
+    Age, in years."""
+
+
+def test_get_helptext():
+    helptext = get_helptest_model().get_helptext()
+    assert helptext == expected_helptext
+
+
+expected_example_usage = """Person({
+    'name': Joe Stummer,
+    'age': 24,
+})"""
+
+
+def test_get_example_usage():
+    example_usage = get_helptest_model().get_example_usage()
+    assert example_usage == expected_example_usage
+
+
+expected_api_docstring = '''"""
+This model describes a person.
+
+
+Example:
+
+    Person({
+        'name': Joe Stummer,
+        'age': 24,
+    })
+
+
+:param str name: A Persons name
+:param int age: Age, in years.
+"""'''
+
+
+def test_get_api_docstring():
+    api_docstring = get_helptest_model().get_api_docstring()
+    assert api_docstring == expected_api_docstring
