@@ -5,6 +5,7 @@ from __future__ import unicode_literals, absolute_import
 from copy import deepcopy
 import inspect
 from collections import OrderedDict
+from textwrap import indent, fill
 from types import FunctionType
 
 from .common import *
@@ -379,6 +380,76 @@ class Model(object):
                 raise MockCreationError('%s: %s' % (name, exc.message))
         values.update(overrides)
         return cls(values)
+
+    @classmethod
+    def _all_metadata(cls):
+        metadata = {}
+        for type_instance in atoms(cls._schema, None):
+            name = type_instance.name
+            label = type_instance.field.metadata.get('label', type_instance.name)
+            value = type_instance.value or type_instance.field.metadata.get('example', None)
+            description = type_instance.field.metadata.get('description', None)
+            metadata[name] = dict(
+                name=name,
+                label=label,
+                value=value,
+                description=description,
+                field=type_instance.field
+            )
+        return metadata
+
+    @classmethod
+    def get_helptext(cls):
+        docstring = cls.__doc__.lstrip().rstrip()
+        lines = [docstring]
+        for metadata in cls._all_metadata().values():
+            if metadata['label']:
+                lines.append('  {name} ({label})'.format(**metadata))
+            else:
+                lines.append('  {name}'.format(**metadata))
+
+            if metadata['value'] is not None:
+                lines.append('    Example: {value}'.format(**metadata))
+
+            if metadata['description']:
+                lines.append('    {description}'.format(**metadata))
+
+            if not(metadata['value'] is not None or metadata['description']):
+                lines.append('    No helptext provided.')
+
+        return '\n'.join(lines)
+
+    @classmethod
+    def get_example_usage(cls):
+        lines = ['%s({' % cls.__name__]
+        for metadata in cls._all_metadata().values():
+            lines.append("    '{name}': {value},".format(**metadata))
+
+        lines.append('})')
+        return '\n'.join(lines)
+
+    @classmethod
+    def get_api_docstring(cls):
+        parameter_lines = []
+        for metadata in cls._all_metadata().values():
+            line = ":param{native_type} {name}:".format(
+                name=metadata['name'],
+                native_type=' {}'.format(metadata['field'].native_type.__name__) if metadata['field'] else ''
+            )
+            if metadata['description']:
+                line += ' {}'.format(metadata['description'])
+            parameter_lines.append(fill(line, subsequent_indent='    '))
+
+        parameter_description = '\n'.join(parameter_lines)
+
+        docstring = cls.__doc__.lstrip().rstrip()
+
+        api_docstring_lines = ['"""', docstring, '\n', 'Example:\n']
+        api_docstring_lines.append(indent(cls.get_example_usage(), '    '))
+        api_docstring_lines.append('\n')
+        api_docstring_lines.append(parameter_description)
+        api_docstring_lines.append('"""')
+        return '\n'.join(api_docstring_lines)
 
     def __getitem__(self, name):
         if name in self._schema.fields:

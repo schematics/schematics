@@ -16,7 +16,7 @@ import random
 import re
 import string
 import uuid
-from collections import Iterable, OrderedDict
+from collections import Iterable, OrderedDict, namedtuple
 
 from ..common import *
 from ..exceptions import *
@@ -29,7 +29,12 @@ __all__ = [
     'BaseType', 'UUIDType', 'StringType', 'MultilingualStringType',
     'NumberType', 'IntType', 'LongType', 'FloatType', 'DecimalType',
     'HashType', 'MD5Type', 'SHA1Type', 'BooleanType', 'GeoPointType',
-    'DateType', 'DateTimeType', 'UTCDateTimeType', 'TimestampType']
+    'DateType', 'DateTimeType', 'UTCDateTimeType', 'TimestampType',
+    'HelpTextMetadata']
+
+
+# Provide a standard interface for specifying metadta needed for helptext
+HelpTextMetadata = namedtuple("HelpTextmetadata", ['label', 'description', 'example'])
 
 
 def fill_template(template, min_length, max_length):
@@ -156,6 +161,7 @@ class BaseType(object):
         - *label* : Brief human-readable label
         - *description* : Explanation of the purpose of the field. Used for
           help, tooltips, documentation, etc.
+        - *example* : A concrete example of the field usage.
     """
 
     primitive_type = None
@@ -192,7 +198,11 @@ class BaseType(object):
         self._set_export_level(export_level, serialize_when_none)
 
         self.messages = dict(self.MESSAGES, **(messages or {}))
-        self.metadata = metadata or {}
+        if isinstance(metadata, HelpTextMetadata):
+            # Convert the namedtuple into a dict.
+            self.metadata = metadata._asdict()
+        else:
+            self.metadata = metadata or {}
         self._position_hint = next(_next_position_hint)  # For ordering of fields
 
         self.name = None
