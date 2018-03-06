@@ -2,7 +2,7 @@
 
 from schematics.common import PY2
 from schematics.models import Model
-from schematics.types import StringType, IntType
+from schematics.types import StringType
 from schematics.extensions.model_help_text_mixin import help_text_metadata, ModelHelpTextMixin
 
 
@@ -13,11 +13,6 @@ def get_helptest_model():
 
         Multiline string here.
         """
-
-        age = IntType(
-            required=True,
-            metadata=help_text_metadata('age', 'Age, in years.', 24)
-        )
         name = StringType(
             required=True,
             metadata=help_text_metadata('Name', 'A Persons name', 'Joe Stummer')
@@ -37,9 +32,6 @@ def test_help_text_metadata():
 expected_helptext = """This model describes a person.
 
 Multiline string here.
-    age (age)
-        Example: 24
-        Age, in years.
     name (Name)
         Example: Joe Stummer
         A Persons name"""
@@ -51,7 +43,6 @@ def test_get_helptext():
 
 
 expected_example_usage = """Person({
-    'age': 24,
     'name': Joe Stummer,
 })"""
 
@@ -61,8 +52,7 @@ def test_get_example_usage():
     assert example_usage == expected_example_usage
 
 
-expected_parameter_descriptions = """:param int age: Age, in years.
-:param %s name: A Persons name""" % ('unicode' if PY2 else 'str')
+expected_parameter_descriptions = """:param %s name: A Persons name""" % ('unicode' if PY2 else 'str')
 
 
 def test_get_parameter_descriptions():
@@ -78,12 +68,10 @@ Multiline string here.
 Example:
 
     Person({
-        'age': 24,
         'name': Joe Stummer,
     })
 
 
-:param int age: Age, in years.
 :param %s name: A Persons name
 """''' % ('unicode' if PY2 else 'str')
 
