@@ -25,6 +25,15 @@ def get_helptest_model():
     return Person
 
 
+def test_help_text_metadata():
+    kwargs = {
+        'label': 'label',
+        'description': 'description',
+        'example': 'example',
+    }
+    assert kwargs == help_text_metadata(**kwargs)
+
+
 expected_helptext = """This model describes a person.
 
 Multiline string here.
