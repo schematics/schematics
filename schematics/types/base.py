@@ -29,12 +29,7 @@ __all__ = [
     'BaseType', 'UUIDType', 'StringType', 'MultilingualStringType',
     'NumberType', 'IntType', 'LongType', 'FloatType', 'DecimalType',
     'HashType', 'MD5Type', 'SHA1Type', 'BooleanType', 'GeoPointType',
-    'DateType', 'DateTimeType', 'UTCDateTimeType', 'TimestampType',
-    'HelpTextMetadata']
-
-
-# Provide a standard interface for specifying metadta needed for helptext
-HelpTextMetadata = namedtuple("HelpTextmetadata", ['label', 'description', 'example'])
+    'DateType', 'DateTimeType', 'UTCDateTimeType', 'TimestampType']
 
 
 def fill_template(template, min_length, max_length):
@@ -198,11 +193,7 @@ class BaseType(object):
         self._set_export_level(export_level, serialize_when_none)
 
         self.messages = dict(self.MESSAGES, **(messages or {}))
-        if isinstance(metadata, HelpTextMetadata):
-            # Convert the namedtuple into a dict.
-            self.metadata = metadata._asdict()
-        else:
-            self.metadata = metadata or {}
+        self.metadata = metadata or {}
         self._position_hint = next(_next_position_hint)  # For ordering of fields
 
         self.name = None
