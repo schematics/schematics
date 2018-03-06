@@ -1,4 +1,6 @@
-from textwrap import fill
+# -*- coding: utf-8 -*-
+
+from textwrap import fill, dedent
 
 from ..iteration import atoms
 
@@ -10,7 +12,7 @@ def help_text_metadata(label=None, description=None, example=None):
 
     :param str label: Alternative name for the model.
     :param str description: Long description of the model.
-    :param str example: A concrete example usage of the model.
+    :param example: A concrete example usage of the model.
     :return dict: Dictionary of the help text metadata
     """
     return {
@@ -18,6 +20,18 @@ def help_text_metadata(label=None, description=None, example=None):
         'description': description,
         'example': example
     }
+
+
+api_docstring_format = '''"""
+{docstring}
+
+Example:
+
+{example}
+
+
+{parameter_description}
+"""'''
 
 
 class ModelHelpTextMixin(object):
@@ -58,22 +72,22 @@ class ModelHelpTextMixin(object):
         """
         Generate user friendly description of this Model.
         """
-        docstring = cls.__doc__.lstrip().rstrip()
+        docstring = dedent(cls.__doc__).lstrip().rstrip()
         lines = [docstring]
         for metadata in cls._all_metadata().values():
             if metadata['label']:
-                lines.append('  {name} ({label})'.format(**metadata))
+                lines.append('    {name} ({label})'.format(**metadata))
             else:
-                lines.append('  {name}'.format(**metadata))
+                lines.append('    {name}'.format(**metadata))
 
             if metadata['value'] is not None:
-                lines.append('    Example: {value}'.format(**metadata))
+                lines.append('        Example: {value}'.format(**metadata))
 
             if metadata['description']:
-                lines.append('    {description}'.format(**metadata))
+                lines.append('        {description}'.format(**metadata))
 
             if not(metadata['value'] is not None or metadata['description']):
-                lines.append('    No helptext provided.')
+                lines.append('        No helptext provided.')
 
         return '\n'.join(lines)
 
@@ -90,10 +104,7 @@ class ModelHelpTextMixin(object):
         return '\n'.join(lines)
 
     @classmethod
-    def get_api_docstring(cls):
-        """
-        Generate a sphinx apidoc compatible docstring for use in generating documentation for this model.
-        """
+    def get_parameter_descriptions(cls):
         parameter_lines = []
         for metadata in cls._all_metadata().values():
             line = ":param{native_type} {name}:".format(
@@ -104,17 +115,22 @@ class ModelHelpTextMixin(object):
                 line += ' {}'.format(metadata['description'])
             parameter_lines.append(fill(line, subsequent_indent='    '))
 
-        parameter_description = '\n'.join(parameter_lines)
+        return '\n'.join(parameter_lines)
 
-        docstring = cls.__doc__.lstrip().rstrip()
+    @classmethod
+    def get_api_docstring(cls):
+        """
+        Generate a sphinx apidoc compatible docstring for use in generating documentation for this model.
+        """
+        parameter_description = cls.get_parameter_descriptions()
 
-        api_docstring_lines = ['"""', docstring, '\n', 'Example:\n']
+        docstring = dedent(cls.__doc__).lstrip().rstrip()
 
         # Indent the example usage lines
-        indent = '    '
-        example_usage_indented = ''.join([indent + line for line in cls.get_example_usage().splitlines(True)])
-        api_docstring_lines.append(example_usage_indented)
-        api_docstring_lines.append('\n')
-        api_docstring_lines.append(parameter_description)
-        api_docstring_lines.append('"""')
-        return '\n'.join(api_docstring_lines)
+        example_usage_indented = ''.join(['    ' + line for line in cls.get_example_usage().splitlines(True)])
+
+        return api_docstring_format.format(
+            docstring=docstring,
+            example=example_usage_indented,
+            parameter_description=parameter_description
+        )
