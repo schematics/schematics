@@ -16,7 +16,7 @@ import random
 import re
 import string
 import uuid
-from collections import Iterable, OrderedDict, namedtuple
+from collections import Iterable, OrderedDict
 
 from ..common import *
 from ..exceptions import *
