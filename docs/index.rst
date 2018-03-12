@@ -132,6 +132,7 @@ the code itself provide the most accurate reference.
    usage/exporting
    usage/importing
    usage/validation
+   usage/extending
 
 .. toctree::
    :maxdepth: 1
