@@ -32,6 +32,112 @@ Please see the :ref:`install_from_github` section of the :doc:`/basics/install`
 page for details on how to obtain the Schematics source code.
 
 
+.. _development_commit_guidelines:
+
+Commit Message Guidelines
+=========================
+
+We use a standard format for the commit messages that allows more readable
+browsing of the project history, and specially to help in generating the
+change log.
+
+Commit Message Format
+---------------------
+
+Each commit message consists of a **header**, a **body** and a **footer**.
+The header has a special format that includes a **type**, a **scope**
+and a **subject**:
+
+::
+
+  <type>(<scope>): <subject>
+  <BLANK LINE>
+  <body>
+  <BLANK LINE>
+  <footer>
+
+The **header** is mandatory and the **scope** of the header is optional.
+
+Any line of the commit message cannot be longer 100 characters! This allows
+the message to be easier to read on GitHub as well as in various git tools.
+
+The footer should contain a `closing reference <https://help.github.com/articles/closing-issues-via-commit-messages/>`_ to an issue if any.
+
+Allowed **type** values:
+
+- build: Changes that affect the build system or external dependencies
+- ci: Changes to CI configuration files and scripts
+- docs: Documentation only changes
+- feat: A new feature
+- fix: A bug fix
+- perf: A code change that improves performance
+- refactor: A code change that neither fixes a bug nor adds a feature (eg. renaming a variable)
+- style: Changes that do not affect the meaning of the code (formatting, missing semi colons, etc)
+- test: Adding missing tests or correcting existing tests
+
+Example **scope** values:
+
+The scope should be the name of the module affected.
+
+- types
+- models
+- serializable
+- schema
+- transforms
+- etc.
+
+Subject
+-------
+
+The subject contains a succinct description of the change:
+
+- use the imperative, present tense: "change" not "changed" nor "changes"
+- don't capitalize the first letter
+- no dot (.) at the end
+
+Body
+----
+
+Just as in the subject, use the imperative, present tense: "change" not
+"changed" nor "changes". The body should include the motivation for the
+change and contrast this with previous behavior.
+
+Footer
+------
+
+The footer should contain any information about Breaking Changes and is
+also the place to reference GitHub issues that this commit Closes.
+
+Example:
+::
+
+  Closes #123, #234, #456
+
+Breaking Changes should start with the word BREAKING CHANGE: with a space
+or two newlines. The rest of the commit message is then used for this.
+
+Example:
+
+::
+
+  BREAKING CHANGE: convert and validate functions for Types now need to
+    accept an optional context parameter and pass it to any calls to super.
+
+    To migrate the code follow the example below:
+
+    Before:
+
+    def convert(self, value):
+        return super().convert(value)
+
+    After:
+
+    def convert(self, value, context=None):
+        return super().convert(value, context)
+
+    Refer to the documentation regarding using the context data.
+
+
 .. _development_tests:
 
 Tests
@@ -40,6 +146,25 @@ Tests
 Using pytest::
 
   $ py.test
+
+Naming
+------
+
+Schematics has the tradition of naming examples after music bands and artists
+so you can use your favorite ones when creating examples in the docs and for
+test fixtures.
+
+If you are not feeling particularly creative, you can use one of @jmsdnns
+selections below:
+
+- Mutoid Man
+- Pulled Apart By Horses
+- Fiona Apple
+- Julia Holter
+- Lifetime
+- Nujabes
+- Radiohead
+- Stars Of The Lid
 
 
 .. _writing_documentation:
