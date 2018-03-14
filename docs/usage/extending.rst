@@ -39,13 +39,13 @@ Our ``LowerCaseEmailType`` can now be used as an ordinary field.
         ...     email = LowerCaseEmailType(required=True)
         ...
         >>> p = Person()
-        >>> p.name = 'Paul Eipper'
-        >>> p.email = 'eMail@fAKEmail.com' # technically correct email,but should be 'cleaned'
+        >>> p.name = 'Mutoid Man'
+        >>> p.email = 'MutoidMan@Example.com' # technically correct email,but should be 'cleaned'
         >>> p.validate() 
         >>> p.to_native() 
-        >>> {'bio': 'Paul Eipper',
-        >>> 'email': 'email@fakemail.com', # the email was converted to lowercase
-        >>> 'name': 'Paul Eipper'} 
+        >>> {'bio': 'Mutoid Man',
+        >>> 'email': 'mutoidman@example.com', # the email was converted to lowercase
+        >>> 'name': 'Mutoid Man'} 
 
 
 
@@ -97,11 +97,11 @@ Now that we have defined our new Type, we can use it.
         ...     email = CleanedStringType(required=True, converts = [lambda x:x.lower()]) # same functionality as LowerCaseEmailType
         ...
         >>> p = Person()
-        >>> p.name = 'Paul Eipper'
+        >>> p.name = 'Mutoid Man'
         >>> p.bio = 'good man'
-        >>> p.email = 'eMail@fAKEmail.com' # technically correct email,but should be 'cleaned'
+        >>> p.email = 'MutoidMan@Example.com' # technically correct email,but should be 'cleaned'
         >>> p.validate() 
         >>> p.to_native() 
         >>> {'bio': 'GOOD', # was converted as we specified
-        >>> 'email': 'email@fakemail.com', # was converted to lowercase
-        >>> 'name': 'Paul Eipper'} 
+        >>> 'email': 'mutoidman@example.com', # was converted to lowercase
+        >>> 'name': 'Mutoid Man'} 
