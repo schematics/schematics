@@ -8,7 +8,7 @@
 
 Other changes:
 
-- Allow to create Model fields dinamically
+- Allow to create Model fields dynamically
   `#512 <https://github.com/schematics/schematics/pull/512>`__
   (`lkraider <https://github.com/lkraider>`__)
 - Allow ModelOptions to have extra parameters
