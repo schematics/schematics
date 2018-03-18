@@ -134,6 +134,10 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
         if value is Undefined and context.init_values:
             value = None
 
+
+        if context.apply_defaults and value is None and field.default is not Undefined:
+            value = field.default
+
         if got_data:
             if field.is_compound:
                 if context.trusted_data and context.recursive:
