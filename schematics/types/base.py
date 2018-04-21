@@ -1049,6 +1049,7 @@ class GeoPointType(BaseType[Point2D, Point2D]):
         # type: (Point2D, Optional[Context]) -> Point2D
         """Make sure that a geo-value is of type (x, y)
         """
+        # type: (Any, Optional[Context]) -> N
         if not isinstance(value, (tuple, list, dict)):
             raise ConversionError(_('GeoPointType can only accept tuples, lists, or dicts'))
         elements = self._normalize(value)

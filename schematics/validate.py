@@ -20,6 +20,12 @@ if False:
 
 __all__ = []  # type: List[str]
 
+if False:
+    from typing import *
+    from .models import Model
+    from .schema import Schema
+    from .exceptions import ErrorMessage
+
 
 def validate(schema, mutable, raw_data=None, trusted_data=None,
              partial=False, strict=False, convert=True, context=None, **kwargs):
