@@ -12,13 +12,13 @@ from .transforms import import_loop, validation_converter
 from .undefined import Undefined
 from .iteration import atoms
 
-__all__ = []
-
 if False:
     from typing import *
     from .models import Model
     from .schema import Schema
     from .exceptions import ErrorMessage
+
+__all__ = []  # type: List[str]
 
 
 def validate(schema, mutable, raw_data=None, trusted_data=None,

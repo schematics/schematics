@@ -88,6 +88,7 @@ def listify(value):
 
 
 def get_all_subclasses(cls):
+    # type: (Type[T]) -> List[Type[T]]
     all_subclasses = []
 
     for subclass in cls.__subclasses__():

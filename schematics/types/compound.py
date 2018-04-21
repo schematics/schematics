@@ -7,6 +7,7 @@ import itertools
 
 from ..common import *
 from ..exceptions import *
+from ..models import Model, ModelMeta
 from ..transforms import (
     export_loop,
     get_import_context, get_export_context,
@@ -16,19 +17,22 @@ from ..util import get_all_subclasses, import_string
 
 from .base import BaseType, get_value_in
 
+from typing import *
+
 if False:
-    from typing import *
     from ..datastructures import Context
 
-import typing
-
-T = typing.TypeVar("T")
+P = TypeVar('P')
+N = TypeVar('N')
+P2 = TypeVar('P2')
+N2 = TypeVar('N2')
+T = TypeVar("T")
 
 __all__ = ['CompoundType', 'MultiType', 'ModelType', 'ListType', 'DictType',
     'PolyModelType']
 
 
-class CompoundType(BaseType):
+class CompoundType(BaseType[P, N]):
 
     def __init__(self, **kwargs):
         super(CompoundType, self).__init__(**kwargs)
@@ -45,36 +49,37 @@ class CompoundType(BaseType):
         super(CompoundType, self)._setup(field_name, owner_model)
 
     def convert(self, value, context=None):
-        # type: (Any, Optional[Context]) -> Any
+        # type: (Any, Optional[Context]) -> N
         context = context or get_import_context()
         return self._convert(value, context)
 
     def _convert(self, value, context):
-        # type: (Any, Context) -> Any
+        # type: (Any, Context) -> N
         raise NotImplementedError
 
     def export(self, value, format, context=None):
-        # type: (Any, Constant, Optional[Context]) -> Dict[str, Any]
+        # type: (Any, Constant, Optional[Context]) -> Union[P, N]
         context = context or get_export_context()
         return self._export(value, format, context)
 
     def _export(self, value, format, context):
-        # type: (Any, Constant, Context) -> Dict[str, Any]
+        # type: (Any, Constant, Context) -> Union[P, N]
         raise NotImplementedError
 
     def to_native(self, value, context=None):
-        # type: (Any, Optional[Context]) -> Any
+        # type: (Any, Optional[Context]) -> N
         context = context or get_export_context(to_native_converter)
         # calls self.export() with proper format
         return to_native_converter(self, value, context)
 
     def to_primitive(self, value, context=None):
-        # type: (Any, Optional[Context]) -> Any
+        # type: (Any, Optional[Context]) -> P
         context = context or get_export_context(to_primitive_converter)
         # calls self.export() with proper format
         return to_primitive_converter(self, value, context)
 
     def _init_field(self, field, options):
+        # type: (Union[BaseType, Type[BaseType]], Dict[str, Any]) -> BaseType
         """
         Instantiate the inner field that represents each element within this compound type.
         In case the inner field is itself a compound type, its inner field can be provided
@@ -91,21 +96,24 @@ class CompoundType(BaseType):
 MultiType = CompoundType
 
 
-class ModelType(CompoundType):
+class ModelType(CompoundType[Dict[str, Any], Dict[str, Any]]):
     """A field that can hold an instance of the specified model."""
 
     primitive_type = dict
 
     @property
     def native_type(self):
+        # type: () -> Type[Model]
         return self.model_class
 
     @property
     def fields(self):
+        # type: () -> List[BaseType]
         return self.model_class.fields
 
     @property
     def model_class(self):
+        # type: () -> Type[Model]
         if self._model_class:
             return self._model_class
 
@@ -113,10 +121,8 @@ class ModelType(CompoundType):
         self._model_class = model_class
         return model_class
 
-    def __init__(self,
-                 model_spec,  # type: typing.Union[str, typing.Type[T]]
-                 **kwargs):
-        # type: (...) -> T
+    def __init__(self, model_spec, **kwargs):
+        # type: (Union[str, Type[Model]], **Any) -> None
 
         if isinstance(model_spec, ModelMeta):
             self._model_class = model_spec
@@ -166,6 +172,7 @@ class ModelType(CompoundType):
         if context.convert and context.oo:
             return model_class(value, context=context)
         else:
+            # FIXME: typing: unclear where convert classmethod comes from
             return model_class.convert(value, context=context)
 
     def _export(self, value, format, context):
@@ -177,7 +184,7 @@ class ModelType(CompoundType):
         return export_loop(model_class, value, context=context)
 
 
-class ListType(CompoundType):
+class ListType(CompoundType[List[P2], List[N2]]):
     """A field for storing a list of items, all of which must conform to the type
     specified by the ``field`` parameter.
 
@@ -190,10 +197,8 @@ class ListType(CompoundType):
     primitive_type = list
     native_type = list
 
-    def __init__(self,
-                 field,  # type: T
-                 min_size=None, max_size=None, **kwargs):
-        # type: (...) -> typing.List[T]
+    def __init__(self, field, min_size=None, max_size=None, **kwargs):
+        # type: (BaseType[P2, N2], Optional[int], Optional[int], **Any) -> None
 
         self.field = self._init_field(field, kwargs)
         self.min_size = min_size
@@ -205,6 +210,7 @@ class ListType(CompoundType):
 
     @property
     def model_class(self):
+        # type: () -> Type[Model]
         return self.field.model_class
 
     def _repr_info(self):
@@ -240,6 +246,7 @@ class ListType(CompoundType):
         return data
 
     def check_length(self, value, context):
+        # type: (list, Context) -> None
         list_length = len(value) if value else 0
 
         if self.min_size is not None and list_length < self.min_size:
@@ -257,11 +264,12 @@ class ListType(CompoundType):
             raise ValidationError(message)
 
     def _export(self, list_instance, format, context):
+        # type: (List[P2], Constant, Context) -> Union[List[P2], List[N2]]
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
         as `transforms.export_loop`.
         """
-        data = []
+        data = []  # type: List[N2]
         _export_level = self.field.get_export_level(context)
         if _export_level == DROP:
             return data
@@ -277,7 +285,7 @@ class ListType(CompoundType):
         return data
 
 
-class DictType(CompoundType):
+class DictType(CompoundType[Dict[str, P2], Dict[str, N2]]):
     """A field for storing a mapping of items, the values of which must conform to the type
     specified by the ``field`` parameter.
 
@@ -292,7 +300,7 @@ class DictType(CompoundType):
     native_type = dict
 
     def __init__(self, field, coerce_key=None, **kwargs):
-        # type: (...) -> typing.Dict[str, T]
+        # type: (BaseType[P2, N2], Optional[Callable], **Any) -> None
 
         self.field = self._init_field(field, kwargs)
         self.coerce_key = coerce_key or str
@@ -300,6 +308,7 @@ class DictType(CompoundType):
 
     @property
     def model_class(self):
+        # type: () -> Type[Model]
         return self.field.model_class
 
     def _repr_info(self):
@@ -321,6 +330,7 @@ class DictType(CompoundType):
         return data
 
     def _export(self, dict_instance, format, context):
+        # type: (Dict[str, Any], Constant, Context) -> Union[Dict[str, P2], Dict[str, N2]]
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
         as `transforms.export_loop`.
@@ -341,19 +351,20 @@ class DictType(CompoundType):
         return data
 
 
-class PolyModelType(CompoundType):
+class PolyModelType(CompoundType[Dict[str, Any], Dict[str, Any]]):
     """A field that accepts an instance of any of the specified models."""
 
     primitive_type = dict
     native_type = None  # cannot be determined from a PolyModelType instance
 
     def __init__(self, model_spec, **kwargs):
-
+        # type: (Union[str, Type[Model], Iterable[Type[Model]]], **Any) -> None
+        self.model_classes = None  # type: Tuple[Type[Model], ...]
         if isinstance(model_spec, (ModelMeta, string_type)):
-            self.model_classes = (model_spec,)
+            self.model_classes = (model_spec,)  # type: ignore
             allow_subclasses = True
         elif isinstance(model_spec, Iterable):
-            self.model_classes = tuple(model_spec)
+            self.model_classes = tuple(model_spec)  # type: ignore
             allow_subclasses = False
         else:
             raise Exception("The first argument to PolyModelType.__init__() "
@@ -379,6 +390,7 @@ class PolyModelType(CompoundType):
         super(PolyModelType, self)._setup(field_name, owner_model)
 
     def is_allowed_model(self, model_instance):
+        # type: (Model) -> bool
         if self.allow_subclasses:
             if isinstance(model_instance, self.model_classes):
                 return True
@@ -408,6 +420,7 @@ class PolyModelType(CompoundType):
         return model_class(value, context=context)
 
     def find_model(self, data):
+        # type: (Dict[str, Any]) -> Type[Model]
         """Finds the intended type by consulting potential classes or `claim_function`."""
 
         if self.claim_function:
@@ -449,7 +462,8 @@ class PolyModelType(CompoundType):
         return model_instance.export(context=context)
 
     def _get_candidates(self):
-        candidates = self.model_classes
+        # type: () -> Iterable[Type[Model]]
+        candidates = self.model_classes  # type: Iterable[Type[Model]]
 
         if self.allow_subclasses:
             candidates = itertools.chain.from_iterable(

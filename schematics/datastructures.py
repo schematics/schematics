@@ -6,10 +6,11 @@ from collections import Mapping, Sequence
 
 from .compat import *
 
-__all__ = []
-
 if False:
     from typing import *
+
+__all__ = []  # type: List[str]
+
 
 class DataObject(object):
     """

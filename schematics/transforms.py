@@ -14,14 +14,18 @@ from .util import listify
 from .iteration import atoms, atom_filter
 from .role import Role
 
+from typing import *
+
 if False:
-    from typing import *
     from .types.base import BaseType
     from .models import Model
     from .schema import Schema
     from .util import Constant
 
-__all__ = []
+P = TypeVar('P')
+N = TypeVar('N')
+
+__all__ = []  # type: List[str]
 
 
 ###
@@ -124,7 +128,7 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
     _model_mapping = context.mapping.get('model_mapping')
 
     data = dict(context.trusted_data) if context.trusted_data else {}
-    errors = {}
+    errors = {}  # type: Dict[str, Union[str, FieldError, CompoundError]]
 
     if got_data and context.validate:
         errors = _mutate(schema, mutable, raw_data, context)
@@ -413,13 +417,13 @@ class BasicConverter(Converter):
 
 @BasicConverter
 def to_native_converter(field, value, context):
-    # type: (BaseType, Any, Context) -> Dict[str, Any]
+    # type: (BaseType[P, N], Any, Context) -> N
     return field.export(value, NATIVE, context)
 
 
 @BasicConverter
 def to_primitive_converter(field, value, context):
-    # type: (BaseType, Any, Context) -> Dict[str, Any]
+    # type: (BaseType[P, N], Any, Context) -> P
     return field.export(value, PRIMITIVE, context)
 
 

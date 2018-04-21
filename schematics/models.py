@@ -11,7 +11,7 @@ from .common import *
 from .compat import str_compat, repr_compat, _dict
 from .datastructures import Context, ChainMap, MappingProxyType
 from .exceptions import *
-from .iteration import atoms
+from .iteration import atoms, Atom
 from .transforms import (
     export_loop, convert,
     to_native, to_primitive,
@@ -25,9 +25,9 @@ from . import schema
 
 if False:
     from typing import *
+    M = TypeVar('M', bound='Model')
 
-__all__ = []
-
+__all__ = []  # type: List[str]
 
 
 class FieldDescriptor(object):
@@ -83,7 +83,7 @@ class ModelMeta(type):
         """
 
         # Structures used to accumulate meta info
-        fields = OrderedDict()
+        fields = OrderedDict()  # type: OrderedDict[str, Union[BaseType, Serializable]]
         validator_functions = {}  # Model level
         options_members = {}
 
@@ -288,6 +288,7 @@ class Model(object):
             self._data.converted = {}
 
     def import_data(self, raw_data, recursive=False, **kwargs):
+        # type: (M, Dict[str, Any], bool, **Any) -> M
         """
         Converts and imports the raw data into an existing model instance.
 
@@ -325,9 +326,11 @@ class Model(object):
                            role=role, app_data=app_data, **kwargs)
 
     def to_native(self, role=None, app_data=None, **kwargs):
+        # type: (Optional[str], Optional[Any], **Any) -> Dict[str, Any]
         return to_native(self._schema, self, role=role, app_data=app_data, **kwargs)
 
     def to_primitive(self, role=None, app_data=None, **kwargs):
+        # type: (Optional[str], Optional[Any], **Any) -> Dict[str, Any]
         return to_primitive(self._schema, self, role=role, app_data=app_data, **kwargs)
 
     def serialize(self, *args, **kwargs):
@@ -341,11 +344,13 @@ class Model(object):
         return data
 
     def atoms(self):
+        # type: () -> Iterable[Atom]
         """
         Iterator for the atomic components of a model definition and relevant
         data that creates a 3-tuple of the field's name, its type instance and
         its value.
         """
+        # FIXME: typing: Model appears to be a
         return atoms(self._schema, self)
 
     def __iter__(self):
@@ -353,15 +358,19 @@ class Model(object):
             and getattr(self._schema.fields[k], 'fset', None) is None)
 
     def keys(self):
+        # type: () -> List[str]
         return list(iter(self))
 
     def items(self):
+        # type: () -> List[Tuple[str, Any]]
         return [(k, self._data[k]) for k in self]
 
     def values(self):
+        # type: () -> List[Any]
         return [self._data[k] for k in self]
 
     def get(self, key, default=None):
+        # type: (str, Optional[Any]) -> Any
         return getattr(self, key, default)
 
     @classmethod
@@ -403,28 +412,33 @@ class Model(object):
         return cls(values)
 
     def __getitem__(self, name):
+        # type: (str) -> Any
         if name in self._schema.fields:
             return getattr(self, name)
         else:
             raise UnknownFieldError(self, name)
 
     def __setitem__(self, name, value):
+        # type: (str, Any) -> None
         if name in self._schema.fields:
             return setattr(self, name, value)
         else:
             raise UnknownFieldError(self, name)
 
     def __delitem__(self, name):
+        # type: (str) -> Any
         if name in self._schema.fields:
             return delattr(self, name)
         else:
             raise UnknownFieldError(self, name)
 
     def __contains__(self, name):
+        # type: (str) -> bool
         return (name in self._data and getattr(self, name, Undefined) is not Undefined) \
             or name in self._serializables
 
     def __len__(self):
+        # type: () -> int
         return len(self._data)
 
     def __eq__(self, other, memo=set()):

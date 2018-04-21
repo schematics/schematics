@@ -45,7 +45,12 @@ def metaclass(metaclass):
         if attrs.get('__dict__'):
             del attrs['__dict__']
             del attrs['__weakref__']
-        return metaclass(cls.__name__, cls.__bases__, attrs)
+        # for Generic
+        if hasattr(cls, '__orig_bases__'):
+            bases = cls.__orig_bases__
+        else:
+            bases = cls.__bases__
+        return metaclass(cls.__name__, bases, attrs)
     return make_class
 
 

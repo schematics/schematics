@@ -8,6 +8,7 @@ from .compat import iteritems
 from .types.serializable import Serializable
 from . import transforms
 
+import typing
 
 class SchematicsDeprecationWarning(DeprecationWarning):
     pass
@@ -124,20 +125,22 @@ def patch_models():
     global models_Model
     from . import schema
     from . import models
-    models_Model = models.Model
-    class Model(ModelCompatibilityMixin, models.Model):
-        __doc__ = models.Model.__doc__
-    models.Model = Model
-    models.ModelOptions = schema.SchemaOptions  # deprecated alias
+    if not typing.TYPE_CHECKING:
+        models_Model = models.Model
+        class Model(ModelCompatibilityMixin, models.Model):
+            __doc__ = models.Model.__doc__
+        models.Model = Model
+        models.ModelOptions = schema.SchemaOptions  # deprecated alias
 
 
 def patch_schema():
     global schema_Schema
     from . import schema
-    schema_Schema = schema.Schema
-    class Schema(SchemaCompatibilityMixin, schema.Schema):
-        __doc__ = schema.Schema.__doc__
-    schema.Schema = Schema
+    if not typing.TYPE_CHECKING:
+        schema_Schema = schema.Schema
+        class Schema(SchemaCompatibilityMixin, schema.Schema):
+            __doc__ = schema.Schema.__doc__
+        schema.Schema = Schema
 
 
 def patch_exceptions():

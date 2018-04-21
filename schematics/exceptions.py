@@ -103,7 +103,7 @@ class BaseError(Exception):
 class ErrorMessage(object):
 
     def __init__(self, summary, info=None):
-        self.type = None
+        self.type = None  # type: Type[Exception]
         self.summary = summary
         self.info = info
 
@@ -149,7 +149,7 @@ class ErrorMessage(object):
 
 class FieldError(BaseError, Sequence):
 
-    type = None
+    type = None  # type: Type[Exception]
 
     def __init__(self, *args, **kwargs):
 
