@@ -116,6 +116,13 @@ class TypeMeta(GenericMeta):
 
         return super(TypeMeta, mcs).__new__(mcs, name, bases, attrs, *args, **kwargs)
 
+    def __instancecheck__(cls, instance):
+        # Fix for old-style classes (e.g. Options idiom in python 2.x)
+        if not hasattr(instance, '__class__'):
+            return False
+
+        return super(TypeMeta, cls).__instancecheck__(instance)
+
 
 @metaclass(TypeMeta)
 class BaseType(Generic[P, N]):
