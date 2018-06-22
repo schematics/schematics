@@ -8,6 +8,9 @@
 
 Other changes:
 
+- Add TimedeltaType
+  `#540 <https://github.com/schematics/schematics/pull/540>`__
+  (`gabisurita <https://github.com/gabisurita>`__)
 - Allow to create Model fields dynamically
   `#512 <https://github.com/schematics/schematics/pull/512>`__
   (`lkraider <https://github.com/lkraider>`__)
@@ -33,6 +36,8 @@ Other changes:
   (`tommyzli <https://github.com/tommyzli>`__)
   `#518 <https://github.com/schematics/schematics/pull/518>`__
   (`rooterkyberian <https://github.com/rooterkyberian>`__)
+  `#546 <https://github.com/schematics/schematics/pull/546>`__
+  (`harveyslash <https://github.com/harveyslash>`__)
 - Fix Model.init validation when partial is True
   `#531 <https://github.com/schematics/schematics/issues/531>`__
   (`lkraider <https://github.com/lkraider>`__)
