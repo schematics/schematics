@@ -159,6 +159,34 @@ def test_timedelta_to_native_invalid_conversion(value):
         type_.to_native(value)
 
 
+@pytest.mark.parametrize('value', (
+    42.42,
+    '42.42',
+    10000,
+    0,
+))
+def test_timedelta_to_primitive_valid_serialization(value):
+    type_ = TimedeltaType()
+    td = datetime.timedelta(seconds=float(value))
+    assert type_.to_primitive(td) == int(float(value))
+
+
+@pytest.mark.parametrize('precision', (
+    TimedeltaType.DAYS,
+    TimedeltaType.SECONDS,
+    TimedeltaType.MICROSECONDS,
+    TimedeltaType.MILLISECONDS,
+    TimedeltaType.MINUTES,
+    TimedeltaType.HOURS,
+    TimedeltaType.WEEKS
+))
+def test_timedelta_to_primitive_valid_precision(precision):
+    type_ = TimedeltaType(precision=precision)
+    value = 42
+    td = datetime.timedelta(**{precision: float(value)})
+    assert type_.to_primitive(td) == int(float(value))
+
+
 def test_timedelta_mock():
     type_ = TimedeltaType()
     mocked = type_._mock()

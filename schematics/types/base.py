@@ -981,8 +981,22 @@ class TimedeltaType(BaseType):
         'convert': _("Couldn't interpret '{0}' value as Timedelta."),
     }
 
-    def __init__(self, formats=None, **kwargs):
+    DAYS = 'days'
+    SECONDS = 'seconds'
+    MICROSECONDS = 'microseconds'
+    MILLISECONDS = 'milliseconds'
+    MINUTES = 'minutes'
+    HOURS = 'hours'
+    WEEKS = 'weeks'
+
+    def __init__(self, precision='seconds', **kwargs):
         # type: (...) -> datetime.timedelta
+        precision = precision.lower()
+        units = (self.DAYS, self.SECONDS, self.MICROSECONDS, self.MILLISECONDS,
+                 self.MINUTES, self.HOURS, self.WEEKS)
+        if precision not in units:
+            raise ValueError("TimedeltaType.__init__() got an invalid value for parameter 'precision'")
+        self.precision = precision
         super(TimedeltaType, self).__init__(**kwargs)
 
     def _mock(self, context=None):
@@ -991,14 +1005,14 @@ class TimedeltaType(BaseType):
     def to_native(self, value, context=None):
         if isinstance(value, datetime.timedelta):
             return value
-
         try:
-            return datetime.timedelta(seconds=float(value))
+            return datetime.timedelta(**{self.precision: float(value)})
         except (ValueError, TypeError):
             raise ConversionError(self.messages['convert'].format(value))
 
     def to_primitive(self, value, context=None):
-        return value.total_seconds()
+        base_unit = datetime.timedelta(**{self.precision: 1})
+        return int(value.total_seconds() / base_unit.total_seconds())
 
 
 class GeoPointType(BaseType):
