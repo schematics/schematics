@@ -29,7 +29,8 @@ __all__ = [
     'BaseType', 'UUIDType', 'StringType', 'MultilingualStringType',
     'NumberType', 'IntType', 'LongType', 'FloatType', 'DecimalType',
     'HashType', 'MD5Type', 'SHA1Type', 'BooleanType', 'GeoPointType',
-    'DateType', 'DateTimeType', 'UTCDateTimeType', 'TimestampType']
+    'DateType', 'DateTimeType', 'UTCDateTimeType', 'TimestampType',
+    'TimedeltaType']
 
 
 def fill_template(template, min_length, max_length):
@@ -68,6 +69,7 @@ def get_value_in(min_length, max_length, padding=0, required_length=0):
 
 
 _alphanumeric = string.ascii_letters + string.digits
+
 
 def random_string(length, chars=_alphanumeric):
     return ''.join(random.choice(chars) for _ in range(length))
@@ -351,7 +353,6 @@ class UUIDType(BaseType):
     MESSAGES = {
         'convert': _("Couldn't interpret '{0}' value as UUID."),
     }
-
 
     def __init__(self, **kwargs):
         # type: (...) -> uuid.UUID
@@ -965,8 +966,39 @@ class TimestampType(DateTimeType):
         else:
             value = value.astimezone(self.UTC)
         delta = value - self.EPOCH
-        ts = (delta.days * 24 * 3600) + delta.seconds + delta.microseconds / 1E6
-        return ts
+        return delta.total_seconds()
+
+
+class TimedeltaType(BaseType):
+
+    """Converts Python Timedelta objects into the corresponding value in seconds.
+    """
+
+    primitive_type = float
+    native_type = datetime.timedelta
+
+    MESSAGES = {
+        'convert': _("Couldn't interpret '{0}' value as Timedelta."),
+    }
+
+    def __init__(self, formats=None, **kwargs):
+        # type: (...) -> datetime.timedelta
+        super(TimedeltaType, self).__init__(**kwargs)
+
+    def _mock(self, context=None):
+        return datetime.timedelta(seconds=random.random() * 1000)
+
+    def to_native(self, value, context=None):
+        if isinstance(value, datetime.timedelta):
+            return value
+
+        try:
+            return datetime.timedelta(seconds=float(value))
+        except (ValueError, TypeError):
+            raise ConversionError(self.messages['convert'].format(value))
+
+    def to_primitive(self, value, context=None):
+        return value.total_seconds()
 
 
 class GeoPointType(BaseType):

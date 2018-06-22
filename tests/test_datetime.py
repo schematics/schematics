@@ -118,6 +118,9 @@ def test_parse_from_timestamp():
     dt = field.to_native('1446991200.7777')
     assert dt == datetime(2015, 11, 8, 14, 00, microsecond=777700)
 
+    dt = field.to_native(1446991200.7777)
+    assert dt == datetime(2015, 11, 8, 14, 00, microsecond=777700)
+
 
 def test_parse_using_formats():
 
