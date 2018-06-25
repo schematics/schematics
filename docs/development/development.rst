@@ -215,3 +215,21 @@ Once the documentation is up to your standards, go ahead and commit it. As with
 code changes, please be descriptive in your documentation commit messages as it
 will help others understand the purpose of your adjustment.
 
+
+.. _release_guide:
+
+Release Guide
+=============
+
+To prepare a new release, follow this procedure:
+
+- Update version number in ``schematics/__init__.py``
+- Add signed tag with version number in git, ex: ``git tag -s v1.1.3 -m "Release v1.1.3"``
+- Create distribution archives ``python setup.py sdist bdist_wheel``
+- Sign the generated archives:
+
+::
+  gpg --detach-sign -u GPGKEYID -a dist/schematics-1.1.3-py2.py3-none-any.whl
+  gpg --detach-sign -u GPGKEYID -a dist/schematics-1.1.3.tar.gz
+
+- Upload to PyPI ``twine upload dist/schematics-1.1.3*``
