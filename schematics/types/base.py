@@ -18,7 +18,7 @@ from ..exceptions import *
 from ..translator import _
 from ..undefined import Undefined
 from ..util import listify
-from ..validate import prepare_validator, get_validation_context
+from ..validate import prepare_validator, get_validation_context, ValidatorType
 
 from typing import *
 
@@ -27,7 +27,6 @@ if TYPE_CHECKING:
     from ..datastructures import Context
     from ..util import Constant
 
-ValidatorType = Callable[[Any, 'Context'], Any]
 P = TypeVar('P')
 N = TypeVar('N')
 T = TypeVar('T')
@@ -1056,7 +1055,6 @@ class GeoPointType(BaseType[Point2D, Point2D]):
         # type: (Point2D, Optional[Context]) -> Point2D
         """Make sure that a geo-value is of type (x, y)
         """
-        # type: (Any, Optional[Context]) -> N
         if not isinstance(value, (tuple, list, dict)):
             raise ConversionError(_('GeoPointType can only accept tuples, lists, or dicts'))
         elements = self._normalize(value)
@@ -1209,4 +1207,4 @@ class MultilingualStringType(BaseType[str, Text]):
 
 if PY2:
     # Python 2 names cannot be unicode
-    __all__ = [n.encode('ascii') for n in __all__]
+    __all__ = [n.encode('ascii') for n in __all__]  # type: ignore

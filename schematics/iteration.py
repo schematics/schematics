@@ -3,7 +3,6 @@ Core loop over the data structures according to a defined schema.
 """
 
 from __future__ import unicode_literals, absolute_import
-from collections import namedtuple
 
 from .compat import iteritems
 from .undefined import Undefined
@@ -12,18 +11,18 @@ from typing import *
 
 if TYPE_CHECKING:
     from .schema import Schema, Field
-
+    from .types import BaseType, Serializable
 
 Atom = NamedTuple('Atom',
                   (('name', Optional[str]),
-                   ('field', Optional['Field']),
+                   ('field', Optional[Union['BaseType', 'Serializable']]),
                    ('value', Any)))
 
 Atom.__new__.__defaults__ = (None,) * len(Atom._fields)
 
 
 def atoms(schema, mapping, keys=tuple(Atom._fields), filter=None):
-    # type: (Schema, Mapping, Tuple[str, str, str], Optional[Callable[[Atom], bool]]) -> Iterable[Atom]
+    # type: (Schema, Mapping[str, Any], Tuple[str, str, str], Optional[Callable[[Atom], bool]]) -> Iterable[Atom]
     """
     Iterator for the atomic components of a model definition and relevant
     data that creates a 3-tuple of the field's name, its type instance and

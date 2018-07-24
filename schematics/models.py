@@ -27,6 +27,8 @@ if False:
     from typing import *
     M = TypeVar('M', bound='Model')
 
+from typing import cast
+
 __all__ = []  # type: List[str]
 
 
@@ -239,10 +241,12 @@ class Model(object):
     :type lazy: bool
     """
 
+    _schema = None  # type: schema.Schema
+
     def __init__(self, raw_data=None, trusted_data=None, deserialize_mapping=None,
                  init=True, partial=True, strict=True, validate=False, app_data=None,
                  lazy=False, **kwargs):
-        # type: (Mapping, Mapping, Mapping, bool, bool, bool, bool, Optional[Container], bool, Any) -> None
+        # type: (Mapping[str, Any], Mapping[str, Any], Mapping[str, Any], bool, bool, bool, bool, Optional[Container], bool, Any) -> None
         kwargs.setdefault('init_values', init)
         kwargs.setdefault('apply_defaults', init)
 
@@ -350,10 +354,11 @@ class Model(object):
         data that creates a 3-tuple of the field's name, its type instance and
         its value.
         """
-        # FIXME: typing: Model appears to be a
-        return atoms(self._schema, self)
+        # FIXME: make a protocol for Mapping so that we don't have to cast
+        return atoms(self._schema, cast('Mapping[str, Any]', self))
 
     def __iter__(self):
+        # type: () -> Iterator[str]
         return (k for k in self._schema.fields if k in self._data
             and getattr(self._schema.fields[k], 'fset', None) is None)
 

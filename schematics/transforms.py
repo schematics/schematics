@@ -37,7 +37,7 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
                 mapping=None, partial=False, strict=False, init_values=False,
                 apply_defaults=False, convert=True, validate=False, new=False,
                 oo=False, recursive=False, app_data=None, context=None):
-    # type: (Schema, Union[Model, MutableMapping], Optional[Mapping], Union[Converter, Callable], Optional[Mapping], Mapping[str, Union[str, List[str]]], bool, bool, Any, bool, Any, Any, Any, Any, Any, Optional[Any], Optional[Context]) -> Any
+    # type: (Union[Type[Model], Schema], MutableMapping[str, Any], Optional[Mapping[str, Any]], Union[Converter, Callable], Optional[Mapping[str, Any]], Mapping[str, Union[str, List[str]]], bool, bool, Any, bool, Any, Any, Any, Any, Any, Optional[Any], Optional[Context]) -> Any
     """
     The import loop is designed to take untrusted data and convert it into the
     native types, as described in ``schema``.  It does this by calling
@@ -237,7 +237,7 @@ def _mutate(schema, mutable, raw_data, context):
 
 def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise_error_on_role=True,
                 export_level=None, app_data=None, context=None):
-    # type: (Schema, Union[Model, Mapping], Union[Converter, Callable], Optional[str], bool, Any, Optional[Any], Optional[Context]) -> Dict[str, Any]
+    # type: (Schema, Mapping, Union[Converter, Callable], Optional[str], bool, Any, Optional[Any], Optional[Context]) -> Dict[str, Any]
     """
     The export_loop function is intended to be a general loop definition that
     can be used for any form of data shaping, such as application of roles or

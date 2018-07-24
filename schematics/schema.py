@@ -12,6 +12,7 @@ from .types.serializable import Serializable
 if False:
     from typing import *
     from .models import Model
+    from .validate import ValidatorType4
 
 
 class Schema(object):
@@ -21,7 +22,7 @@ class Schema(object):
         self.name = name
         self.model = kw.get('model', None)  # type: Optional[Model]
         self.options = kw.get('options', SchemaOptions())
-        self.validators = kw.get('validators', {})
+        self.validators = kw.get('validators', {})  # type: Dict[str, ValidatorType4]
         self.fields = OrderedDict()  # type: OrderedDict[str, Union[BaseType, Serializable]]
         for field in fields:
             self.append_field(field)

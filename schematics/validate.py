@@ -20,23 +20,22 @@ if False:
 
 __all__ = []  # type: List[str]
 
-if False:
-    from typing import *
-    from .models import Model
-    from .schema import Schema
-    from .exceptions import ErrorMessage
+# FIXME: validators with different signature are expected in different contexts.  determine where.
+ValidatorType = 'Callable[[Any, Context], Any]'
+# ValidatorType3 = 'Callable[[Any, 'Context'], Any]'
+ValidatorType4 = 'Callable[[MutableMapping[str, Any], Mapping[str, Any], Any, Context], Any]'
 
 
 def validate(schema, mutable, raw_data=None, trusted_data=None,
              partial=False, strict=False, convert=True, context=None, **kwargs):
-    # type: (Schema, Union[MutableMapping, Model], Union[Mapping, Model], Mapping[str, Any], bool, bool, bool, Any, Any) -> Dict
+    # type: (Union[Type[Model], Schema], MutableMapping[str, Any], Mapping[str, Any], Mapping[str, Any], bool, bool, bool, Any, Any) -> Dict
     """
     Validate some untrusted data using a model. Trusted data can be passed in
     the `trusted_data` parameter.
 
     :param schema:
         The Schema to use as source for validation.
-    :type schema: Schema
+    :type schema: Union[Type[Model], Schema]
 
     :param mutable:
         A mapping or instance that can be changed during validation by Schema
@@ -97,7 +96,7 @@ def validate(schema, mutable, raw_data=None, trusted_data=None,
 
 
 def _validate_model(schema, mutable, data, context):
-    # type: (Schema, Union[MutableMapping, Model], Any, Any) -> Dict[str, List[ErrorMessage]]
+    # type: (Union[Type[Model], Schema], MutableMapping[str, Any], MutableMapping[str, Any], Context) -> Dict[str, List[ErrorMessage]]
     """
     Validate data using model level methods.
 
@@ -117,22 +116,27 @@ def _validate_model(schema, mutable, data, context):
         Errors of the fields that did not pass validation.
     :rtype: Dict[str, List[ErrorMessage]]
     """
+    from .models import Model
+    if isinstance(schema, type) and issubclass(schema, Model):
+        schema = schema._schema
+
     errors = {}
-    invalid_fields = []
+    invalid_fields = []  # type: List[str]
 
     has_validator = lambda atom: (
         atom.value is not Undefined and
-        atom.name in schema._validator_functions
+        atom.name in schema.validators
     )
     for field_name, field, value in atoms(schema, data, filter=has_validator):
         try:
-            schema._validator_functions[field_name](mutable, data, value, context)
+            schema.validators[field_name](mutable, data, value, context)
         except (FieldError, DataError) as exc:
             serialized_field_name = field.serialized_name or field_name
             errors[serialized_field_name] = exc.errors
             invalid_fields.append(field_name)
 
     for field_name in invalid_fields:
+        # FIXME: consider `del data[field_name]` to simplify the protocol requirement for data
         data.pop(field_name)
 
     return errors
@@ -152,6 +156,7 @@ def get_validation_context(**options):
 
 
 def prepare_validator(func, argcount):
+    # type: (Callable, int) -> Callable
     if isinstance(func, classmethod):
         func = func.__get__(object).__func__
     if len(inspect.getargspec(func).args) < argcount:

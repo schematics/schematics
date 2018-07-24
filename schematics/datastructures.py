@@ -98,7 +98,7 @@ class DataObject(object):
 
 class Context(DataObject):
 
-    _fields = ()
+    _fields = ()  # type: Sequence[str]
 
     def __init__(self, *args, **kwargs):
         super(Context, self).__init__(*args, **kwargs)
