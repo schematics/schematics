@@ -11,7 +11,7 @@ from .common import *
 from .compat import str_compat, repr_compat, _dict
 from .datastructures import Context, ChainMap, MappingProxyType
 from .exceptions import *
-from .iteration import atoms
+from .iteration import atoms, Atom
 from .transforms import (
     export_loop, convert,
     to_native, to_primitive,
@@ -23,7 +23,13 @@ from .undefined import Undefined
 from .util import get_ident
 from . import schema
 
-__all__ = []
+if False:
+    from typing import *
+    M = TypeVar('M', bound='Model')
+
+from typing import cast
+
+__all__ = []  # type: List[str]
 
 
 class FieldDescriptor(object):
@@ -79,7 +85,7 @@ class ModelMeta(type):
         """
 
         # Structures used to accumulate meta info
-        fields = OrderedDict()
+        fields = OrderedDict()  # type: OrderedDict[str, Union[BaseType, Serializable]]
         validator_functions = {}  # Model level
         options_members = {}
 
@@ -206,21 +212,41 @@ class Model(object):
     models, SQLAlchemy declarative extension and other developer friendly
     libraries.
 
-    :param Mapping raw_data:
+    :param raw_data:
         The data to be imported into the model instance.
-    :param Mapping deserialize_mapping:
+    :type raw_data: Mapping
+
+    :type trusted_data: Mapping
+
+    :param deserialize_mapping:
         Can be used to provide alternative input names for fields. Values may be
         strings or lists of strings, keyed by the actual field name.
-    :param bool partial:
+    :type deserialize_mapping: Mapping
+
+    :type init: bool
+
+    :param partial:
         Allow partial data to validate. Essentially drops the ``required=True``
         settings from field definitions. Default: True
-    :param bool strict:
+    :type partial: bool
+
+    :param strict:
         Complain about unrecognized keys. Default: True
+    :type strict: bool
+
+    :type validate: bool
+
+    :type app_data: Optional[Container]
+
+    :type lazy: bool
     """
+
+    _schema = None  # type: schema.Schema
 
     def __init__(self, raw_data=None, trusted_data=None, deserialize_mapping=None,
                  init=True, partial=True, strict=True, validate=False, app_data=None,
                  lazy=False, **kwargs):
+        # type: (Mapping[str, Any], Mapping[str, Any], Mapping[str, Any], bool, bool, bool, bool, Optional[Container], bool, Any) -> None
         kwargs.setdefault('init_values', init)
         kwargs.setdefault('apply_defaults', init)
 
@@ -266,6 +292,7 @@ class Model(object):
             self._data.converted = {}
 
     def import_data(self, raw_data, recursive=False, **kwargs):
+        # type: (M, Dict[str, Any], bool, **Any) -> M
         """
         Converts and imports the raw data into an existing model instance.
 
@@ -303,9 +330,11 @@ class Model(object):
                            role=role, app_data=app_data, **kwargs)
 
     def to_native(self, role=None, app_data=None, **kwargs):
+        # type: (Optional[str], Optional[Any], **Any) -> Dict[str, Any]
         return to_native(self._schema, self, role=role, app_data=app_data, **kwargs)
 
     def to_primitive(self, role=None, app_data=None, **kwargs):
+        # type: (Optional[str], Optional[Any], **Any) -> Dict[str, Any]
         return to_primitive(self._schema, self, role=role, app_data=app_data, **kwargs)
 
     def serialize(self, *args, **kwargs):
@@ -319,27 +348,34 @@ class Model(object):
         return data
 
     def atoms(self):
+        # type: () -> Iterable[Atom]
         """
         Iterator for the atomic components of a model definition and relevant
         data that creates a 3-tuple of the field's name, its type instance and
         its value.
         """
-        return atoms(self._schema, self)
+        # FIXME: make a protocol for Mapping so that we don't have to cast
+        return atoms(self._schema, cast('Mapping[str, Any]', self))
 
     def __iter__(self):
+        # type: () -> Iterator[str]
         return (k for k in self._schema.fields if k in self._data
             and getattr(self._schema.fields[k], 'fset', None) is None)
 
     def keys(self):
+        # type: () -> List[str]
         return list(iter(self))
 
     def items(self):
+        # type: () -> List[Tuple[str, Any]]
         return [(k, self._data[k]) for k in self]
 
     def values(self):
+        # type: () -> List[Any]
         return [self._data[k] for k in self]
 
     def get(self, key, default=None):
+        # type: (str, Optional[Any]) -> Any
         return getattr(self, key, default)
 
     @classmethod
@@ -381,28 +417,33 @@ class Model(object):
         return cls(values)
 
     def __getitem__(self, name):
+        # type: (str) -> Any
         if name in self._schema.fields:
             return getattr(self, name)
         else:
             raise UnknownFieldError(self, name)
 
     def __setitem__(self, name, value):
+        # type: (str, Any) -> None
         if name in self._schema.fields:
             return setattr(self, name, value)
         else:
             raise UnknownFieldError(self, name)
 
     def __delitem__(self, name):
+        # type: (str) -> Any
         if name in self._schema.fields:
             return delattr(self, name)
         else:
             raise UnknownFieldError(self, name)
 
     def __contains__(self, name):
+        # type: (str) -> bool
         return (name in self._data and getattr(self, name, Undefined) is not Undefined) \
             or name in self._serializables
 
     def __len__(self):
+        # type: () -> int
         return len(self._data)
 
     def __eq__(self, other, memo=set()):

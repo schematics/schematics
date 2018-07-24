@@ -14,7 +14,18 @@ from .util import listify
 from .iteration import atoms, atom_filter
 from .role import Role
 
-__all__ = []
+from typing import *
+
+if False:
+    from .types.base import BaseType
+    from .models import Model
+    from .schema import Schema
+    from .util import Constant
+
+P = TypeVar('P')
+N = TypeVar('N')
+
+__all__ = []  # type: List[str]
 
 
 ###
@@ -26,6 +37,7 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
                 mapping=None, partial=False, strict=False, init_values=False,
                 apply_defaults=False, convert=True, validate=False, new=False,
                 oo=False, recursive=False, app_data=None, context=None):
+    # type: (Union[Type[Model], Schema], MutableMapping[str, Any], Optional[Mapping[str, Any]], Union[Converter, Callable], Optional[Mapping[str, Any]], Mapping[str, Union[str, List[str]]], bool, bool, Any, bool, Any, Any, Any, Any, Any, Optional[Any], Optional[Context]) -> Any
     """
     The import loop is designed to take untrusted data and convert it into the
     native types, as described in ``schema``.  It does this by calling
@@ -35,30 +47,53 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
 
     :param schema:
         The Schema to use as source for validation.
+    :type schema: Schema
+
     :param mutable:
         A mapping or instance that can be changed during validation by Schema
         functions.
+    :type mutable: Union[Model, MutableMapping]
+
     :param raw_data:
         A mapping to be converted into types according to ``schema``.
+    :type raw_data: Optional[Mapping]
+
     :param field_converter:
         This function is applied to every field found in ``instance_or_dict``.
+    :type field_converter: Union[Converter, Callable]
+
     :param trusted_data:
         A ``dict``-like structure that may contain already validated data.
+    :type trusted_data: Optional[Mapping]
+
+    :type mapping: Mapping[str, Union[str, List[str]]]
+
     :param partial:
         Allow partial data to validate; useful for PATCH requests.
         Essentially drops the ``required=True`` arguments from field
         definitions. Default: False
+    :type partial: bool
+
     :param strict:
         Complain about unrecognized keys. Default: False
+    :type strict: bool
+
     :param apply_defaults:
         Whether to set fields to their default values when not present in input data.
+    :type apply_defaults: bool
+
     :param app_data:
         An arbitrary container for application-specific data that needs to
         be available during the conversion.
+    :type app_data: Optional[Any]
+
     :param context:
         A ``Context`` object that encapsulates configuration options and ``app_data``.
         The context object is created upon the initial invocation of ``import_loop``
         and is then propagated through the entire process.
+    :type context: Optional[Context]
+
+    :rtype: Any
     """
     if raw_data is None:
         raw_data = mutable
@@ -93,7 +128,7 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
     _model_mapping = context.mapping.get('model_mapping')
 
     data = dict(context.trusted_data) if context.trusted_data else {}
-    errors = {}
+    errors = {}  # type: Dict[str, Union[str, FieldError, CompoundError]]
 
     if got_data and context.validate:
         errors = _mutate(schema, mutable, raw_data, context)
@@ -202,6 +237,7 @@ def _mutate(schema, mutable, raw_data, context):
 
 def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise_error_on_role=True,
                 export_level=None, app_data=None, context=None):
+    # type: (Schema, Mapping, Union[Converter, Callable], Optional[str], bool, Any, Optional[Any], Optional[Context]) -> Dict[str, Any]
     """
     The export_loop function is intended to be a general loop definition that
     can be used for any form of data shaping, such as application of roles or
@@ -209,25 +245,43 @@ def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise
 
     :param schema:
         The Schema to use as source for validation.
+    :type schema: Schema
+
     :param instance_or_dict:
         The structure where fields from schema are mapped to values. The only
         expectation for this structure is that it implements a ``dict``
         interface.
+    :type instance_or_dict: Union[Model, Mapping]
+
     :param field_converter:
         This function is applied to every field found in ``instance_or_dict``.
+    :type field_converter: Union[Converter, Callable]
+
     :param role:
         The role used to determine if fields should be left out of the
         transformation.
+    :type role: Optional[str]
+
     :param raise_error_on_role:
         This parameter enforces strict behavior which requires substructures
         to have the same role definition as their parent structures.
+    :type raise_error_on_role: bool
+
+    :param export_level:
+    :type export_level: Optional[Constant]
+
     :param app_data:
         An arbitrary container for application-specific data that needs to
         be available during the conversion.
+    :type app_data: Optional[Any]
+
     :param context:
         A ``Context`` object that encapsulates configuration options and ``app_data``.
         The context object is created upon the initial invocation of ``import_loop``
         and is then propagated through the entire process.
+    :type context: Optional[Context]
+
+    :rtype: Dict[str, Any]
     """
     context = Context._make(context)
     try:
@@ -337,6 +391,7 @@ def blacklist(*field_list):
 class Converter(object):
 
     def __call__(self, field, value, context):
+        # type: (BaseType, Any, Context) -> Any
         raise NotImplementedError
 
     def pre(self, model_class, instance_or_dict, context):
@@ -362,11 +417,13 @@ class BasicConverter(Converter):
 
 @BasicConverter
 def to_native_converter(field, value, context):
+    # type: (BaseType[P, N], Any, Context) -> N
     return field.export(value, NATIVE, context)
 
 
 @BasicConverter
 def to_primitive_converter(field, value, context):
+    # type: (BaseType[P, N], Any, Context) -> P
     return field.export(value, PRIMITIVE, context)
 
 
@@ -377,6 +434,7 @@ def to_primitive_converter(field, value, context):
 
 @BasicConverter
 def import_converter(field, value, context):
+    # type: (BaseType, Any, Context) -> Any
     field.check_required(value, context)
     if value is None or value is Undefined:
         return value
@@ -385,6 +443,7 @@ def import_converter(field, value, context):
 
 @BasicConverter
 def validation_converter(field, value, context):
+    # type: (BaseType, Any, Context) -> Any
     field.check_required(value, context)
     if value is None or value is Undefined:
         return value

@@ -6,7 +6,10 @@ from collections import Mapping, Sequence
 
 from .compat import *
 
-__all__ = []
+if False:
+    from typing import *
+
+__all__ = []  # type: List[str]
 
 
 class DataObject(object):
@@ -95,7 +98,7 @@ class DataObject(object):
 
 class Context(DataObject):
 
-    _fields = ()
+    _fields = ()  # type: Sequence[str]
 
     def __init__(self, *args, **kwargs):
         super(Context, self).__init__(*args, **kwargs)
@@ -112,6 +115,7 @@ class Context(DataObject):
 
     @classmethod
     def _make(cls, obj):
+        # type: (Any) -> Context
         if obj is None:
             return cls()
         elif isinstance(obj, cls):
@@ -125,6 +129,7 @@ class Context(DataObject):
         super(Context, self).__setattr__(name, value)
 
     def _branch(self, **kwargs):
+        # type: (**Any) -> Context
         if not kwargs:
             return self
         items = dict(((k, v) for k, v in kwargs.items() if v is not None and v != self[k]))
@@ -134,6 +139,7 @@ class Context(DataObject):
             return self
 
     def _setdefaults(self, source):
+        # type: (Any) -> Context
         if not isinstance(source, dict):
             source = source.__dict__
         new_values = source.copy()

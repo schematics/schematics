@@ -11,6 +11,9 @@ from .common import *
 from .compat import string_type, str_compat
 from .datastructures import FrozenDict, FrozenList
 
+if False:
+    from typing import *
+
 __all__ = [
     'BaseError', 'ErrorMessage', 'FieldError', 'ConversionError',
     'ValidationError', 'StopValidationError', 'CompoundError', 'DataError',
@@ -21,6 +24,7 @@ __all__ = [
 class BaseError(Exception):
 
     def __init__(self, errors):
+        # type: (Optional[Union[List[ErrorMessage], Dict[str, ErrorMessage]]]) -> None
         """
         The base class for all Schematics errors.
 
@@ -39,6 +43,7 @@ class BaseError(Exception):
 
     @property
     def errors(self):
+        # type: () -> Optional[Union[List[ErrorMessage], Dict[str, ErrorMessage]]]
         return self.args[0]
 
     def to_primitive(self):
@@ -98,7 +103,7 @@ class BaseError(Exception):
 class ErrorMessage(object):
 
     def __init__(self, summary, info=None):
-        self.type = None
+        self.type = None  # type: Type[Exception]
         self.summary = summary
         self.info = info
 
@@ -144,7 +149,7 @@ class ErrorMessage(object):
 
 class FieldError(BaseError, Sequence):
 
-    type = None
+    type = None  # type: Type[Exception]
 
     def __init__(self, *args, **kwargs):
 
@@ -211,14 +216,16 @@ class StopValidationError(ValidationError):
 class CompoundError(BaseError):
 
     def __init__(self, errors):
+        # type: (Dict[str, Union[List[ErrorMessage], CompoundError]]) -> None
         if not isinstance(errors, dict):
             raise TypeError("Compound errors must be reported as a dictionary.")
+        errors_ = {}  # type: Dict[str, List[ErrorMessage]]
         for key, value in errors.items():
             if isinstance(value, CompoundError):
-                errors[key] = value.errors
+                errors_[key] = value.errors
             else:
-                errors[key] = value
-        super(CompoundError, self).__init__(errors)
+                errors_[key] = value
+        super(CompoundError, self).__init__(errors_)
 
 
 class DataError(CompoundError):

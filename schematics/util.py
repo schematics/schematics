@@ -18,6 +18,10 @@ else:
     except ImportError:
         from _dummy_thread import get_ident
 
+from typing import *
+
+T = TypeVar('T')
+
 __all__ = ['get_ident', 'setdefault', 'Constant', 'listify',
     'get_all_subclasses', 'ImportStringError', 'import_string']
 
@@ -52,6 +56,24 @@ class Constant(int):
     __str__ = __repr__
 
 
+@overload
+def listify(value):
+    # type: (AnyStr) -> List[AnyStr]
+    pass
+
+
+@overload
+def listify(value):
+    # type: (Optional[Sequence[T]]) -> List[T]
+    pass
+
+
+@overload
+def listify(value):
+    # type: (T) -> List[T]
+    pass
+
+
 def listify(value):
     if isinstance(value, list):
         return value
@@ -66,6 +88,7 @@ def listify(value):
 
 
 def get_all_subclasses(cls):
+    # type: (Type[T]) -> List[Type[T]]
     all_subclasses = []
 
     for subclass in cls.__subclasses__():

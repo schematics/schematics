@@ -14,6 +14,7 @@ PLANS.md
 venv
 docs/_build
 /.tox
+/.mypy_cache
 /lib
 /bin
 /include

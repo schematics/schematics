@@ -3,51 +3,54 @@ Core loop over the data structures according to a defined schema.
 """
 
 from __future__ import unicode_literals, absolute_import
-from collections import namedtuple
 
 from .compat import iteritems
 from .undefined import Undefined
 
-try:
-    # optional type checking
-    import typing
-    if typing.TYPE_CHECKING:
-        from typing import Mapping, Tuple, Callable, Optional, Any, Iterable
-        from .schema import Schema
-except ImportError:
-    pass
+from typing import *
 
-Atom = namedtuple('Atom', ('name', 'field', 'value'))
+if TYPE_CHECKING:
+    from .schema import Schema, Field
+    from .types import BaseType, Serializable
+
+Atom = NamedTuple('Atom',
+                  (('name', Optional[str]),
+                   ('field', Optional[Union['BaseType', 'Serializable']]),
+                   ('value', Any)))
+
 Atom.__new__.__defaults__ = (None,) * len(Atom._fields)
 
 
 def atoms(schema, mapping, keys=tuple(Atom._fields), filter=None):
-    # type: (Schema, Mapping, Tuple[str, str, str], Optional[Callable[[Atom], bool]]) -> Iterable[Atom]
+    # type: (Schema, Mapping[str, Any], Tuple[str, str, str], Optional[Callable[[Atom], bool]]) -> Iterable[Atom]
     """
     Iterator for the atomic components of a model definition and relevant
     data that creates a 3-tuple of the field's name, its type instance and
     its value.
 
-    :type schema: schematics.schema.Schema
     :param schema:
         The Schema definition.
-    :type mapping: Mapping
+    :type schema: Schema
+
     :param mapping:
         The structure where fields from schema are mapped to values. The only
         expectation for this structure is that it implements a ``Mapping``
         interface.
-    :type keys: Tuple[str, str, str]
+    :type mapping: Mapping
+
     :param keys:
         Tuple specifying the output of the iterator. Valid keys are:
             `name`: the field name
             `field`: the field descriptor object
             `value`: the current value set on the field
         Specifying invalid keys will raise an exception.
-    :type filter: Optional[Callable[[Atom], bool]]
+    :type keys: Tuple[str, str, str]
+
     :param filter:
         Function to filter out atoms from the iteration.
+    :type filter: Optional[Callable[[Atom], bool]]
 
-    :rtype: Iterable[Atom]
+    :rtype: Iterator[Atom]
     """
     if not set(keys).issubset(Atom._fields):
         raise TypeError('invalid key specified')

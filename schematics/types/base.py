@@ -2,11 +2,6 @@
 
 from __future__ import unicode_literals, absolute_import
 
-try:
-    import typing
-except ImportError:
-    pass
-
 import copy
 import datetime
 import decimal
@@ -16,14 +11,25 @@ import random
 import re
 import string
 import uuid
-from collections import Iterable, OrderedDict
+from collections import OrderedDict
 
 from ..common import *
 from ..exceptions import *
 from ..translator import _
 from ..undefined import Undefined
 from ..util import listify
-from ..validate import prepare_validator, get_validation_context
+from ..validate import prepare_validator, get_validation_context, ValidatorType
+
+from typing import *
+
+if TYPE_CHECKING:
+    from ..models import Model
+    from ..datastructures import Context
+    from ..util import Constant
+
+P = TypeVar('P')
+N = TypeVar('N')
+T = TypeVar('T')
 
 __all__ = [
     'BaseType', 'UUIDType', 'StringType', 'MultilingualStringType',
@@ -79,14 +85,14 @@ _last_position_hint = -1
 _next_position_hint = itertools.count()
 
 
-class TypeMeta(type):
+class TypeMeta(GenericMeta):
 
     """
     Meta class for BaseType. Merges `MESSAGES` dict and accumulates
     validator methods.
     """
 
-    def __new__(mcs, name, bases, attrs):
+    def __new__(mcs, name, bases, attrs, *args, **kwargs):
         messages = {}
         validators = OrderedDict()
 
@@ -109,11 +115,18 @@ class TypeMeta(type):
 
         attrs["_validators"] = validators
 
-        return type.__new__(mcs, name, bases, attrs)
+        return super(TypeMeta, mcs).__new__(mcs, name, bases, attrs, *args, **kwargs)
+
+    def __instancecheck__(cls, instance):
+        # Fix for old-style classes (e.g. Options idiom in python 2.x)
+        if not hasattr(instance, '__class__'):
+            return False
+
+        return super(TypeMeta, cls).__instancecheck__(instance)
 
 
 @metaclass(TypeMeta)
-class BaseType(object):
+class BaseType(Generic[P, N]):
 
     """A base class for Types in a Schematics model. Instances of this
     class may be added to subclasses of ``Model`` to define a model schema.
@@ -125,32 +138,51 @@ class BaseType(object):
     :param required:
         Invalidate field when value is None or is not supplied. Default:
         False.
+    :type required: bool
+
     :param default:
         When no data is provided default to this value. May be a callable.
         Default: None.
+    :type default: Any
+
     :param serialized_name:
         The name of this field defaults to the class attribute used in the
         model. However if the field has another name in foreign data set this
         argument. Serialized data will use this value for the key name too.
+    :type serialized_name: Optional[str]
+
+    :param choices:
+        A list of valid choices. This is the last step of the validator
+        chain.
+    :type choices: Optional[Iterable]
+
+    :param validators:
+        A list of callables. Each callable receives the value after it has been
+        converted into a rich python type. Default: []
+    :type validators: Optional[Iterable[ValidatorType]]
+
     :param deserialize_from:
         A name or list of named fields for which foreign data sets are
         searched to provide a value for the given field.  This only effects
         inbound data.
-    :param choices:
-        A list of valid choices. This is the last step of the validator
-        chain.
-    :param validators:
-        A list of callables. Each callable receives the value after it has been
-        converted into a rich python type. Default: []
+    :type deserialize_from: Optional[Union[str, Sequence[str]]]
+
+    :param export_level:
+    :type export_level: Optional[Constant]
+
     :param serialize_when_none:
         Dictates if the field should appear in the serialized data even if the
         value is None. Default: None.
+    :type serialize_when_none: Optional[Mapping[str, str]]
+
     :param messages:
         Override the error messages with a dict. You can also do this by
         subclassing the Type and defining a `MESSAGES` dict attribute on the
         class. A metaclass will merge all the `MESSAGES` and override the
         resulting dict with instance level `messages` and assign to
         `self.messages`.
+    :type messages: Optional[Mapping[str, str]]
+
     :param metadata:
         Dictionary for storing custom metadata associated with the field.
         To encourage compatibility with external tools, we suggest these keys
@@ -158,10 +190,11 @@ class BaseType(object):
         - *label* : Brief human-readable label
         - *description* : Explanation of the purpose of the field. Used for
           help, tooltips, documentation, etc.
+    :type metadata: Optional[Mapping]
     """
 
-    primitive_type = None
-    native_type = None
+    primitive_type = None  # type: Type[P]
+    native_type = None  # type: Type[N]
 
     MESSAGES = {
         'required': _("This field is required."),
@@ -173,10 +206,14 @@ class BaseType(object):
         PRIMITIVE: 'to_primitive',
     }
 
+    # for static type analysis:
+    _validators = None  # type: List[str]
+
     def __init__(self, required=False, default=Undefined, serialized_name=None,
                  choices=None, validators=None, deserialize_from=None,
                  export_level=None, serialize_when_none=None,
                  messages=None, metadata=None):
+        # type: (bool, Any, Optional[str], Optional[Iterable], Optional[Iterable[ValidatorType]], Optional[Union[str, Sequence[str]]], Optional[str], Optional[Mapping[str, str]], Optional[Mapping[str, str]], Optional[Mapping]) -> None
         super(BaseType, self).__init__()
 
         self.required = required
@@ -187,7 +224,7 @@ class BaseType(object):
         self.choices = choices
         self.deserialize_from = listify(deserialize_from)
 
-        self.validators = [getattr(self, validator_name) for validator_name in self._validators]
+        self.validators = [getattr(self, validator_name) for validator_name in self._validators]  # type: List[ValidatorType]
         if validators:
             self.validators += (prepare_validator(func, 2) for func in validators)
 
@@ -197,14 +234,15 @@ class BaseType(object):
         self.metadata = metadata or {}
         self._position_hint = next(_next_position_hint)  # For ordering of fields
 
-        self.name = None
-        self.owner_model = None
-        self.parent_field = None
+        self.name = None  # type: str
+        self.owner_model = None  # type: Model
+        self.parent_field = None  # type: BaseType
         self.typeclass = self.__class__
         self.is_compound = False
 
         self.export_mapping = dict(
-            (format, getattr(self, fname)) for format, fname in self.EXPORT_METHODS.items())
+            (format, getattr(self, fname))
+            for format, fname in self.EXPORT_METHODS.items())  # type: Dict[Constant, Callable]
 
     def __repr__(self):
         type_ = "%s(%s) instance" % (self.__class__.__name__, self._repr_info() or '')
@@ -225,6 +263,7 @@ class BaseType(object):
         return None
 
     def _setup(self, field_name, owner_model):
+        # type: (str, Model) -> None
         """Perform late-stage setup tasks that are run after the containing model
         has been created.
         """
@@ -243,8 +282,9 @@ class BaseType(object):
             self.export_level = None
 
     def get_export_level(self, context):
+        # type: (Context) -> Constant
         if self.owner_model:
-            level = self.owner_model._options.export_level
+            level = self.owner_model._schema.options.export_level
         else:
             level = DEFAULT
         if self.export_level is not None:
@@ -254,6 +294,7 @@ class BaseType(object):
         return level
 
     def get_input_keys(self, mapping=None):
+        # type: (Optional[Mapping[str, Any]]) -> List[str]
         if mapping:
             return self._get_input_keys(mapping)
         else:
@@ -280,21 +321,26 @@ class BaseType(object):
         return value
 
     def convert(self, value, context=None):
+        # type: (Any, Optional[Context]) -> N
         return self.to_native(value, context)
 
     def export(self, value, format, context=None):
+        # type: (Any, Constant, Optional[Context]) -> Union[P, N]
+        # FIXME: use an if/else statement here.  too much obfuscation
         return self.export_mapping[format](value, context)
 
     def to_primitive(self, value, context=None):
+        # type: (N, Optional[Context]) -> P
         """Convert internal data to a value safe to serialize.
         """
-        return value
+        return value  # type: ignore
 
     def to_native(self, value, context=None):
+        # type: (Any, Optional[Context]) -> N
         """
         Convert untrusted data to a richer Python construct.
         """
-        return value
+        return value  # type: ignore
 
     def validate(self, value, context=None):
         """
@@ -342,7 +388,7 @@ class BaseType(object):
         return self._mock(context)
 
 
-class UUIDType(BaseType):
+class UUIDType(BaseType[str, uuid.UUID]):
 
     """A field that stores a valid UUID value.
     """
@@ -355,13 +401,14 @@ class UUIDType(BaseType):
     }
 
     def __init__(self, **kwargs):
-        # type: (...) -> uuid.UUID
+        # type: (...) -> None
         super(UUIDType, self).__init__(**kwargs)
 
     def _mock(self, context=None):
         return uuid.uuid4()
 
     def to_native(self, value, context=None):
+        # type: (Any, Optional[Context]) -> uuid.UUID
         if not isinstance(value, uuid.UUID):
             try:
                 value = uuid.UUID(value)
@@ -370,10 +417,11 @@ class UUIDType(BaseType):
         return value
 
     def to_primitive(self, value, context=None):
+        # type: (uuid.UUID, Optional[Context]) -> str
         return str(value)
 
 
-class StringType(BaseType):
+class StringType(BaseType[str, Text]):
 
     """A Unicode string field."""
 
@@ -390,7 +438,7 @@ class StringType(BaseType):
     }
 
     def __init__(self, regex=None, max_length=None, min_length=None, **kwargs):
-        # type: (...) -> typing.Text
+        # type: (...) -> None
 
         self.regex = re.compile(regex) if regex else None
         self.max_length = max_length
@@ -402,6 +450,7 @@ class StringType(BaseType):
         return random_string(get_value_in(self.min_length, self.max_length))
 
     def to_native(self, value, context=None):
+        # type: (Any, Optional[Context]) -> Text
         if isinstance(value, str):
             return value
         if isinstance(value, self.allow_casts):
@@ -429,15 +478,15 @@ class StringType(BaseType):
             raise ValidationError(self.messages['regex'])
 
 
-class NumberType(BaseType):
+class NumberType(BaseType[P, N]):
 
     """A generic number field.
     Converts to and validates against `number_type` parameter.
     """
 
-    primitive_type = None
-    native_type = None
-    number_type = None
+    primitive_type = None  # type: Type[P]
+    native_type = None  # type: Type[N]
+    number_type = None  # type: str
     MESSAGES = {
         'number_coerce': _("Value '{0}' is not {1}."),
         'number_min': _("{0} value should be greater than or equal to {1}."),
@@ -445,7 +494,7 @@ class NumberType(BaseType):
     }
 
     def __init__(self, min_value=None, max_value=None, strict=False, **kwargs):
-        # type: (...) -> typing.Union[int, float]
+        # type: (...) -> None
 
         self.min_value = min_value
         self.max_value = max_value
@@ -460,6 +509,7 @@ class NumberType(BaseType):
         return self.native_type(number) if self.native_type else number
 
     def to_native(self, value, context=None):
+        # type: (Any, Optional[Context]) -> N
         if isinstance(value, bool):
             value = int(value)
         if isinstance(value, self.native_type):
@@ -491,7 +541,7 @@ class NumberType(BaseType):
         return value
 
 
-class IntType(NumberType):
+class IntType(NumberType[int, int]):
 
     """A field that validates input as an Integer
     """
@@ -500,15 +550,11 @@ class IntType(NumberType):
     native_type = int
     number_type = 'Int'
 
-    def __init__(self, **kwargs):
-        # type: (...) -> int
-        super(IntType, self).__init__(**kwargs)
-
 
 LongType = IntType
 
 
-class FloatType(NumberType):
+class FloatType(NumberType[float, float]):
 
     """A field that validates input as a Float
     """
@@ -517,12 +563,8 @@ class FloatType(NumberType):
     native_type = float
     number_type = 'Float'
 
-    def __init__(self, **kwargs):
-        # type: (...) -> float
-        super(FloatType, self).__init__(**kwargs)
 
-
-class DecimalType(NumberType):
+class DecimalType(NumberType[str, decimal.Decimal]):
 
     """A fixed-point decimal number field.
     """
@@ -532,9 +574,11 @@ class DecimalType(NumberType):
     number_type = 'Decimal'
 
     def to_primitive(self, value, context=None):
+        # type: (decimal.Decimal, Optional[Context]) -> str
         return str(value)
 
     def to_native(self, value, context=None):
+        # type: (Any, Optional[Context]) -> decimal.Decimal
         if isinstance(value, decimal.Decimal):
             return value
 
@@ -560,6 +604,7 @@ class HashType(StringType):
         return random_string(self.LENGTH, string.hexdigits)
 
     def to_native(self, value, context=None):
+        # type: (Any, Optional[Context]) -> Text
         value = super(HashType, self).to_native(value, context)
 
         if len(value) != self.LENGTH:
@@ -587,7 +632,7 @@ class SHA1Type(HashType):
     LENGTH = 40
 
 
-class BooleanType(BaseType):
+class BooleanType(BaseType[bool, bool]):
 
     """A boolean field type. In addition to ``True`` and ``False``, coerces these
     values:
@@ -604,13 +649,14 @@ class BooleanType(BaseType):
     FALSE_VALUES = ('False', 'false', '0')
 
     def __init__(self, **kwargs):
-        # type: (...) -> bool
+        # type: (...) -> None
         super(BooleanType, self).__init__(**kwargs)
 
     def _mock(self, context=None):
         return random.choice([True, False])
 
     def to_native(self, value, context=None):
+        # type: (Any, Optional[Context]) -> bool
         if isinstance(value, string_type):
             if value in self.TRUE_VALUES:
                 value = True
@@ -626,7 +672,7 @@ class BooleanType(BaseType):
         return value
 
 
-class DateType(BaseType):
+class DateType(BaseType[str, datetime.date]):
 
     """Defaults to converting to and from ISO8601 date values.
     """
@@ -641,7 +687,7 @@ class DateType(BaseType):
     }
 
     def __init__(self, formats=None, **kwargs):
-        # type: (...) -> datetime.date
+        # type: (...) -> None
 
         if formats:
             self.formats = listify(formats)
@@ -662,6 +708,7 @@ class DateType(BaseType):
         )
 
     def to_native(self, value, context=None):
+        # type: (Any, Optional[Context]) -> datetime.date
         if isinstance(value, datetime.datetime):
             return value.date()
         if isinstance(value, datetime.date):
@@ -676,10 +723,11 @@ class DateType(BaseType):
             raise ConversionError(self.conversion_errmsg.format(value, ", ".join(self.formats)))
 
     def to_primitive(self, value, context=None):
+        # type: (datetime.date, Optional[Context]) -> str
         return value.strftime(self.serialized_format)
 
 
-class DateTimeType(BaseType):
+class BaseDateTimeType(BaseType[P, datetime.datetime]):
 
     """A field that holds a combined date and time value.
 
@@ -725,8 +773,7 @@ class DateTimeType(BaseType):
             * ``True``:  Discard the ``tzinfo`` components and make naive ``datetime`` objects instead.
             * ``False``: Preserve the ``tzinfo`` components if present.
     """
-
-    primitive_type = str
+    primitive_type = None  # type: Type[P]
     native_type = datetime.datetime
 
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%f%z'
@@ -782,7 +829,7 @@ class DateTimeType(BaseType):
 
     def __init__(self, formats=None, serialized_format=None, parser=None,
                  tzd='allow', convert_tz=False, drop_tzinfo=False, **kwargs):
-        # type: (...) -> datetime.datetime
+        # type: (...) -> None
 
         if tzd not in ('require', 'allow', 'utc', 'reject'):
             raise ValueError("DateTimeType.__init__() got an invalid value for parameter 'tzd'")
@@ -793,7 +840,7 @@ class DateTimeType(BaseType):
         self.convert_tz = convert_tz
         self.drop_tzinfo = drop_tzinfo
 
-        super(DateTimeType, self).__init__(**kwargs)
+        super(BaseDateTimeType, self).__init__(**kwargs)
 
     def _mock(self, context=None):
         dt = datetime.datetime(
@@ -816,7 +863,7 @@ class DateTimeType(BaseType):
                                                           minutes=random.choice([0, 30, 45])))
 
     def to_native(self, value, context=None):
-
+        # type: (Any, Optional[Context]) -> datetime.datetime
         if isinstance(value, datetime.datetime):
             if value.tzinfo is None:
                 if not self.drop_tzinfo:
@@ -878,6 +925,7 @@ class DateTimeType(BaseType):
         return dt
 
     def from_string(self, value):
+        # type: (Text) -> Optional[datetime.datetime]
         match = self.REGEX.match(value)
         if not match:
             return None
@@ -903,15 +951,11 @@ class DateTimeType(BaseType):
             return None
 
     def from_timestamp(self, value):
+        # type: (float) -> Optional[datetime.datetime]
         try:
             return datetime.datetime(1970, 1, 1, tzinfo=self.UTC) + datetime.timedelta(seconds=value)
         except (ValueError, TypeError):
             return None
-
-    def to_primitive(self, value, context=None):
-        if callable(self.serialized_format):
-            return self.serialized_format(value)
-        return value.strftime(self.serialized_format)
 
     def validate_tz(self, value, context=None):
         if value.tzinfo is None:
@@ -930,6 +974,16 @@ class DateTimeType(BaseType):
                 raise ValidationError(self.messages['validate_utc_wrong'])
 
 
+class DateTimeType(BaseDateTimeType[str]):
+    primitive_type = str
+
+    def to_primitive(self, value, context=None):
+        # type: (datetime.datetime, Optional[Context]) -> str
+        if callable(self.serialized_format):
+            return self.serialized_format(value)
+        return value.strftime(self.serialized_format)
+
+
 class UTCDateTimeType(DateTimeType):
 
     """A variant of ``DateTimeType`` that normalizes everything to UTC and stores values
@@ -941,12 +995,12 @@ class UTCDateTimeType(DateTimeType):
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
     def __init__(self, formats=None, parser=None, tzd='utc', convert_tz=True, drop_tzinfo=True, **kwargs):
-        # type: (...) -> datetime.datetime
+        # type: (...) -> None
         super(UTCDateTimeType, self).__init__(formats=formats, parser=parser, tzd=tzd,
                                               convert_tz=convert_tz, drop_tzinfo=drop_tzinfo, **kwargs)
 
 
-class TimestampType(DateTimeType):
+class TimestampType(BaseDateTimeType[float]):
 
     """A variant of ``DateTimeType`` that exports itself as a Unix timestamp
     instead of an ISO 8601 string. Always sets ``tzd='require'`` and
@@ -956,11 +1010,12 @@ class TimestampType(DateTimeType):
     primitive_type = float
 
     def __init__(self, formats=None, parser=None, drop_tzinfo=False, **kwargs):
-        # type: (...) -> datetime.datetime
+        # type: (...) -> None
         super(TimestampType, self).__init__(formats=formats, parser=parser, tzd='require',
                                             convert_tz=True, drop_tzinfo=drop_tzinfo, **kwargs)
 
     def to_primitive(self, value, context=None):
+        # type: (datetime.datetime, Optional[Context]) -> float
         if value.tzinfo is None:
             value = value.replace(tzinfo=self.UTC)
         else:
@@ -1015,7 +1070,10 @@ class TimedeltaType(BaseType):
         return int(value.total_seconds() / base_unit.total_seconds())
 
 
-class GeoPointType(BaseType):
+Point2D = Union[Tuple[SupportsFloat], List[SupportsFloat], Dict[Any, SupportsFloat]]
+
+
+class GeoPointType(BaseType[Point2D, Point2D]):
 
     """A list storing a latitude and longitude.
     """
@@ -1033,6 +1091,7 @@ class GeoPointType(BaseType):
 
     @classmethod
     def _normalize(cls, value):
+        # type: (Union[Dict[Any, T], Iterable[T]]) -> List[T]
         if isinstance(value, dict):
             # py3: ensure list and not view
             return list(value.values())
@@ -1040,6 +1099,7 @@ class GeoPointType(BaseType):
             return list(value)
 
     def to_native(self, value, context=None):
+        # type: (Point2D, Optional[Context]) -> Point2D
         """Make sure that a geo-value is of type (x, y)
         """
         if not isinstance(value, (tuple, list, dict)):
@@ -1071,7 +1131,7 @@ class GeoPointType(BaseType):
             )
 
 
-class MultilingualStringType(BaseType):
+class MultilingualStringType(BaseType[str, Text]):
 
     """
     A multilanguage string field, stored as a dict with {'locale': 'localized_value'}.
@@ -1114,6 +1174,7 @@ class MultilingualStringType(BaseType):
         return random_string(get_value_in(self.min_length, self.max_length))
 
     def to_native(self, value, context=None):
+        # type: (Any, Optional[Context]) -> Text
         """Make sure a MultilingualStringType value is a dict or None."""
 
         if not (value is None or isinstance(value, dict)):
@@ -1122,6 +1183,7 @@ class MultilingualStringType(BaseType):
         return value
 
     def to_primitive(self, value, context=None):
+        # type: (Text, Optional[Context]) -> str
         """
         Use a combination of ``default_locale`` and ``context.app_data['locale']`` to return
         the best localized string.
@@ -1192,4 +1254,4 @@ class MultilingualStringType(BaseType):
 
 if PY2:
     # Python 2 names cannot be unicode
-    __all__ = [n.encode('ascii') for n in __all__]
+    __all__ = [n.encode('ascii') for n in __all__]  # type: ignore

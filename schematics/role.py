@@ -1,4 +1,5 @@
 import collections
+from typing import Any
 
 from .compat import str_compat, repr_compat
 
@@ -58,6 +59,7 @@ class Role(collections.Set):
 
     # apply role to field
     def __call__(self, name, value):
+        # type: (str, Any) -> bool
         return self.function(name, value, self.fields)
 
     # static filter functions

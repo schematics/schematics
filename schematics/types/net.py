@@ -53,7 +53,7 @@ IPV6 = r"""(
 class IPAddressType(StringType):
     """A field that stores a valid IPv4 or IPv6 address."""
 
-    VERSION = None
+    VERSION = None  # type: str
     REGEX = re.compile('^%s|%s$' % (IPV4, IPV6), re.I + re.X)
 
     @classmethod

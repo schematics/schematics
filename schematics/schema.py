@@ -9,23 +9,31 @@ from .common import DEFAULT, NONEMPTY
 from .types import BaseType
 from .types.serializable import Serializable
 
+if False:
+    from typing import *
+    from .models import Model
+    from .validate import ValidatorType4
+
 
 class Schema(object):
 
     def __init__(self, name, *fields, **kw):
+        # type: (str, *Field, Any) -> None
         self.name = name
-        self.model = kw.get('model', None)
+        self.model = kw.get('model', None)  # type: Optional[Model]
         self.options = kw.get('options', SchemaOptions())
-        self.validators = kw.get('validators', {})
-        self.fields = OrderedDict()
+        self.validators = kw.get('validators', {})  # type: Dict[str, ValidatorType4]
+        self.fields = OrderedDict()  # type: OrderedDict[str, Union[BaseType, Serializable]]
         for field in fields:
             self.append_field(field)
 
     @property
     def valid_input_keys(self):
+        # type: () -> Set[str]
         return set(itertools.chain(*(t.get_input_keys() for t in itervalues(self.fields))))
 
     def append_field(self, field):
+        # type: (Field) -> None
         self.fields[field.name] = field.type
         field.type._setup(field.name, self.model)  # TODO: remove model reference
 
@@ -58,6 +66,7 @@ class Field(object):
     __slots__ = ('name', 'type')
 
     def __init__(self, name, field_type):
+        # type: (str, Union[BaseType, Serializable]) -> None
         assert isinstance(field_type, (BaseType, Serializable))
         self.name = name
         self.type = field_type
