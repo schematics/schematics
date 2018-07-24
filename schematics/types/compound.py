@@ -109,7 +109,7 @@ class ModelType(CompoundType[Dict[str, Any], Dict[str, Any]]):
     @property
     def fields(self):
         # type: () -> List[BaseType]
-        return self.model_class.fields
+        return self.model_class._schema.fields
 
     @property
     def model_class(self):
