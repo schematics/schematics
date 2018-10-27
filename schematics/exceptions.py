@@ -4,12 +4,16 @@ from __future__ import unicode_literals, absolute_import
 
 import json
 
-from collections import Sequence, Mapping
-
-from .translator import LazyText
 from .common import *
 from .compat import string_type, str_compat
 from .datastructures import FrozenDict, FrozenList
+from .translator import LazyText
+
+try:
+    from collections.abc import Mapping, Sequence  # PY3
+except ImportError:
+    from collections import Mapping, Sequence  # PY2
+
 
 __all__ = [
     'BaseError', 'ErrorMessage', 'FieldError', 'ConversionError',

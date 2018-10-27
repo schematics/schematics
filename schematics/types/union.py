@@ -17,7 +17,11 @@ __all__ = ['UnionType']
 def _valid_init_args(type_):
     args = set()
     for cls in type_.__mro__:
-        args.update(inspect.getargspec(cls.__init__).args[1:])
+        try:
+            init_args = inspect.getfullargspec(cls.__init__).args[1:]  # PY3
+        except AttributeError:
+            init_args = inspect.getargspec(cls.__init__).args[1:]  # PY2
+        args.update(init_args)
         if cls is BaseType:
             break
     return args

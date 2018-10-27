@@ -1,11 +1,14 @@
-import collections
-
 from .compat import str_compat, repr_compat
+
+try:
+    from collections.abc import Set  # PY3
+except ImportError:
+    from collections import Set  # PY2
 
 
 @repr_compat
 @str_compat
-class Role(collections.Set):
+class Role(Set):
 
     """
     A ``Role`` object can be used to filter specific fields against a sequence.

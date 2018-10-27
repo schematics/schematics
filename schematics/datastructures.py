@@ -2,9 +2,14 @@
 # pylint: skip-file
 
 from __future__ import unicode_literals, absolute_import
-from collections import Mapping, Sequence
 
 from .compat import *
+
+try:
+    from collections.abc import Mapping, Sequence  # PY3
+except ImportError:
+    from collections import Mapping, Sequence  # PY2
+
 
 __all__ = []
 

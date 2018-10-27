@@ -2,10 +2,14 @@
 
 from __future__ import unicode_literals, absolute_import
 
-import collections
 import sys
 
 from .compat import *
+
+try:
+    from collections.abc import Sequence  # PY3
+except ImportError:
+    from collections import Sequence  # PY2
 
 if PY2:
     try:
@@ -59,7 +63,7 @@ def listify(value):
         return []
     elif isinstance(value, string_type):
         return [value]
-    elif isinstance(value, collections.Sequence):
+    elif isinstance(value, Sequence):
         return list(value)
     else:
         return [value]
