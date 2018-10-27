@@ -383,10 +383,10 @@ def test_string_min_length_doesnt_accept_empty_string():
 
 
 def test_string_regex():
-    StringType(regex='\d+').validate("1")
+    StringType(regex=r'\d+').validate("1")
 
     with pytest.raises(ValidationError):
-        StringType(regex='\d+').validate("a")
+        StringType(regex=r'\d+').validate("a")
 
 
 def test_string_to_native():
@@ -461,7 +461,7 @@ def test_multilingualstring_should_validate_regex():
         MultilingualStringType(regex='^[a-z]*$').validate({'en_US': '123'})
 
     with pytest.raises(ValidationError):
-        MultilingualStringType(locale_regex='^\d*$').validate({'en_US': 'foo'})
+        MultilingualStringType(locale_regex=r'^\d*$').validate({'en_US': 'foo'})
 
     assert MultilingualStringType(locale_regex=None).validate_regex({'en_US': 'foo'}) is None
 
