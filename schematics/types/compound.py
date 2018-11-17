@@ -2,14 +2,6 @@
 
 from __future__ import unicode_literals, absolute_import
 
-try:
-    import typing
-except ImportError:
-    pass
-else:
-    T = typing.TypeVar("T")
-
-from collections import Iterable, Sequence, Mapping
 import itertools
 
 from ..common import *
@@ -20,8 +12,19 @@ from ..transforms import (
     to_native_converter, to_primitive_converter)
 from ..translator import _
 from ..util import get_all_subclasses, import_string
-
 from .base import BaseType, get_value_in
+
+try:
+    import typing
+except ImportError:
+    pass
+else:
+    T = typing.TypeVar("T")
+
+try:
+    from collections.abc import Iterable, Sequence, Mapping  # PY3
+except ImportError:
+    from collections import Iterable, Sequence, Mapping  # PY2
 
 __all__ = ['CompoundType', 'MultiType', 'ModelType', 'ListType', 'DictType',
     'PolyModelType']

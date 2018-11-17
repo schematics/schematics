@@ -2,10 +2,6 @@
 
 from __future__ import unicode_literals, absolute_import
 
-try:
-    import typing
-except ImportError:
-    pass
 
 import copy
 import datetime
@@ -16,7 +12,7 @@ import random
 import re
 import string
 import uuid
-from collections import Iterable, OrderedDict
+from collections import OrderedDict
 
 from ..common import *
 from ..exceptions import *
@@ -24,6 +20,17 @@ from ..translator import _
 from ..undefined import Undefined
 from ..util import listify
 from ..validate import prepare_validator, get_validation_context
+
+try:
+    import typing
+except ImportError:
+    pass
+
+try:
+    from collections.abc import Iterable  # PY3
+except ImportError:
+    from collections import Iterable  # PY2
+
 
 __all__ = [
     'BaseType', 'UUIDType', 'StringType', 'MultilingualStringType',
