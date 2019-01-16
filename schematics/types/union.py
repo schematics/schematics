@@ -84,6 +84,13 @@ class UnionType(BaseType):
         field, native_value = self._resolve(value, context)
         return native_value
 
+    def export(self, value, format, context=None):
+        for field in self._types.values():
+            if type(value) == field.native_type:
+                return field.export(value, format, context)
+
+        return self.export_mapping[format](value, context)
+
     def validate(self, value, context=None):
         field, _ = self._resolve(value, context)
         return field.validate(value, context)
