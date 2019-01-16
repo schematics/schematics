@@ -10,7 +10,6 @@ from schematics.exceptions import *
 from schematics.models import Model
 from schematics.types import *
 from schematics.types.compound import *
-from schematics.types.serializable import Serializable
 
 
 def test_id_or_uuid():
@@ -111,3 +110,12 @@ def test_invalid_args():
     with pytest.raises(TypeError):
         UnionType((IntType, dict))
 
+
+def test_model_type():
+    class Child(Model):
+        a = StringType()
+
+    class Parent(Model):
+        child = UnionType((ModelType(Child),))
+
+    assert Parent({'child': {'a': 4}}).to_primitive(), {'a': 4}
