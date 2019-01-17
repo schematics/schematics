@@ -111,7 +111,7 @@ def test_invalid_args():
         UnionType((IntType, dict))
 
 
-def test_model_type():
+def test_model_type_to_primitive():
     class Child(Model):
         a = StringType()
 
@@ -119,3 +119,17 @@ def test_model_type():
         child = UnionType((ModelType(Child),))
 
     assert Parent({'child': {'a': 4}}).to_primitive(), {'a': 4}
+
+
+def test_model_type_multiple_models():
+    class ChildA(Model):
+        a = StringType()
+
+    class ChildB(Model):
+        b = StringType()
+
+    class Parent(Model):
+        child = UnionType((ModelType(ChildA), ModelType(ChildB),))
+
+    Parent({'child': ChildA({'a': 4})}).validate()
+    Parent({'child': ChildB({'b': 4})}).validate()
