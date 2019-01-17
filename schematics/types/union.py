@@ -10,6 +10,7 @@ from ..exceptions import ConversionError
 from ..translator import _
 from ..transforms import get_import_context, get_export_context
 from .base import BaseType
+from .compound import ModelType
 
 __all__ = ['UnionType']
 
@@ -52,7 +53,12 @@ class UnionType(BaseType):
                 type_ = type_(**_filter_kwargs(_valid_init_args(type_), kwargs))
             elif not isinstance(type_, BaseType):
                 raise TypeError("Got '%s' instance instead of a Schematics type" % type_.__class__.__name__)
-            self._types[type_.__class__] = type_
+
+            if type_.typeclass == ModelType:
+                class_ = type_.model_class
+            else:
+                class_ = type_.__class__
+            self._types[class_] = type_
             self.typenames = tuple((cls.__name__ for cls in self._types))
 
         super(UnionType, self).__init__(**_filter_kwargs(self._baseclass_args, kwargs))
