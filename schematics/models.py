@@ -286,7 +286,7 @@ class Model(object):
         :param raw_data:
             New data to be imported and converted
         """
-        raw_data = _dict(raw_data) if raw_data else self._data.converted
+        raw_data = _dict(raw_data) if raw_data is not None else self._data.converted
         kwargs['trusted_data'] = kwargs.get('trusted_data') or {}
         kwargs['convert'] = getattr(context, 'convert', kwargs.get('convert', True))
         if self._data.unsafe:
