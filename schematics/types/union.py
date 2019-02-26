@@ -6,7 +6,7 @@ import inspect
 from collections import OrderedDict
 
 from ..common import *
-from ..exceptions import ConversionError
+from ..exceptions import ConversionError, DataError
 from ..translator import _
 from ..transforms import get_import_context, get_export_context
 from .base import BaseType
@@ -67,7 +67,7 @@ class UnionType(BaseType):
         for field in self._types.values():
             try:
                 value = field.convert(value, context)
-            except ConversionError:
+            except (ConversionError, DataError):
                 pass
             else:
                 return field, value
