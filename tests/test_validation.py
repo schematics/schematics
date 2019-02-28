@@ -165,11 +165,36 @@ def test_nested_model_validators():
 
     class MainModel(Model):
         modelfield = ModelType(SubModel)
+        named_modelfield = DictType(ModelType(SubModel))
+        listed_modelfield = ListType(ModelType(SubModel))
 
     with pytest.raises(DataError):
-        MainModel({'modelfield': {'should_raise': True}}).validate()
+        try:
+            MainModel({
+                'modelfield': {'should_raise': True},
+                'named_modelfield': {
+                    'one': {'should_raise': True}
+                },
+                'listed_modelfield': [
+                    {'should_raise': True},
+                ]
+            }).validate()
+        except DataError as exc:
+            assert len(exc.errors) == 3
+            assert exc.errors['listed_modelfield'][0]['should_raise'][0].summary == 'message'
+            assert exc.errors['named_modelfield']['one']['should_raise'][0].summary == 'message'
 
-    MainModel({'modelfield': {'should_raise': False}}).validate()
+            raise
+
+    MainModel({
+        'modelfield': {'should_raise': False},
+        'named_modelfield': {
+            'one': {'should_raise': False}
+        },
+        'listed_modelfield': [
+            {'should_raise': False},
+        ]
+    }).validate()
 
 
 def test_multi_key_validation():
