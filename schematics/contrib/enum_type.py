@@ -48,10 +48,10 @@ class EnumType(BaseType):
             return value
         else:
             by_name = self._find_by_name(value)
-            if by_name:
+            if by_name is not None:
                 return by_name
             by_value = self._find_by_value(value)
-            if by_value:
+            if by_value is not None:
                 return by_value
         raise ConversionError(self.messages['convert'].format(value, self._enum_class))
 
@@ -60,11 +60,11 @@ class EnumType(BaseType):
             try:
                 return self._enum_class[value]
             except KeyError:
-                pass
+                return None
 
     def _find_by_value(self, value):
         if not self._use_values:
-            return
+            return None
         for member in self._enum_class:
             if member.value == value:
                 return member
