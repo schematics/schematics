@@ -30,7 +30,7 @@ def test_reason_why_we_must_bind_fields():
     assert p1.name != p2.name
     assert id(p1.name) != id(p2.name)
 
-    assert id(p1._fields["name"]) == id(p2._fields["name"])
+    assert id(p1._schema.fields["name"]) == id(p2._schema.fields["name"])
 
 
 def test_reason_why_we_must_bind_fields_model_field():
@@ -62,7 +62,7 @@ def test_reason_why_we_must_bind_fields_model_field():
     assert p1.location != p2.location
     assert id(p1.location) != id(p2.location)
 
-    assert id(p1._fields["location"]) == id(p2._fields["location"])
+    assert id(p1._schema.fields["location"]) == id(p2._schema.fields["location"])
 
 
 def test_field_binding():
@@ -124,13 +124,13 @@ def test_field_inheritance():
         field2 = StringType(required=True)
         field3 = StringType()
 
-    assert A.field1 is A._fields['field1'] is not B._fields['field1']
-    assert A.field2 is A._fields['field2'] is not B._fields['field2']
-    assert 'field3' not in A._fields
+    assert A.field1 is A._schema.fields['field1'] is not B._schema.fields['field1']
+    assert A.field2 is A._schema.fields['field2'] is not B._schema.fields['field2']
+    assert 'field3' not in A._schema.fields
 
-    assert B.field1 is B._fields['field1']
-    assert B.field2 is B._fields['field2']
-    assert B.field3 is B._fields['field3']
+    assert B.field1 is B._schema.fields['field1']
+    assert B.field2 is B._schema.fields['field2']
+    assert B.field3 is B._schema.fields['field3']
 
     assert A.field2.required is False and B.field2.required is True
 
