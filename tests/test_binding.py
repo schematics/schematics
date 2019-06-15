@@ -110,8 +110,8 @@ def test_serializable_doesnt_keep_global_state():
     location_US = Location({"country_code": "US"})
     location_IS = Location({"country_code": "IS"})
 
-    assert id(location_US._serializables["country_name"]) == id(
-        location_IS._serializables["country_name"])
+    assert id(location_US._schema.fields["country_name"]) == id(
+        location_IS._schema.fields["country_name"])
 
 
 def test_field_inheritance():
@@ -145,8 +145,8 @@ def test_serializable_inheritance():
     class B(A):
         pass
 
-    assert A.s is A._serializables['s'] is not B._serializables['s']
-    assert B.s is B._serializables['s']
+    assert A.s is A._schema.fields['s'] is not B._schema.fields['s']
+    assert B.s is B._schema.fields['s']
     assert A.s.type is not B.s.type
     assert A.s.fget is B.s.fget
 

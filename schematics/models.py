@@ -399,8 +399,9 @@ class Model(object):
             raise UnknownFieldError(self, name)
 
     def __contains__(self, name):
-        return (name in self._data and getattr(self, name, Undefined) is not Undefined) \
-            or name in self._serializables
+        return (
+            name in self._data and getattr(self, name, Undefined) is not Undefined
+        ) or isinstance(self._schema.fields.get(name), Serializable)
 
     def __len__(self):
         return len(self._data)
