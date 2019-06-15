@@ -70,7 +70,7 @@ And this is what it looks like when validation fails.
   Traceback (most recent call last):
     File "<stdin>", line 1, in <module>
     File "schematics/models.py", line 229, in validate
-      raise ModelValidationError(e.messages)
+      raise ModelValidationError(e.errors)
   schematics.exceptions.ModelValidationError: {'taken_at': [u'Could not parse whatever. Should be ISO8601.']}
 
 
@@ -81,7 +81,7 @@ Serialization comes in two primary forms.  In both cases the data is produced
 as a dictionary.
 
 The ``to_primitive()`` function will reduce the native Python types into string
-safe formats.  For example, the ``DateTimeType`` from above is stored as a 
+safe formats.  For example, the ``DateTimeType`` from above is stored as a
 Python ``datetime``, but it will serialize to an ISO8601 format string.
 
 ::
