@@ -348,7 +348,7 @@ def test_options_custom_args():
             _foo = 'bar'
 
     f = Foo()
-    assert f._options._foo == 'bar'
+    assert f._schema.options._foo == 'bar'
 
 
 def test_options_custom_args_inheritance():
@@ -361,8 +361,8 @@ def test_options_custom_args_inheritance():
             _bar = 'baz'
 
     m = Moo()
-    assert m._options._foo == 'bar'
-    assert m._options._bar == 'baz'
+    assert m._schema.options._foo == 'bar'
+    assert m._schema.options._bar == 'baz'
 
 
 def test_no_options_args():
@@ -379,7 +379,7 @@ def test_options_parsing_from_model():
             roles = {}
 
     f = Foo()
-    fo = f._options
+    fo = f._schema.options
 
     assert fo.__class__ == ModelOptions
     assert fo.namespace == 'foo'
@@ -398,7 +398,7 @@ def test_options_parsing_from_optionsclass():
         __optionsclass__ = FooOptions
 
     f = Foo()
-    fo = f._options
+    fo = f._schema.options
 
     assert fo.__class__ == FooOptions
     assert fo.namespace == 'foo'
@@ -422,7 +422,7 @@ def test_subclassing_preservers_roles():
         "age": 87
     })
 
-    options = gramps._options
+    options = gramps._schema.options
 
     assert options.roles == {
         "public": blacklist("id"),
@@ -459,7 +459,7 @@ def test_subclassing_overides_roles():
         "family_secret": "Secretly Canadian"
     })
 
-    options = gramps._options
+    options = gramps._schema.options
 
     assert options.roles == {
         "grandchildren": whitelist("age"),

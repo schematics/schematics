@@ -251,7 +251,7 @@ class BaseType(object):
 
     def get_export_level(self, context):
         if self.owner_model:
-            level = self.owner_model._options.export_level
+            level = getattr(self.owner_model, '_schema', self.owner_model).options.export_level
         else:
             level = DEFAULT
         if self.export_level is not None:

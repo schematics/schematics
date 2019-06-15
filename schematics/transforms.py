@@ -100,7 +100,7 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
 
     if got_data:
         # Determine all acceptable field input names
-        all_fields = schema._valid_input_keys
+        all_fields = getattr(schema, '_schema', schema).valid_input_keys
         if context.mapping:
             mapped_keys = (set(itertools.chain(*(
                           listify(input_keys) for target_key, input_keys in context.mapping.items()
@@ -246,19 +246,21 @@ def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise
 
     instance_or_dict = context.field_converter.pre(schema, instance_or_dict, context)
 
-    if schema._options.export_order:
+    schema_options = getattr(schema, '_schema', schema).options
+
+    if schema_options.export_order:
         data = OrderedDict()
     else:
         data = {}
 
     filter_func = (context.role if callable(context.role) else
-        schema._options.roles.get(context.role))
+        schema_options.roles.get(context.role))
     if filter_func is None:
         if context.role and context.raise_error_on_role:
             error_msg = '%s Model has no role "%s"'
             raise ValueError(error_msg % (schema.__name__, context.role))
         else:
-            filter_func = schema._options.roles.get("default")
+            filter_func = schema_options.roles.get("default")
 
     _field_converter = context.field_converter
 
