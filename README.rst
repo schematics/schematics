@@ -9,7 +9,7 @@ Schematics
    :alt: Build Status
 
 .. image:: https://coveralls.io/repos/github/schematics/schematics/badge.svg?branch=master
-   :target: https://coveralls.io/github/schematics/schematics?branch=master 
+   :target: https://coveralls.io/github/schematics/schematics?branch=master
    :alt: Coverage
 
 
@@ -42,7 +42,7 @@ Some common use cases:
 Example
 =======
 
-This is a simple Model. 
+This is a simple Model.
 
 .. code:: python
 
@@ -96,5 +96,5 @@ Testing & Coverage support
 
 Run coverage and check the missing statements. ::
 
-  $ coverage run --source schematics -m py.test && coverage report
+  $ make test # sets up virtualenv and runs tests + coverage
 
