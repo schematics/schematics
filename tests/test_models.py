@@ -25,7 +25,7 @@ def test_dict_methods_in_model():
 
 def test_dict_methods_in_model_atoms():
     """
-    atoms should return the raw values, and not call any overriden methods.
+    atoms should return the raw values, and not call any overridden methods.
     """
     class M(Model):
         get = IntType()
