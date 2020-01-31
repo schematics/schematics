@@ -12,7 +12,7 @@ from schematics.exceptions import *
 def test_dict_methods_in_model():
     """
     a regression test to ensure that an issue where attributes on
-    dictionaries are not being misintrepreted as actual schematics
+    dictionaries are not being misinterpreted as actual schematics
     fields.
     """
 
