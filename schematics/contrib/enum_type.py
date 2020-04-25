@@ -65,9 +65,10 @@ class EnumType(BaseType):
     def _find_by_value(self, value):
         if not self._use_values:
             return
-        for member in self._enum_class:
-            if member.value == value:
-                return member
+        try:
+            return self._enum_class(value)
+        except ValueError:
+            pass
 
     def to_primitive(self, value, context=None):
         if isinstance(value, Enum):
