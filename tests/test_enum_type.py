@@ -1,3 +1,4 @@
+import sys
 import pytest
 
 from schematics.contrib.enum_type import EnumType
@@ -15,6 +16,7 @@ try:
     class F(Enum):
         A = 1
         B = 1
+
 
 except ImportError:
     Enum = None
@@ -37,6 +39,31 @@ def test_to_native_by_value():
     assert field.to_native("b") == field.to_native("B")
     with pytest.raises(ConversionError):
         field.to_native(2)
+
+
+if Enum is not None and sys.version_info[0] >= 3 and sys.version_info[1] >= 6:
+    class CaseInsensitveEnum(Enum):
+        A = "AA"
+        B = "BB"
+
+        @classmethod
+        def _missing_(cls, value):
+            if not isinstance(value, str):
+                raise ValueError
+            upper = value.upper()
+            for e in cls:
+                if e.value == upper:
+                    return e
+            raise ValueError
+
+    def test_to_native_by_value_with_custom_missing_enum():
+        field = EnumType(CaseInsensitveEnum, use_values=True)
+        assert field.to_native("AA") == CaseInsensitveEnum.A
+        assert field.to_native("aa") == CaseInsensitveEnum.A
+        assert field.to_native("BB") == CaseInsensitveEnum.B
+        assert field.to_native("bb") == CaseInsensitveEnum.B
+        with pytest.raises(ConversionError):
+            field.to_native("C")
 
 
 def test_to_native_by_value_duplicate():
