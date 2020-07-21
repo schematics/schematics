@@ -164,10 +164,11 @@ def test_url_type_with_unreachable_url():
 def test_email_type_with_valid_addresses():
     field = EmailType()
     addrs = [
-        r'"()\\\<>[]:,;@!\"#$%&*+-/=?^_`{}|~.a"@example.org',
-        u'"foo bar baz"@example.org',
+        u'foo_bar_baz@example.org',
         u'Z@foo.zz',
-        u'123.qwe.asd@foo.bar.baz'
+        u'123.qwe.asd@foo.bar.baz',
+        u'mky@xamp-le.com',
+        u'TEST@TEST.TEST',
     ]
     for addr in addrs:
         field.validate(addr)
@@ -176,12 +177,21 @@ def test_email_type_with_valid_addresses():
 def test_email_type_with_invalid_addresses():
     field = EmailType()
     addrs = [
+        r'"()\\\<>[]:,;@!\"#$%&*+-/=?^_`{}|~.a"@example.org',
         r'"qweasd\"@example.org',
         u'"qwe"asd"@example.org',
         u'curaçao@example.org',
         u'foo@local',
+        u't_e_s_t@test.t_e_s_t',
+        u'testing@gmai',
+        u't_e_s_t@t_e_s_t.t_e_s_t',
+        u'hello@',
+        u'totaly()@not.email',
+        u'd|vor@mail.ru',
+        u'with/slash@gmail.com',
+        u'ivan.***@mail.ru',
+        u'"foo bar baz"@example.org',
     ]
     for addr in addrs:
         with pytest.raises(ValidationError):
             field.validate(addr)
-
