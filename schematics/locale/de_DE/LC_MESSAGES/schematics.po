@@ -1,7 +1,7 @@
 # German (Germany) translations for schematics.
 # Copyright (C) 2017 Schematics Project
 # This file is distributed under the same license as the schematics project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2017.
+# Henning Kage <henning.kage@rheinwerk-verlag.de>, 2020.
 #
 msgid ""
 msgstr ""
