@@ -8,15 +8,16 @@ msgstr ""
 "Project-Id-Version: schematics 2.0.1\n"
 "Report-Msgid-Bugs-To: schematics-dev@googlegroups.com\n"
 "POT-Creation-Date: 2017-06-15 11:43-0300\n"
-"PO-Revision-Date: 2020-09-15 10:52+0200\n"
+"PO-Revision-Date: 2020-09-16 09:39+0200\n"
 "Last-Translator: Henning Kage <henning.kage@rheinwerk-verlag.de>\n"
 "Language: de_DE\n"
 "Language-Team: de_DE translation <schematics-dev@googlegroups.com>\n"
-"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.6.0\n"
+"X-Generator: Poedit 2.4.1\n"
 
 #: schematics/contrib/mongo.py:25
 msgid "Couldn't interpret value as an ObjectId."
@@ -164,11 +165,11 @@ msgstr "Konnte Wert nicht als String interpretieren."
 
 #: schematics/types/base.py:1030
 msgid "String value in locale {0} is too long."
-msgstr "String-Wert in Übersetzung {0} ist zu lang."
+msgstr "String-Wert in Sprachumgebung {0} ist zu lang."
 
 #: schematics/types/base.py:1031
 msgid "String value in locale {0} is too short."
-msgstr "String-Wert in Übersetzung {0} ist zu kurz."
+msgstr "String-Wert in Sprachumgebung {0} ist zu kurz."
 
 #: schematics/types/base.py:1032
 msgid "No requested locale was available."
@@ -192,7 +193,7 @@ msgstr "Wert muss ein Dictionary oder None sein"
 
 #: schematics/types/compound.py:120
 msgid "Model conversion requires a model or dict"
-msgstr "Modell-Konvertierung erfordert ein Model oder Dictionary"
+msgstr "Modell-Konvertierung erfordert ein Modell oder Dictionary"
 
 #: schematics/types/compound.py:132
 #, python-format
