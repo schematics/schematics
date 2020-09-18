@@ -4,7 +4,7 @@
 import os
 import re
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 
 with open(os.path.join(os.path.dirname(__file__), 'schematics/__init__.py')) as f:
@@ -20,7 +20,8 @@ setup(
     author_email='jdennis@gmail.com, jokull@plainvanillagames.com, johann@plainvanillagames.com, kalle@goodtimes.fi, paul@nkey.com.br',
     url='https://github.com/schematics/schematics',
     download_url='https://github.com/schematics/schematics/archive/v%s.tar.gz' % version,
-    packages=['schematics', 'schematics.types', 'schematics.contrib'],
+    packages=find_packages(include=['schematics*']),
+    include_package_data=True,
     classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',

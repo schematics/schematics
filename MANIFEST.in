@@ -5,3 +5,5 @@ include README.rst
 include test-requirements.txt
 include tox.ini
 global-exclude .DS_Store
+
+recursive-include schematics *.po *.mo
