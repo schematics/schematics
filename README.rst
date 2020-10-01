@@ -1,5 +1,5 @@
 ==========
-Schematics
+Schematics Diagrams
 ==========
 
 .. rubric:: Python Data Structures for Humans™.
