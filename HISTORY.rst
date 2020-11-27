@@ -1,3 +1,10 @@
+2.1.0+rheinwerk1 / 2020-11-27
+=============================
+
+- Added German translation
+  `#614 <https://github.com/schematics/schematics/pull/614>`__
+  (`hkage <https://github.com/hkage>`__)
+
 2.1.0 / Unreleased
 ==================
 **[BREAKING CHANGE]**
