@@ -136,7 +136,7 @@ class Context(DataObject):
 
     def __setattr__(self, name, value):
         if name in self:
-            raise TypeError("Field '{0}' already set".format(name))
+            raise TypeError(f"Field '{name}' already set")
         super(Context, self).__setattr__(name, value)
 
     def _branch(self, **kwargs):

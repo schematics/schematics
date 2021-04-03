@@ -785,7 +785,7 @@ class DateTimeType(BaseType):
             return self.str
 
         def __repr__(self, info=""):
-            return "{0}({1})".format(type(self).__name__, info)
+            return f"{type(self).__name__}({info})"
 
     class utc_timezone(fixed_timezone):
         offset = datetime.timedelta(0)

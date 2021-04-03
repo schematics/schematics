@@ -39,9 +39,7 @@ class UndefinedType:
 
     def _cmp_err(self, other, op):
         raise TypeError(
-            "unorderable types: {0}() {1} {2}()".format(
-                self.__class__.__name__, op, other.__class__.__name__
-            )
+            f"unorderable types: {self.__class__.__name__}() {op} {other.__class__.__name__}()"
         )
 
     def __new__(cls, *args, **kwargs):

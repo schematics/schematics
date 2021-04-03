@@ -160,9 +160,7 @@ class FieldError(BaseError, Sequence):
                 errors.extend(item.errors)
             else:
                 raise TypeError(
-                    "'{0}()' object is neither a {1} nor an error message.".format(
-                        type(item).__name__, type(self).__name__
-                    )
+                    f"'{type(item).__name__}()' object is neither a {type(self).__name__} nor an error message."
                 )
         for error in errors:
             error.type = self.type or type(self)
