@@ -3,7 +3,6 @@ from typing import Type, TypeVar
 
 from ..common import DROP, NONEMPTY, NOT_NONE
 from ..exceptions import BaseError, CompoundError, ConversionError, ValidationError
-from ..models import Model, ModelMeta
 from ..transforms import (
     convert,
     export_loop,
@@ -112,6 +111,9 @@ class ModelType(CompoundType):
         return model_class
 
     def __init__(self, model_spec: Type[T], **kwargs):
+
+        from ..models import ModelMeta
+
         if isinstance(model_spec, ModelMeta):
             self._model_class = model_spec
             self.model_name = self.model_class.__name__
@@ -142,6 +144,8 @@ class ModelType(CompoundType):
         super()._setup(field_name, owner_model)
 
     def pre_setattr(self, value):
+        from ..models import Model
+
         if value is not None and not isinstance(value, Model):
             if not isinstance(value, dict):
                 raise ConversionError(_("Model conversion requires a model or dict"))
@@ -164,6 +168,9 @@ class ModelType(CompoundType):
             return convert(model_class._schema, value, context=context)
 
     def _export(self, value, format, context):
+
+        from ..models import Model
+
         if isinstance(value, Model):
             model_class = type(value)
         else:
@@ -344,6 +351,8 @@ class PolyModelType(CompoundType):
     native_type = None  # cannot be determined from a PolyModelType instance
 
     def __init__(self, model_spec, **kwargs):
+
+        from ..models import ModelMeta
 
         if isinstance(model_spec, (ModelMeta, str)):
             self.model_classes = (model_spec,)

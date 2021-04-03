@@ -4,7 +4,6 @@ from types import FunctionType
 
 from ..exceptions import UndefinedValueError
 from ..undefined import Undefined
-from .base import BaseType, TypeMeta
 
 __all__ = ["calculated", "serializable", "Serializable"]
 
@@ -30,6 +29,8 @@ def serializable(arg=None, **kwargs):
     :param serialized_name:
         The name of this field in the serialized output.
     """
+    from .base import BaseType, TypeMeta
+
     if isinstance(arg, FunctionType):
         decorator = True
         func = arg

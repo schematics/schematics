@@ -3,8 +3,6 @@ import itertools
 from collections import OrderedDict
 
 from .common import DEFAULT, NONEMPTY
-from .types.base import BaseType
-from .types.serializable import Serializable
 
 
 class Schema:
@@ -60,6 +58,9 @@ class Field:
     __slots__ = ("name", "type")
 
     def __init__(self, name, field_type):
+        from .types.base import BaseType
+        from .types.serializable import Serializable
+
         assert isinstance(field_type, (BaseType, Serializable))
         self.name = name
         self.type = field_type
