@@ -58,58 +58,6 @@ class SchemaCompatibilityMixin:
         return OrderedDict((k, t) for k, t in self.fields.items() if isinstance(t, Serializable))
 
 
-class class_property(property):
-    def __get__(self, instance, type=None):
-        if instance is None:
-            return super(class_property, self).__get__(type, type)
-        return super(class_property, self).__get__(instance, type)
-
-
-class ModelCompatibilityMixin:
-    """Compatibility layer for previous deprecated Schematics Model API."""
-
-    # @class_property
-    # @deprecated
-    # def _valid_input_keys(cls):
-    #     return cls._schema.valid_input_keys
-
-    # @class_property
-    # @deprecated
-    # def _options(cls):
-    #     return cls._schema.options
-
-    # @class_property
-    # @deprecated
-    # def fields(cls):
-    #     return cls._schema.fields
-
-    # @class_property
-    # @deprecated
-    # def _fields(cls):
-    #     return cls._schema.fields
-
-    # @class_property
-    # @deprecated
-    # def _field_list(cls):
-    #     return list(cls._schema.fields.items())
-
-    # @class_property
-    # @deprecated
-    # def _serializables(cls):
-    #     return cls._schema._serializables
-
-    # @class_property
-    # @deprecated
-    # def _validator_functions(cls):
-    #     return cls._schema.validators
-
-    # @classmethod
-    # @deprecated
-    # def convert(cls, raw_data, context=None, **kw):
-    #     return transforms.convert(cls._schema, raw_data, oo=True,
-    #         context=context, **kw)
-
-
 class BaseErrorV1Mixin:
 
     @property
@@ -117,17 +65,6 @@ class BaseErrorV1Mixin:
     def messages(self):
         """ an alias for errors, provided for compatibility with V1. """
         return self.errors
-
-
-def patch_models():
-    global models_Model
-    from . import schema
-    from . import models
-    models_Model = models.Model
-    class Model(ModelCompatibilityMixin, models.Model):
-        __doc__ = models.Model.__doc__
-    models.Model = Model
-    models.ModelOptions = schema.SchemaOptions  # deprecated alias
 
 
 def patch_schema():
@@ -149,5 +86,4 @@ def patch_exceptions():
 
 def patch_all():
     patch_schema()
-    patch_models()
     patch_exceptions()

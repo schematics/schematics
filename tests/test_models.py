@@ -1,6 +1,7 @@
 import pytest
 
-from schematics.models import Model, ModelOptions
+from schematics.models import Model
+from schematics.schema import SchemaOptions
 from schematics.transforms import whitelist, blacklist
 from schematics.types import StringType, IntType, ListType, ModelType
 from schematics.exceptions import *
@@ -333,10 +334,10 @@ def test_explicit_values_override_defaults():
 
 
 def test_good_options_args():
-    mo = ModelOptions(roles=None)
-    assert mo is not None
+    so = SchemaOptions(roles=None)
+    assert so is not None
 
-    assert mo.roles == {}
+    assert so.roles == {}
 
 
 def test_options_custom_args():
@@ -364,8 +365,8 @@ def test_options_custom_args_inheritance():
 
 def test_no_options_args():
     args = {}
-    mo = ModelOptions(**args)
-    assert mo is not None
+    so = SchemaOptions(**args)
+    assert so is not None
 
 
 def test_options_parsing_from_model():
@@ -378,13 +379,13 @@ def test_options_parsing_from_model():
     f = Foo()
     fo = f._schema.options
 
-    assert fo.__class__ == ModelOptions
+    assert fo.__class__ == SchemaOptions
     assert fo.namespace == 'foo'
     assert fo.roles == {}
 
 
 def test_options_parsing_from_optionsclass():
-    class FooOptions(ModelOptions):
+    class FooOptions(SchemaOptions):
 
         def __init__(self, **kwargs):
             kwargs['namespace'] = kwargs.get('namespace') or 'foo'
