@@ -391,7 +391,7 @@ class Model(metaclass=ModelMeta):
         setattr(cls, field_name, FieldDescriptor(field_name))
 
     @classmethod
-    def get_mock_object(cls, context=None, overrides={}):
+    def get_mock_object(cls, context=None, overrides=None):
         """Get a mock object.
 
         :param dict context:
@@ -401,6 +401,7 @@ class Model(metaclass=ModelMeta):
         context._setdefault("memo", set())
         context.memo.add(cls)
         values = {}
+        overrides = overrides or {}
         for name, field in cls._schema.fields.items():
             if name in overrides:
                 continue
@@ -409,7 +410,7 @@ class Model(metaclass=ModelMeta):
             try:
                 values[name] = field.mock(context)
             except MockCreationError as exc:
-                raise MockCreationError(f"{name}: {exc.args[0]}")
+                raise MockCreationError(f"{name}: {exc.args[0]}") from exc
         values.update(overrides)
         return cls(values)
 

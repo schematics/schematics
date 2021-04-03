@@ -158,7 +158,7 @@ def import_string(import_name, silent=False):
         try:
             return getattr(module, obj_name)
         except AttributeError as e:
-            raise ImportError(e)
+            raise ImportError(e) from e
 
     except ImportError as e:
         if not silent:

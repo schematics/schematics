@@ -32,8 +32,8 @@ class ObjectIdType(BaseType):
         if not isinstance(value, bson.objectid.ObjectId):
             try:
                 value = bson.objectid.ObjectId(str(value))
-            except bson.objectid.InvalidId:
-                raise ConversionError(self.messages["convert"])
+            except bson.objectid.InvalidId as exc:
+                raise ConversionError(self.messages["convert"]) from exc
         return value
 
     def to_primitive(self, value, context=None):

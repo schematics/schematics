@@ -1,4 +1,5 @@
 import itertools
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Type, TypeVar
 
 from ..common import DROP, NONEMPTY, NOT_NONE
@@ -16,8 +17,6 @@ from ..util import get_all_subclasses, import_string
 from .base import BaseType, get_value_in
 
 T = TypeVar("T")
-
-from collections.abc import Iterable, Mapping, Sequence
 
 __all__ = [
     "CompoundType",

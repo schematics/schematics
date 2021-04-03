@@ -267,8 +267,8 @@ class URLType(StringType):
             )
             try:
                 urlopen(url_string)
-            except URLError:
-                raise StopValidationError(self.messages["not_found"])
+            except URLError as exc:
+                raise StopValidationError(self.messages["not_found"]) from exc
 
 
 class EmailType(StringType):

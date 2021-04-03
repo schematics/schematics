@@ -2,7 +2,7 @@ import inspect
 from collections import OrderedDict
 
 from ..exceptions import ConversionError
-from ..transforms import get_export_context, get_import_context
+from ..transforms import get_import_context
 from ..translator import _
 from .base import BaseType
 

@@ -385,8 +385,8 @@ class UUIDType(BaseType):
         if not isinstance(value, uuid.UUID):
             try:
                 value = uuid.UUID(value)
-            except (TypeError, ValueError):
-                raise ConversionError(self.messages["convert"].format(value))
+            except (TypeError, ValueError) as exc:
+                raise ConversionError(self.messages["convert"].format(value)) from exc
         return value
 
     def to_primitive(self, value, context=None):
@@ -428,8 +428,8 @@ class StringType(BaseType):
             if isinstance(value, bytes):
                 try:
                     return str(value, "utf-8")
-                except UnicodeError:
-                    raise ConversionError(self.messages["decode"].format(value))
+                except UnicodeError as exc:
+                    raise ConversionError(self.messages["decode"].format(value)) from exc
             elif isinstance(value, bool):
                 pass
             else:
@@ -560,10 +560,10 @@ class DecimalType(NumberType):
             value = str(value)
         try:
             value = decimal.Decimal(value)
-        except (TypeError, decimal.InvalidOperation):
+        except (TypeError, decimal.InvalidOperation) as exc:
             raise ConversionError(
                 self.messages["number_coerce"].format(value, self.number_type.lower())
-            )
+            ) from exc
 
         return value
 
@@ -586,8 +586,8 @@ class HashType(StringType):
             raise ValidationError(self.messages["hash_length"])
         try:
             int(value, 16)
-        except ValueError:
-            raise ConversionError(self.messages["hash_hex"])
+        except ValueError as exc:
+            raise ConversionError(self.messages["hash_hex"]) from exc
         return value
 
 
@@ -891,16 +891,16 @@ class DateTimeType(BaseType):
             # Delegate to external parser.
             try:
                 dt = self.parser(value)
-            except Exception:
-                raise ConversionError(self.messages["parse_external"].format(value))
+            except Exception as exc:
+                raise ConversionError(self.messages["parse_external"].format(value)) from exc
         else:
             # Use built-in parser.
             try:
                 value = float(value)
             except ValueError:
                 dt = self.from_string(value)
-            except TypeError:
-                raise ConversionError(self.messages["parse"].format(value))
+            except TypeError as exc:
+                raise ConversionError(self.messages["parse"].format(value)) from exc
             else:
                 dt = self.from_timestamp(value)
             if not dt:
@@ -1090,8 +1090,8 @@ class TimedeltaType(BaseType):
             return value
         try:
             return datetime.timedelta(**{self.precision: float(value)})
-        except (ValueError, TypeError):
-            raise ConversionError(self.messages["convert"].format(value))
+        except (ValueError, TypeError) as exc:
+            raise ConversionError(self.messages["convert"].format(value)) from exc
 
     def to_primitive(self, value, context=None):
         base_unit = datetime.timedelta(**{self.precision: 1})
