@@ -13,11 +13,11 @@ def test_id_or_uuid():
 
     id_field = UnionType((IntType, UUIDType))
 
-    result = id_field.convert('ee5a16cb-0ee1-46bc-ac40-fb3018b1d29b')
-    assert result == uuid.UUID('ee5a16cb-0ee1-46bc-ac40-fb3018b1d29b')
+    result = id_field.convert("ee5a16cb-0ee1-46bc-ac40-fb3018b1d29b")
+    assert result == uuid.UUID("ee5a16cb-0ee1-46bc-ac40-fb3018b1d29b")
     assert type(id_field.to_primitive(result)) is str
 
-    result = id_field.convert('99999')
+    result = id_field.convert("99999")
     assert result == 99999
     assert type(result) is int
     assert type(id_field.to_primitive(result)) is int
@@ -47,41 +47,42 @@ def test_dict_or_list_of_ints():
 
 
 def test_custom_type():
-
     class ShoutType(StringType):
         def to_primitive(self, value, context):
-            return StringType.convert(self, value) + '!!!'
+            return StringType.convert(self, value) + "!!!"
 
     class QuestionType(StringType):
         def to_primitive(self, value, context):
-            return StringType.convert(self, value) + '???'
+            return StringType.convert(self, value) + "???"
 
     class FancyStringType(UnionType):
         types = (ShoutType, QuestionType)
+
         def resolve(self, value, context):
-            if value.endswith('?'):
+            if value.endswith("?"):
                 return QuestionType
-            elif value.endswith('!'):
+            elif value.endswith("!"):
                 return ShoutType
 
     assert FancyStringType().to_primitive("Hello, world!") == "Hello, world!!!!"
     assert FancyStringType().to_primitive("Who's a good boy?") == "Who's a good boy????"
 
     def resolve(value, context):
-        if value.endswith('?'):
+        if value.endswith("?"):
             return QuestionType
-        elif value.endswith('!'):
+        elif value.endswith("!"):
             return ShoutType
 
-    assert UnionType((ShoutType, QuestionType), resolver=resolve).to_primitive("Hello, world!") \
+    assert (
+        UnionType((ShoutType, QuestionType), resolver=resolve).to_primitive("Hello, world!")
         == "Hello, world!!!!"
+    )
 
     with pytest.raises(ValidationError):
         FancyStringType(max_length=20).validate("What is the meaning of life?")
 
 
 def test_option_collation():
-
     class DerivedStringType(StringType):
         pass
 

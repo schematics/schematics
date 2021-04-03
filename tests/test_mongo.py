@@ -10,8 +10,7 @@ else:
 
     FAKE_OID = ObjectId()
 
-pytestmark = pytest.mark.skipif(ObjectId is None,
-                                reason='requires pymongo')
+pytestmark = pytest.mark.skipif(ObjectId is None, reason="requires pymongo")
 
 
 def test_to_native():
@@ -21,7 +20,7 @@ def test_to_native():
     assert oid.to_native(str(FAKE_OID)) == FAKE_OID
 
     with pytest.raises(ConversionError):
-        oid.to_native('foo')
+        oid.to_native("foo")
 
 
 def test_to_primitive():
@@ -38,4 +37,4 @@ def test_validate_id():
     oid.validate(str(FAKE_OID))
 
     with pytest.raises(ConversionError):
-        oid.validate('foo')
+        oid.validate("foo")

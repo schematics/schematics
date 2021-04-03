@@ -6,14 +6,14 @@ from schematics.types import IntType, StringType, ListType, ModelType
 
 class M(Model):
     intfield = IntType()
-    listfield = ListType(ModelType('M'))
+    listfield = ListType(ModelType("M"))
+
 
 class N(M):
     pass
 
 
 def test_equality_against_mock_any():
-
     class TestModel(Model):
         pass
 
@@ -22,8 +22,8 @@ def test_equality_against_mock_any():
 
 def test_equality_against_same_model():
 
-    m1 = M({'intfield': 1, 'listfield': [M({'intfield': 9})]})
-    m2 = M({'intfield': 1, 'listfield': [M({'intfield': 9})]})
+    m1 = M({"intfield": 1, "listfield": [M({"intfield": 9})]})
+    m2 = M({"intfield": 1, "listfield": [M({"intfield": 9})]})
     assert m1 == m2
 
     # Self-recursive data
@@ -37,6 +37,6 @@ def test_equality_against_same_model():
 
 def test_equality_against_derived_model():
 
-    m = M({'intfield': 1})
-    n = N({'intfield': 1})
+    m = M({"intfield": 1})
+    n = N({"intfield": 1})
     assert m != n

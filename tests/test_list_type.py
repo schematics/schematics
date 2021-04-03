@@ -6,19 +6,21 @@ from schematics.models import Model
 from schematics.types import IntType, StringType
 from schematics.types.compound import ModelType, ListType
 from schematics.exceptions import (
-    ConversionError, ValidationError, StopValidationError, DataError,
-    MockCreationError)
+    ConversionError,
+    ValidationError,
+    StopValidationError,
+    DataError,
+    MockCreationError,
+)
 
 
 def test_list_field():
     class User(Model):
         ids = ListType(StringType, required=True)
 
-    c = User({
-        "ids": []
-    })
+    c = User({"ids": []})
 
-    c.validate({'ids': []})
+    c.validate({"ids": []})
 
     assert c.ids == []
 
@@ -32,9 +34,7 @@ def test_list_with_default_type():
 
     math_stats = CategoryStatsInfo(dict(slug="math"))
     twilight_stats = CategoryStatsInfo(dict(slug="twilight"))
-    info = PlayerInfo({
-        "categories": [{"slug": "math"}, {"slug": "twilight"}]
-    })
+    info = PlayerInfo({"categories": [{"slug": "math"}, {"slug": "twilight"}]})
 
     assert info.categories == [math_stats, twilight_stats]
 
@@ -49,9 +49,9 @@ def test_set_default():
         slug = StringType()
 
     class PlayerInfo(Model):
-        categories = ListType(ModelType(CategoryStatsInfo),
-                              default=lambda: [],
-                              serialize_when_none=True)
+        categories = ListType(
+            ModelType(CategoryStatsInfo), default=lambda: [], serialize_when_none=True
+        )
 
     info = PlayerInfo()
     assert info.categories == []
@@ -90,28 +90,32 @@ def test_list_default_to_none_embedded_model():
         id = StringType()
         questions = ListType(ModelType(Question))
 
-    question_pack = QuestionPack({
-        "id": "1",
-        "questions": [
-            {
-                "id": "1",
-            },
-            {
-                "id": "2",
-                "resources": {
-                    "pictures": [],
-                }
-            },
-            {
-                "id": "3",
-                "resources": {
-                    "pictures": [{
-                        "url": "http://www.mbl.is/djok",
-                    }]
-                }
-            },
-        ]
-    })
+    question_pack = QuestionPack(
+        {
+            "id": "1",
+            "questions": [
+                {
+                    "id": "1",
+                },
+                {
+                    "id": "2",
+                    "resources": {
+                        "pictures": [],
+                    },
+                },
+                {
+                    "id": "3",
+                    "resources": {
+                        "pictures": [
+                            {
+                                "url": "http://www.mbl.is/djok",
+                            }
+                        ]
+                    },
+                },
+            ],
+        }
+    )
 
     assert question_pack.questions[0].resources is None
     assert question_pack.questions[1].resources["pictures"] == []
@@ -131,28 +135,26 @@ def test_validation_with_size_limits():
         c = Card({"users": None})
         c.validate()
 
-    assert exception.value.errors['users'] == [u'This field is required.']
+    assert exception.value.errors["users"] == [u"This field is required."]
 
     with pytest.raises(DataError) as exception:
         c = Card({"users": []})
         c.validate()
 
-    assert exception.value.errors['users'] == [u'Please provide at least 1 item.']
+    assert exception.value.errors["users"] == [u"Please provide at least 1 item."]
 
     with pytest.raises(DataError) as exception:
         c = Card({"users": [User(), User(), User()]})
         c.validate()
 
-    assert exception.value.errors['users'] == [u'Please provide no more than 2 items.']
+    assert exception.value.errors["users"] == [u"Please provide no more than 2 items."]
 
 
 def test_list_field_required():
     class User(Model):
         ids = ListType(StringType(required=True))
 
-    c = User({
-        "ids": []
-    })
+    c = User({"ids": []})
 
     c.ids = []
     c.validate()
@@ -169,19 +171,19 @@ def test_list_field_convert():
     class User(Model):
         ids = ListType(IntType)
 
-    c = User({'ids': ["1", "2"]})
+    c = User({"ids": ["1", "2"]})
 
     assert c.ids == [1, 2]
 
 
 def test_list_coercion():
     field = ListType(StringType)
-    assert field(('foobar',)) == ['foobar']
-    assert field(set(('foobar',))) == ['foobar']
+    assert field(("foobar",)) == ["foobar"]
+    assert field(set(("foobar",))) == ["foobar"]
     with pytest.raises(ConversionError):
-        field({1: 'bar', 2: 'baz', 0: 'foo'})
+        field({1: "bar", 2: "baz", 0: "foo"})
     with pytest.raises(ConversionError):
-        field('foobar')
+        field("foobar")
     with pytest.raises(ConversionError):
         field(None)
 
@@ -193,7 +195,7 @@ def test_list_model_field():
     class Card(Model):
         users = ListType(ModelType(User), min_size=1, required=True)
 
-    data = {'users': [{'name': u'Doggy'}]}
+    data = {"users": [{"name": u"Doggy"}]}
     c = Card(data)
 
     c.users = None
@@ -201,7 +203,7 @@ def test_list_model_field():
         c.validate()
 
     errors = exception.value.errors
-    assert errors['users'] == [u'This field is required.']
+    assert errors["users"] == [u"This field is required."]
 
 
 def test_list_model_field_exception_with_full_message():
@@ -211,11 +213,11 @@ def test_list_model_field_exception_with_full_message():
     class Group(Model):
         users = ListType(ModelType(User))
 
-    g = Group({'users': [{'name': "ToLongName"}]})
+    g = Group({"users": [{"name": "ToLongName"}]})
 
     with pytest.raises(DataError) as exception:
         g.validate()
-    assert exception.value.errors == {'users': {0: {'name': ['String value is too long.']}}}
+    assert exception.value.errors == {"users": {0: {"name": ["String value is too long."]}}}
 
 
 def test_compound_fields():
@@ -227,9 +229,15 @@ def test_compound_fields():
 def test_mock_object():
     assert type(ListType(IntType, required=True).mock()) is list
 
-    assert ListType(
-        StringType, min_size=0, max_size=0, required=True,
-    ).mock() == []
+    assert (
+        ListType(
+            StringType,
+            min_size=0,
+            max_size=0,
+            required=True,
+        ).mock()
+        == []
+    )
 
     with pytest.raises(MockCreationError) as exception:
         ListType(IntType, min_size=10, max_size=1, required=True).mock()
@@ -240,10 +248,7 @@ def test_mock_object_with_model_type():
         name = StringType(required=True)
         age = IntType(required=True)
 
-    assert isinstance(
-        ListType(ModelType(User), min_size=1, required=True).mock()[-1],
-        User
-    )
+    assert isinstance(ListType(ModelType(User), min_size=1, required=True).mock()[-1], User)
 
 
 def test_issue_453_list_model_field_recursive_import():
@@ -256,10 +261,9 @@ def test_issue_453_list_model_field_recursive_import():
 
     card = Card()
     card.users = [
-        User({'name': 'foo'}),
-        User({'name': 'bar'}),
-        User({'name': 'baz'}),
+        User({"name": "foo"}),
+        User({"name": "bar"}),
+        User({"name": "baz"}),
     ]
-    card.import_data({'id': '2', 'users': [User({'name': 'xyz'})]},
-        recursive=True)
-    assert card.serialize() == {'id': 2, 'users': [{'name': 'xyz'}]}
+    card.import_data({"id": "2", "users": [User({"name": "xyz"})]}, recursive=True)
+    assert card.serialize() == {"id": 2, "users": [{"name": "xyz"}]}

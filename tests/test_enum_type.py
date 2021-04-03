@@ -6,21 +6,19 @@ from schematics.exceptions import ConversionError
 try:
     from enum import Enum
 
-
     class E(Enum):
         A = 1
-        B = 'b'
-
+        B = "b"
 
     class F(Enum):
         A = 1
         B = 1
 
+
 except ImportError:
     Enum = None
 
-pytestmark = pytest.mark.skipif(Enum is None,
-                                reason='requires enum')
+pytestmark = pytest.mark.skipif(Enum is None, reason="requires enum")
 
 
 def test_to_native_by_name():
