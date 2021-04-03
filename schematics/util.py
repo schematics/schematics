@@ -11,16 +11,10 @@ try:
 except ImportError:
     from collections import Sequence  # PY2
 
-if PY2:
-    try:
-        from thread import get_ident
-    except ImportError:
-        from dummy_thread import get_ident
-else:
-    try:
-        from _thread import get_ident
-    except ImportError:
-        from _dummy_thread import get_ident
+try:
+    from _thread import get_ident
+except ImportError:
+    from _dummy_thread import get_ident
 
 __all__ = ['get_ident', 'setdefault', 'Constant', 'listify',
     'get_all_subclasses', 'ImportStringError', 'import_string']
@@ -173,8 +167,3 @@ def import_string(import_name, silent=False):
                 ImportStringError,
                 ImportStringError(import_name, e),
                 sys.exc_info()[2])
-
-
-if PY2:
-    # Python 2 names cannot be unicode
-    __all__ = [n.encode('ascii') for n in __all__]

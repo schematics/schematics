@@ -41,7 +41,3 @@ class ObjectIdType(BaseType):
 
     def to_primitive(self, value, context=None):
         return str(value)
-
-if PY2:
-    # Python 2 names cannot be unicode
-    __all__ = [n.encode('ascii') for n in __all__]

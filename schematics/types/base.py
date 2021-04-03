@@ -1195,8 +1195,3 @@ class MultilingualStringType(BaseType):
             if self.locale_regex is not None and self.locale_regex.match(locale) is None:
                 raise ValidationError(
                     self.messages['regex_locale'].format(locale))
-
-
-if PY2:
-    # Python 2 names cannot be unicode
-    __all__ = [n.encode('ascii') for n in __all__]

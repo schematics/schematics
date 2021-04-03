@@ -282,8 +282,3 @@ class EmailType(StringType):
     def validate_email(self, value, context=None):
         if not EmailType.EMAIL_REGEX.match(value):
             raise StopValidationError(self.messages['email'])
-
-
-if PY2:
-    # Python 2 names cannot be unicode
-    __all__ = [n.encode('ascii') for n in __all__]

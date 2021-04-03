@@ -249,8 +249,3 @@ class UnknownFieldError(KeyError):
     def __init__(self, model, name):
         msg = "Model '%s' has no field named '%s'" % (model.__class__.__name__, name)
         super(UnknownFieldError, self).__init__(msg)
-
-
-if PY2:
-    # Python 2 names cannot be unicode
-    __all__ = [n.encode('ascii') for n in __all__]

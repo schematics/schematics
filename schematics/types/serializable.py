@@ -108,8 +108,3 @@ class Serializable(object):
         model = " on %s" % self.owner_model.__name__ if self.owner_model else ''
         field = " as '%s'" % self.name if self.name else ''
         return "<%s>" % (type_ + model + field)
-
-
-if PY2:
-    # Python 2 names cannot be unicode
-    __all__ = [n.encode('ascii') for n in __all__]

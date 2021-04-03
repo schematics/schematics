@@ -449,8 +449,3 @@ class PolyModelType(CompoundType):
             )
 
         return candidates
-
-
-if PY2:
-    # Python 2 names cannot be unicode
-    __all__ = [n.encode('ascii') for n in __all__]

@@ -2,7 +2,6 @@
 
 import pytest
 
-from schematics.common import PY2
 from schematics.models import Model, ModelOptions
 from schematics.transforms import whitelist, blacklist
 from schematics.types import StringType, IntType, ListType, ModelType
@@ -745,10 +744,7 @@ def test_repr():
     assert repr(inst) == '<FooModel: foo, bar>'
 
     inst = FooModel({'field1': u'é', 'field2': u'Ä'})
-    if PY2:
-        assert repr(inst) == '<FooModel: \\xe9, \\xc4>'
-    else:
-        assert repr(inst) == '<FooModel: é, Ä>'
+    assert repr(inst) == '<FooModel: é, Ä>'
 
 
 def test_mock_recursive_model():

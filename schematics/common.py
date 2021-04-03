@@ -21,6 +21,3 @@ ALL       = Constant('ALL',       99)
 
 __all__ = ['NATIVE', 'PRIMITIVE',
     'DROP', 'NONEMPTY', 'NOT_NONE', 'DEFAULT', 'ALL'] + compat_exports
-if PY2:
-    # Python 2 names cannot be unicode
-    __all__ = [n.encode('ascii') for n in __all__]
