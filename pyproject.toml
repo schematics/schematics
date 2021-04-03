@@ -1,0 +1,47 @@
+[tool.poetry]
+name = "schematics"
+version = "3.0.0"
+description = "Python Data Structures for Humans"
+authors = [
+    'James Dennis <jdennis@gmail.com>',
+    'Jóhann Þorvaldur Bergþórsson <johann@plainvanillagames.com>',
+    'Jökull Sólberg <jokull@plainvanillagames.com>',
+    'Kalle Tuure <kalle@goodtimes.fi>',
+    'Kirk Strauser <kirk@strauser.com>',
+    'Paul Eipper <paul@nkey.com.br>',
+]
+license = "BSD"
+homepage='https://github.com/schematics/schematics'
+repository='https://github.com/schematics/schematics/'
+documentation = 'https://schematics.readthedocs.io/en/latest/'
+classifiers=[
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: BSD License',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+]
+include = [
+    "AUTHORS",
+    "HISTORY.rst",
+    "LICENSE",
+    "README.rst",
+    "tox.ini",
+]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+
+[tool.poetry.dev-dependencies]
+coverage = "^5.5"
+pymongo = "^3.11.3"
+pytest = "^6.2.2"
+python-dateutil = "^2.8.1"
+tox = "^3.23.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

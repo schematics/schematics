@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 
 from schematics.models import Model
 from schematics.types import IntType, StringType, ListType, ModelType
@@ -40,4 +40,3 @@ def test_equality_against_derived_model():
     m = M({'intfield': 1})
     n = N({'intfield': 1})
     assert m != n
-
