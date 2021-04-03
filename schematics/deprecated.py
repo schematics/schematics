@@ -78,10 +78,10 @@ class ModelCompatibilityMixin:
     # def _options(cls):
     #     return cls._schema.options
 
-    @class_property
-    @deprecated
-    def fields(cls):
-        return cls._schema.fields
+    # @class_property
+    # @deprecated
+    # def fields(cls):
+    #     return cls._schema.fields
 
     # @class_property
     # @deprecated

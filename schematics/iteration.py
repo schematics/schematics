@@ -19,6 +19,13 @@ Atom = namedtuple('Atom', ('name', 'field', 'value'))
 Atom.__new__.__defaults__ = (None,) * len(Atom._fields)
 
 
+def schema_from(obj):
+    try:
+        return obj._schema
+    except AttributeError:
+        return obj
+
+
 def atoms(schema, mapping, keys=tuple(Atom._fields), filter=None):
     # type: (Schema, Mapping, Tuple[str, str, str], Optional[Callable[[Atom], bool]]) -> Iterable[Atom]
     """
@@ -54,7 +61,7 @@ def atoms(schema, mapping, keys=tuple(Atom._fields), filter=None):
     has_field = 'field' in keys
     has_value = (mapping is not None) and ('value' in keys)
 
-    for field_name, field in schema.fields.items():
+    for field_name, field in schema_from(schema).fields.items():
         value = Undefined
 
         if has_value:

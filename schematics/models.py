@@ -361,7 +361,7 @@ class Model(metaclass=ModelMeta):
         context._setdefault('memo', set())
         context.memo.add(cls)
         values = {}
-        for name, field in cls.fields.items():
+        for name, field in cls._schema.fields.items():
             if name in overrides:
                 continue
             if getattr(field, 'model_class', None) in context.memo:
