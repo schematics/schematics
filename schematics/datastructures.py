@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: skip-file
 
-from __future__ import unicode_literals, absolute_import
-
 from collections.abc import Mapping, Sequence
 
 

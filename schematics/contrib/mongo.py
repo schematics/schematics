@@ -2,8 +2,6 @@
 a part of the pymongo distribution.
 """
 
-from __future__ import unicode_literals, absolute_import
-
 import bson
 
 from ..common import *

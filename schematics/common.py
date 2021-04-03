@@ -2,8 +2,6 @@
 Define constants and expose the compatibility overrides to all modules.
 """
 
-from __future__ import unicode_literals, absolute_import
-
 from .util import Constant
 
 

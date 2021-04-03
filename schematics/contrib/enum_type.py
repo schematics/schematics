@@ -1,11 +1,7 @@
 """Type supporting native Python3 enum. It depends either on Py3.4+ or e.g. enum34.
 """
-from __future__ import unicode_literals, absolute_import
 
-try:
-    from enum import Enum
-except ImportError:
-    pass
+from enum import Enum
 
 from ..exceptions import ConversionError
 from ..translator import _

@@ -2,7 +2,6 @@
 Core loop over the data structures according to a defined schema.
 """
 
-from __future__ import unicode_literals, absolute_import
 from collections import namedtuple
 
 from .undefined import Undefined
