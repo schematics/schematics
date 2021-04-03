@@ -99,14 +99,20 @@ class TypeMeta(type):
         validators = OrderedDict()
 
         for base in reversed(bases):
-            if hasattr(base, "MESSAGES"):
+            try:
                 messages.update(base.MESSAGES)
+            except AttributeError:
+                pass
 
-            if hasattr(base, "_validators"):
+            try:
                 validators.update(base._validators)
+            except AttributeError:
+                pass
 
-        if "MESSAGES" in attrs:
+        try:
             messages.update(attrs["MESSAGES"])
+        except KeyError:
+            pass
 
         attrs["MESSAGES"] = messages
 

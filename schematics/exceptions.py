@@ -47,9 +47,11 @@ class BaseError(Exception):
         converts the errors dict to a primitive representation of dicts,
         list and strings.
         """
-        if not hasattr(self, "_primitive"):
+        try:
+            return self._primitive
+        except AttributeError:
             self._primitive = self._to_primitive(self.errors)
-        return self._primitive
+            return self._primitive
 
     @staticmethod
     def _freeze(obj):

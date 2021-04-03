@@ -177,13 +177,15 @@ class FrozenDict(Mapping):
         return len(self._value)
 
     def __hash__(self):
-        if not hasattr(self, "_hash"):
-            _hash = 0
+        try:
+            return self._hash
+        except AttributeError:
+            self._hash = 0
             for k, v in self._value.items():
-                _hash ^= hash(k)
-                _hash ^= hash(v)
-            self._hash = _hash
-        return self._hash
+                self._hash ^= hash(k)
+                self._hash ^= hash(v)
+
+            return self._hash
 
     def __repr__(self):
         return repr(self._value)
@@ -203,12 +205,13 @@ class FrozenList(Sequence):
         return len(self._list)
 
     def __hash__(self):
-        if not hasattr(self, "_hash"):
-            _hash = 0
+        try:
+            return self._hash
+        except AttributeError:
+            self._hash = 0
             for e in self._list:
-                _hash ^= hash(e)
-            self._hash = _hash
-        return self._hash
+                self._hash ^= hash(e)
+            return self._hash
 
     def __repr__(self):
         return repr(self._list)
