@@ -188,7 +188,7 @@ def test_raises_validation_error_on_non_partial_validate():
 
     with pytest.raises(DataError) as exception:
         u.validate()
-    assert exception.value.messages, {"bio": [u"This field is required."]}
+    assert exception.value.errors, {"bio": [u"This field is required."]}
 
 
 def test_model_inheritance():
@@ -233,7 +233,7 @@ def test_validation_fails_if_internal_state_is_invalid():
     with pytest.raises(DataError) as exception:
         u.validate()
 
-    assert exception.value.messages, {
+    assert exception.value.errors, {
         "name": ["This field is required."],
         "age": ["This field is required."],
     }
@@ -251,7 +251,7 @@ def test_returns_nice_conversion_errors():
     with pytest.raises(DataError) as exception:
         User({"name": "Jóhann", "age": "100 years"})
 
-    errors = exception.value.messages
+    errors = exception.value.errors
 
     assert errors == {
         "age": [u'Value \'100 years\' is not int.'],

@@ -7,15 +7,15 @@ from schematics.exceptions import *
 def test_error_from_string():
 
     e = ConversionError('hello')
-    assert e.messages == ['hello']
+    assert e.errors == ['hello']
 
     e = ValidationError('hello', 'world', '!')
-    assert e.messages == ['hello', 'world', '!']
+    assert e.errors == ['hello', 'world', '!']
     assert len(e) == 3
 
 
 def _assert(e):
-    assert e.messages == ['hello'] and e.messages[0].info == 99
+    assert e.errors == ['hello'] and e.errors[0].info == 99
 
 
 def test_error_from_args():
@@ -42,7 +42,7 @@ def test_error_from_mixed_args():
             ErrorMessage('from_msg', info=0),
             ValidationError('from_err', info=1))
 
-    assert e == e.messages == ['hello', 'world', 'from_msg', 'from_err']
+    assert e == e.errors == ['hello', 'world', 'from_msg', 'from_err']
     assert [msg.info for msg in e] == [99, None, 0, 1]
 
 
@@ -54,8 +54,8 @@ def test_error_from_mixed_list():
             ErrorMessage('from_msg', info=0),
             ConversionError('from_err', info=1)])
 
-    assert e.messages == ['hello', 'world', 'from_msg', 'from_err']
-    assert [msg.info for msg in e.messages] == [99, None, 0, 1]
+    assert e.errors == ['hello', 'world', 'from_msg', 'from_err']
+    assert [msg.info for msg in e.errors] == [99, None, 0, 1]
 
 
 def test_error_str():
@@ -72,7 +72,7 @@ def test_error_str():
 
 def test_error_list_conversion():
     err = ValidationError("A", "B", "C")
-    assert list(err) == err.messages
+    assert list(err) == err.errors
 
 
 def test_error_eq():
