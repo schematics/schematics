@@ -10,6 +10,12 @@ from .iteration import atoms
 
 __all__ = []
 
+def schema_from(obj):
+    try:
+        return obj._schema
+    except AttributeError:
+        return obj
+
 
 def validate(schema, mutable, raw_data=None, trusted_data=None,
              partial=False, strict=False, convert=True, context=None, **kwargs):
@@ -84,11 +90,11 @@ def _validate_model(schema, mutable, data, context):
 
     has_validator = lambda atom: (
         atom.value is not Undefined and
-        atom.name in schema._validator_functions
+        atom.name in schema_from(schema).validators
     )
     for field_name, field, value in atoms(schema, data, filter=has_validator):
         try:
-            schema._validator_functions[field_name](mutable, data, value, context)
+            schema_from(schema).validators[field_name](mutable, data, value, context)
         except (FieldError, DataError) as exc:
             serialized_field_name = field.serialized_name or field_name
             errors[serialized_field_name] = exc.errors

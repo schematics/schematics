@@ -83,25 +83,25 @@ class ModelCompatibilityMixin:
     def fields(cls):
         return cls._schema.fields
 
-    @class_property
-    @deprecated
-    def _fields(cls):
-        return cls._schema.fields
+    # @class_property
+    # @deprecated
+    # def _fields(cls):
+    #     return cls._schema.fields
 
-    @class_property
-    @deprecated
-    def _field_list(cls):
-        return list(cls._schema.fields.items())
+    # @class_property
+    # @deprecated
+    # def _field_list(cls):
+    #     return list(cls._schema.fields.items())
 
     @class_property
     @deprecated
     def _serializables(cls):
         return cls._schema._serializables
 
-    @class_property
-    @deprecated
-    def _validator_functions(cls):
-        return cls._schema.validators
+    # @class_property
+    # @deprecated
+    # def _validator_functions(cls):
+    #     return cls._schema.validators
 
     @classmethod
     @deprecated

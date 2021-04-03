@@ -39,7 +39,7 @@ class FieldDescriptor:
         For a model class, returns the field's type object.
         """
         if instance is None:
-            return cls._fields[self.name]
+            return cls._schema.fields[self.name]
         else:
             value = instance._data.get(self.name, Undefined)
             if value is Undefined:
@@ -51,7 +51,7 @@ class FieldDescriptor:
         """
         Sets the field's value.
         """
-        field = instance._fields[self.name]
+        field = instance._schema.fields[self.name]
         value = field.pre_setattr(value)
         instance._data.converted[self.name] = value
 
