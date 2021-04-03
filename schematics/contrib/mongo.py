@@ -27,7 +27,7 @@ class ObjectIdType(BaseType):
 
     def __init__(self, auto_fill=False, **kwargs):
         self.auto_fill = auto_fill
-        super(ObjectIdType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def to_native(self, value, context=None):
         if not isinstance(value, bson.objectid.ObjectId):

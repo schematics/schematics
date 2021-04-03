@@ -15,7 +15,7 @@ According to Schematics, a type is an instance of a way to do three things:
 3. Offer a precise method of validating data of many forms
 
 These properties are implemented as ``to_native``, ``to_primitive``, and
-``validate``. 
+``validate``.
 
 
 Coercion
@@ -28,7 +28,7 @@ A simple example is the ``DateTimeType``.
   >>> from schematics.types import DateTimeType
   >>> dt_t = DateTimeType()
 
-The ``to_native`` function transforms an ISO8601 formatted date string into a 
+The ``to_native`` function transforms an ISO8601 formatted date string into a
 Python ``datetime.datetime``.
 
 ::
@@ -54,7 +54,7 @@ Validation
 ==========
 
 Validation can be as simple as successfully calling ``to_native``, but
-sometimes more is needed.  
+sometimes more is needed.
 data or behavior during a typical use, like serialization.
 
 Let's look at the ``StringType``.  We'll set a ``max_length`` of 10.
@@ -185,7 +185,7 @@ type. When you do so, just ensure two things:
     >>> from schematics.types import BaseType
     >>> class NetlocType(BaseType):
     ...     def __init__(self, verify_location=False, *args, **kwargs):
-    ...         super(NetlocType, self).__init__(*args, **kwargs)
+    ...         super().__init__(*args, **kwargs)
     ...         self.verify_location = verify_location
 
 

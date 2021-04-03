@@ -355,7 +355,7 @@ def test_custom_validation_function_and_inheritance():
         def __init__(self, number_of_m_chars, **kwargs):
             self.number_of_m_chars = number_of_m_chars
 
-            super(MUppercaseType, self).__init__(**kwargs)
+            super().__init__(**kwargs)
 
         def validate_contains_m_chars(self, value, context=None):
             if value.count("M") != self.number_of_m_chars:

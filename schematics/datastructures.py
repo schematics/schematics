@@ -113,7 +113,7 @@ class Context(DataObject):
     _fields = ()
 
     def __init__(self, *args, **kwargs):
-        super(Context, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if self._fields:
             unknowns = [name for name in self._keys() if name not in self._fields]
             if unknowns:
@@ -137,7 +137,7 @@ class Context(DataObject):
     def __setattr__(self, name, value):
         if name in self:
             raise TypeError(f"Field '{name}' already set")
-        super(Context, self).__setattr__(name, value)
+        super().__setattr__(name, value)
 
     def _branch(self, **kwargs):
         if not kwargs:

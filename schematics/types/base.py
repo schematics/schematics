@@ -193,7 +193,7 @@ class BaseType(metaclass=TypeMeta):
         messages=None,
         metadata=None,
     ):
-        super(BaseType, self).__init__()
+        super().__init__()
 
         self.required = required
         self._default = default
@@ -371,7 +371,7 @@ class UUIDType(BaseType):
 
     def __init__(self, **kwargs):
         # type: (...) -> uuid.UUID
-        super(UUIDType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _mock(self, context=None):
         return uuid.uuid4()
@@ -411,7 +411,7 @@ class StringType(BaseType):
         self.max_length = max_length
         self.min_length = min_length
 
-        super(StringType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _mock(self, context=None):
         return random_string(get_value_in(self.min_length, self.max_length))
@@ -466,7 +466,7 @@ class NumberType(BaseType):
         self.max_value = max_value
         self.strict = strict
 
-        super(NumberType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _mock(self, context=None):
         number = random.uniform(*get_range_endpoints(self.min_value, self.max_value))
@@ -517,7 +517,7 @@ class IntType(NumberType):
 
     def __init__(self, **kwargs):
         # type: (...) -> int
-        super(IntType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 LongType = IntType
@@ -533,7 +533,7 @@ class FloatType(NumberType):
 
     def __init__(self, **kwargs):
         # type: (...) -> float
-        super(FloatType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 class DecimalType(NumberType):
@@ -574,7 +574,7 @@ class HashType(StringType):
         return random_string(self.LENGTH, string.hexdigits)
 
     def to_native(self, value, context=None):
-        value = super(HashType, self).to_native(value, context)
+        value = super().to_native(value, context)
 
         if len(value) != self.LENGTH:
             raise ValidationError(self.messages["hash_length"])
@@ -617,7 +617,7 @@ class BooleanType(BaseType):
 
     def __init__(self, **kwargs):
         # type: (...) -> bool
-        super(BooleanType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _mock(self, context=None):
         return random.choice([True, False])
@@ -663,7 +663,7 @@ class DateType(BaseType):
 
         self.serialized_format = self.SERIALIZED_FORMAT
 
-        super(DateType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _mock(self, context=None):
         return datetime.date(
@@ -828,7 +828,7 @@ class DateTimeType(BaseType):
         self.convert_tz = convert_tz
         self.drop_tzinfo = drop_tzinfo
 
-        super(DateTimeType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _mock(self, context=None):
         dt = datetime.datetime(
@@ -997,7 +997,7 @@ class UTCDateTimeType(DateTimeType):
         **kwargs,
     ):
         # type: (...) -> datetime.datetime
-        super(UTCDateTimeType, self).__init__(
+        super().__init__(
             formats=formats,
             parser=parser,
             tzd=tzd,
@@ -1018,7 +1018,7 @@ class TimestampType(DateTimeType):
 
     def __init__(self, formats=None, parser=None, drop_tzinfo=False, **kwargs):
         # type: (...) -> datetime.datetime
-        super(TimestampType, self).__init__(
+        super().__init__(
             formats=formats,
             parser=parser,
             tzd="require",
@@ -1072,7 +1072,7 @@ class TimedeltaType(BaseType):
                 "TimedeltaType.__init__() got an invalid value for parameter 'precision'"
             )
         self.precision = precision
-        super(TimedeltaType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _mock(self, context=None):
         return datetime.timedelta(seconds=random.random() * 1000)
@@ -1180,7 +1180,7 @@ class MultilingualStringType(BaseType):
         self.default_locale = default_locale
         self.locale_regex = re.compile(locale_regex) if locale_regex else None
 
-        super(MultilingualStringType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _mock(self, context=None):
         return random_string(get_value_in(self.min_length, self.max_length))

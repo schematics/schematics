@@ -199,7 +199,7 @@ class URLType(StringType):
         self.schemes = ["http", "https"]
         self.fqdn = fqdn
         self.verify_exists = verify_exists
-        super(URLType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _mock(self, context=None):
         return fill_template("http://a%s.ZZ", self.min_length, self.max_length)

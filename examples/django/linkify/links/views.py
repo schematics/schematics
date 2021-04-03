@@ -7,19 +7,18 @@ from django.utils.decorators import method_decorator
 
 from schematics.exceptions import ModelValidationError, ModelConversionError
 
-from .serializers import (LinkCreateSerializer, LinkReadSerializer,
-                          LinkUpdateSerializer)
+from .serializers import LinkCreateSerializer, LinkReadSerializer, LinkUpdateSerializer
 from .models import Link, Tag
 
 
 class CSRFExemptMixin(View):
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
-        return super(CSRFExemptMixin, self).dispatch(*args, **kwargs)
+        return super().dispatch(*args, **kwargs)
 
 
 class LinkListView(CSRFExemptMixin):
-    http_method_names = ['post', 'get']
+    http_method_names = ["post", "get"]
 
     def post(self, request):
         data = json.loads(request.body.decode())
@@ -28,12 +27,11 @@ class LinkListView(CSRFExemptMixin):
             link.validate()
             kwargs = link.to_native()
             # Pop tags since objects will be created separately
-            tags = kwargs.pop('tags', None)
+            tags = kwargs.pop("tags", None)
 
             # Persist the data
             link_obj = Link.objects.create(**kwargs)
-            tag_collection = [Tag.objects.get_or_create(title=tag)[0]
-                              for tag in tags]
+            tag_collection = [Tag.objects.get_or_create(title=tag)[0] for tag in tags]
             link_obj.attach_tags(tag_collection)
 
             # Prepare for response
@@ -45,15 +43,14 @@ class LinkListView(CSRFExemptMixin):
     def get(self, request):
         # TODO: Add pagination
         links = Link.objects.all()
-        items = [LinkReadSerializer(link.to_dict()).to_native()
-                 for link in links]
-        data = {'items': items, 'total': len(links)}
+        items = [LinkReadSerializer(link.to_dict()).to_native() for link in links]
+        data = {"items": items, "total": len(links)}
 
         return JsonResponse(data=data)
 
 
 class LinkDetailView(CSRFExemptMixin):
-    http_method_names = ['delete', 'get', 'patch']
+    http_method_names = ["delete", "get", "patch"]
 
     def get_or_404(self, pk):
         try:

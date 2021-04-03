@@ -35,7 +35,7 @@ __all__ = [
 
 class CompoundType(BaseType):
     def __init__(self, **kwargs):
-        super(CompoundType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.is_compound = True
         try:
             self.field.parent_field = self
@@ -46,7 +46,7 @@ class CompoundType(BaseType):
         # Recursively set up inner fields.
         if hasattr(self, "field"):
             self.field._setup(None, owner_model)
-        super(CompoundType, self)._setup(field_name, owner_model)
+        super()._setup(field_name, owner_model)
 
     def convert(self, value, context=None):
         context = context or get_import_context()
@@ -129,7 +129,7 @@ class ModelType(CompoundType):
                 "of the type '{}'.".format(model_spec.__class__.__name__)
             )
 
-        super(ModelType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _repr_info(self):
         return self.model_class.__name__
@@ -144,7 +144,7 @@ class ModelType(CompoundType):
                 self._model_class = owner_model
             else:
                 pass  # Intentionally left blank, it will be setup later.
-        super(ModelType, self)._setup(field_name, owner_model)
+        super()._setup(field_name, owner_model)
 
     def pre_setattr(self, value):
         if value is not None and not isinstance(value, Model):
@@ -204,7 +204,7 @@ class ListType(CompoundType):
 
         validators = [self.check_length] + kwargs.pop("validators", [])
 
-        super(ListType, self).__init__(validators=validators, **kwargs)
+        super().__init__(validators=validators, **kwargs)
 
     @property
     def model_class(self):
@@ -303,7 +303,7 @@ class DictType(CompoundType):
 
         self.field = self._init_field(field, kwargs)
         self.coerce_key = coerce_key or str
-        super(DictType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     @property
     def model_class(self):
@@ -384,7 +384,7 @@ class PolyModelType(CompoundType):
             else:
                 resolved_classes.append(m)
         self.model_classes = tuple(resolved_classes)
-        super(PolyModelType, self)._setup(field_name, owner_model)
+        super()._setup(field_name, owner_model)
 
     def is_allowed_model(self, model_instance):
         if self.allow_subclasses:

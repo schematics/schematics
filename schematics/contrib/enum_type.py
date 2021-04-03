@@ -37,7 +37,7 @@ class EnumType(BaseType):
         """
         self._enum_class = enum
         self._use_values = use_values
-        super(EnumType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def to_native(self, value, context=None):
         if isinstance(value, self._enum_class):

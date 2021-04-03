@@ -51,7 +51,7 @@ class UnionType(BaseType):
             self._types[type_.__class__] = type_
             self.typenames = tuple((cls.__name__ for cls in self._types))
 
-        super(UnionType, self).__init__(**_filter_kwargs(self._baseclass_args, kwargs))
+        super().__init__(**_filter_kwargs(self._baseclass_args, kwargs))
 
     def resolve(self, value, context):
         for field in self._types.values():
