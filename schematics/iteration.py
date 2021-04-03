@@ -9,7 +9,7 @@ from collections import namedtuple
 from .undefined import Undefined
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Callable, Iterable, Mapping, Optional, Tuple
+    from typing import Callable, Iterable, Mapping, Optional, Tuple
 
     from .schema import Schema
 
