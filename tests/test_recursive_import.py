@@ -3,7 +3,7 @@ import pytest
 from schematics.models import Model
 from schematics.types import BaseType, IntType, StringType
 from schematics.types.compound import ListType, DictType, ModelType
-from schematics.exceptions import ModelConversionError, ModelValidationError
+from schematics.exceptions import DataError
 
 def test_nested_mapping():
 
@@ -71,12 +71,12 @@ def test_submodel_required_field():
     m1 = MainModel({
         'modelfield': {'opt_field':'qweasd'}})
 
-    with pytest.raises(ModelConversionError):
+    with pytest.raises(DataError):
         m1 = MainModel({
             'modelfield': {'opt_field':'qweasd'}}, partial=False)
 
     # Validation implies partial=False
-    with pytest.raises(ModelValidationError):
+    with pytest.raises(DataError):
         m1.validate()
 
     m1.validate(partial=True)
@@ -84,7 +84,7 @@ def test_submodel_required_field():
     m1 = MainModel({
         'modelfield': {'req_field':'qweasd'}}, partial=False)
 
-    with pytest.raises(ModelConversionError):
+    with pytest.raises(DataError):
         m1 = MainModel({
             'modelfield': {'req_field':'qweasd', 'submodelfield': {'opt_field':'qweasd'}}}, partial=False)
 
@@ -101,7 +101,7 @@ def test_strict_propagation():
     class MainModel(Model):
         modelfield = ModelType(SubModel)
 
-    with pytest.raises(ModelConversionError):
+    with pytest.raises(DataError):
         m1 = MainModel({
             'modelfield': {'extrafield':'qweasd'},
             }, strict=True)
@@ -112,7 +112,7 @@ def test_strict_propagation():
 
     assert m1.modelfield._data == {'subfield': None, 'submodelfield': None}
 
-    with pytest.raises(ModelConversionError):
+    with pytest.raises(DataError):
         m1 = MainModel({
             'modelfield': {'submodelfield': {'extrafield':'qweasd'}},
             }, strict=True)

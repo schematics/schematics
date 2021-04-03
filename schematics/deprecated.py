@@ -23,41 +23,6 @@ def deprecated(func):
         return func(*args, **kwargs)
     return new_func
 
-
-class SchemaCompatibilityMixin:
-    """Compatibility layer for previous deprecated Schematics Model API."""
-
-    @property
-    @deprecated
-    def __name__(self):
-        return self.name
-
-    @property
-    @deprecated
-    def _options(self):
-        return self.options
-
-    @property
-    @deprecated
-    def _validator_functions(self):
-        return self.validators
-
-    @property
-    @deprecated
-    def _fields(self):
-        return self.fields
-
-    @property
-    @deprecated
-    def _valid_input_keys(self):
-        return self.valid_input_keys
-
-    @property
-    @deprecated
-    def _serializables(self):
-        return OrderedDict((k, t) for k, t in self.fields.items() if isinstance(t, Serializable))
-
-
 class BaseErrorV1Mixin:
 
     @property
@@ -85,5 +50,4 @@ def patch_exceptions():
 
 
 def patch_all():
-    patch_schema()
     patch_exceptions()

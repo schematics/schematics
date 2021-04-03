@@ -258,7 +258,7 @@ def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise
     if filter_func is None:
         if context.role and context.raise_error_on_role:
             error_msg = '%s Model has no role "%s"'
-            raise ValueError(error_msg % (schema.__name__, context.role))
+            raise ValueError(error_msg % (schema.name, context.role))
         else:
             filter_func = schema_from(schema).options.roles.get("default")
 
