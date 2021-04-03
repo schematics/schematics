@@ -44,14 +44,13 @@ class Constant(int):
 def listify(value):
     if isinstance(value, list):
         return value
-    elif value is None:
+    if value is None:
         return []
-    elif isinstance(value, str):
+    if isinstance(value, str):
         return [value]
-    elif isinstance(value, Sequence):
+    if isinstance(value, Sequence):
         return list(value)
-    else:
-        return [value]
+    return [value]
 
 
 def get_all_subclasses(cls):

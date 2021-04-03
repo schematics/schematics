@@ -1,11 +1,12 @@
+"""Schematics models."""
+
 from copy import deepcopy
 import inspect
 from collections import OrderedDict
 from types import FunctionType
 
-from .common import *
 from .datastructures import Context, ChainMap, MappingProxyType
-from .exceptions import *
+from .exceptions import DataError, MockCreationError, UnknownFieldError, UndefinedValueError
 from .iteration import atoms
 from .transforms import (
     export_loop, convert,
@@ -40,12 +41,10 @@ class FieldDescriptor:
         """
         if instance is None:
             return cls._schema.fields[self.name]
-        else:
-            value = instance._data.get(self.name, Undefined)
-            if value is Undefined:
-                raise UndefinedValueError(instance, self.name)
-            else:
-                return value
+        value = instance._data.get(self.name, Undefined)
+        if value is Undefined:
+            raise UndefinedValueError(instance, self.name)
+        return value
 
     def __set__(self, instance, value):
         """
@@ -126,7 +125,7 @@ class ModelMeta(type):
             for key, value in inspect.getmembers(attrs['Options']):
                 if key.startswith("__"):
                     continue
-                elif key.startswith("_"):
+                if key.startswith("_"):
                     extras = options_members.get("extras", {}).copy()
                     extras.update({key: value})
                     options_members["extras"] = extras
@@ -279,7 +278,7 @@ class Model(metaclass=ModelMeta):
         :param raw_data:
             New data to be imported and converted
         """
-        raw_data  ={key:raw_data[key] for key in raw_data} if raw_data else self._data.converted
+        raw_data  ={key: raw_data[key] for key in raw_data} if raw_data else self._data.converted
         kwargs['trusted_data'] = kwargs.get('trusted_data') or {}
         kwargs['convert'] = getattr(context, 'convert', kwargs.get('convert', True))
         if self._data.unsafe:
@@ -369,27 +368,24 @@ class Model(metaclass=ModelMeta):
             try:
                 values[name] = field.mock(context)
             except MockCreationError as exc:
-                raise MockCreationError('%s: %s' % (name, exc.message))
+                raise MockCreationError('%s: %s' % (name, exc.args[0]))
         values.update(overrides)
         return cls(values)
 
     def __getitem__(self, name):
         if name in self._schema.fields:
             return getattr(self, name)
-        else:
-            raise UnknownFieldError(self, name)
+        raise UnknownFieldError(self, name)
 
     def __setitem__(self, name, value):
         if name in self._schema.fields:
             return setattr(self, name, value)
-        else:
-            raise UnknownFieldError(self, name)
+        raise UnknownFieldError(self, name)
 
     def __delitem__(self, name):
         if name in self._schema.fields:
             return delattr(self, name)
-        else:
-            raise UnknownFieldError(self, name)
+        raise UnknownFieldError(self, name)
 
     def __contains__(self, name):
         serializables = {k for k, t in self._schema.fields.items() if isinstance(t, Serializable)}
@@ -407,8 +403,7 @@ class Model(metaclass=ModelMeta):
         key = (id(self), id(other), get_ident())
         if key in memo:
             return True
-        else:
-            memo.add(key)
+        memo.add(key)
         try:
             for k in self:
                 if self.get(k) != other.get(k):
@@ -425,8 +420,7 @@ class Model(metaclass=ModelMeta):
         info = self._repr_info()
         if info:
             return '<%s: %s>' % (model, info)
-        else:
-            return '<%s instance>' % model
+        return '<%s instance>' % model
 
     def _repr_info(self):
         """

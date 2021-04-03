@@ -50,10 +50,9 @@ class BaseError(Exception):
         """ freeze common data structures to something immutable. """
         if isinstance(obj, dict):
             return FrozenDict(obj)
-        elif isinstance(obj, list):
+        if isinstance(obj, list):
             return FrozenList(obj)
-        else:
-            return obj
+        return obj
 
     @classmethod
     def _to_primitive(cls, obj):
@@ -62,12 +61,11 @@ class BaseError(Exception):
             return obj
         if isinstance(obj, Sequence):
             return [cls._to_primitive(e) for e in obj]
-        elif isinstance(obj, Mapping):
+        if isinstance(obj, Mapping):
             return dict(
                 (k, cls._to_primitive(v)) for k, v in obj.items()
             )
-        else:
-            return str(obj)
+        return str(obj)
 
     def __str__(self):
         return json.dumps(self.to_primitive())
@@ -81,9 +79,7 @@ class BaseError(Exception):
     def __eq__(self, other):
         if type(self) is type(other):
             return self.errors == other.errors
-        else:
-            return self.errors == other
-        return False
+        return self.errors == other
 
     def __ne__(self, other):
         return not (self == other)
@@ -106,16 +102,14 @@ class ErrorMessage:
     def __str__(self):
         if self.info:
             return '%s: %s' % (self.summary, self._info_as_str())
-        else:
-            return '%s' % self.summary
+        return '%s' % self.summary
 
     def _info_as_str(self):
         if isinstance(self.info, int):
             return str(self.info)
-        elif isinstance(self.info, str):
+        if isinstance(self.info, str):
             return '"%s"' % self.info
-        else:
-            return str(self.info)
+        return str(self.info)
 
     def __eq__(self, other):
         if isinstance(other, ErrorMessage):
@@ -124,10 +118,9 @@ class ErrorMessage:
                 self.type == other.type and
                 self.info == other.info
             )
-        elif isinstance(other, str):
+        if isinstance(other, str):
             return self.summary == other
-        else:
-            return False
+        return False
 
     def __ne__(self, other):
         return not (self == other)
@@ -189,12 +182,10 @@ class FieldError(BaseError, Sequence):
 
 class ConversionError(FieldError, TypeError):
     """ Exception raised when data cannot be converted to the correct python type """
-    pass
 
 
 class ValidationError(FieldError, ValueError):
     """Exception raised when invalid data is encountered."""
-    pass
 
 
 class StopValidationError(ValidationError):
@@ -224,7 +215,6 @@ class DataError(CompoundError):
 
 class MockCreationError(ValueError):
     """Exception raised when a mock value cannot be generated."""
-    pass
 
 
 class UndefinedValueError(AttributeError, KeyError):

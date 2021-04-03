@@ -1,3 +1,5 @@
+"""Schema validation."""
+
 import inspect
 import functools
 
@@ -126,7 +128,8 @@ def prepare_validator(func, argcount):
     if len(func_args) < argcount:
         @functools.wraps(func)
         def newfunc(*args, **kwargs):
-            if not kwargs or kwargs.pop('context', 0) is 0:
+            sentinel = object()
+            if not kwargs or kwargs.pop('context', sentinel) is sentinel:
                 args = args[:-1]
             return func(*args, **kwargs)
         return newfunc

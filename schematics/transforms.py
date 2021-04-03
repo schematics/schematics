@@ -259,8 +259,7 @@ def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise
         if context.role and context.raise_error_on_role:
             error_msg = '%s Model has no role "%s"'
             raise ValueError(error_msg % (schema.name, context.role))
-        else:
-            filter_func = schema_from(schema).options.roles.get("default")
+        filter_func = schema_from(schema).options.roles.get("default")
 
     _field_converter = context.field_converter
 
@@ -275,7 +274,7 @@ def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise
         if _export_level == DROP:
             continue
 
-        elif value is not None and value is not Undefined:
+        if value is not None and value is not Undefined:
             value = _field_converter(field, value, context)
 
         if value is Undefined:
