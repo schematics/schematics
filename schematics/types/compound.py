@@ -1,4 +1,5 @@
 import itertools
+import typing
 
 from ..common import DROP, NONEMPTY, NOT_NONE
 from ..exceptions import BaseError, CompoundError, ConversionError, ValidationError
@@ -15,12 +16,7 @@ from ..translator import _
 from ..util import get_all_subclasses, import_string
 from .base import BaseType, get_value_in
 
-try:
-    import typing
-except ImportError:
-    pass
-else:
-    T = typing.TypeVar("T")
+T = typing.TypeVar("T")
 
 from collections.abc import Iterable, Mapping, Sequence
 

@@ -8,6 +8,7 @@ import re
 import string
 import uuid
 from collections import OrderedDict
+from collections.abc import Iterable
 
 from ..common import DEFAULT, NATIVE, NONEMPTY, PRIMITIVE
 from ..exceptions import (
@@ -20,13 +21,6 @@ from ..translator import _
 from ..undefined import Undefined
 from ..util import listify
 from ..validate import get_validation_context, prepare_validator
-
-try:
-    import typing
-except ImportError:
-    pass
-
-from collections.abc import Iterable
 
 __all__ = [
     "BaseType",
@@ -375,7 +369,7 @@ class UUIDType(BaseType):
     }
 
     def __init__(self, **kwargs):
-        # type: (...) -> uuid.UUID
+        """Create a UUID field."""
         super().__init__(**kwargs)
 
     def _mock(self, context=None):
@@ -410,7 +404,7 @@ class StringType(BaseType):
     }
 
     def __init__(self, regex=None, max_length=None, min_length=None, **kwargs):
-        # type: (...) -> typing.Text
+        """Create a typing.Text field."""
 
         self.regex = re.compile(regex) if regex else None
         self.max_length = max_length
@@ -465,7 +459,7 @@ class NumberType(BaseType):
     }
 
     def __init__(self, min_value=None, max_value=None, strict=False, **kwargs):
-        # type: (...) -> typing.Union[int, float]
+        """Create an int|float field."""
 
         self.min_value = min_value
         self.max_value = max_value
@@ -521,7 +515,7 @@ class IntType(NumberType):
     number_type = "Int"
 
     def __init__(self, **kwargs):
-        # type: (...) -> int
+        """Create an int field."""
         super().__init__(**kwargs)
 
 
@@ -537,7 +531,7 @@ class FloatType(NumberType):
     number_type = "Float"
 
     def __init__(self, **kwargs):
-        # type: (...) -> float
+        """Create a float field."""
         super().__init__(**kwargs)
 
 
@@ -622,7 +616,7 @@ class BooleanType(BaseType):
     FALSE_VALUES = ("False", "false", "0")
 
     def __init__(self, **kwargs):
-        # type: (...) -> bool
+        """Create a bool field."""
         super().__init__(**kwargs)
 
     def _mock(self, context=None):
@@ -658,7 +652,7 @@ class DateType(BaseType):
     }
 
     def __init__(self, formats=None, **kwargs):
-        # type: (...) -> datetime.date
+        """Create a datetime.date field."""
 
         if formats:
             self.formats = listify(formats)
@@ -823,7 +817,7 @@ class DateTimeType(BaseType):
         drop_tzinfo=False,
         **kwargs,
     ):
-        # type: (...) -> datetime.datetime
+        """Create a datetime.datetime field."""
 
         if tzd not in ("require", "allow", "utc", "reject"):
             raise ValueError("DateTimeType.__init__() got an invalid value for parameter 'tzd'")
@@ -1005,7 +999,7 @@ class UTCDateTimeType(DateTimeType):
         drop_tzinfo=True,
         **kwargs,
     ):
-        # type: (...) -> datetime.datetime
+        """Create a datetime.datetime in UTC field."""
         super().__init__(
             formats=formats,
             parser=parser,
@@ -1026,7 +1020,7 @@ class TimestampType(DateTimeType):
     primitive_type = float
 
     def __init__(self, formats=None, parser=None, drop_tzinfo=False, **kwargs):
-        # type: (...) -> datetime.datetime
+        """Create a datetime.datetime as a float field."""
         super().__init__(
             formats=formats,
             parser=parser,
@@ -1065,7 +1059,7 @@ class TimedeltaType(BaseType):
     WEEKS = "weeks"
 
     def __init__(self, precision="seconds", **kwargs):
-        # type: (...) -> datetime.timedelta
+        """Create a datetime.timedelta field."""
         precision = precision.lower()
         units = (
             self.DAYS,

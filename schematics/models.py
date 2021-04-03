@@ -1,12 +1,12 @@
 """Schematics models."""
 
 import inspect
-from collections import OrderedDict
+from collections import ChainMap, OrderedDict
 from copy import deepcopy
-from types import FunctionType
+from types import FunctionType, MappingProxyType
 
 from . import schema
-from .datastructures import ChainMap, Context, MappingProxyType
+from .datastructures import Context
 from .exceptions import (
     DataError,
     MockCreationError,
