@@ -15,10 +15,10 @@ setup(
     license='BSD',
     version=version,
     description='Python Data Structures for Humans',
-    author=u'James Dennis, Jökull Sólberg, Jóhann Þorvaldur Bergþórsson, Kalle Tuure, Paul Eipper',
-    author_email='jdennis@gmail.com, jokull@plainvanillagames.com, johann@plainvanillagames.com, kalle@goodtimes.fi, paul@nkey.com.br',
+    author=u'James Dennis, Jökull Sólberg, Jóhann Þorvaldur Bergþórsson, Kalle Tuure, Paul Eipper, Kirk Strauser',
+    author_email='jdennis@gmail.com, jokull@plainvanillagames.com, johann@plainvanillagames.com, kalle@goodtimes.fi, paul@nkey.com.br, kirk@strauser.com',
     url='https://github.com/schematics/schematics',
-    download_url='https://github.com/schematics/schematics/archive/v%s.tar.gz' % version,
+    download_url=f'https://github.com/schematics/schematics/archive/v{version}.tar.gz',
     packages=['schematics', 'schematics.types', 'schematics.contrib'],
     classifiers=[
         'Intended Audience :: Developers',
