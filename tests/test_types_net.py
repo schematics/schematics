@@ -1,9 +1,9 @@
 import pytest
 
 from schematics.datastructures import Context
+from schematics.exceptions import ConversionError, DataError, ValidationError
 from schematics.models import Model
 from schematics.types import *
-from schematics.exceptions import ConversionError, ValidationError, DataError
 
 
 def test_ipv4_type():

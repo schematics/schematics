@@ -2,10 +2,10 @@ from copy import deepcopy
 
 import pytest
 
+from schematics.exceptions import *
 from schematics.models import Model
 from schematics.types import *
 from schematics.types.compound import *
-from schematics.exceptions import *
 from schematics.undefined import Undefined
 
 

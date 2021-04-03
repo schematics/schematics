@@ -1,9 +1,9 @@
 import pytest
 
+from schematics.exceptions import DataError
 from schematics.models import Model
 from schematics.types import BaseType, IntType, StringType
-from schematics.types.compound import ListType, DictType, ModelType
-from schematics.exceptions import DataError
+from schematics.types.compound import DictType, ListType, ModelType
 
 
 def test_nested_mapping():

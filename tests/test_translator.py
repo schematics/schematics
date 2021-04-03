@@ -10,8 +10,8 @@ def test_translator():
 
     register_translator(translator)
 
-    from schematics.types import StringType
     from schematics.exceptions import ValidationError
+    from schematics.types import StringType
 
     with pytest.raises(ValidationError) as exc:
         StringType(max_length=1).validate_length("Abc")

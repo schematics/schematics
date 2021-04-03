@@ -1,10 +1,10 @@
 import pytest
 
+from schematics.exceptions import DataError
 from schematics.models import Model
 from schematics.types.base import StringType
 from schematics.types.compound import ListType, ModelType
 from schematics.types.serializable import serializable
-from schematics.exceptions import DataError
 
 
 def test_reason_why_we_must_bind_fields():

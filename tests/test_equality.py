@@ -1,7 +1,7 @@
 from unittest import mock
 
 from schematics.models import Model
-from schematics.types import IntType, StringType, ListType, ModelType
+from schematics.types import IntType, ListType, ModelType, StringType
 
 
 class M(Model):

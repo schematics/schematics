@@ -1,9 +1,9 @@
 import pytest
 
+from schematics.exceptions import DataError
 from schematics.models import Model
 from schematics.types import IntType, StringType
-from schematics.types.compound import ModelType, ListType
-from schematics.exceptions import DataError
+from schematics.types.compound import ListType, ModelType
 from schematics.util import ImportStringError
 
 
@@ -209,8 +209,8 @@ def test_specify_model_by_name():
 
 
 def test_model_context_pass_to_type():
-    from schematics.types import BaseType
     from schematics.datastructures import Context
+    from schematics.types import BaseType
 
     class CustomType(BaseType):
         def to_native(self, value, context=None):

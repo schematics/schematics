@@ -1,12 +1,12 @@
 import pytest
 
-from schematics.models import Model
-from schematics.types import StringType, IntType, calculated, serializable
-from schematics.schema import Schema, Field
-from schematics.transforms import convert, to_primitive
-from schematics.exceptions import DataError
-from schematics.validate import validate
 from schematics.contrib.machine import Machine
+from schematics.exceptions import DataError
+from schematics.models import Model
+from schematics.schema import Field, Schema
+from schematics.transforms import convert, to_primitive
+from schematics.types import IntType, StringType, calculated, serializable
+from schematics.validate import validate
 
 
 @pytest.fixture

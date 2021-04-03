@@ -1,12 +1,11 @@
-from datetime import datetime, timedelta
 import sys
+from datetime import datetime, timedelta
 
-from dateutil.tz import gettz, tzutc
 import pytest
+from dateutil.tz import gettz, tzutc
 
 from schematics.exceptions import ConversionError, ValidationError
-from schematics.types import DateTimeType, UTCDateTimeType, TimestampType
-
+from schematics.types import DateTimeType, TimestampType, UTCDateTimeType
 
 UTC = DateTimeType.UTC
 NYC = gettz("US/Eastern")

@@ -1,8 +1,8 @@
 import pytest
 
-from schematics.models import Model, DataError
+from schematics.models import DataError, Model
 from schematics.types import StringType
-from schematics.types.compound import PolyModelType, ListType
+from schematics.types.compound import ListType, PolyModelType
 from schematics.util import get_all_subclasses
 
 

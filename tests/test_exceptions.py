@@ -1,5 +1,6 @@
-import pytest
 import json
+
+import pytest
 
 from schematics.exceptions import *
 

@@ -1,11 +1,12 @@
 from copy import copy
+
 import pytest
 
+from schematics.exceptions import *
 from schematics.models import Model
 from schematics.transforms import convert
 from schematics.types import *
 from schematics.types.compound import *
-from schematics.exceptions import *
 from schematics.undefined import Undefined
 
 

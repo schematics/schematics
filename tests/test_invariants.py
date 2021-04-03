@@ -1,8 +1,8 @@
 import pytest
 
-from schematics.types import StringType, IntType
 from schematics.exceptions import DataError, ValidationError
 from schematics.models import Model
+from schematics.types import IntType, StringType
 
 
 def test_dont_serialize_untrusted_data():

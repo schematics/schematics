@@ -1,8 +1,8 @@
 import pytest
 
-from schematics.iteration import atoms, Atom
-from schematics.schema import Schema, Field
-from schematics.types import StringType, IntType
+from schematics.iteration import Atom, atoms
+from schematics.schema import Field, Schema
+from schematics.types import IntType, StringType
 from schematics.undefined import Undefined
 
 

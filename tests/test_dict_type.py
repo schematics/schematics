@@ -1,7 +1,7 @@
 from schematics.models import Model
 from schematics.types import IntType, StringType
+from schematics.types.compound import DictType, ModelType
 from schematics.types.serializable import serializable
-from schematics.types.compound import ModelType, DictType
 
 try:
     long

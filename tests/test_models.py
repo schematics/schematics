@@ -1,10 +1,10 @@
 import pytest
 
+from schematics.exceptions import *
 from schematics.models import Model
 from schematics.schema import SchemaOptions
-from schematics.transforms import whitelist, blacklist
-from schematics.types import StringType, IntType, ListType, ModelType
-from schematics.exceptions import *
+from schematics.transforms import blacklist, whitelist
+from schematics.types import IntType, ListType, ModelType, StringType
 
 
 def test_dict_methods_in_model():

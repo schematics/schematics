@@ -7,7 +7,6 @@ from schematics.types.compound import *
 from schematics.types.serializable import serializable
 from schematics.undefined import Undefined
 
-
 params = [
     (None, None),
     (None, ALL),

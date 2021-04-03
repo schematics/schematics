@@ -1,5 +1,6 @@
-import pytest
 import copy
+
+import pytest
 
 from schematics.datastructures import Context, DataObject, FrozenDict, FrozenList
 

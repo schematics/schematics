@@ -2,10 +2,10 @@ import pytest
 
 from schematics.common import *
 from schematics.models import Model
-from schematics.types import StringType, LongType, IntType, MD5Type
-from schematics.types.compound import ModelType, DictType, ListType
+from schematics.transforms import blacklist, export_loop, whitelist, wholelist
+from schematics.types import IntType, LongType, MD5Type, StringType
+from schematics.types.compound import DictType, ListType, ModelType
 from schematics.types.serializable import serializable
-from schematics.transforms import blacklist, whitelist, wholelist, export_loop
 
 
 def test_serializable():

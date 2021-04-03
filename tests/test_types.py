@@ -1,18 +1,18 @@
 import datetime
-from decimal import Decimal
-from fractions import Fraction
 import random
 import sys
 import uuid
+from decimal import Decimal
+from fractions import Fraction
 
 import pytest
 
 from schematics.datastructures import Context
+from schematics.exceptions import ConversionError, DataError, ValidationError
 from schematics.models import Model
 from schematics.types import *
-from schematics.types.compound import *
 from schematics.types.base import get_range_endpoints
-from schematics.exceptions import ConversionError, ValidationError, DataError
+from schematics.types.compound import *
 
 try:
     from schematics.compat import bytes, str

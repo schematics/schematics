@@ -1,6 +1,7 @@
 import datetime
-import pytest
 import uuid
+
+import pytest
 
 from schematics.common import *
 from schematics.models import Model

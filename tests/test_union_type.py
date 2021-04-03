@@ -1,5 +1,6 @@
-import pytest
 import uuid
+
+import pytest
 
 from schematics.common import *
 from schematics.exceptions import *
