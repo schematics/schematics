@@ -886,7 +886,7 @@ class DateTimeType(BaseType):
             # Delegate to external parser.
             try:
                 dt = self.parser(value)
-            except:
+            except Exception:
                 raise ConversionError(self.messages["parse_external"].format(value))
         else:
             # Use built-in parser.
@@ -921,7 +921,10 @@ class DateTimeType(BaseType):
         if not match:
             return None
         parts = dict(((k, v) for k, v in match.groupdict().items() if v is not None))
-        p = lambda name: int(parts.get(name, 0))
+
+        def p(name):
+            return int(parts.get(name, 0))
+
         microsecond = p("sec_frac") and p("sec_frac") * 10 ** (6 - len(parts["sec_frac"]))
         if "tzd_utc" in parts:
             tz = self.UTC

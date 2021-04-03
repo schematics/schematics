@@ -85,8 +85,8 @@ def import_loop(
     context = Context._make(context)
     try:
         context.initialized
-    except:
-        if type(field_converter) is types.FunctionType:
+    except Exception:
+        if isinstance(field_converter, types.FunctionType):
             field_converter = BasicConverter(field_converter)
         context._setdefaults(
             {
@@ -266,8 +266,8 @@ def export_loop(
     context = Context._make(context)
     try:
         context.initialized
-    except:
-        if type(field_converter) is types.FunctionType:
+    except Exception:
+        if isinstance(field_converter, types.FunctionType):
             field_converter = BasicConverter(field_converter)
         context._setdefaults(
             {
