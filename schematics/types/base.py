@@ -1,8 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import unicode_literals, absolute_import
-
-
 import copy
 import datetime
 import decimal
@@ -26,10 +21,7 @@ try:
 except ImportError:
     pass
 
-try:
-    from collections.abc import Iterable  # PY3
-except ImportError:
-    from collections import Iterable  # PY2
+from collections.abc import Iterable
 
 
 __all__ = [
@@ -119,8 +111,7 @@ class TypeMeta(type):
         return type.__new__(mcs, name, bases, attrs)
 
 
-@metaclass(TypeMeta)
-class BaseType(object):
+class BaseType(metaclass=TypeMeta):
 
     """A base class for Types in a Schematics model. Instances of this
     class may be added to subclasses of ``Model`` to define a model schema.
@@ -189,7 +180,7 @@ class BaseType(object):
         self.required = required
         self._default = default
         self.serialized_name = serialized_name
-        if choices and (isinstance(choices, string_type) or not isinstance(choices, Iterable)):
+        if choices and (isinstance(choices, str) or not isinstance(choices, Iterable)):
             raise TypeError('"choices" must be a non-string Iterable')
         self.choices = choices
         self.deserialize_from = listify(deserialize_from)
@@ -214,10 +205,10 @@ class BaseType(object):
             (format, getattr(self, fname)) for format, fname in self.EXPORT_METHODS.items())
 
     def __repr__(self):
-        type_ = "%s(%s) instance" % (self.__class__.__name__, self._repr_info() or '')
-        model = " on %s" % self.owner_model.__name__ if self.owner_model else ''
-        field = " as '%s'" % self.name if self.name else ''
-        return "<%s>" % (type_ + model + field)
+        type_ = f"{self.__class__.__name__}({self._repr_info() or ''}) instance"
+        model = f" on {self.owner_model.__name__}" if self.owner_model else ''
+        field = f" as '{self.name}'" if self.name else ''
+        return f"<{type_}{model}{field}>"
 
     def _repr_info(self):
         return None
@@ -251,7 +242,7 @@ class BaseType(object):
 
     def get_export_level(self, context):
         if self.owner_model:
-            level = self.owner_model._options.export_level
+            level = self.owner_model._schema.options.export_level
         else:
             level = DEFAULT
         if self.export_level is not None:
@@ -480,7 +471,7 @@ class NumberType(BaseType):
                 return native_value
             if not self.strict and native_value == value: # Match numeric types.
                 return native_value
-            if isinstance(value, (string_type, numbers.Integral)):
+            if isinstance(value, (str, numbers.Integral)):
                 return native_value
 
         raise ConversionError(self.messages['number_coerce']
@@ -545,7 +536,7 @@ class DecimalType(NumberType):
         if isinstance(value, decimal.Decimal):
             return value
 
-        if not isinstance(value, (string_type, bool)):
+        if not isinstance(value, (str, bool)):
             value = str(value)
         try:
             value = decimal.Decimal(value)
@@ -618,7 +609,7 @@ class BooleanType(BaseType):
         return random.choice([True, False])
 
     def to_native(self, value, context=None):
-        if isinstance(value, string_type):
+        if isinstance(value, str):
             if value in self.TRUE_VALUES:
                 value = True
             elif value in self.FALSE_VALUES:
@@ -1147,7 +1138,7 @@ class MultilingualStringType(BaseType):
             if not locale:
                 continue
 
-            if isinstance(locale, string_type):
+            if isinstance(locale, str):
                 possible_locales.append(locale)
             else:
                 possible_locales.extend(locale)
@@ -1195,8 +1186,3 @@ class MultilingualStringType(BaseType):
             if self.locale_regex is not None and self.locale_regex.match(locale) is None:
                 raise ValidationError(
                     self.messages['regex_locale'].format(locale))
-
-
-if PY2:
-    # Python 2 names cannot be unicode
-    __all__ = [n.encode('ascii') for n in __all__]

@@ -1,26 +1,10 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import unicode_literals, absolute_import
-
 import sys
-
-from .compat import *
+from collections.abc import Sequence
 
 try:
-    from collections.abc import Sequence  # PY3
+    from _thread import get_ident
 except ImportError:
-    from collections import Sequence  # PY2
-
-if PY2:
-    try:
-        from thread import get_ident
-    except ImportError:
-        from dummy_thread import get_ident
-else:
-    try:
-        from _thread import get_ident
-    except ImportError:
-        from _dummy_thread import get_ident
+    from _dummy_thread import get_ident
 
 __all__ = ['get_ident', 'setdefault', 'Constant', 'listify',
     'get_all_subclasses', 'ImportStringError', 'import_string']
@@ -59,14 +43,13 @@ class Constant(int):
 def listify(value):
     if isinstance(value, list):
         return value
-    elif value is None:
+    if value is None:
         return []
-    elif isinstance(value, string_type):
+    if isinstance(value, str):
         return [value]
-    elif isinstance(value, Sequence):
+    if isinstance(value, Sequence):
         return list(value)
-    else:
-        return [value]
+    return [value]
 
 
 def get_all_subclasses(cls):
@@ -113,8 +96,8 @@ class ImportStringError(ImportError):
             if imported:
                 tracked.append((name, getattr(imported, '__file__', None)))
             else:
-                track = ['- %r found in %r.' % (n, i) for n, i in tracked]
-                track.append('- %r not found.' % name)
+                track = [f'- {n!r} found in {i!r}.' for n, i in tracked]
+                track.append(f'- {name!r} not found.')
                 msg = msg % (import_name, '\n'.join(track),
                              exception.__class__.__name__, str(exception))
                 break
@@ -122,8 +105,7 @@ class ImportStringError(ImportError):
         ImportError.__init__(self, msg)
 
     def __repr__(self):
-        return '<%s(%r, %r)>' % (self.__class__.__name__, self.import_name,
-                                 self.exception)
+        return f'<{self.__class__.__name__}({self.import_name!r}, {self.exception!r}).>'
 
 
 def import_string(import_name, silent=False):
@@ -169,12 +151,4 @@ def import_string(import_name, silent=False):
 
     except ImportError as e:
         if not silent:
-            reraise(
-                ImportStringError,
-                ImportStringError(import_name, e),
-                sys.exc_info()[2])
-
-
-if PY2:
-    # Python 2 names cannot be unicode
-    __all__ = [n.encode('ascii') for n in __all__]
+            raise ImportStringError(import_name, e) from e

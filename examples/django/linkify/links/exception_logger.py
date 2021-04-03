@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 class ConsoleExceptionMiddleware:
     def process_exception(self, request, exception):
         import traceback

@@ -12,16 +12,7 @@ The latest development version can be obtained via git::
 
   $ pip install git+https://github.com/schematics/schematics.git#egg=schematics
 
-Schematics currently supports Python versions 2.7, 3.3, 3.4, 3.5, 3.6 and 3.7.
-
-
-.. _install_dependencies:
-
-Dependencies
-============
-
-The only dependency is `six <https://pypi.python.org/pypi/six>`_ for Python 2+3 support.
-
+Schematics currently supports Python versions 3.6, 3.7, 3.8, and 3.9.
 
 .. _install_from_github:
 
@@ -43,4 +34,3 @@ Then add the main Schematics repository as another remote called *upstream*::
   $ git remote add upstream https://github.com/schematics/schematics.git
 
 See also :doc:`/development/development`.
-

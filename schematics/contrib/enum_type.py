@@ -1,16 +1,11 @@
 """Type supporting native Python3 enum. It depends either on Py3.4+ or e.g. enum34.
 """
-from __future__ import unicode_literals, absolute_import
 
-try:
-    from enum import Enum
-except ImportError:
-    pass
+from enum import Enum
 
 from ..exceptions import ConversionError
 from ..translator import _
 from ..types import BaseType
-from ..compat import string_type
 
 
 class EnumType(BaseType):
@@ -56,7 +51,7 @@ class EnumType(BaseType):
         raise ConversionError(self.messages['convert'].format(value, self._enum_class))
 
     def _find_by_name(self, value):
-        if isinstance(value, string_type):
+        if isinstance(value, str):
             try:
                 return self._enum_class[value]
             except KeyError:

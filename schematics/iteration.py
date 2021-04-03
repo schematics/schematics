@@ -2,23 +2,26 @@
 Core loop over the data structures according to a defined schema.
 """
 
-from __future__ import unicode_literals, absolute_import
+# optional type checking
+import typing
 from collections import namedtuple
 
-from .compat import iteritems
 from .undefined import Undefined
 
-try:
-    # optional type checking
-    import typing
-    if typing.TYPE_CHECKING:
-        from typing import Mapping, Tuple, Callable, Optional, Any, Iterable
-        from .schema import Schema
-except ImportError:
-    pass
+if typing.TYPE_CHECKING:
+    from typing import Callable, Iterable, Mapping, Optional, Tuple
+
+    from .schema import Schema
 
 Atom = namedtuple('Atom', ('name', 'field', 'value'))
 Atom.__new__.__defaults__ = (None,) * len(Atom._fields)
+
+
+def schema_from(obj):
+    try:
+        return obj._schema
+    except AttributeError:
+        return obj
 
 
 def atoms(schema, mapping, keys=tuple(Atom._fields), filter=None):
@@ -56,7 +59,7 @@ def atoms(schema, mapping, keys=tuple(Atom._fields), filter=None):
     has_field = 'field' in keys
     has_value = (mapping is not None) and ('value' in keys)
 
-    for field_name, field in iteritems(schema.fields):
+    for field_name, field in schema_from(schema).fields.items():
         value = Undefined
 
         if has_value:

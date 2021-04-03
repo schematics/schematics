@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import unicode_literals, absolute_import
-
 import itertools
 import types
 from collections import OrderedDict
@@ -9,10 +5,10 @@ from collections import OrderedDict
 from .common import *
 from .datastructures import Context
 from .exceptions import *
+from .iteration import atom_filter, atoms
+from .role import Role
 from .undefined import Undefined
 from .util import listify
-from .iteration import atoms, atom_filter
-from .role import Role
 
 __all__ = []
 
@@ -20,6 +16,12 @@ __all__ = []
 ###
 # Transform loops
 ###
+
+def schema_from(obj):
+    try:
+        return obj._schema
+    except AttributeError:
+        return obj
 
 
 def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_data=None,
@@ -100,7 +102,7 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
 
     if got_data:
         # Determine all acceptable field input names
-        all_fields = schema._valid_input_keys
+        all_fields = schema_from(schema).valid_input_keys
         if context.mapping:
             mapped_keys = (set(itertools.chain(*(
                           listify(input_keys) for target_key, input_keys in context.mapping.items()
@@ -246,19 +248,17 @@ def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise
 
     instance_or_dict = context.field_converter.pre(schema, instance_or_dict, context)
 
-    if schema._options.export_order:
+    if schema_from(schema).options.export_order:
         data = OrderedDict()
     else:
         data = {}
 
     filter_func = (context.role if callable(context.role) else
-        schema._options.roles.get(context.role))
+        schema_from(schema).options.roles.get(context.role))
     if filter_func is None:
         if context.role and context.raise_error_on_role:
-            error_msg = '%s Model has no role "%s"'
-            raise ValueError(error_msg % (schema.__name__, context.role))
-        else:
-            filter_func = schema._options.roles.get("default")
+            raise ValueError(f'{schema.name} Model has no role "{context.role}"')
+        filter_func = schema_from(schema).options.roles.get("default")
 
     _field_converter = context.field_converter
 
@@ -273,7 +273,7 @@ def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise
         if _export_level == DROP:
             continue
 
-        elif value is not None and value is not Undefined:
+        if value is not None and value is not Undefined:
             value = _field_converter(field, value, context)
 
         if value is Undefined:
@@ -334,7 +334,7 @@ def blacklist(*field_list):
 ###
 
 
-class Converter(object):
+class Converter:
 
     def __call__(self, field, value, context):
         raise NotImplementedError

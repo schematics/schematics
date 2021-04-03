@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import pytest
 
 from schematics.datastructures import Context
@@ -184,4 +182,3 @@ def test_email_type_with_invalid_addresses():
     for addr in addrs:
         with pytest.raises(ValidationError):
             field.validate(addr)
-

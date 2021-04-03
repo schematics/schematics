@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import unicode_literals, absolute_import
-
 import copy
 from functools import partial
 from types import FunctionType
@@ -67,7 +63,7 @@ def calculated(type, fget, fset=None):
     return Serializable(type=type, fget=fget, fset=fset)
 
 
-class Serializable(object):
+class Serializable:
 
     def __init__(self, fget, type, fset=None):
         self.type = type
@@ -89,7 +85,7 @@ class Serializable(object):
 
     def __set__(self, instance, value):
         if self.fset is None:
-            raise AttributeError("can't set attribute %s" % self.name)
+            raise AttributeError(f"can't set attribute {self.name}")
         value = self.type.pre_setattr(value)
         self.fset(instance, value)
 
@@ -104,12 +100,7 @@ class Serializable(object):
         return self.__class__(self.fget, type=copy.deepcopy(self.type), fset=self.fset)
 
     def __repr__(self):
-        type_ = "%s(%s) instance" % (self.__class__.__name__, self._repr_info() or '')
-        model = " on %s" % self.owner_model.__name__ if self.owner_model else ''
-        field = " as '%s'" % self.name if self.name else ''
-        return "<%s>" % (type_ + model + field)
-
-
-if PY2:
-    # Python 2 names cannot be unicode
-    __all__ = [n.encode('ascii') for n in __all__]
+        type_ = f"{self.__class__.__name__}({self._repr_info() or ''}) instance"
+        model = f" on {self.owner_model.__name__}" if self.owner_model else ''
+        field = f" as '{self.name}'" if self.name else ''
+        return f"<{type_}{mode}{field}>"

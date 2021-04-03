@@ -9,7 +9,7 @@ def _callback_wrap(data, schema, transform, *args, **kwargs):
     return transform(schema, data, *args, **kwargs)
 
 
-class Machine(object):
+class Machine:
     """ A poor man's state machine. """
 
     states = ('raw', 'converted', 'validated', 'serialized')

@@ -1,10 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from .compat import str_compat
-
-
-@str_compat
-class LazyText(object):
+class LazyText:
     def __init__(self, message):
         self.message = message
 
@@ -19,7 +13,7 @@ class LazyText(object):
         return str(self).format(*args, **kwargs)
 
 
-class Translator(object):
+class Translator:
     """A placeholder which could call a function like lazy_gettext and make messages translatable."""
     def __init__(self):
         self.real_translator = None

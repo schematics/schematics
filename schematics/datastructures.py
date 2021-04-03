@@ -1,20 +1,11 @@
-# -*- coding: utf-8 -*-
 # pylint: skip-file
 
-from __future__ import unicode_literals, absolute_import
-
-from .compat import *
-
-try:
-    from collections.abc import Mapping, Sequence  # PY3
-except ImportError:
-    from collections import Mapping, Sequence  # PY2
-
+from collections.abc import Mapping, Sequence
 
 __all__ = []
 
 
-class DataObject(object):
+class DataObject:
     """
     An object for holding data as attributes.
 
@@ -51,7 +42,7 @@ class DataObject(object):
         self._update(source, **kwargs)
 
     def __repr__(self):
-        return self.__class__.__name__ + '(%s)' % repr(self.__dict__)
+        return f"{self.__class__.__name__}({self.__dict__!r})"
 
     def _copy(self):
         return self.__class__(self)
@@ -107,7 +98,7 @@ class Context(DataObject):
         if self._fields:
             unknowns = [name for name in self._keys() if name not in self._fields]
             if unknowns:
-                raise ValueError('Unexpected field names: %r' % unknowns)
+                raise ValueError(f"Unexpected field names: {unknowns!r}")
 
     @classmethod
     def _new(cls, *args, **kwargs):

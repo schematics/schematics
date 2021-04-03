@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from copy import deepcopy
 
 import pytest
@@ -124,4 +122,3 @@ def test_complex_import_data(recursive, preconvert_source, populate_source, popu
                     'dictfield': dict(c=33)}}}, init=populated_result)
     else:
         assert m == M(sourcedict, init=populated_result)
-

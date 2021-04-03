@@ -1,18 +1,22 @@
-# -*- coding: utf-8 -*-
+"""Schema validation."""
 
-from __future__ import unicode_literals, absolute_import
-
-import inspect
 import functools
+import inspect
 
 from .common import *
 from .datastructures import Context
-from .exceptions import FieldError, DataError
+from .exceptions import DataError, FieldError
+from .iteration import atoms
 from .transforms import import_loop, validation_converter
 from .undefined import Undefined
-from .iteration import atoms
 
 __all__ = []
+
+def schema_from(obj):
+    try:
+        return obj._schema
+    except AttributeError:
+        return obj
 
 
 def validate(schema, mutable, raw_data=None, trusted_data=None,
@@ -88,11 +92,11 @@ def _validate_model(schema, mutable, data, context):
 
     has_validator = lambda atom: (
         atom.value is not Undefined and
-        atom.name in schema._validator_functions
+        atom.name in schema_from(schema).validators
     )
     for field_name, field, value in atoms(schema, data, filter=has_validator):
         try:
-            schema._validator_functions[field_name](mutable, data, value, context)
+            schema_from(schema).validators[field_name](mutable, data, value, context)
         except (FieldError, DataError) as exc:
             serialized_field_name = field.serialized_name or field_name
             errors[serialized_field_name] = exc.errors
@@ -120,14 +124,12 @@ def get_validation_context(**options):
 def prepare_validator(func, argcount):
     if isinstance(func, classmethod):
         func = func.__get__(object).__func__
-    try:
-        func_args = inspect.getfullargspec(func).args  # PY3
-    except AttributeError:
-        func_args = inspect.getargspec(func).args  # PY2
+    func_args = inspect.getfullargspec(func).args
     if len(func_args) < argcount:
         @functools.wraps(func)
         def newfunc(*args, **kwargs):
-            if not kwargs or kwargs.pop('context', 0) is 0:
+            sentinel = object()
+            if not kwargs or kwargs.pop('context', sentinel) is sentinel:
                 args = args[:-1]
             return func(*args, **kwargs)
         return newfunc

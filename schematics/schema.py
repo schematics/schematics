@@ -1,16 +1,14 @@
 
-import itertools
 import inspect
-
+import itertools
 from collections import OrderedDict
 
-from .compat import itervalues
 from .common import DEFAULT, NONEMPTY
 from .types import BaseType
 from .types.serializable import Serializable
 
 
-class Schema(object):
+class Schema:
 
     def __init__(self, name, *fields, **kw):
         self.name = name
@@ -23,14 +21,14 @@ class Schema(object):
 
     @property
     def valid_input_keys(self):
-        return set(itertools.chain(*(t.get_input_keys() for t in itervalues(self.fields))))
+        return set(itertools.chain(*(t.get_input_keys() for t in self.fields.values())))
 
     def append_field(self, field):
         self.fields[field.name] = field.type
         field.type._setup(field.name, self.model)  # TODO: remove model reference
 
 
-class SchemaOptions(object):
+class SchemaOptions:
 
     def __init__(self, namespace=None, roles=None, export_level=DEFAULT,
             serialize_when_none=None, export_order=False, extras=None):
@@ -53,7 +51,7 @@ class SchemaOptions(object):
                 yield key, value
 
 
-class Field(object):
+class Field:
 
     __slots__ = ('name', 'type')
 

@@ -1,19 +1,9 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import unicode_literals, absolute_import
-
 import json
+from collections.abc import Mapping, Sequence
 
 from .common import *
-from .compat import string_type, str_compat
 from .datastructures import FrozenDict, FrozenList
 from .translator import LazyText
-
-try:
-    from collections.abc import Mapping, Sequence  # PY3
-except ImportError:
-    from collections import Mapping, Sequence  # PY2
-
 
 __all__ = [
     'BaseError', 'ErrorMessage', 'FieldError', 'ConversionError',
@@ -21,7 +11,6 @@ __all__ = [
     'MockCreationError', 'UndefinedValueError', 'UnknownFieldError']
 
 
-@str_compat
 class BaseError(Exception):
 
     def __init__(self, errors):
@@ -39,7 +28,7 @@ class BaseError(Exception):
         mutate BaseError's error list or dict after initialization.
         """
         errors = self._freeze(errors)
-        super(BaseError, self).__init__(errors)
+        super().__init__(errors)
 
     @property
     def errors(self):
@@ -59,30 +48,28 @@ class BaseError(Exception):
         """ freeze common data structures to something immutable. """
         if isinstance(obj, dict):
             return FrozenDict(obj)
-        elif isinstance(obj, list):
+        if isinstance(obj, list):
             return FrozenList(obj)
-        else:
-            return obj
+        return obj
 
     @classmethod
     def _to_primitive(cls, obj):
         """ recursive to_primitive for basic data types. """
-        if isinstance(obj, string_type):
+        if isinstance(obj, str):
             return obj
         if isinstance(obj, Sequence):
             return [cls._to_primitive(e) for e in obj]
-        elif isinstance(obj, Mapping):
+        if isinstance(obj, Mapping):
             return dict(
                 (k, cls._to_primitive(v)) for k, v in obj.items()
             )
-        else:
-            return str(obj)
+        return str(obj)
 
     def __str__(self):
         return json.dumps(self.to_primitive())
 
     def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, repr(self.errors))
+        return f"{self.__class__.__name__}({self.errors!r})"
 
     def __hash__(self):
         return hash(self.errors)
@@ -90,16 +77,13 @@ class BaseError(Exception):
     def __eq__(self, other):
         if type(self) is type(other):
             return self.errors == other.errors
-        else:
-            return self.errors == other
-        return False
+        return self.errors == other
 
     def __ne__(self, other):
         return not (self == other)
 
 
-@str_compat
-class ErrorMessage(object):
+class ErrorMessage:
 
     def __init__(self, summary, info=None):
         self.type = None
@@ -107,25 +91,19 @@ class ErrorMessage(object):
         self.info = info
 
     def __repr__(self):
-        return "%s(%s, %s)" % (
-            self.__class__.__name__,
-            repr(self.summary),
-            repr(self.info)
-        )
+        return f"{self.__class__.__name__}({self.summary!r}, {self.info!r})"
 
     def __str__(self):
         if self.info:
-            return '%s: %s' % (self.summary, self._info_as_str())
-        else:
-            return '%s' % self.summary
+            return f"{self.summary}: {self._info_as_str()}"
+        return str(self.summary)
 
     def _info_as_str(self):
         if isinstance(self.info, int):
             return str(self.info)
-        elif isinstance(self.info, string_type):
-            return '"%s"' % self.info
-        else:
-            return str(self.info)
+        if isinstance(self.info, str):
+            return f'"{self.info}"'
+        return str(self.info)
 
     def __eq__(self, other):
         if isinstance(other, ErrorMessage):
@@ -134,10 +112,9 @@ class ErrorMessage(object):
                 self.type == other.type and
                 self.info == other.info
             )
-        elif isinstance(other, string_type):
+        if isinstance(other, str):
             return self.summary == other
-        else:
-            return False
+        return False
 
     def __ne__(self, other):
         return not (self == other)
@@ -168,7 +145,7 @@ class FieldError(BaseError, Sequence):
             items = args
         errors = []
         for item in items:
-            if isinstance(item, (string_type, LazyText)):
+            if isinstance(item, (str, LazyText)):
                 errors.append(ErrorMessage(str(item)))
             elif isinstance(item, tuple):
                 errors.append(ErrorMessage(*item))
@@ -182,7 +159,7 @@ class FieldError(BaseError, Sequence):
         for error in errors:
             error.type = self.type or type(self)
 
-        super(FieldError, self).__init__(errors)
+        super().__init__(errors)
 
     def __contains__(self, value):
         return value in self.errors
@@ -199,12 +176,10 @@ class FieldError(BaseError, Sequence):
 
 class ConversionError(FieldError, TypeError):
     """ Exception raised when data cannot be converted to the correct python type """
-    pass
 
 
 class ValidationError(FieldError, ValueError):
     """Exception raised when invalid data is encountered."""
-    pass
 
 
 class StopValidationError(ValidationError):
@@ -222,35 +197,29 @@ class CompoundError(BaseError):
                 errors[key] = value.errors
             else:
                 errors[key] = value
-        super(CompoundError, self).__init__(errors)
+        super().__init__(errors)
 
 
 class DataError(CompoundError):
 
     def __init__(self, errors, partial_data=None):
-        super(DataError, self).__init__(errors)
+        super().__init__(errors)
         self.partial_data = partial_data
 
 
 class MockCreationError(ValueError):
     """Exception raised when a mock value cannot be generated."""
-    pass
 
 
 class UndefinedValueError(AttributeError, KeyError):
     """Exception raised when accessing a field with an undefined value."""
     def __init__(self, model, name):
-        msg = "'%s' instance has no value for field '%s'" % (model.__class__.__name__, name)
-        super(UndefinedValueError, self).__init__(msg)
+        msg = f"'{model.__class__.__name__}' instance has no value for field '{name}'"
+        super().__init__(msg)
 
 
 class UnknownFieldError(KeyError):
     """Exception raised when attempting to access a nonexistent field using the subscription syntax."""
     def __init__(self, model, name):
-        msg = "Model '%s' has no field named '%s'" % (model.__class__.__name__, name)
-        super(UnknownFieldError, self).__init__(msg)
-
-
-if PY2:
-    # Python 2 names cannot be unicode
-    __all__ = [n.encode('ascii') for n in __all__]
+        msg = f"Model '{model.__class__.__name__}' has no field named '{name}'"
+        super().__init__(msg)

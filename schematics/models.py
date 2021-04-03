@@ -1,32 +1,26 @@
-# -*- coding: utf-8 -*-
+"""Schematics models."""
 
-from __future__ import unicode_literals, absolute_import
-
-from copy import deepcopy
 import inspect
 from collections import OrderedDict
+from copy import deepcopy
 from types import FunctionType
 
-from .common import *
-from .compat import str_compat, repr_compat, _dict
-from .datastructures import Context, ChainMap, MappingProxyType
-from .exceptions import *
+from . import schema
+from .datastructures import ChainMap, Context, MappingProxyType
+from .exceptions import (DataError, MockCreationError, UndefinedValueError,
+                         UnknownFieldError)
 from .iteration import atoms
-from .transforms import (
-    export_loop, convert,
-    to_native, to_primitive,
-)
-from .validate import validate, prepare_validator
+from .transforms import convert, export_loop, to_native, to_primitive
 from .types import BaseType
 from .types.serializable import Serializable
 from .undefined import Undefined
 from .util import get_ident
-from . import schema
+from .validate import prepare_validator, validate
 
 __all__ = []
 
 
-class FieldDescriptor(object):
+class FieldDescriptor:
     """
     ``FieldDescriptor`` instances serve as field accessors on models.
     """
@@ -44,19 +38,17 @@ class FieldDescriptor(object):
         For a model class, returns the field's type object.
         """
         if instance is None:
-            return cls._fields[self.name]
-        else:
-            value = instance._data.get(self.name, Undefined)
-            if value is Undefined:
-                raise UndefinedValueError(instance, self.name)
-            else:
-                return value
+            return cls._schema.fields[self.name]
+        value = instance._data.get(self.name, Undefined)
+        if value is Undefined:
+            raise UndefinedValueError(instance, self.name)
+        return value
 
     def __set__(self, instance, value):
         """
         Sets the field's value.
         """
-        field = instance._fields[self.name]
+        field = instance._schema.fields[self.name]
         value = field.pre_setattr(value)
         instance._data.converted[self.name] = value
 
@@ -91,7 +83,7 @@ class ModelMeta(type):
                 validator_functions.update(base._schema.validators)
 
         # Parse this class's attributes into schema structures
-        for key, value in iteritems(attrs):
+        for key, value in attrs.items():
             if key.startswith('validate_') and isinstance(value, (FunctionType, classmethod)):
                 validator_functions[key[9:]] = prepare_validator(value, 4)
             if isinstance(value, BaseType):
@@ -104,21 +96,20 @@ class ModelMeta(type):
             (kv for kv in fields.items()),
             key=lambda i: i[1]._position_hint,
         ))
-        for key, field in iteritems(fields):
+        for key, field in fields.items():
             if isinstance(field, BaseType):
                 attrs[key] = FieldDescriptor(key)
             elif isinstance(field, Serializable):
                 attrs[key] = field
 
         klass = type.__new__(mcs, name, bases, attrs)
-        klass = repr_compat(str_compat(klass))
 
         # Parse schema options
         options = mcs._read_options(name, bases, attrs, options_members)
 
         # Parse meta data into new schema
         klass._schema = schema.Schema(name, model=klass, options=options,
-            validators=validator_functions, *(schema.Field(k, t) for k, t in iteritems(fields)))
+            validators=validator_functions, *(schema.Field(k, t) for k, t in fields.items()))
 
         return klass
 
@@ -132,7 +123,7 @@ class ModelMeta(type):
             for key, value in inspect.getmembers(attrs['Options']):
                 if key.startswith("__"):
                     continue
-                elif key.startswith("_"):
+                if key.startswith("_"):
                     extras = options_members.get("extras", {}).copy()
                     extras.update({key: value})
                     options_members["extras"] = extras
@@ -154,7 +145,7 @@ class ModelDict(ChainMap):
         self._converted = converted if converted is not None else {}
         self.__valid = valid if valid is not None else {}
         self._valid = MappingProxyType(self.__valid)
-        super(ModelDict, self).__init__(self._unsafe, self._converted, self._valid)
+        super().__init__(self._unsafe, self._converted, self._valid)
 
     @property
     def unsafe(self):
@@ -198,8 +189,7 @@ class ModelDict(ChainMap):
         return repr(dict(self))
 
 
-@metaclass(ModelMeta)
-class Model(object):
+class Model(metaclass=ModelMeta):
 
     """
     Enclosure for fields and validation. Same pattern deployed by Django
@@ -272,7 +262,7 @@ class Model(object):
         :param raw_data:
             The data to be imported.
         """
-        data = self._convert(raw_data, trusted_data=_dict(self), recursive=recursive, **kwargs)
+        data = self._convert(raw_data, trusted_data=dict(self), recursive=recursive, **kwargs)
         self._data.converted.update(data)
         if kwargs.get('validate'):
             self.validate(convert=False)
@@ -286,7 +276,7 @@ class Model(object):
         :param raw_data:
             New data to be imported and converted
         """
-        raw_data = _dict(raw_data) if raw_data else self._data.converted
+        raw_data  ={key: raw_data[key] for key in raw_data} if raw_data else self._data.converted
         kwargs['trusted_data'] = kwargs.get('trusted_data') or {}
         kwargs['convert'] = getattr(context, 'convert', kwargs.get('convert', True))
         if self._data.unsafe:
@@ -368,7 +358,7 @@ class Model(object):
         context._setdefault('memo', set())
         context.memo.add(cls)
         values = {}
-        for name, field in cls.fields.items():
+        for name, field in cls._schema.fields.items():
             if name in overrides:
                 continue
             if getattr(field, 'model_class', None) in context.memo:
@@ -376,31 +366,29 @@ class Model(object):
             try:
                 values[name] = field.mock(context)
             except MockCreationError as exc:
-                raise MockCreationError('%s: %s' % (name, exc.message))
+                raise MockCreationError(f'{name}: {exc.args[0]}')
         values.update(overrides)
         return cls(values)
 
     def __getitem__(self, name):
         if name in self._schema.fields:
             return getattr(self, name)
-        else:
-            raise UnknownFieldError(self, name)
+        raise UnknownFieldError(self, name)
 
     def __setitem__(self, name, value):
         if name in self._schema.fields:
             return setattr(self, name, value)
-        else:
-            raise UnknownFieldError(self, name)
+        raise UnknownFieldError(self, name)
 
     def __delitem__(self, name):
         if name in self._schema.fields:
             return delattr(self, name)
-        else:
-            raise UnknownFieldError(self, name)
+        raise UnknownFieldError(self, name)
 
     def __contains__(self, name):
+        serializables = {k for k, t in self._schema.fields.items() if isinstance(t, Serializable)}
         return (name in self._data and getattr(self, name, Undefined) is not Undefined) \
-            or name in self._serializables
+            or name in serializables
 
     def __len__(self):
         return len(self._data)
@@ -413,8 +401,7 @@ class Model(object):
         key = (id(self), id(other), get_ident())
         if key in memo:
             return True
-        else:
-            memo.add(key)
+        memo.add(key)
         try:
             for k in self:
                 if self.get(k) != other.get(k):
@@ -430,9 +417,8 @@ class Model(object):
         model = self.__class__.__name__
         info = self._repr_info()
         if info:
-            return '<%s: %s>' % (model, info)
-        else:
-            return '<%s instance>' % model
+            return f"<{model}: {info}>"
+        return f"<{model} instance>"
 
     def _repr_info(self):
         """

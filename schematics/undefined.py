@@ -3,10 +3,7 @@ A type and singleton value (like None) to represent fields that
 have not been initialized.
 """
 
-from __future__ import unicode_literals, absolute_import
-
-
-class UndefinedType(object):
+class UndefinedType:
 
     _instance = None
 

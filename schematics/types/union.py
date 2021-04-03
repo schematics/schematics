@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import unicode_literals, absolute_import
-
 import inspect
 from collections import OrderedDict
 
@@ -17,10 +13,7 @@ __all__ = ['UnionType']
 def _valid_init_args(type_):
     args = set()
     for cls in type_.__mro__:
-        try:
-            init_args = inspect.getfullargspec(cls.__init__).args[1:]  # PY3
-        except AttributeError:
-            init_args = inspect.getargspec(cls.__init__).args[1:]  # PY2
+        init_args = inspect.getfullargspec(cls.__init__).args[1:]
         args.update(init_args)
         if cls is BaseType:
             break
@@ -51,7 +44,7 @@ class UnionType(BaseType):
             if isinstance(type_, type) and issubclass(type_, BaseType):
                 type_ = type_(**_filter_kwargs(_valid_init_args(type_), kwargs))
             elif not isinstance(type_, BaseType):
-                raise TypeError("Got '%s' instance instead of a Schematics type" % type_.__class__.__name__)
+                raise TypeError(f"Got '{type_.__class__.__name__}' instance instead of a Schematics type")
             self._types[type_.__class__] = type_
             self.typenames = tuple((cls.__name__ for cls in self._types))
 
@@ -99,8 +92,3 @@ class UnionType(BaseType):
     def to_primitive(self, value, context=None):
         field, _ = self._resolve(value, context)
         return field.to_primitive(value, context)
-
-
-if PY2:
-    # Python 2 names cannot be unicode
-    __all__ = [n.encode('ascii') for n in __all__]

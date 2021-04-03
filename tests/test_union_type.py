@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function, division
-
 import pytest
 import uuid
 
@@ -110,4 +106,3 @@ def test_invalid_args():
 
     with pytest.raises(TypeError):
         UnionType((IntType, dict))
-

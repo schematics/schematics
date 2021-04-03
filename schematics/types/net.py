@@ -1,18 +1,9 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import unicode_literals, absolute_import
-
 import random
 import re
 
-try: # PY3
-    from urllib.request import urlopen
-    from urllib.parse import urlunsplit, quote as urlquote
-    from urllib.error import URLError
-except ImportError: # PY2
-    from urllib2 import urlopen, URLError
-    from urlparse import urlunsplit
-    from urllib import quote as urlquote
+from urllib.request import urlopen
+from urllib.parse import urlunsplit, quote as urlquote
+from urllib.error import URLError
 
 from ..common import *
 from ..exceptions import ValidationError, StopValidationError
@@ -54,7 +45,7 @@ class IPAddressType(StringType):
     """A field that stores a valid IPv4 or IPv6 address."""
 
     VERSION = None
-    REGEX = re.compile('^%s|%s$' % (IPV4, IPV6), re.I + re.X)
+    REGEX = re.compile(rf'^{IPV4}|{IPV6}$', re.I + re.X)
 
     @classmethod
     def valid_ip(cls, value):
@@ -72,7 +63,7 @@ class IPv4Type(IPAddressType):
     """A field that stores a valid IPv4 address."""
 
     VERSION = 'v4'
-    REGEX = re.compile('^%s$' % IPV4, re.I + re.X)
+    REGEX = re.compile(rf'^{IPV4}$', re.I + re.X)
 
     def _mock(self, context=None):
         return '.'.join(str(random.randrange(256)) for _ in range(4))
@@ -82,7 +73,7 @@ class IPv6Type(IPAddressType):
     """A field that stores a valid IPv6 address."""
 
     VERSION = 'v6'
-    REGEX = re.compile(r'^%s$' % IPV6, re.I + re.X)
+    REGEX = re.compile(rf'^{IPV6}$', re.I + re.X)
 
     def _mock(self, context=None):
         return '2001:db8:' + ':'.join(
@@ -126,7 +117,7 @@ PCHAR = SUB_DELIMS | UNRESERVED | set('%:@')
 QUERY_EXTRAS = set('[]') # nonstandard
 
 VALID_CHARS = GEN_DELIMS | SUB_DELIMS | UNRESERVED | set('%')
-VALID_CHAR_STRING = py_native_string(str.join('', VALID_CHARS))
+VALID_CHAR_STRING = ''.join(VALID_CHARS)
 UNSAFE_CHAR_STRING = '\x00-\x20<>{}|"`\\^\x7F-\x9F'
 
 def _chrcls(allowed_chars):
@@ -282,8 +273,3 @@ class EmailType(StringType):
     def validate_email(self, value, context=None):
         if not EmailType.EMAIL_REGEX.match(value):
             raise StopValidationError(self.messages['email'])
-
-
-if PY2:
-    # Python 2 names cannot be unicode
-    __all__ = [n.encode('ascii') for n in __all__]

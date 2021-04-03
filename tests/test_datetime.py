@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime, timedelta
 import sys
 
@@ -284,4 +282,3 @@ def test_mock(tzd, convert_tz, drop_tzinfo):
     field = DateTimeType(tzd=tzd, convert_tz=convert_tz, drop_tzinfo=drop_tzinfo)
     for _ in range(20):
         field.validate(field._mock())
-

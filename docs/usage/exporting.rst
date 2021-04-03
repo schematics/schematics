@@ -19,7 +19,7 @@ We'll use the following model for the examples:
   from schematics.models import Model
   from schematics.types import StringType, DateTimeType
   from schematics.transforms import blacklist
-  
+
   class Movie(Model):
       name = StringType()
       director = StringType()
@@ -75,9 +75,9 @@ You can reduce a model into the native Python types by calling ``to_native``.
   >>> trainspotting.personal_thoughts = 'This movie was great!'
   >>> trainspotting.to_native()
   {
-    'name': u'Trainspotting', 
-    'director': u'Danny Boyle', 
-    'release_date': datetime.datetime(1996, 7, 19, 0, 0), 
+    'name': u'Trainspotting',
+    'director': u'Danny Boyle',
+    'release_date': datetime.datetime(1996, 7, 19, 0, 0),
     'personal_thoughts': 'This movie was great!'
   }
 
@@ -96,8 +96,8 @@ current state.
   >>> trainspotting.to_primitive()
   {
     'name': u'Trainspotting',
-    'director': u'Danny Boyle', 
-    'release_date': '1996-07-19T00:00:00.000000', 
+    'director': u'Danny Boyle',
+    'release_date': '1996-07-19T00:00:00.000000',
     'personal_thoughts': 'This movie was great!'
   }
 
@@ -107,9 +107,9 @@ from here.
   >>> import json
   >>> json.dumps(trainspotting.to_primitive())
   '{
-     "name": "Trainspotting", 
-     "director": "Danny Boyle", 
-     "release_date": "1996-07-19T00:00:00.000000", 
+     "name": "Trainspotting",
+     "director": "Danny Boyle",
+     "release_date": "1996-07-19T00:00:00.000000",
      "personal_thoughts": "This movie was great!"
    }'
 
@@ -153,7 +153,7 @@ contexts:
 
 
   >>> for user, locale in [('Joe', 'en_US'), ('Sue', 'es_MX')]:
-  ...     print '%s says %s' % (user, mls_test.to_primitive(context={'locale': locale})['mls'])
+  ...     print('%s says %s' % (user, mls_test.to_primitive(context={'locale': locale})['mls']))
   ...
   Joe says Hello, world!
   Sue says ¡Hola, mundo!
@@ -200,21 +200,21 @@ Here is what happens when we call ``to_primitive()`` on it.
 
   >>> favorites.to_primitive()
   {
-      'notes': 'These are some of my favorite movies', 
+      'notes': 'These are some of my favorite movies',
       'name': 'My favorites',
       'movies': [{
           'name': u'Trainspotting',
-          'director': u'Danny Boyle', 
-          'personal_thoughts': 'This movie was great!', 
+          'director': u'Danny Boyle',
+          'personal_thoughts': 'This movie was great!',
           'release_date': '1996-07-19T00:00:00.000000'
       }, {
           'name': u'Total Recall',
-          'director': u'Paul Verhoeven', 
-          'personal_thoughts': 'Old classic.  Still love it.', 
+          'director': u'Paul Verhoeven',
+          'personal_thoughts': 'Old classic.  Still love it.',
           'release_date': '1990-06-01T00:00:00.000000'
       }]
   }
-  
+
 
 .. _exporting_customizing_output:
 
@@ -260,8 +260,8 @@ This is what it looks like to use the role, which should simply remove
 
   >>> movie.to_primitive(role='public')
   {
-      'name': u'Trainspotting', 
-      'director': u'Danny Boyle', 
+      'name': u'Trainspotting',
+      'director': u'Danny Boyle',
       'release_date': '1996-07-19T00:00:00.000000'
   }
 
@@ -284,11 +284,11 @@ also expect the ``notes`` field to be removed from the collection data.
       'name': 'My favorites',
       'movies': [{
           'name': u'Trainspotting',
-          'director': u'Danny Boyle', 
+          'director': u'Danny Boyle',
           'release_date': '1996-07-19T00:00:00.000000'
       }, {
           'name': u'Total Recall',
-          'director': u'Paul Verhoeven', 
+          'director': u'Paul Verhoeven',
           'release_date': '1990-06-01T00:00:00.000000'
       }]
   }
@@ -329,7 +329,7 @@ That looks like this:
 
   ...
   from schematics.types.serializable import serializable
-  
+
   class Song(Model):
       name = StringType()
       artist = StringType()
@@ -339,7 +339,7 @@ That looks like this:
       def id(self):
           return u'%s/%s' % (self.artist, self.name)
 
-This is what it looks like to use it.  
+This is what it looks like to use it.
 
 ::
 
@@ -356,10 +356,10 @@ Or here:
 
   >>> song.to_native()
   {
-      'id': u'Fiona Apple/Werewolf', 
+      'id': u'Fiona Apple/Werewolf',
       'artist': u'Fiona Apple'
       'name': u'Werewolf',
-      'url': u'http://www.youtube.com/watch?v=67KGSJVkix0', 
+      'url': u'http://www.youtube.com/watch?v=67KGSJVkix0',
   }
 
 
@@ -428,14 +428,14 @@ Or you can disable it at the class level:
       artist = StringType()
       class Options:
           serialize_when_none=False
-  
+
 Using it:
 
 ::
 
   >>> s = Song()
   >>> s.to_native()
-  >>> 
+  >>>
 
 
 
