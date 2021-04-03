@@ -85,7 +85,7 @@ class Serializable:
 
     def __set__(self, instance, value):
         if self.fset is None:
-            raise AttributeError("can't set attribute %s" % self.name)
+            raise AttributeError(f"can't set attribute {self.name}")
         value = self.type.pre_setattr(value)
         self.fset(instance, value)
 
@@ -100,7 +100,7 @@ class Serializable:
         return self.__class__(self.fget, type=copy.deepcopy(self.type), fset=self.fset)
 
     def __repr__(self):
-        type_ = "%s(%s) instance" % (self.__class__.__name__, self._repr_info() or '')
-        model = " on %s" % self.owner_model.__name__ if self.owner_model else ''
-        field = " as '%s'" % self.name if self.name else ''
-        return "<%s>" % (type_ + model + field)
+        type_ = f"{self.__class__.__name__}({self._repr_info() or ''}) instance"
+        model = f" on {self.owner_model.__name__}" if self.owner_model else ''
+        field = f" as '{self.name}'" if self.name else ''
+        return f"<{type_}{mode}{field}>"

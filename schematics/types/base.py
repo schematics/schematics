@@ -205,10 +205,10 @@ class BaseType(metaclass=TypeMeta):
             (format, getattr(self, fname)) for format, fname in self.EXPORT_METHODS.items())
 
     def __repr__(self):
-        type_ = "%s(%s) instance" % (self.__class__.__name__, self._repr_info() or '')
-        model = " on %s" % self.owner_model.__name__ if self.owner_model else ''
-        field = " as '%s'" % self.name if self.name else ''
-        return "<%s>" % (type_ + model + field)
+        type_ = f"{self.__class__.__name__}({self._repr_info() or ''}) instance"
+        model = f" on {self.owner_model.__name__}" if self.owner_model else ''
+        field = f" as '{self.name}'" if self.name else ''
+        return f"<{type_}{model}{field}>"
 
     def _repr_info(self):
         return None

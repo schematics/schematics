@@ -45,7 +45,7 @@ class IPAddressType(StringType):
     """A field that stores a valid IPv4 or IPv6 address."""
 
     VERSION = None
-    REGEX = re.compile('^%s|%s$' % (IPV4, IPV6), re.I + re.X)
+    REGEX = re.compile(rf'^{IPV4}|{IPV6}$', re.I + re.X)
 
     @classmethod
     def valid_ip(cls, value):
@@ -63,7 +63,7 @@ class IPv4Type(IPAddressType):
     """A field that stores a valid IPv4 address."""
 
     VERSION = 'v4'
-    REGEX = re.compile('^%s$' % IPV4, re.I + re.X)
+    REGEX = re.compile(rf'^{IPV4}$', re.I + re.X)
 
     def _mock(self, context=None):
         return '.'.join(str(random.randrange(256)) for _ in range(4))
@@ -73,7 +73,7 @@ class IPv6Type(IPAddressType):
     """A field that stores a valid IPv6 address."""
 
     VERSION = 'v6'
-    REGEX = re.compile(r'^%s$' % IPV6, re.I + re.X)
+    REGEX = re.compile(rf'^{IPV6}$', re.I + re.X)
 
     def _mock(self, context=None):
         return '2001:db8:' + ':'.join(

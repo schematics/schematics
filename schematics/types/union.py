@@ -44,7 +44,7 @@ class UnionType(BaseType):
             if isinstance(type_, type) and issubclass(type_, BaseType):
                 type_ = type_(**_filter_kwargs(_valid_init_args(type_), kwargs))
             elif not isinstance(type_, BaseType):
-                raise TypeError("Got '%s' instance instead of a Schematics type" % type_.__class__.__name__)
+                raise TypeError(f"Got '{type_.__class__.__name__}' instance instead of a Schematics type")
             self._types[type_.__class__] = type_
             self.typenames = tuple((cls.__name__ for cls in self._types))
 

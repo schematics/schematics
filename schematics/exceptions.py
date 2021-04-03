@@ -69,7 +69,7 @@ class BaseError(Exception):
         return json.dumps(self.to_primitive())
 
     def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, repr(self.errors))
+        return f"{self.__class__.__name__}({self.errors!r})"
 
     def __hash__(self):
         return hash(self.errors)
@@ -91,22 +91,18 @@ class ErrorMessage:
         self.info = info
 
     def __repr__(self):
-        return "%s(%s, %s)" % (
-            self.__class__.__name__,
-            repr(self.summary),
-            repr(self.info)
-        )
+        return f"{self.__class__.__name__}({self.summary!r}, {self.info!r})"
 
     def __str__(self):
         if self.info:
-            return '%s: %s' % (self.summary, self._info_as_str())
-        return '%s' % self.summary
+            return f"{self.summary}: {self._info_as_str()}"
+        return str(self.summary)
 
     def _info_as_str(self):
         if isinstance(self.info, int):
             return str(self.info)
         if isinstance(self.info, str):
-            return '"%s"' % self.info
+            return f'"{self.info}"'
         return str(self.info)
 
     def __eq__(self, other):
@@ -218,12 +214,12 @@ class MockCreationError(ValueError):
 class UndefinedValueError(AttributeError, KeyError):
     """Exception raised when accessing a field with an undefined value."""
     def __init__(self, model, name):
-        msg = "'%s' instance has no value for field '%s'" % (model.__class__.__name__, name)
+        msg = f"'{model.__class__.__name__}' instance has no value for field '{name}'"
         super().__init__(msg)
 
 
 class UnknownFieldError(KeyError):
     """Exception raised when attempting to access a nonexistent field using the subscription syntax."""
     def __init__(self, model, name):
-        msg = "Model '%s' has no field named '%s'" % (model.__class__.__name__, name)
+        msg = f"Model '{model.__class__.__name__}' has no field named '{name}'"
         super().__init__(msg)

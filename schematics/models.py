@@ -366,7 +366,7 @@ class Model(metaclass=ModelMeta):
             try:
                 values[name] = field.mock(context)
             except MockCreationError as exc:
-                raise MockCreationError('%s: %s' % (name, exc.args[0]))
+                raise MockCreationError(f'{name}: {exc.args[0]}')
         values.update(overrides)
         return cls(values)
 
@@ -417,8 +417,8 @@ class Model(metaclass=ModelMeta):
         model = self.__class__.__name__
         info = self._repr_info()
         if info:
-            return '<%s: %s>' % (model, info)
-        return '<%s instance>' % model
+            return f"<{model}: {info}>"
+        return f"<{model} instance>"
 
     def _repr_info(self):
         """

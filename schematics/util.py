@@ -96,8 +96,8 @@ class ImportStringError(ImportError):
             if imported:
                 tracked.append((name, getattr(imported, '__file__', None)))
             else:
-                track = ['- %r found in %r.' % (n, i) for n, i in tracked]
-                track.append('- %r not found.' % name)
+                track = [f'- {n!r} found in {i!r}.' for n, i in tracked]
+                track.append(f'- {name!r} not found.')
                 msg = msg % (import_name, '\n'.join(track),
                              exception.__class__.__name__, str(exception))
                 break
@@ -105,8 +105,7 @@ class ImportStringError(ImportError):
         ImportError.__init__(self, msg)
 
     def __repr__(self):
-        return '<%s(%r, %r)>' % (self.__class__.__name__, self.import_name,
-                                 self.exception)
+        return f'<{self.__class__.__name__}({self.import_name!r}, {self.exception!r}).>'
 
 
 def import_string(import_name, silent=False):

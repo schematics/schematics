@@ -37,11 +37,11 @@ class Role(Set):
                 self.fields == other.fields)
 
     def __str__(self):
-        return '%s(%s)' % (self.function.__name__,
-                           ', '.join("'%s'" % f for f in self.fields))
+        fields = ', '.join(f"'{f}'" for f in self.fields)
+        return f"{self.function.__name__}({fields})"
 
     def __repr__(self):
-        return '<Role %s>' % str(self)
+        return f'<Role {self}>'
 
     # edit role fields
     def __add__(self, other):
