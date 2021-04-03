@@ -5,10 +5,10 @@ from collections import OrderedDict
 from .common import *
 from .datastructures import Context
 from .exceptions import *
+from .iteration import atom_filter, atoms
+from .role import Role
 from .undefined import Undefined
 from .util import listify
-from .iteration import atoms, atom_filter
-from .role import Role
 
 __all__ = []
 

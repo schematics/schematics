@@ -1,14 +1,14 @@
 """Schema validation."""
 
-import inspect
 import functools
+import inspect
 
 from .common import *
 from .datastructures import Context
-from .exceptions import FieldError, DataError
+from .exceptions import DataError, FieldError
+from .iteration import atoms
 from .transforms import import_loop, validation_converter
 from .undefined import Undefined
-from .iteration import atoms
 
 __all__ = []
 

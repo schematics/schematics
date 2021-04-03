@@ -2,18 +2,16 @@
 Core loop over the data structures according to a defined schema.
 """
 
+# optional type checking
+import typing
 from collections import namedtuple
 
 from .undefined import Undefined
 
-try:
-    # optional type checking
-    import typing
-    if typing.TYPE_CHECKING:
-        from typing import Mapping, Tuple, Callable, Optional, Any, Iterable
-        from .schema import Schema
-except ImportError:
-    pass
+if typing.TYPE_CHECKING:
+    from typing import Any, Callable, Iterable, Mapping, Optional, Tuple
+
+    from .schema import Schema
 
 Atom = namedtuple('Atom', ('name', 'field', 'value'))
 Atom.__new__.__defaults__ = (None,) * len(Atom._fields)

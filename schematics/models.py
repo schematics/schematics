@@ -1,23 +1,21 @@
 """Schematics models."""
 
-from copy import deepcopy
 import inspect
 from collections import OrderedDict
+from copy import deepcopy
 from types import FunctionType
 
-from .datastructures import Context, ChainMap, MappingProxyType
-from .exceptions import DataError, MockCreationError, UnknownFieldError, UndefinedValueError
+from . import schema
+from .datastructures import ChainMap, Context, MappingProxyType
+from .exceptions import (DataError, MockCreationError, UndefinedValueError,
+                         UnknownFieldError)
 from .iteration import atoms
-from .transforms import (
-    export_loop, convert,
-    to_native, to_primitive,
-)
-from .validate import validate, prepare_validator
+from .transforms import convert, export_loop, to_native, to_primitive
 from .types import BaseType
 from .types.serializable import Serializable
 from .undefined import Undefined
 from .util import get_ident
-from . import schema
+from .validate import prepare_validator, validate
 
 __all__ = []
 

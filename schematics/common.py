@@ -4,7 +4,6 @@ Define constants and expose the compatibility overrides to all modules.
 
 from .util import Constant
 
-
 NATIVE    = Constant('NATIVE',     0)
 PRIMITIVE = Constant('PRIMITIVE',  1)
 

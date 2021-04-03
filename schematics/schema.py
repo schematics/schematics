@@ -1,7 +1,6 @@
 
-import itertools
 import inspect
-
+import itertools
 from collections import OrderedDict
 
 from .common import DEFAULT, NONEMPTY

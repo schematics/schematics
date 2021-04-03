@@ -2,7 +2,6 @@
 
 from collections.abc import Mapping, Sequence
 
-
 __all__ = []
 
 
