@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import itertools
 import types
 from collections import OrderedDict

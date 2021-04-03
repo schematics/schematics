@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import copy
 from functools import partial
 from types import FunctionType

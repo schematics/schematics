@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 from schematics.models import Model
@@ -121,4 +120,3 @@ def test_strict_propagation():
     m1 = MainModel({
         'modelfield': {'submodelfield': {'extrafield':'qweasd'}},
         }, strict=False)
-

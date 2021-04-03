@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Schematics documentation build configuration file, created by
 # sphinx-quickstart on Thu Mar  7 13:45:09 2013.
 #

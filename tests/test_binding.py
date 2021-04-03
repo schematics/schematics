@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 from schematics.models import Model
@@ -149,4 +148,3 @@ def test_serializable_inheritance():
     assert B.s is B._serializables['s']
     assert A.s.type is not B.s.type
     assert A.s.fget is B.s.fget
-
