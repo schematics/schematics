@@ -164,8 +164,7 @@ class ModelType(CompoundType):
             )
         if context.convert and context.oo:
             return model_class(value, context=context)
-        else:
-            return convert(model_class._schema, value, context=context)
+        return convert(model_class._schema, value, context=context)
 
     def _export(self, value, format, context):
 
@@ -217,7 +216,7 @@ class ListType(CompoundType):
     def _coerce(self, value):
         if isinstance(value, list):
             return value
-        elif isinstance(value, (str, Mapping)):  # unacceptable iterables
+        if isinstance(value, (str, Mapping)):  # unacceptable iterables
             pass
         elif isinstance(value, Sequence):
             return value
@@ -445,7 +444,7 @@ class PolyModelType(CompoundType):
         if not matching_classes and fallback:
             return fallback
 
-        elif len(matching_classes) != 1:
+        if len(matching_classes) != 1:
             raise Exception("Got ambiguous input for polymorphic field")
 
         return matching_classes[0]

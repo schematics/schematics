@@ -279,8 +279,7 @@ class BaseType(metaclass=TypeMeta):
     def get_input_keys(self, mapping=None):
         if mapping:
             return self._get_input_keys(mapping)
-        else:
-            return self._input_keys
+        return self._input_keys
 
     def _get_input_keys(self, mapping=None):
         input_keys = [self.name]
@@ -850,14 +849,13 @@ class DateTimeType(BaseType):
 
         if self.tzd == "reject" or self.drop_tzinfo or self.tzd == "allow" and random.randrange(2):
             return dt
-        elif self.convert_tz:
+        if self.convert_tz:
             return dt.replace(tzinfo=self.UTC)
-        else:
-            return dt.replace(
-                tzinfo=self.offset_timezone(
-                    hours=random.randrange(-12, 15), minutes=random.choice([0, 30, 45])
-                )
+        return dt.replace(
+            tzinfo=self.offset_timezone(
+                hours=random.randrange(-12, 15), minutes=random.choice([0, 30, 45])
             )
+        )
 
     def to_native(self, value, context=None):
 
@@ -1118,10 +1116,8 @@ class GeoPointType(BaseType):
     @classmethod
     def _normalize(cls, value):
         if isinstance(value, dict):
-            # py3: ensure list and not view
             return list(value.values())
-        else:
-            return list(value)
+        return list(value)
 
     def to_native(self, value, context=None):
         """Make sure that a geo-value is of type (x, y)"""

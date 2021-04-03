@@ -54,8 +54,7 @@ def serializable(arg=None, **kwargs):
 
     if decorator:
         return Serializable(type=serialized_type, fget=func)
-    else:
-        return partial(Serializable, type=serialized_type)
+    return partial(Serializable, type=serialized_type)
 
 
 def calculated(type, fget, fset=None):
@@ -74,12 +73,10 @@ class Serializable:
     def __get__(self, instance, cls):
         if instance is None:
             return self
-        else:
-            value = self.fget(instance)
-            if value is Undefined:
-                raise UndefinedValueError(instance, self.name)
-            else:
-                return value
+        value = self.fget(instance)
+        if value is Undefined:
+            raise UndefinedValueError(instance, self.name)
+        return value
 
     def __set__(self, instance, value):
         if self.fset is None:

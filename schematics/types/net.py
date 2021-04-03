@@ -215,8 +215,7 @@ class URLType(StringType):
         if url["host6"]:
             if IPv6Type.valid_ip(url["host6"]):
                 return url
-            else:
-                return False
+            return False
         if url["host4"]:
             return url
 

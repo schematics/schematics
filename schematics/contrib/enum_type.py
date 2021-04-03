@@ -42,13 +42,12 @@ class EnumType(BaseType):
     def to_native(self, value, context=None):
         if isinstance(value, self._enum_class):
             return value
-        else:
-            by_name = self._find_by_name(value)
-            if by_name:
-                return by_name
-            by_value = self._find_by_value(value)
-            if by_value:
-                return by_value
+        by_name = self._find_by_name(value)
+        if by_name:
+            return by_name
+        by_value = self._find_by_value(value)
+        if by_value:
+            return by_value
         raise ConversionError(self.messages["convert"].format(value, self._enum_class))
 
     def _find_by_name(self, value):
@@ -71,7 +70,5 @@ class EnumType(BaseType):
         if isinstance(value, Enum):
             if self._use_values:
                 return value.value
-            else:
-                return value.name
-        else:
-            return str(value)
+            return value.name
+        return str(value)
