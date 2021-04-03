@@ -6,10 +6,7 @@ import sys
 
 from .compat import *
 
-try:
-    from collections.abc import Sequence  # PY3
-except ImportError:
-    from collections import Sequence  # PY2
+from collections.abc import Sequence
 
 try:
     from _thread import get_ident

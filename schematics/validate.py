@@ -120,10 +120,7 @@ def get_validation_context(**options):
 def prepare_validator(func, argcount):
     if isinstance(func, classmethod):
         func = func.__get__(object).__func__
-    try:
-        func_args = inspect.getfullargspec(func).args  # PY3
-    except AttributeError:
-        func_args = inspect.getargspec(func).args  # PY2
+    func_args = inspect.getfullargspec(func).args
     if len(func_args) < argcount:
         @functools.wraps(func)
         def newfunc(*args, **kwargs):

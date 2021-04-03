@@ -1,9 +1,6 @@
 from .compat import str_compat, repr_compat
 
-try:
-    from collections.abc import Set  # PY3
-except ImportError:
-    from collections import Set  # PY2
+from collections.abc import Set
 
 
 @repr_compat

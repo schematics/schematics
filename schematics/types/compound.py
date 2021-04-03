@@ -21,10 +21,7 @@ except ImportError:
 else:
     T = typing.TypeVar("T")
 
-try:
-    from collections.abc import Iterable, Sequence, Mapping  # PY3
-except ImportError:
-    from collections import Iterable, Sequence, Mapping  # PY2
+from collections.abc import Iterable, Sequence, Mapping
 
 __all__ = ['CompoundType', 'MultiType', 'ModelType', 'ListType', 'DictType',
     'PolyModelType']

@@ -5,14 +5,9 @@ from __future__ import unicode_literals, absolute_import
 import random
 import re
 
-try: # PY3
-    from urllib.request import urlopen
-    from urllib.parse import urlunsplit, quote as urlquote
-    from urllib.error import URLError
-except ImportError: # PY2
-    from urllib2 import urlopen, URLError
-    from urlparse import urlunsplit
-    from urllib import quote as urlquote
+from urllib.request import urlopen
+from urllib.parse import urlunsplit, quote as urlquote
+from urllib.error import URLError
 
 from ..common import *
 from ..exceptions import ValidationError, StopValidationError

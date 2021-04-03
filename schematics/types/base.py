@@ -26,10 +26,7 @@ try:
 except ImportError:
     pass
 
-try:
-    from collections.abc import Iterable  # PY3
-except ImportError:
-    from collections import Iterable  # PY2
+from collections.abc import Iterable
 
 
 __all__ = [
