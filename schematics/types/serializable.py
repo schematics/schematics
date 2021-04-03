@@ -8,7 +8,7 @@ from ..transforms import get_import_context
 from ..undefined import Undefined
 from .base import BaseType, TypeMeta
 
-__all__ = ['calculated', 'serializable', 'Serializable']
+__all__ = ["calculated", "serializable", "Serializable"]
 
 
 def serializable(arg=None, **kwargs):
@@ -45,8 +45,9 @@ def serializable(arg=None, **kwargs):
     if isinstance(serialized_type, BaseType):
         # `serialized_type` is already a type instance,
         # so update it with the options found in `kwargs`.
-        serialized_type._set_export_level(kwargs.pop('export_level', None),
-                                          kwargs.pop("serialize_when_none", None))
+        serialized_type._set_export_level(
+            kwargs.pop("export_level", None), kwargs.pop("serialize_when_none", None)
+        )
         for name, value in kwargs.items():
             setattr(serialized_type, name, value)
     else:
@@ -63,7 +64,6 @@ def calculated(type, fget, fset=None):
 
 
 class Serializable:
-
     def __init__(self, fget, type, fset=None):
         self.type = type
         self.fget = fget
@@ -100,6 +100,6 @@ class Serializable:
 
     def __repr__(self):
         type_ = f"{self.__class__.__name__}({self._repr_info() or ''}) instance"
-        model = f" on {self.owner_model.__name__}" if self.owner_model else ''
-        field = f" as '{self.name}'" if self.name else ''
+        model = f" on {self.owner_model.__name__}" if self.owner_model else ""
+        field = f" as '{self.name}'" if self.name else ""
         return f"<{type_}{mode}{field}>"

@@ -1,4 +1,3 @@
-
 import inspect
 import itertools
 from collections import OrderedDict
@@ -9,12 +8,11 @@ from .types.serializable import Serializable
 
 
 class Schema:
-
     def __init__(self, name, *fields, **kw):
         self.name = name
-        self.model = kw.get('model', None)
-        self.options = kw.get('options', SchemaOptions())
-        self.validators = kw.get('validators', {})
+        self.model = kw.get("model", None)
+        self.options = kw.get("options", SchemaOptions())
+        self.validators = kw.get("validators", {})
         self.fields = OrderedDict()
         for field in fields:
             self.append_field(field)
@@ -29,9 +27,15 @@ class Schema:
 
 
 class SchemaOptions:
-
-    def __init__(self, namespace=None, roles=None, export_level=DEFAULT,
-            serialize_when_none=None, export_order=False, extras=None):
+    def __init__(
+        self,
+        namespace=None,
+        roles=None,
+        export_level=DEFAULT,
+        serialize_when_none=None,
+        export_order=False,
+        extras=None,
+    ):
         self.namespace = namespace
         self.roles = roles or {}
         self.export_level = export_level
@@ -53,7 +57,7 @@ class SchemaOptions:
 
 class Field:
 
-    __slots__ = ('name', 'type')
+    __slots__ = ("name", "type")
 
     def __init__(self, name, field_type):
         assert isinstance(field_type, (BaseType, Serializable))
@@ -61,4 +65,4 @@ class Field:
         self.type = field_type
 
     def is_settable(self):
-        return getattr(self.type, 'fset', None) is not None
+        return getattr(self.type, "fset", None) is not None

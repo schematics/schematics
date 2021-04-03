@@ -9,7 +9,7 @@ from ..exceptions import ConversionError
 from ..translator import _
 from ..types import BaseType
 
-__all__ = ['ObjectIdType']
+__all__ = ["ObjectIdType"]
 
 
 class ObjectIdType(BaseType):
@@ -22,7 +22,7 @@ class ObjectIdType(BaseType):
     """
 
     MESSAGES = {
-        'convert': _("Couldn't interpret value as an ObjectId."),
+        "convert": _("Couldn't interpret value as an ObjectId."),
     }
 
     def __init__(self, auto_fill=False, **kwargs):
@@ -34,7 +34,7 @@ class ObjectIdType(BaseType):
             try:
                 value = bson.objectid.ObjectId(str(value))
             except bson.objectid.InvalidId:
-                raise ConversionError(self.messages['convert'])
+                raise ConversionError(self.messages["convert"])
         return value
 
     def to_primitive(self, value, context=None):

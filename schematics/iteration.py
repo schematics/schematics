@@ -13,7 +13,7 @@ if typing.TYPE_CHECKING:
 
     from .schema import Schema
 
-Atom = namedtuple('Atom', ('name', 'field', 'value'))
+Atom = namedtuple("Atom", ("name", "field", "value"))
 Atom.__new__.__defaults__ = (None,) * len(Atom._fields)
 
 
@@ -53,11 +53,11 @@ def atoms(schema, mapping, keys=tuple(Atom._fields), filter=None):
     :rtype: Iterable[Atom]
     """
     if not set(keys).issubset(Atom._fields):
-        raise TypeError('invalid key specified')
+        raise TypeError("invalid key specified")
 
-    has_name = 'name' in keys
-    has_field = 'field' in keys
-    has_value = (mapping is not None) and ('value' in keys)
+    has_name = "name" in keys
+    has_field = "field" in keys
+    has_value = (mapping is not None) and ("value" in keys)
 
     for field_name, field in schema_from(schema).fields.items():
         value = Undefined
@@ -71,7 +71,8 @@ def atoms(schema, mapping, keys=tuple(Atom._fields), filter=None):
         atom_tuple = Atom(
             name=field_name if has_name else None,
             field=field if has_field else None,
-            value=value)
+            value=value,
+        )
         if filter is None:
             yield atom_tuple
         elif filter(atom_tuple):
@@ -83,7 +84,7 @@ class atom_filter:
 
     @staticmethod
     def has_setter(atom):
-        return getattr(atom.field, 'fset', None) is not None
+        return getattr(atom.field, "fset", None) is not None
 
     @staticmethod
     def not_setter(atom):
