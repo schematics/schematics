@@ -148,7 +148,7 @@ class ModelDict(ChainMap):
         self._converted = converted if converted is not None else {}
         self.__valid = valid if valid is not None else {}
         self._valid = MappingProxyType(self.__valid)
-        super(ModelDict, self).__init__(self._unsafe, self._converted, self._valid)
+        super().__init__(self._unsafe, self._converted, self._valid)
 
     @property
     def unsafe(self):

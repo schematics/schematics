@@ -30,7 +30,7 @@ class BaseError(Exception):
         mutate BaseError's error list or dict after initialization.
         """
         errors = self._freeze(errors)
-        super(BaseError, self).__init__(errors)
+        super().__init__(errors)
 
     @property
     def errors(self):
@@ -172,7 +172,7 @@ class FieldError(BaseError, Sequence):
         for error in errors:
             error.type = self.type or type(self)
 
-        super(FieldError, self).__init__(errors)
+        super().__init__(errors)
 
     def __contains__(self, value):
         return value in self.errors
@@ -212,13 +212,13 @@ class CompoundError(BaseError):
                 errors[key] = value.errors
             else:
                 errors[key] = value
-        super(CompoundError, self).__init__(errors)
+        super().__init__(errors)
 
 
 class DataError(CompoundError):
 
     def __init__(self, errors, partial_data=None):
-        super(DataError, self).__init__(errors)
+        super().__init__(errors)
         self.partial_data = partial_data
 
 
@@ -231,11 +231,11 @@ class UndefinedValueError(AttributeError, KeyError):
     """Exception raised when accessing a field with an undefined value."""
     def __init__(self, model, name):
         msg = "'%s' instance has no value for field '%s'" % (model.__class__.__name__, name)
-        super(UndefinedValueError, self).__init__(msg)
+        super().__init__(msg)
 
 
 class UnknownFieldError(KeyError):
     """Exception raised when attempting to access a nonexistent field using the subscription syntax."""
     def __init__(self, model, name):
         msg = "Model '%s' has no field named '%s'" % (model.__class__.__name__, name)
-        super(UnknownFieldError, self).__init__(msg)
+        super().__init__(msg)
