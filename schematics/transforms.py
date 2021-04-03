@@ -17,6 +17,12 @@ __all__ = []
 # Transform loops
 ###
 
+def schema_from(obj):
+    try:
+        return obj._schema
+    except AttributeError:
+        return obj
+
 
 def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_data=None,
                 mapping=None, partial=False, strict=False, init_values=False,
@@ -96,7 +102,7 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
 
     if got_data:
         # Determine all acceptable field input names
-        all_fields = schema._valid_input_keys
+        all_fields = schema_from(schema).valid_input_keys
         if context.mapping:
             mapped_keys = (set(itertools.chain(*(
                           listify(input_keys) for target_key, input_keys in context.mapping.items()

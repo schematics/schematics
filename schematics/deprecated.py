@@ -68,10 +68,10 @@ class class_property(property):
 class ModelCompatibilityMixin:
     """Compatibility layer for previous deprecated Schematics Model API."""
 
-    @class_property
-    @deprecated
-    def _valid_input_keys(cls):
-        return cls._schema.valid_input_keys
+    # @class_property
+    # @deprecated
+    # def _valid_input_keys(cls):
+    #     return cls._schema.valid_input_keys
 
     @class_property
     @deprecated
