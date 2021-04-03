@@ -3,7 +3,6 @@
 import functools
 import inspect
 
-from .common import *
 from .datastructures import Context
 from .exceptions import DataError, FieldError
 from .iteration import atoms

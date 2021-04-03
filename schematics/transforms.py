@@ -2,9 +2,9 @@ import itertools
 import types
 from collections import OrderedDict
 
-from .common import *
+from .common import DEFAULT, DROP, NATIVE, NONEMPTY, NOT_NONE, PRIMITIVE
 from .datastructures import Context
-from .exceptions import *
+from .exceptions import CompoundError, DataError, FieldError
 from .iteration import atom_filter, atoms
 from .role import Role
 from .undefined import Undefined

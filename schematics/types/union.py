@@ -1,7 +1,6 @@
 import inspect
 from collections import OrderedDict
 
-from ..common import *
 from ..exceptions import ConversionError
 from ..transforms import get_export_context, get_import_context
 from ..translator import _

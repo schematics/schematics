@@ -5,7 +5,6 @@ from urllib.parse import quote as urlquote
 from urllib.parse import urlunsplit
 from urllib.request import urlopen
 
-from ..common import *
 from ..exceptions import StopValidationError, ValidationError
 from ..translator import _
 from .base import StringType, fill_template

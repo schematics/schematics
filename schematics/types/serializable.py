@@ -2,9 +2,7 @@ import copy
 from functools import partial
 from types import FunctionType
 
-from ..common import *
-from ..exceptions import *
-from ..transforms import get_import_context
+from ..exceptions import UndefinedValueError
 from ..undefined import Undefined
 from .base import BaseType, TypeMeta
 

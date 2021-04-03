@@ -1,7 +1,6 @@
 import json
 from collections.abc import Mapping, Sequence
 
-from .common import *
 from .datastructures import FrozenDict, FrozenList
 from .translator import LazyText
 
