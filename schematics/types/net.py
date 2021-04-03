@@ -1,14 +1,13 @@
 import random
 import re
-
-from urllib.request import urlopen
-from urllib.parse import urlunsplit, quote as urlquote
 from urllib.error import URLError
+from urllib.parse import quote as urlquote
+from urllib.parse import urlunsplit
+from urllib.request import urlopen
 
 from ..common import *
-from ..exceptions import ValidationError, StopValidationError
+from ..exceptions import StopValidationError, ValidationError
 from ..translator import _
-
 from .base import StringType, fill_template
 
 __all__ = ['IPAddressType', 'IPv4Type', 'IPv6Type', 'MACAddressType', 'URLType', 'EmailType']

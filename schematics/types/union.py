@@ -3,8 +3,8 @@ from collections import OrderedDict
 
 from ..common import *
 from ..exceptions import ConversionError
+from ..transforms import get_export_context, get_import_context
 from ..translator import _
-from ..transforms import get_import_context, get_export_context
 from .base import BaseType
 
 __all__ = ['UnionType']

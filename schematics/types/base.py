@@ -14,7 +14,7 @@ from ..exceptions import *
 from ..translator import _
 from ..undefined import Undefined
 from ..util import listify
-from ..validate import prepare_validator, get_validation_context
+from ..validate import get_validation_context, prepare_validator
 
 try:
     import typing
@@ -22,7 +22,6 @@ except ImportError:
     pass
 
 from collections.abc import Iterable
-
 
 __all__ = [
     'BaseType', 'UUIDType', 'StringType', 'MultilingualStringType',

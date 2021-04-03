@@ -3,9 +3,13 @@ import itertools
 from ..common import *
 from ..exceptions import *
 from ..transforms import (
-    convert, export_loop,
-    get_import_context, get_export_context,
-    to_native_converter, to_primitive_converter)
+    convert,
+    export_loop,
+    get_export_context,
+    get_import_context,
+    to_native_converter,
+    to_primitive_converter,
+)
 from ..translator import _
 from ..util import get_all_subclasses, import_string
 from .base import BaseType, get_value_in
@@ -17,7 +21,7 @@ except ImportError:
 else:
     T = typing.TypeVar("T")
 
-from collections.abc import Iterable, Sequence, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 
 __all__ = ['CompoundType', 'MultiType', 'ModelType', 'ListType', 'DictType',
     'PolyModelType']

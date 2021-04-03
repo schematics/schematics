@@ -7,8 +7,12 @@ from types import FunctionType
 
 from . import schema
 from .datastructures import ChainMap, Context, MappingProxyType
-from .exceptions import (DataError, MockCreationError, UndefinedValueError,
-                         UnknownFieldError)
+from .exceptions import (
+    DataError,
+    MockCreationError,
+    UndefinedValueError,
+    UnknownFieldError,
+)
 from .iteration import atoms
 from .transforms import convert, export_loop, to_native, to_primitive
 from .types import BaseType

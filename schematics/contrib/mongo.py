@@ -5,9 +5,9 @@ a part of the pymongo distribution.
 import bson
 
 from ..common import *
+from ..exceptions import ConversionError
 from ..translator import _
 from ..types import BaseType
-from ..exceptions import ConversionError
 
 __all__ = ['ObjectIdType']
 

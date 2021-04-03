@@ -4,9 +4,8 @@ from types import FunctionType
 
 from ..common import *
 from ..exceptions import *
-from ..undefined import Undefined
 from ..transforms import get_import_context
-
+from ..undefined import Undefined
 from .base import BaseType, TypeMeta
 
 __all__ = ['calculated', 'serializable', 'Serializable']

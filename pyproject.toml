@@ -37,6 +37,7 @@ python = "^3.6"
 
 [tool.poetry.dev-dependencies]
 coverage = "^5.5"
+isort = "^5.8.0"
 pymongo = "^3.11.3"
 pytest = "^6.2.2"
 python-dateutil = "^2.8.1"
@@ -45,3 +46,6 @@ tox = "^3.23.0"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
