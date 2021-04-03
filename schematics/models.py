@@ -8,7 +8,6 @@ from collections import OrderedDict
 from types import FunctionType
 
 from .common import *
-from .compat import str_compat, repr_compat, _dict
 from .datastructures import Context, ChainMap, MappingProxyType
 from .exceptions import *
 from .iteration import atoms
@@ -91,7 +90,7 @@ class ModelMeta(type):
                 validator_functions.update(base._schema.validators)
 
         # Parse this class's attributes into schema structures
-        for key, value in iteritems(attrs):
+        for key, value in attrs.items():
             if key.startswith('validate_') and isinstance(value, (FunctionType, classmethod)):
                 validator_functions[key[9:]] = prepare_validator(value, 4)
             if isinstance(value, BaseType):
@@ -104,21 +103,20 @@ class ModelMeta(type):
             (kv for kv in fields.items()),
             key=lambda i: i[1]._position_hint,
         ))
-        for key, field in iteritems(fields):
+        for key, field in fields.items():
             if isinstance(field, BaseType):
                 attrs[key] = FieldDescriptor(key)
             elif isinstance(field, Serializable):
                 attrs[key] = field
 
         klass = type.__new__(mcs, name, bases, attrs)
-        klass = repr_compat(str_compat(klass))
 
         # Parse schema options
         options = mcs._read_options(name, bases, attrs, options_members)
 
         # Parse meta data into new schema
         klass._schema = schema.Schema(name, model=klass, options=options,
-            validators=validator_functions, *(schema.Field(k, t) for k, t in iteritems(fields)))
+            validators=validator_functions, *(schema.Field(k, t) for k, t in fields.items()))
 
         return klass
 
@@ -198,8 +196,7 @@ class ModelDict(ChainMap):
         return repr(dict(self))
 
 
-@metaclass(ModelMeta)
-class Model(object):
+class Model(metaclass=ModelMeta):
 
     """
     Enclosure for fields and validation. Same pattern deployed by Django
@@ -272,7 +269,7 @@ class Model(object):
         :param raw_data:
             The data to be imported.
         """
-        data = self._convert(raw_data, trusted_data=_dict(self), recursive=recursive, **kwargs)
+        data = self._convert(raw_data, trusted_data=dict(self), recursive=recursive, **kwargs)
         self._data.converted.update(data)
         if kwargs.get('validate'):
             self.validate(convert=False)
@@ -286,7 +283,7 @@ class Model(object):
         :param raw_data:
             New data to be imported and converted
         """
-        raw_data = _dict(raw_data) if raw_data else self._data.converted
+        raw_data  ={key:raw_data[key] for key in raw_data} if raw_data else self._data.converted
         kwargs['trusted_data'] = kwargs.get('trusted_data') or {}
         kwargs['convert'] = getattr(context, 'convert', kwargs.get('convert', True))
         if self._data.unsafe:

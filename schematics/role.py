@@ -1,10 +1,6 @@
-from .compat import str_compat, repr_compat
-
 from collections.abc import Set
 
 
-@repr_compat
-@str_compat
 class Role(Set):
 
     """

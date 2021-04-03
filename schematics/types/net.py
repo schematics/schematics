@@ -121,7 +121,7 @@ PCHAR = SUB_DELIMS | UNRESERVED | set('%:@')
 QUERY_EXTRAS = set('[]') # nonstandard
 
 VALID_CHARS = GEN_DELIMS | SUB_DELIMS | UNRESERVED | set('%')
-VALID_CHAR_STRING = py_native_string(str.join('', VALID_CHARS))
+VALID_CHAR_STRING = ''.join(VALID_CHARS)
 UNSAFE_CHAR_STRING = '\x00-\x20<>{}|"`\\^\x7F-\x9F'
 
 def _chrcls(allowed_chars):

@@ -3,8 +3,6 @@
 
 from __future__ import unicode_literals, absolute_import
 
-from .compat import *
-
 from collections.abc import Mapping, Sequence
 
 

@@ -5,7 +5,6 @@ from __future__ import unicode_literals, absolute_import
 import json
 
 from .common import *
-from .compat import string_type, str_compat
 from .datastructures import FrozenDict, FrozenList
 from .translator import LazyText
 
@@ -18,7 +17,6 @@ __all__ = [
     'MockCreationError', 'UndefinedValueError', 'UnknownFieldError']
 
 
-@str_compat
 class BaseError(Exception):
 
     def __init__(self, errors):
@@ -64,7 +62,7 @@ class BaseError(Exception):
     @classmethod
     def _to_primitive(cls, obj):
         """ recursive to_primitive for basic data types. """
-        if isinstance(obj, string_type):
+        if isinstance(obj, str):
             return obj
         if isinstance(obj, Sequence):
             return [cls._to_primitive(e) for e in obj]
@@ -95,7 +93,6 @@ class BaseError(Exception):
         return not (self == other)
 
 
-@str_compat
 class ErrorMessage(object):
 
     def __init__(self, summary, info=None):
@@ -119,7 +116,7 @@ class ErrorMessage(object):
     def _info_as_str(self):
         if isinstance(self.info, int):
             return str(self.info)
-        elif isinstance(self.info, string_type):
+        elif isinstance(self.info, str):
             return '"%s"' % self.info
         else:
             return str(self.info)
@@ -131,7 +128,7 @@ class ErrorMessage(object):
                 self.type == other.type and
                 self.info == other.info
             )
-        elif isinstance(other, string_type):
+        elif isinstance(other, str):
             return self.summary == other
         else:
             return False
@@ -165,7 +162,7 @@ class FieldError(BaseError, Sequence):
             items = args
         errors = []
         for item in items:
-            if isinstance(item, (string_type, LazyText)):
+            if isinstance(item, (str, LazyText)):
                 errors.append(ErrorMessage(str(item)))
             elif isinstance(item, tuple):
                 errors.append(ErrorMessage(*item))

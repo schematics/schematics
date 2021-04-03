@@ -4,8 +4,6 @@ from __future__ import unicode_literals, absolute_import
 
 import sys
 
-from .compat import *
-
 from collections.abc import Sequence
 
 try:
@@ -52,7 +50,7 @@ def listify(value):
         return value
     elif value is None:
         return []
-    elif isinstance(value, string_type):
+    elif isinstance(value, str):
         return [value]
     elif isinstance(value, Sequence):
         return list(value)
@@ -160,7 +158,4 @@ def import_string(import_name, silent=False):
 
     except ImportError as e:
         if not silent:
-            reraise(
-                ImportStringError,
-                ImportStringError(import_name, e),
-                sys.exc_info()[2])
+            raise ImportStringError(import_name, e) from e

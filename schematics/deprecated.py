@@ -4,7 +4,6 @@ import functools
 
 from collections import OrderedDict
 
-from .compat import iteritems
 from .types.serializable import Serializable
 from . import transforms
 
@@ -56,7 +55,7 @@ class SchemaCompatibilityMixin(object):
     @property
     @deprecated
     def _serializables(self):
-        return OrderedDict((k, t) for k, t in iteritems(self.fields) if isinstance(t, Serializable))
+        return OrderedDict((k, t) for k, t in self.fields.items() if isinstance(t, Serializable))
 
 
 class class_property(property):
@@ -92,7 +91,7 @@ class ModelCompatibilityMixin(object):
     @class_property
     @deprecated
     def _field_list(cls):
-        return list(iteritems(cls._schema.fields))
+        return list(cls._schema.fields.items())
 
     @class_property
     @deprecated

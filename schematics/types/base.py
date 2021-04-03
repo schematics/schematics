@@ -116,8 +116,7 @@ class TypeMeta(type):
         return type.__new__(mcs, name, bases, attrs)
 
 
-@metaclass(TypeMeta)
-class BaseType(object):
+class BaseType(metaclass=TypeMeta):
 
     """A base class for Types in a Schematics model. Instances of this
     class may be added to subclasses of ``Model`` to define a model schema.
@@ -186,7 +185,7 @@ class BaseType(object):
         self.required = required
         self._default = default
         self.serialized_name = serialized_name
-        if choices and (isinstance(choices, string_type) or not isinstance(choices, Iterable)):
+        if choices and (isinstance(choices, str) or not isinstance(choices, Iterable)):
             raise TypeError('"choices" must be a non-string Iterable')
         self.choices = choices
         self.deserialize_from = listify(deserialize_from)
@@ -477,7 +476,7 @@ class NumberType(BaseType):
                 return native_value
             if not self.strict and native_value == value: # Match numeric types.
                 return native_value
-            if isinstance(value, (string_type, numbers.Integral)):
+            if isinstance(value, (str, numbers.Integral)):
                 return native_value
 
         raise ConversionError(self.messages['number_coerce']
@@ -542,7 +541,7 @@ class DecimalType(NumberType):
         if isinstance(value, decimal.Decimal):
             return value
 
-        if not isinstance(value, (string_type, bool)):
+        if not isinstance(value, (str, bool)):
             value = str(value)
         try:
             value = decimal.Decimal(value)
@@ -615,7 +614,7 @@ class BooleanType(BaseType):
         return random.choice([True, False])
 
     def to_native(self, value, context=None):
-        if isinstance(value, string_type):
+        if isinstance(value, str):
             if value in self.TRUE_VALUES:
                 value = True
             elif value in self.FALSE_VALUES:
@@ -1144,7 +1143,7 @@ class MultilingualStringType(BaseType):
             if not locale:
                 continue
 
-            if isinstance(locale, string_type):
+            if isinstance(locale, str):
                 possible_locales.append(locale)
             else:
                 possible_locales.extend(locale)

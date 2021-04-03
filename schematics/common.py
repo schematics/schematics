@@ -4,8 +4,6 @@ Define constants and expose the compatibility overrides to all modules.
 
 from __future__ import unicode_literals, absolute_import
 
-from .compat import *
-from .compat import __all__ as compat_exports
 from .util import Constant
 
 
@@ -20,4 +18,4 @@ ALL       = Constant('ALL',       99)
 
 
 __all__ = ['NATIVE', 'PRIMITIVE',
-    'DROP', 'NONEMPTY', 'NOT_NONE', 'DEFAULT', 'ALL'] + compat_exports
+    'DROP', 'NONEMPTY', 'NOT_NONE', 'DEFAULT', 'ALL']

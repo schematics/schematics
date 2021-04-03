@@ -5,7 +5,6 @@ Core loop over the data structures according to a defined schema.
 from __future__ import unicode_literals, absolute_import
 from collections import namedtuple
 
-from .compat import iteritems
 from .undefined import Undefined
 
 try:
@@ -56,7 +55,7 @@ def atoms(schema, mapping, keys=tuple(Atom._fields), filter=None):
     has_field = 'field' in keys
     has_value = (mapping is not None) and ('value' in keys)
 
-    for field_name, field in iteritems(schema.fields):
+    for field_name, field in schema.fields.items():
         value = Undefined
 
         if has_value:

@@ -112,7 +112,7 @@ class ModelType(CompoundType):
         if isinstance(model_spec, ModelMeta):
             self._model_class = model_spec
             self.model_name = self.model_class.__name__
-        elif isinstance(model_spec, string_type):
+        elif isinstance(model_spec, str):
             self._model_class = None
             self.model_name = model_spec
         else:
@@ -207,7 +207,7 @@ class ListType(CompoundType):
     def _coerce(self, value):
         if isinstance(value, list):
             return value
-        elif isinstance(value, (string_type, Mapping)): # unacceptable iterables
+        elif isinstance(value, (str, Mapping)): # unacceptable iterables
             pass
         elif isinstance(value, Sequence):
             return value
@@ -300,7 +300,7 @@ class DictType(CompoundType):
 
         data = {}
         errors = {}
-        for k, v in iteritems(value):
+        for k, v in value.items():
             try:
                 data[self.coerce_key(k)] = context.field_converter(self.field, v, context)
             except BaseError as exc:
@@ -318,7 +318,7 @@ class DictType(CompoundType):
         _export_level = self.field.get_export_level(context)
         if _export_level == DROP:
             return data
-        for key, value in iteritems(dict_instance):
+        for key, value in dict_instance.items():
             shaped = self.field.export(value, format, context)
             if shaped is None:
                 if _export_level <= NOT_NONE:
@@ -338,7 +338,7 @@ class PolyModelType(CompoundType):
 
     def __init__(self, model_spec, **kwargs):
 
-        if isinstance(model_spec, (ModelMeta, string_type)):
+        if isinstance(model_spec, (ModelMeta, str)):
             self.model_classes = (model_spec,)
             allow_subclasses = True
         elif isinstance(model_spec, Iterable):
@@ -357,7 +357,7 @@ class PolyModelType(CompoundType):
         # Resolve possible name-based model references.
         resolved_classes = []
         for m in self.model_classes:
-            if isinstance(m, string_type):
+            if isinstance(m, str):
                 if m == owner_model.__name__:
                     resolved_classes.append(owner_model)
                 else:

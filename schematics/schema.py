@@ -4,7 +4,6 @@ import inspect
 
 from collections import OrderedDict
 
-from .compat import itervalues
 from .common import DEFAULT, NONEMPTY
 from .types import BaseType
 from .types.serializable import Serializable
@@ -23,7 +22,7 @@ class Schema(object):
 
     @property
     def valid_input_keys(self):
-        return set(itertools.chain(*(t.get_input_keys() for t in itervalues(self.fields))))
+        return set(itertools.chain(*(t.get_input_keys() for t in self.fields.values())))
 
     def append_field(self, field):
         self.fields[field.name] = field.type
