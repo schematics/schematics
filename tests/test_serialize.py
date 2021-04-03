@@ -891,7 +891,7 @@ def test_role_set_operations():
     user = User(
         dict(
             (k, v) for k, v in data.items()
-            if k in User._options.roles['create']  # filter by 'create' role
+            if k in User._schema.options.roles['create']  # filter by 'create' role
         )
     )
 

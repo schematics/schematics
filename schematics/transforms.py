@@ -248,19 +248,19 @@ def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise
 
     instance_or_dict = context.field_converter.pre(schema, instance_or_dict, context)
 
-    if schema._options.export_order:
+    if schema_from(schema).options.export_order:
         data = OrderedDict()
     else:
         data = {}
 
     filter_func = (context.role if callable(context.role) else
-        schema._options.roles.get(context.role))
+        schema_from(schema).options.roles.get(context.role))
     if filter_func is None:
         if context.role and context.raise_error_on_role:
             error_msg = '%s Model has no role "%s"'
             raise ValueError(error_msg % (schema.__name__, context.role))
         else:
-            filter_func = schema._options.roles.get("default")
+            filter_func = schema_from(schema).options.roles.get("default")
 
     _field_converter = context.field_converter
 

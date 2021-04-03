@@ -73,10 +73,10 @@ class ModelCompatibilityMixin:
     # def _valid_input_keys(cls):
     #     return cls._schema.valid_input_keys
 
-    @class_property
-    @deprecated
-    def _options(cls):
-        return cls._schema.options
+    # @class_property
+    # @deprecated
+    # def _options(cls):
+    #     return cls._schema.options
 
     @class_property
     @deprecated
