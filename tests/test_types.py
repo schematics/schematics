@@ -573,7 +573,7 @@ def test_geopoint_to_native():
     with pytest.raises(ConversionError):
         native = geo.to_native('-20, 18')
 
-    class Point(object):
+    class Point:
 
         def __len__(self):
             return 2

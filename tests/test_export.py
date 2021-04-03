@@ -39,7 +39,7 @@ natives = { 'intfield': 3,
             'stringfield': 'foobar',
             'dtfield': datetime.datetime(2015, 11, 26, 9),
             'utcfield': datetime.datetime(2015, 11, 26, 7),
-            'modelfield': { 
+            'modelfield': {
                 'floatfield': 1.0,
                 'uuidfield': uuid.UUID('54020382-291e-4192-b370-4850493ac5bc') }}
 
@@ -72,7 +72,7 @@ def test_standalone_field():
     assert field.to_primitive(converted) == [primitives]
 
 
-class Foo(object):
+class Foo:
     def __init__(self, x, y):
         self.x, self.y = x, y
     def __eq__(self, other):
@@ -170,4 +170,3 @@ def test_export_order():
         a = StringType()
 
     assert list(O().to_primitive().keys()) == ['b', 'f', 'c', 'e', 'd', 'a']
-

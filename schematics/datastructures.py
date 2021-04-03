@@ -9,7 +9,7 @@ from collections.abc import Mapping, Sequence
 __all__ = []
 
 
-class DataObject(object):
+class DataObject:
     """
     An object for holding data as attributes.
 

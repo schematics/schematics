@@ -24,7 +24,7 @@ def deprecated(func):
     return new_func
 
 
-class SchemaCompatibilityMixin(object):
+class SchemaCompatibilityMixin:
     """Compatibility layer for previous deprecated Schematics Model API."""
 
     @property
@@ -65,7 +65,7 @@ class class_property(property):
         return super(class_property, self).__get__(instance, type)
 
 
-class ModelCompatibilityMixin(object):
+class ModelCompatibilityMixin:
     """Compatibility layer for previous deprecated Schematics Model API."""
 
     @class_property
@@ -110,7 +110,7 @@ class ModelCompatibilityMixin(object):
             context=context, **kw)
 
 
-class BaseErrorV1Mixin(object):
+class BaseErrorV1Mixin:
 
     @property
     @deprecated

@@ -53,7 +53,7 @@ def test_undefined():
 
 def test_setdefault():
 
-    class A(object):
+    class A:
         y = 2
         z = None
 
@@ -114,4 +114,3 @@ def test_constant():
 
     with pytest.raises(ValueError):
         C = Constant('C', 'foo')
-

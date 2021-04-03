@@ -67,7 +67,7 @@ def calculated(type, fget, fset=None):
     return Serializable(type=type, fget=fget, fset=fset)
 
 
-class Serializable(object):
+class Serializable:
 
     def __init__(self, fget, type, fset=None):
         self.type = type

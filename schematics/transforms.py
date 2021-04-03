@@ -334,7 +334,7 @@ def blacklist(*field_list):
 ###
 
 
-class Converter(object):
+class Converter:
 
     def __call__(self, field, value, context):
         raise NotImplementedError

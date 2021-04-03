@@ -25,7 +25,7 @@ from . import schema
 __all__ = []
 
 
-class FieldDescriptor(object):
+class FieldDescriptor:
     """
     ``FieldDescriptor`` instances serve as field accessors on models.
     """

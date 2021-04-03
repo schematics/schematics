@@ -93,7 +93,7 @@ class BaseError(Exception):
         return not (self == other)
 
 
-class ErrorMessage(object):
+class ErrorMessage:
 
     def __init__(self, summary, info=None):
         self.type = None

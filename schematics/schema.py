@@ -9,7 +9,7 @@ from .types import BaseType
 from .types.serializable import Serializable
 
 
-class Schema(object):
+class Schema:
 
     def __init__(self, name, *fields, **kw):
         self.name = name
@@ -29,7 +29,7 @@ class Schema(object):
         field.type._setup(field.name, self.model)  # TODO: remove model reference
 
 
-class SchemaOptions(object):
+class SchemaOptions:
 
     def __init__(self, namespace=None, roles=None, export_level=DEFAULT,
             serialize_when_none=None, export_order=False, extras=None):
@@ -52,7 +52,7 @@ class SchemaOptions(object):
                 yield key, value
 
 
-class Field(object):
+class Field:
 
     __slots__ = ('name', 'type')
 
