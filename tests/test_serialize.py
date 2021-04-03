@@ -873,22 +873,23 @@ def test_role_set_operations():
         "password": "dolphins",
     }
 
-    def test_md5_type(self):
-        class M(Model):
-            md5 = MD5Type()
 
-        import hashlib
+def test_md5_type():
+    class M(Model):
+        md5 = MD5Type()
 
-        myhash = hashlib.md5("hashthis").hexdigest()
-        m = M()
-        m.md5 = myhash
+    import hashlib
 
-        self.assertEqual(m.md5, myhash)
-        d = m.serialize()
-        self.assertEqual(d, {"md5": myhash})
+    myhash = hashlib.md5(b"hashthis").hexdigest()
+    m = M()
+    m.md5 = myhash
 
-        m2 = M(d)
-        self.assertEqual(m2.md5, myhash)
+    assert m.md5 == myhash
+    d = m.serialize()
+    assert d == {"md5": myhash}
+
+    m2 = M(d)
+    assert m2.md5 == myhash
 
 
 def test_serializable_with_list_and_default_role():
