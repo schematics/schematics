@@ -3,7 +3,7 @@ import itertools
 from collections import OrderedDict
 
 from .common import DEFAULT, NONEMPTY
-from .types import BaseType
+from .types.base import BaseType
 from .types.serializable import Serializable
 
 

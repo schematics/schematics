@@ -1,5 +1,6 @@
 import json
 from collections.abc import Mapping, Sequence
+from typing import Optional, Type
 
 from .datastructures import FrozenDict, FrozenList
 from .translator import LazyText
@@ -129,7 +130,7 @@ class ErrorMessage:
 
 class FieldError(BaseError, Sequence):
 
-    type = None
+    type: Optional[Type[Exception]] = None
 
     def __init__(self, *args, **kwargs):
 

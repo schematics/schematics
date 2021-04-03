@@ -2,19 +2,27 @@
 Core loop over the data structures according to a defined schema.
 """
 
-# optional type checking
-import typing
-from collections import namedtuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Iterable,
+    Mapping,
+    NamedTuple,
+    Optional,
+    Tuple,
+)
 
 from .undefined import Undefined
 
-if typing.TYPE_CHECKING:
-    from typing import Callable, Iterable, Mapping, Optional, Tuple
+if TYPE_CHECKING:
+    from schematics.schema import Schema
 
-    from .schema import Schema
 
-Atom = namedtuple("Atom", ("name", "field", "value"))
-Atom.__new__.__defaults__ = (None,) * len(Atom._fields)
+class Atom(NamedTuple):
+    name: Optional[str] = None
+    field: Optional[str] = None
+    value: Any = None
 
 
 def schema_from(obj):
@@ -24,8 +32,12 @@ def schema_from(obj):
         return obj
 
 
-def atoms(schema, mapping, keys=tuple(Atom._fields), filter=None):
-    # type: (Schema, Mapping, Tuple[str, str, str], Optional[Callable[[Atom], bool]]) -> Iterable[Atom]
+def atoms(
+    schema: "Schema",
+    mapping: Mapping,
+    keys: Tuple[str, ...] = tuple(Atom._fields),
+    filter: Callable[[Atom], bool] = None,
+) -> Iterable[Atom]:
     """
     Iterator for the atomic components of a model definition and relevant
     data that creates a 3-tuple of the field's name, its type instance and

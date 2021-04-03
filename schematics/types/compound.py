@@ -1,5 +1,5 @@
 import itertools
-import typing
+from typing import Type, TypeVar
 
 from ..common import DROP, NONEMPTY, NOT_NONE
 from ..exceptions import BaseError, CompoundError, ConversionError, ValidationError
@@ -16,7 +16,7 @@ from ..translator import _
 from ..util import get_all_subclasses, import_string
 from .base import BaseType, get_value_in
 
-T = typing.TypeVar("T")
+T = TypeVar("T")
 
 from collections.abc import Iterable, Mapping, Sequence
 
@@ -111,13 +111,7 @@ class ModelType(CompoundType):
         self._model_class = model_class
         return model_class
 
-    def __init__(
-        self,
-        model_spec,  # type: typing.Type[T]
-        **kwargs
-    ):
-        # type: (...) -> T
-
+    def __init__(self, model_spec: Type[T], **kwargs):
         if isinstance(model_spec, ModelMeta):
             self._model_class = model_spec
             self.model_name = self.model_class.__name__
@@ -190,14 +184,8 @@ class ListType(CompoundType):
     primitive_type = list
     native_type = list
 
-    def __init__(
-        self,
-        field,  # type: T
-        min_size=None,
-        max_size=None,
-        **kwargs
-    ):
-        # type: (...) -> typing.List[T]
+    def __init__(self, field: T, min_size=None, max_size=None, **kwargs):
+        """Create a list of objects of type `field`."""
 
         self.field = self._init_field(field, kwargs)
         self.min_size = min_size
@@ -300,7 +288,7 @@ class DictType(CompoundType):
     native_type = dict
 
     def __init__(self, field, coerce_key=None, **kwargs):
-        # type: (...) -> typing.Dict[str, T]
+        """Create a dict with str keys and type `field` values."""
 
         self.field = self._init_field(field, kwargs)
         self.coerce_key = coerce_key or str

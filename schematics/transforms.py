@@ -1,6 +1,7 @@
 import itertools
 import types
 from collections import OrderedDict
+from typing import List
 
 from .common import DEFAULT, DROP, NATIVE, NONEMPTY, NOT_NONE, PRIMITIVE
 from .datastructures import Context
@@ -10,7 +11,7 @@ from .role import Role
 from .undefined import Undefined
 from .util import listify
 
-__all__ = []
+__all__: List[str] = []
 
 
 ###

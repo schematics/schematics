@@ -4,6 +4,7 @@ import inspect
 from collections import ChainMap, OrderedDict
 from copy import deepcopy
 from types import FunctionType, MappingProxyType
+from typing import List
 
 from . import schema
 from .datastructures import Context
@@ -15,13 +16,13 @@ from .exceptions import (
 )
 from .iteration import atoms
 from .transforms import convert, export_loop, to_native, to_primitive
-from .types import BaseType
+from .types.base import BaseType
 from .types.serializable import Serializable
 from .undefined import Undefined
 from .util import get_ident
 from .validate import prepare_validator, validate
 
-__all__ = []
+__all__: List[str] = []
 
 
 class FieldDescriptor:

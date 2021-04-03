@@ -2,6 +2,7 @@
 
 import functools
 import inspect
+from typing import List
 
 from .datastructures import Context
 from .exceptions import DataError, FieldError
@@ -9,7 +10,7 @@ from .iteration import atoms
 from .transforms import import_loop, validation_converter
 from .undefined import Undefined
 
-__all__ = []
+__all__: List[str] = []
 
 
 def schema_from(obj):

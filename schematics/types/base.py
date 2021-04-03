@@ -9,6 +9,7 @@ import string
 import uuid
 from collections import OrderedDict
 from collections.abc import Iterable
+from typing import Any, Optional, Type
 
 from ..common import DEFAULT, NATIVE, NONEMPTY, PRIMITIVE
 from ..exceptions import (
@@ -166,8 +167,8 @@ class BaseType(metaclass=TypeMeta):
           help, tooltips, documentation, etc.
     """
 
-    primitive_type = None
-    native_type = None
+    primitive_type: Optional[Type] = None
+    native_type: Optional[Type] = None
 
     MESSAGES = {
         "required": _("This field is required."),
@@ -449,9 +450,9 @@ class NumberType(BaseType):
     Converts to and validates against `number_type` parameter.
     """
 
-    primitive_type = None
-    native_type = None
-    number_type = None
+    primitive_type: Optional[Type] = None
+    native_type: Optional[Type] = None
+    number_type: Optional[str] = None
     MESSAGES = {
         "number_coerce": _("Value '{0}' is not {1}."),
         "number_min": _("{0} value should be greater than or equal to {1}."),
@@ -737,7 +738,7 @@ class DateTimeType(BaseType):
             * ``False``: Preserve the ``tzinfo`` components if present.
     """
 
-    primitive_type = str
+    primitive_type: Type[Any] = str
     native_type = datetime.datetime
 
     SERIALIZED_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"

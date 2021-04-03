@@ -2,7 +2,7 @@
 a part of the pymongo distribution.
 """
 
-import bson
+import bson  # type: ignore
 
 from ..exceptions import ConversionError
 from ..translator import _
