@@ -392,8 +392,9 @@ class Model(metaclass=ModelMeta):
             raise UnknownFieldError(self, name)
 
     def __contains__(self, name):
+        serializables = {k for k, t in self._schema.fields.items() if isinstance(t, Serializable)}
         return (name in self._data and getattr(self, name, Undefined) is not Undefined) \
-            or name in self._serializables
+            or name in serializables
 
     def __len__(self):
         return len(self._data)

@@ -93,10 +93,10 @@ class ModelCompatibilityMixin:
     # def _field_list(cls):
     #     return list(cls._schema.fields.items())
 
-    @class_property
-    @deprecated
-    def _serializables(cls):
-        return cls._schema._serializables
+    # @class_property
+    # @deprecated
+    # def _serializables(cls):
+    #     return cls._schema._serializables
 
     # @class_property
     # @deprecated
