@@ -225,7 +225,7 @@ To prepare a new release, follow this procedure:
 
 - Update version number in ``schematics/__init__.py``
 - Add signed tag with version number in git, ex: ``git tag -s v1.1.3 -m "Release v1.1.3"``
-- Create distribution archives ``python setup.py sdist bdist_wheel``
+- Create distribution archives ``poetry build``
 - Sign the generated archives:
 
 ::
