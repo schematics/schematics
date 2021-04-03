@@ -569,6 +569,7 @@ class HashType(StringType):
         "hash_length": _("Hash value is wrong length."),
         "hash_hex": _("Hash value is not hexadecimal."),
     }
+    LENGTH = -1
 
     def _mock(self, context=None):
         return random_string(self.LENGTH, string.hexdigits)
@@ -683,8 +684,8 @@ class DateType(BaseType):
                 return datetime.datetime.strptime(value, fmt).date()
             except (ValueError, TypeError):
                 continue
-        else:
-            raise ConversionError(self.conversion_errmsg.format(value, ", ".join(self.formats)))
+
+        raise ConversionError(self.conversion_errmsg.format(value, ", ".join(self.formats)))
 
     def to_primitive(self, value, context=None):
         return value.strftime(self.serialized_format)

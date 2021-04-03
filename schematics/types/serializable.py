@@ -102,4 +102,4 @@ class Serializable:
         type_ = f"{self.__class__.__name__}({self._repr_info() or ''}) instance"
         model = f" on {self.owner_model.__name__}" if self.owner_model else ""
         field = f" as '{self.name}'" if self.name else ""
-        return f"<{type_}{mode}{field}>"
+        return f"<{type_}{model}{field}>"

@@ -44,8 +44,12 @@ class CompoundType(BaseType):
 
     def _setup(self, field_name, owner_model):
         # Recursively set up inner fields.
-        if hasattr(self, "field"):
-            self.field._setup(None, owner_model)
+        try:
+            field = self.field
+        except AttributeError:
+            pass
+        else:
+            field._setup(None, owner_model)
         super()._setup(field_name, owner_model)
 
     def convert(self, value, context=None):
