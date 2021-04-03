@@ -103,11 +103,11 @@ class ModelCompatibilityMixin:
     # def _validator_functions(cls):
     #     return cls._schema.validators
 
-    @classmethod
-    @deprecated
-    def convert(cls, raw_data, context=None, **kw):
-        return transforms.convert(cls._schema, raw_data, oo=True,
-            context=context, **kw)
+    # @classmethod
+    # @deprecated
+    # def convert(cls, raw_data, context=None, **kw):
+    #     return transforms.convert(cls._schema, raw_data, oo=True,
+    #         context=context, **kw)
 
 
 class BaseErrorV1Mixin:
