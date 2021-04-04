@@ -1,10 +1,10 @@
 import pytest
 
+from schematics.exceptions import DataError
 from schematics.models import Model
 from schematics.types.base import StringType
 from schematics.types.compound import ListType, ModelType
 from schematics.types.serializable import serializable
-from schematics.exceptions import DataError
 
 
 def test_reason_why_we_must_bind_fields():
@@ -76,14 +76,9 @@ def test_field_binding():
         courses = ListType(ModelType(Course))
 
     valid_data = {
-        'courses': [
-            {'id': 'ENG103', 'attending': [
-                {'name': u'Danny'},
-                {'name': u'Sandy'}]},
-            {'id': 'ENG203', 'attending': [
-                {'name': u'Danny'},
-                {'name': u'Sandy'}
-            ]}
+        "courses": [
+            {"id": "ENG103", "attending": [{"name": u"Danny"}, {"name": u"Sandy"}]},
+            {"id": "ENG203", "attending": [{"name": u"Danny"}, {"name": u"Sandy"}]},
         ]
     }
 
@@ -109,12 +104,10 @@ def test_serializable_doesnt_keep_global_state():
     location_US = Location({"country_code": "US"})
     location_IS = Location({"country_code": "IS"})
 
-    assert (location_US._schema.fields["country_name"] is
-        location_IS._schema.fields["country_name"])
+    assert location_US._schema.fields["country_name"] is location_IS._schema.fields["country_name"]
 
 
 def test_field_inheritance():
-
     class A(Model):
         field1 = StringType()
         field2 = StringType()
@@ -123,19 +116,18 @@ def test_field_inheritance():
         field2 = StringType(required=True)
         field3 = StringType()
 
-    assert A.field1 is A._schema.fields['field1'] is not B._schema.fields['field1']
-    assert A.field2 is A._schema.fields['field2'] is not B._schema.fields['field2']
-    assert 'field3' not in A._schema.fields
+    assert A.field1 is A._schema.fields["field1"] is not B._schema.fields["field1"]
+    assert A.field2 is A._schema.fields["field2"] is not B._schema.fields["field2"]
+    assert "field3" not in A._schema.fields
 
-    assert B.field1 is B._schema.fields['field1']
-    assert B.field2 is B._schema.fields['field2']
-    assert B.field3 is B._schema.fields['field3']
+    assert B.field1 is B._schema.fields["field1"]
+    assert B.field2 is B._schema.fields["field2"]
+    assert B.field3 is B._schema.fields["field3"]
 
     assert A.field2.required is False and B.field2.required is True
 
 
 def test_serializable_inheritance():
-
     class A(Model):
         @serializable
         def s(self):
@@ -144,7 +136,7 @@ def test_serializable_inheritance():
     class B(A):
         pass
 
-    assert A.s is A._schema.fields['s'] is not B._schema.fields['s']
-    assert B.s is B._schema.fields['s']
+    assert A.s is A._schema.fields["s"] is not B._schema.fields["s"]
+    assert B.s is B._schema.fields["s"]
     assert A.s.type is not B.s.type
     assert A.s.fget is B.s.fget

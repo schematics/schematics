@@ -24,8 +24,9 @@ class EnumType(BaseType):
     >>> a.foo = E.A
     >>> a.foo.value == 1
     """
+
     MESSAGES = {
-        'convert': _("Couldn't interpret '{0}' as member of {1}."),
+        "convert": _("Couldn't interpret '{0}' as member of {1}."),
     }
 
     def __init__(self, enum, use_values=False, **kwargs):
@@ -36,19 +37,18 @@ class EnumType(BaseType):
         """
         self._enum_class = enum
         self._use_values = use_values
-        super(EnumType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def to_native(self, value, context=None):
         if isinstance(value, self._enum_class):
             return value
-        else:
-            by_name = self._find_by_name(value)
-            if by_name:
-                return by_name
-            by_value = self._find_by_value(value)
-            if by_value:
-                return by_value
-        raise ConversionError(self.messages['convert'].format(value, self._enum_class))
+        by_name = self._find_by_name(value)
+        if by_name:
+            return by_name
+        by_value = self._find_by_value(value)
+        if by_value:
+            return by_value
+        raise ConversionError(self.messages["convert"].format(value, self._enum_class))
 
     def _find_by_name(self, value):
         if isinstance(value, str):
@@ -56,19 +56,19 @@ class EnumType(BaseType):
                 return self._enum_class[value]
             except KeyError:
                 pass
+        return None
 
     def _find_by_value(self, value):
         if not self._use_values:
-            return
+            return None
         for member in self._enum_class:
             if member.value == value:
                 return member
+        return None
 
     def to_primitive(self, value, context=None):
         if isinstance(value, Enum):
             if self._use_values:
                 return value.value
-            else:
-                return value.name
-        else:
-            return str(value)
+            return value.name
+        return str(value)

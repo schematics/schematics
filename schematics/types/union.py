@@ -1,13 +1,12 @@
 import inspect
 from collections import OrderedDict
 
-from ..common import *
 from ..exceptions import ConversionError
+from ..transforms import get_import_context
 from ..translator import _
-from ..transforms import get_import_context, get_export_context
 from .base import BaseType
 
-__all__ = ['UnionType']
+__all__ = ["UnionType"]
 
 
 def _valid_init_args(type_):
@@ -19,6 +18,7 @@ def _valid_init_args(type_):
             break
     return args
 
+
 def _filter_kwargs(valid_args, kwargs):
     return dict((k, v) for k, v in kwargs.items() if k in valid_args)
 
@@ -28,7 +28,7 @@ class UnionType(BaseType):
     types = None
 
     MESSAGES = {
-        'convert': _("Couldn't interpret value '{0}' as any of {1}."),
+        "convert": _("Couldn't interpret value '{0}' as any of {1}."),
     }
 
     _baseclass_args = _valid_init_args(BaseType)
@@ -44,11 +44,13 @@ class UnionType(BaseType):
             if isinstance(type_, type) and issubclass(type_, BaseType):
                 type_ = type_(**_filter_kwargs(_valid_init_args(type_), kwargs))
             elif not isinstance(type_, BaseType):
-                raise TypeError(f"Got '{type_.__class__.__name__}' instance instead of a Schematics type")
+                raise TypeError(
+                    f"Got '{type_.__class__.__name__}' instance instead of a Schematics type"
+                )
             self._types[type_.__class__] = type_
             self.typenames = tuple((cls.__name__ for cls in self._types))
 
-        super(UnionType, self).__init__(**_filter_kwargs(self._baseclass_args, kwargs))
+        super().__init__(**_filter_kwargs(self._baseclass_args, kwargs))
 
     def resolve(self, value, context):
         for field in self._types.values():
@@ -70,7 +72,7 @@ class UnionType(BaseType):
                 pass
         if isinstance(response, tuple):
             return response
-        raise ConversionError(self.messages['convert'].format(value, self.typenames))
+        raise ConversionError(self.messages["convert"].format(value, self.typenames))
 
     def convert(self, value, context=None):
         context = context or get_import_context()

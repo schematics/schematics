@@ -2,15 +2,16 @@
 
 import functools
 import inspect
+from typing import List
 
-from .common import *
 from .datastructures import Context
 from .exceptions import DataError, FieldError
 from .iteration import atoms
 from .transforms import import_loop, validation_converter
 from .undefined import Undefined
 
-__all__ = []
+__all__: List[str] = []
+
 
 def schema_from(obj):
     try:
@@ -19,8 +20,17 @@ def schema_from(obj):
         return obj
 
 
-def validate(schema, mutable, raw_data=None, trusted_data=None,
-             partial=False, strict=False, convert=True, context=None, **kwargs):
+def validate(
+    schema,
+    mutable,
+    raw_data=None,
+    trusted_data=None,
+    partial=False,
+    strict=False,
+    convert=True,
+    context=None,
+    **kwargs
+):
     """
     Validate some untrusted data using a model. Trusted data can be passed in
     the `trusted_data` parameter.
@@ -54,13 +64,13 @@ def validate(schema, mutable, raw_data=None, trusted_data=None,
     if raw_data is None:
         raw_data = mutable
 
-    context = context or get_validation_context(partial=partial, strict=strict,
-        convert=convert)
+    context = context or get_validation_context(partial=partial, strict=strict, convert=convert)
 
     errors = {}
     try:
-        data = import_loop(schema, mutable, raw_data, trusted_data=trusted_data,
-            context=context, **kwargs)
+        data = import_loop(
+            schema, mutable, raw_data, trusted_data=trusted_data, context=context, **kwargs
+        )
     except DataError as exc:
         errors = dict(exc.errors)
         data = exc.partial_data
@@ -90,10 +100,9 @@ def _validate_model(schema, mutable, data, context):
     errors = {}
     invalid_fields = []
 
-    has_validator = lambda atom: (
-        atom.value is not Undefined and
-        atom.name in schema_from(schema).validators
-    )
+    def has_validator(atom):
+        return atom.value is not Undefined and atom.name in schema_from(schema).validators
+
     for field_name, field, value in atoms(schema, data, filter=has_validator):
         try:
             schema_from(schema).validators[field_name](mutable, data, value, context)
@@ -110,12 +119,12 @@ def _validate_model(schema, mutable, data, context):
 
 def get_validation_context(**options):
     validation_options = {
-        'field_converter': validation_converter,
-        'partial': False,
-        'strict': False,
-        'convert': True,
-        'validate': True,
-        'new': False,
+        "field_converter": validation_converter,
+        "partial": False,
+        "strict": False,
+        "convert": True,
+        "validate": True,
+        "new": False,
     }
     validation_options.update(options)
     return Context(**validation_options)
@@ -126,11 +135,13 @@ def prepare_validator(func, argcount):
         func = func.__get__(object).__func__
     func_args = inspect.getfullargspec(func).args
     if len(func_args) < argcount:
+
         @functools.wraps(func)
         def newfunc(*args, **kwargs):
             sentinel = object()
-            if not kwargs or kwargs.pop('context', sentinel) is sentinel:
+            if not kwargs or kwargs.pop("context", sentinel) is sentinel:
                 args = args[:-1]
             return func(*args, **kwargs)
+
         return newfunc
     return func

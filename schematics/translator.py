@@ -15,6 +15,7 @@ class LazyText:
 
 class Translator:
     """A placeholder which could call a function like lazy_gettext and make messages translatable."""
+
     def __init__(self):
         self.real_translator = None
 
@@ -23,6 +24,7 @@ class Translator:
 
     def register_translator(self, new_translator):
         self.real_translator = new_translator
+
 
 _ = Translator()
 register_translator = _.register_translator

@@ -36,7 +36,12 @@ include = [
 python = "^3.6"
 
 [tool.poetry.dev-dependencies]
+black = { version = "^20.8b1", markers = "implementation_name != 'pypy'" }
 coverage = "^5.5"
+flake8 = "^3.9.0"
+isort = "^5.8.0"
+mypy = { version = "^0.812", markers = "implementation_name != 'pypy'" }
+pylint = { version = "^2.7.4", markers = "implementation_name != 'pypy'" }
 pymongo = "^3.11.3"
 pytest = "^6.2.2"
 python-dateutil = "^2.8.1"
@@ -45,3 +50,9 @@ tox = "^3.23.0"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 99
+
+[tool.isort]
+profile = "black"

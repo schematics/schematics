@@ -1,53 +1,49 @@
-import pytest
 import copy
+
+import pytest
 
 from schematics.datastructures import Context, DataObject, FrozenDict, FrozenList
 
 
 def test_data_object_basics():
 
-    d = DataObject({'x': 1, 'y': 2})
+    d = DataObject({"x": 1, "y": 2})
 
     assert d == d
     assert d == DataObject(x=1, y=2)
     assert d != DataObject(x=2, y=1)
-    assert d != {'x': 1, 'y': 2}
+    assert d != {"x": 1, "y": 2}
 
-    assert DataObject({'f': DataObject({'g': {'x': 1, 'y': 2}})}) \
-        != {'f': {'g': {'x': 1, 'y': 2}}}
+    assert DataObject({"f": DataObject({"g": {"x": 1, "y": 2}})}) != {"f": {"g": {"x": 1, "y": 2}}}
 
-    assert hasattr(d, 'x')
-    assert 'x' in d
-    assert not hasattr(d, 'z')
-    assert 'z' not in d
+    assert hasattr(d, "x")
+    assert "x" in d
+    assert not hasattr(d, "z")
+    assert "z" not in d
 
     assert d.x == 1
     with pytest.raises(AttributeError):
         d.z
 
-    assert d['x'] == 1
+    assert d["x"] == 1
     with pytest.raises(KeyError):
-        d['z']
+        d["z"]
 
-    assert d._get('z') is None
-    assert d._get('z', 0) == 0
+    assert d._get("z") is None
+    assert d._get("z", 0) == 0
 
     d.z = 3
     assert d.z == 3
-    assert d['z'] == 3
+    assert d["z"] == 3
 
     assert len(d) == 3
 
-    assert set(((k, v) for k, v in d)) \
-        == set(d._items()) \
-        == set((('x', 1), ('y', 2), ('z', 3)))
+    assert set(((k, v) for k, v in d)) == set(d._items()) == set((("x", 1), ("y", 2), ("z", 3)))
 
-    assert set((k for k, v in d)) \
-        == set(d._keys()) \
-        == set(('x', 'y', 'z'))
+    assert set((k for k, v in d)) == set(d._keys()) == set(("x", "y", "z"))
 
-    x = d._pop('x')
-    assert x == 1 and 'x' not in d
+    x = d._pop("x")
+    assert x == 1 and "x" not in d
 
     d._clear()
     assert d.__dict__ == {}
@@ -55,28 +51,29 @@ def test_data_object_basics():
 
 def test_data_object_methods():
 
-    d = DataObject({'x': 1})
-    d._update({'y': 2})
-    d._update(DataObject({'z': 3}, q=4))
-    d._update(zip(('n', 'm'), (5, 6)))
-    assert d == DataObject({'x': 1, 'y': 2, 'z': 3, 'q': 4, 'n': 5, 'm': 6})
+    d = DataObject({"x": 1})
+    d._update({"y": 2})
+    d._update(DataObject({"z": 3}, q=4))
+    d._update(zip(("n", "m"), (5, 6)))
+    assert d == DataObject({"x": 1, "y": 2, "z": 3, "q": 4, "n": 5, "m": 6})
 
-    d = DataObject({'x': 1})
-    assert d._setdefault('x') == 1
-    a = d._setdefault('a')
+    d = DataObject({"x": 1})
+    assert d._setdefault("x") == 1
+    a = d._setdefault("a")
     assert a is None and d.a is None
-    b = d._setdefault('b', 99)
+    b = d._setdefault("b", 99)
     assert b == 99 and d.b == 99
-    d._setdefaults({'i': 12, 'j': 23})
+    d._setdefaults({"i": 12, "j": 23})
     assert d.i == 12 and d.j == 23
 
-    assert DataObject({'f': DataObject({'g': {'x': 1, 'y': 2}})})._to_dict() \
-        == {'f': {'g': {'x': 1, 'y': 2}}}
+    assert DataObject({"f": DataObject({"g": {"x": 1, "y": 2}})})._to_dict() == {
+        "f": {"g": {"x": 1, "y": 2}}
+    }
 
 
 def test_data_object_copy():
 
-    d = DataObject({'f': DataObject({'g': {'x': 1, 'y': 2}})})
+    d = DataObject({"f": DataObject({"g": {"x": 1, "y": 2}})})
 
     d_copy = d._copy()
     assert d_copy == d
@@ -90,9 +87,8 @@ def test_data_object_copy():
 
 
 def test_context():
-
     class FooContext(Context):
-        _fields = ('x', 'y', 'z')
+        _fields = ("x", "y", "z")
 
     assert bool(FooContext()) is True
 
@@ -137,9 +133,7 @@ def test_context():
 
 
 def test_frozen_dict():
-    frozen_dict = FrozenDict({
-        "foo": "bar"
-    })
+    frozen_dict = FrozenDict({"foo": "bar"})
     assert frozen_dict["foo"] == "bar"
     assert len(frozen_dict) == 1
     with pytest.raises(TypeError):

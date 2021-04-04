@@ -2,14 +2,10 @@ import copy
 from functools import partial
 from types import FunctionType
 
-from ..common import *
-from ..exceptions import *
+from ..exceptions import UndefinedValueError
 from ..undefined import Undefined
-from ..transforms import get_import_context
 
-from .base import BaseType, TypeMeta
-
-__all__ = ['calculated', 'serializable', 'Serializable']
+__all__ = ["calculated", "serializable", "Serializable"]
 
 
 def serializable(arg=None, **kwargs):
@@ -33,6 +29,8 @@ def serializable(arg=None, **kwargs):
     :param serialized_name:
         The name of this field in the serialized output.
     """
+    from .base import BaseType, TypeMeta
+
     if isinstance(arg, FunctionType):
         decorator = True
         func = arg
@@ -46,8 +44,9 @@ def serializable(arg=None, **kwargs):
     if isinstance(serialized_type, BaseType):
         # `serialized_type` is already a type instance,
         # so update it with the options found in `kwargs`.
-        serialized_type._set_export_level(kwargs.pop('export_level', None),
-                                          kwargs.pop("serialize_when_none", None))
+        serialized_type._set_export_level(
+            kwargs.pop("export_level", None), kwargs.pop("serialize_when_none", None)
+        )
         for name, value in kwargs.items():
             setattr(serialized_type, name, value)
     else:
@@ -55,8 +54,7 @@ def serializable(arg=None, **kwargs):
 
     if decorator:
         return Serializable(type=serialized_type, fget=func)
-    else:
-        return partial(Serializable, type=serialized_type)
+    return partial(Serializable, type=serialized_type)
 
 
 def calculated(type, fget, fset=None):
@@ -64,7 +62,6 @@ def calculated(type, fget, fset=None):
 
 
 class Serializable:
-
     def __init__(self, fget, type, fset=None):
         self.type = type
         self.fget = fget
@@ -76,12 +73,10 @@ class Serializable:
     def __get__(self, instance, cls):
         if instance is None:
             return self
-        else:
-            value = self.fget(instance)
-            if value is Undefined:
-                raise UndefinedValueError(instance, self.name)
-            else:
-                return value
+        value = self.fget(instance)
+        if value is Undefined:
+            raise UndefinedValueError(instance, self.name)
+        return value
 
     def __set__(self, instance, value):
         if self.fset is None:
@@ -101,6 +96,6 @@ class Serializable:
 
     def __repr__(self):
         type_ = f"{self.__class__.__name__}({self._repr_info() or ''}) instance"
-        model = f" on {self.owner_model.__name__}" if self.owner_model else ''
-        field = f" as '{self.name}'" if self.name else ''
-        return f"<{type_}{mode}{field}>"
+        model = f" on {self.owner_model.__name__}" if self.owner_model else ""
+        field = f" as '{self.name}'" if self.name else ""
+        return f"<{type_}{model}{field}>"

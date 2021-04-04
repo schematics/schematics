@@ -1,32 +1,36 @@
 import itertools
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Type, TypeVar
 
-from ..common import *
-from ..exceptions import *
+from ..common import DROP, NONEMPTY, NOT_NONE
+from ..exceptions import BaseError, CompoundError, ConversionError, ValidationError
 from ..transforms import (
-    convert, export_loop,
-    get_import_context, get_export_context,
-    to_native_converter, to_primitive_converter)
+    convert,
+    export_loop,
+    get_export_context,
+    get_import_context,
+    to_native_converter,
+    to_primitive_converter,
+)
 from ..translator import _
 from ..util import get_all_subclasses, import_string
 from .base import BaseType, get_value_in
 
-try:
-    import typing
-except ImportError:
-    pass
-else:
-    T = typing.TypeVar("T")
+T = TypeVar("T")
 
-from collections.abc import Iterable, Sequence, Mapping
-
-__all__ = ['CompoundType', 'MultiType', 'ModelType', 'ListType', 'DictType',
-    'PolyModelType']
+__all__ = [
+    "CompoundType",
+    "MultiType",
+    "ModelType",
+    "ListType",
+    "DictType",
+    "PolyModelType",
+]
 
 
 class CompoundType(BaseType):
-
     def __init__(self, **kwargs):
-        super(CompoundType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.is_compound = True
         try:
             self.field.parent_field = self
@@ -35,9 +39,13 @@ class CompoundType(BaseType):
 
     def _setup(self, field_name, owner_model):
         # Recursively set up inner fields.
-        if hasattr(self, 'field'):
-            self.field._setup(None, owner_model)
-        super(CompoundType, self)._setup(field_name, owner_model)
+        try:
+            field = self.field
+        except AttributeError:
+            pass
+        else:
+            field._setup(None, owner_model)
+        super()._setup(field_name, owner_model)
 
     def convert(self, value, context=None):
         context = context or get_import_context()
@@ -68,12 +76,13 @@ class CompoundType(BaseType):
         as the ``nested_field`` keyword argument.
         """
         if not isinstance(field, BaseType):
-            nested_field = options.pop('nested_field', None) or options.pop('compound_field', None)
+            nested_field = options.pop("nested_field", None) or options.pop("compound_field", None)
             if nested_field:
                 field = field(field=nested_field, **options)
             else:
                 field = field(**options)
         return field
+
 
 MultiType = CompoundType
 
@@ -100,10 +109,9 @@ class ModelType(CompoundType):
         self._model_class = model_class
         return model_class
 
-    def __init__(self,
-                 model_spec,  # type: typing.Type[T]
-                 **kwargs):
-        # type: (...) -> T
+    def __init__(self, model_spec: Type[T], **kwargs):
+
+        from ..models import ModelMeta
 
         if isinstance(model_spec, ModelMeta):
             self._model_class = model_spec
@@ -112,10 +120,12 @@ class ModelType(CompoundType):
             self._model_class = None
             self.model_name = model_spec
         else:
-            raise TypeError("ModelType: Expected a model, got an argument "
-                            "of the type '{}'.".format(model_spec.__class__.__name__))
+            raise TypeError(
+                "ModelType: Expected a model, got an argument "
+                "of the type '{}'.".format(model_spec.__class__.__name__)
+            )
 
-        super(ModelType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _repr_info(self):
         return self.model_class.__name__
@@ -130,13 +140,14 @@ class ModelType(CompoundType):
                 self._model_class = owner_model
             else:
                 pass  # Intentionally left blank, it will be setup later.
-        super(ModelType, self)._setup(field_name, owner_model)
+        super()._setup(field_name, owner_model)
 
     def pre_setattr(self, value):
-        if value is not None \
-          and not isinstance(value, Model):
+        from ..models import Model
+
+        if value is not None and not isinstance(value, Model):
             if not isinstance(value, dict):
-                raise ConversionError(_('Model conversion requires a model or dict'))
+                raise ConversionError(_("Model conversion requires a model or dict"))
             value = self.model_class(value)
         return value
 
@@ -148,13 +159,16 @@ class ModelType(CompoundType):
             model_class = field_model_class
         else:
             raise ConversionError(
-                _("Input must be a mapping or '%s' instance") % field_model_class.__name__)
+                _("Input must be a mapping or '%s' instance") % field_model_class.__name__
+            )
         if context.convert and context.oo:
             return model_class(value, context=context)
-        else:
-            return convert(model_class._schema, value, context=context)
+        return convert(model_class._schema, value, context=context)
 
     def _export(self, value, format, context):
+
+        from ..models import Model
+
         if isinstance(value, Model):
             model_class = type(value)
         else:
@@ -175,10 +189,8 @@ class ListType(CompoundType):
     primitive_type = list
     native_type = list
 
-    def __init__(self,
-                 field,  # type: T
-                 min_size=None, max_size=None, **kwargs):
-        # type: (...) -> typing.List[T]
+    def __init__(self, field: T, min_size=None, max_size=None, **kwargs):
+        """Create a list of objects of type `field`."""
 
         self.field = self._init_field(field, kwargs)
         self.min_size = min_size
@@ -186,7 +198,7 @@ class ListType(CompoundType):
 
         validators = [self.check_length] + kwargs.pop("validators", [])
 
-        super(ListType, self).__init__(validators=validators, **kwargs)
+        super().__init__(validators=validators, **kwargs)
 
     @property
     def model_class(self):
@@ -203,13 +215,13 @@ class ListType(CompoundType):
     def _coerce(self, value):
         if isinstance(value, list):
             return value
-        elif isinstance(value, (str, Mapping)): # unacceptable iterables
+        if isinstance(value, (str, Mapping)):  # unacceptable iterables
             pass
         elif isinstance(value, Sequence):
             return value
         elif isinstance(value, Iterable):
             return value
-        raise ConversionError(_('Could not interpret the value as a list'))
+        raise ConversionError(_("Could not interpret the value as a list"))
 
     def _convert(self, value, context):
         value = self._coerce(value)
@@ -228,17 +240,21 @@ class ListType(CompoundType):
         list_length = len(value) if value else 0
 
         if self.min_size is not None and list_length < self.min_size:
-            message = ({
-                True: _('Please provide at least %d item.'),
-                False: _('Please provide at least %d items.'),
-            }[self.min_size == 1]) % self.min_size
+            message = (
+                {
+                    True: _("Please provide at least %d item."),
+                    False: _("Please provide at least %d items."),
+                }[self.min_size == 1]
+            ) % self.min_size
             raise ValidationError(message)
 
         if self.max_size is not None and list_length > self.max_size:
-            message = ({
-                True: _('Please provide no more than %d item.'),
-                False: _('Please provide no more than %d items.'),
-            }[self.max_size == 1]) % self.max_size
+            message = (
+                {
+                    True: _("Please provide no more than %d item."),
+                    False: _("Please provide no more than %d items."),
+                }[self.max_size == 1]
+            ) % self.max_size
             raise ValidationError(message)
 
     def _export(self, list_instance, format, context):
@@ -277,11 +293,11 @@ class DictType(CompoundType):
     native_type = dict
 
     def __init__(self, field, coerce_key=None, **kwargs):
-        # type: (...) -> typing.Dict[str, T]
+        """Create a dict with str keys and type `field` values."""
 
         self.field = self._init_field(field, kwargs)
         self.coerce_key = coerce_key or str
-        super(DictType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     @property
     def model_class(self):
@@ -292,7 +308,7 @@ class DictType(CompoundType):
 
     def _convert(self, value, context, safe=False):
         if not isinstance(value, Mapping):
-            raise ConversionError(_('Only mappings may be used in a DictType'))
+            raise ConversionError(_("Only mappings may be used in a DictType"))
 
         data = {}
         errors = {}
@@ -334,6 +350,8 @@ class PolyModelType(CompoundType):
 
     def __init__(self, model_spec, **kwargs):
 
+        from ..models import ModelMeta
+
         if isinstance(model_spec, (ModelMeta, str)):
             self.model_classes = (model_spec,)
             allow_subclasses = True
@@ -341,8 +359,9 @@ class PolyModelType(CompoundType):
             self.model_classes = tuple(model_spec)
             allow_subclasses = False
         else:
-            raise Exception("The first argument to PolyModelType.__init__() "
-                            "must be a model or an iterable.")
+            raise Exception(
+                "The first argument to PolyModelType.__init__() " "must be a model or an iterable."
+            )
 
         self.claim_function = kwargs.pop("claim_function", None)
         self.allow_subclasses = kwargs.pop("allow_subclasses", allow_subclasses)
@@ -361,7 +380,7 @@ class PolyModelType(CompoundType):
             else:
                 resolved_classes.append(m)
         self.model_classes = tuple(resolved_classes)
-        super(PolyModelType, self)._setup(field_name, owner_model)
+        super()._setup(field_name, owner_model)
 
     def is_allowed_model(self, model_instance):
         if self.allow_subclasses:
@@ -382,12 +401,16 @@ class PolyModelType(CompoundType):
                 return value
             if not isinstance(value, dict):
                 if len(self.model_classes) > 1:
-                    instanceof_msg = 'one of: {}'.format(', '.join(
-                        cls.__name__ for cls in self.model_classes))
+                    instanceof_msg = "one of: {}".format(
+                        ", ".join(cls.__name__ for cls in self.model_classes)
+                    )
                 else:
                     instanceof_msg = self.model_classes[0].__name__
-                raise ConversionError(_('Please use a mapping for this field or '
-                                        'an instance of {}').format(instanceof_msg))
+                raise ConversionError(
+                    _("Please use a mapping for this field or " "an instance of {}").format(
+                        instanceof_msg
+                    )
+                )
 
         model_class = self.find_model(value)
         return model_class(value, context=context)
@@ -420,7 +443,7 @@ class PolyModelType(CompoundType):
         if not matching_classes and fallback:
             return fallback
 
-        elif len(matching_classes) != 1:
+        if len(matching_classes) != 1:
             raise Exception("Got ambiguous input for polymorphic field")
 
         return matching_classes[0]
