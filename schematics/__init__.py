@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = '2.1.0+rheinwerk1'
+__version__ = '2.1.0'
 
 # TODO: remove deprecated API
 from . import deprecated
