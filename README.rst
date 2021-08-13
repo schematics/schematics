@@ -18,16 +18,11 @@ About
 
 **Project documentation:** https://schematics.readthedocs.io/en/latest/
 
-Schematics is a Python library to combine types into structures, validate them,
-and transform the shapes of your data based on simple descriptions.
+Schematics is a Python library to combine types into structures, validate them, and transform the shapes of your data based on simple descriptions.
 
-The internals are similar to ORM type systems, but there is no database layer
-in Schematics.  Instead, we believe that building a database
-layer is made significantly easier when Schematics handles everything but
-writing the query.
+The internals are similar to ORM type systems, but there is no database layer in Schematics. Instead, we believe that building a database layer is easily made when Schematics handles everything except for writing the query.
 
-Further, it can be used for a range of tasks where having a database involved
-may not make sense.
+Schematics can be used for tasks where having a database involved is unusual.
 
 Some common use cases:
 
