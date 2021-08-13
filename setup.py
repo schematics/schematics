@@ -8,7 +8,7 @@ from setuptools import setup
 
 
 with open(os.path.join(os.path.dirname(__file__), 'schematics/__init__.py')) as f:
-    version = re.search("^__version__ = '(\d\.\d+\.\d+(\.?(dev|a|b|rc)\d?)?)'$",
+    version = re.search(r"^__version__ = '(\d\.\d+\.\d+(\.?(dev|a|b|rc)\d?)?)'$",
                   f.read(), re.M).group(1)
 
 setup(
