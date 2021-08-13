@@ -16,6 +16,10 @@ try:
         A = 1
         B = 1
 
+    class Zero(Enum):
+        A = 0
+        B = 1
+
 except ImportError:
     Enum = None
 
@@ -42,6 +46,11 @@ def test_to_native_by_value():
 def test_to_native_by_value_duplicate():
     field = EnumType(F, use_values=True)
     assert field.to_native(1) == F.A
+
+
+def test_to_native_by_value_0():
+    field = EnumType(Zero, use_values=True)
+    assert field.to_native(0) == Zero.A
 
 
 def test_passthrough():
