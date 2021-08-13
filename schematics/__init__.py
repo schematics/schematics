@@ -6,7 +6,7 @@ __version__ = '2.1.0'
 from . import deprecated
 deprecated.patch_all()
 
-from . import types
+from . import types, extensions
 from .models import Model, ModelMeta
 
 types.compound.Model = Model

@@ -165,6 +165,7 @@ class BaseType(object):
         - *label* : Brief human-readable label
         - *description* : Explanation of the purpose of the field. Used for
           help, tooltips, documentation, etc.
+        - *example* : A concrete example of the field usage.
     """
 
     primitive_type = None

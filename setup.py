@@ -20,7 +20,7 @@ setup(
     author_email='jdennis@gmail.com, jokull@plainvanillagames.com, johann@plainvanillagames.com, kalle@goodtimes.fi, paul@nkey.com.br',
     url='https://github.com/schematics/schematics',
     download_url='https://github.com/schematics/schematics/archive/v%s.tar.gz' % version,
-    packages=['schematics', 'schematics.types', 'schematics.contrib'],
+    packages=['schematics', 'schematics.types', 'schematics.contrib', 'schematics.extensions'],
     classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
@@ -36,4 +36,14 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     install_requires=[],
+    setup_requires=[
+        'pytest-runner',
+    ],
+    tests_require=[
+        'pytest',
+        'python-dateutil',
+        'pymongo',
+        'mock',
+        'coverage',
+    ],
 )
