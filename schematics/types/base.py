@@ -173,7 +173,7 @@ class BaseType(object):
 
     MESSAGES = {
         'required': _("This field is required."),
-        'choices': _("Value must be one of {0}."),
+        'choices': _("Value ({0}) must be one of {1}."),
     }
 
     EXPORT_METHODS = {
@@ -340,7 +340,7 @@ class BaseType(object):
     def validate_choices(self, value, context):
         if self.choices is not None:
             if value not in self.choices:
-                raise ValidationError(self.messages['choices'].format(str(self.choices)))
+                raise ValidationError(self.messages['choices'].format(str(value), str(self.choices)))
 
     def mock(self, context=None):
         if not self.required and not random.choice([True, False]):
