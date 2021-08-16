@@ -65,7 +65,9 @@ Other changes:
   `#495 <https://github.com/schematics/schematics/pull/495>`__
   (`jaysonsantos <https://github.com/jaysonsantos>`__)
   (`lkraider <https://github.com/lkraider>`__)
-
+- Added German translation
+  `#614 <https://github.com/schematics/schematics/pull/614>`__
+  (`hkage <https://github.com/hkage>`__)
 
 2.0.1 / 2017-05-30
 ==================
