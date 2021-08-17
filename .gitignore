@@ -11,6 +11,7 @@ dist
 PLANS.md
 *.egg
 *.egg-info
+.eggs
 venv
 docs/_build
 /.tox

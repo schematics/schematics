@@ -1,4 +1,37 @@
-2.1.0 / Unreleased
+2.1.1 / 2021-08-17
+==================
+- Update error message for incorrect choices field
+  `#572 <https://github.com/schematics/schematics/pull/572>`__
+  (`begor <https://github.com/begor>`__)
+- Avoid some deprecation warnings when using Python 3
+  `#576 <https://github.com/schematics/schematics/pull/576>`__
+  (`jesuslosada <https://github.com/jesuslosada>`__)
+- Fix EnumType enums with value=0 not working with use_values=True
+  `#594 <https://github.com/schematics/schematics/pull/594>`__
+  (`nikhilgupta345 <https://github.com/nikhilgupta345>`__)
+- Fix syntax warning over comparison of literals using is.
+  `#611 <https://github.com/schematics/schematics/pull/611>`__
+  (`tirkarthi <https://github.com/tirkarthi>`__)
+- Add help text generation capability to Models
+  `#543 <https://github.com/schematics/schematics/pull/543>`__
+  (`MartinHowarth <https://github.com/MartinHowarth>`__)
+- Update documentation
+  `#578 <https://github.com/schematics/schematics/pull/578>`__
+  (`BobDu <https://github.com/BobDu>`__)
+  `#604 <https://github.com/schematics/schematics/pull/604>`__
+  (`BryanChan777 <https://github.com/BryanChan777>`__)
+  `#605 <https://github.com/schematics/schematics/pull/605>`__
+  (`timgates42 <https://github.com/timgates42>`__)
+  `#608 <https://github.com/schematics/schematics/pull/608>`__
+  (`dasubermanmind <https://github.com/dasubermanmind>`__)
+- Add test coverage for model validation inside Dict/List
+  `#588 <https://github.com/schematics/schematics/pull/588>`__
+  (`borgstrom <https://github.com/borgstrom>`__)
+- Added German translation
+  `#614 <https://github.com/schematics/schematics/pull/614>`__
+  (`hkage <https://github.com/hkage>`__)
+
+2.1.0 / 2018-06-25
 ==================
 **[BREAKING CHANGE]**
 
@@ -65,9 +98,6 @@ Other changes:
   `#495 <https://github.com/schematics/schematics/pull/495>`__
   (`jaysonsantos <https://github.com/jaysonsantos>`__)
   (`lkraider <https://github.com/lkraider>`__)
-- Added German translation
-  `#614 <https://github.com/schematics/schematics/pull/614>`__
-  (`hkage <https://github.com/hkage>`__)
 
 2.0.1 / 2017-05-30
 ==================
