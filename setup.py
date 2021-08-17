@@ -36,8 +36,13 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     install_requires=[],
+    package_data={
+        'schematics': ['locale/*/LC_MESSAGES/*.mo']
+    },
+    include_package_data=True,
     setup_requires=[
         'pytest-runner',
+        'mo_installer',
     ],
     tests_require=[
         'pytest',

@@ -6,4 +6,5 @@ include test-requirements.txt
 include tox.ini
 global-exclude .DS_Store
 
-recursive-include schematics *.pot *.po *.mo
+recursive-include schematics *.pot *.po
+recursive-exclude schematics *.mo
