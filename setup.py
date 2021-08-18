@@ -21,6 +21,7 @@ setup(
     url='https://github.com/schematics/schematics',
     download_url='https://github.com/schematics/schematics/archive/v%s.tar.gz' % version,
     packages=['schematics', 'schematics.types', 'schematics.contrib', 'schematics.extensions'],
+    python_requires='>=2.7, !=3.0.*, !=3.1.*',
     classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
