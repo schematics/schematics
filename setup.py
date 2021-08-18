@@ -11,11 +11,17 @@ with open(os.path.join(os.path.dirname(__file__), 'schematics/__init__.py')) as 
     version = re.search(r"^__version__ = '(\d\.\d+\.\d+(\.?(dev|a|b|rc)\d?)?)'$",
                   f.read(), re.M).group(1)
 
+
+with open('README.rst') as f:
+    long_description = f.read()
+
+
 setup(
     name='schematics',
     license='BSD',
     version=version,
     description='Python Data Structures for Humans',
+    long_description=long_description,
     author=u'James Dennis, Jökull Sólberg, Jóhann Þorvaldur Bergþórsson, Kalle Tuure, Paul Eipper',
     author_email='jdennis@gmail.com, jokull@plainvanillagames.com, johann@plainvanillagames.com, kalle@goodtimes.fi, paul@nkey.com.br',
     url='https://github.com/schematics/schematics',
