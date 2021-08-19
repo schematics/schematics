@@ -131,6 +131,11 @@ def import_loop(schema, mutable, raw_data=None, field_converter=None, trusted_da
                 continue
             if context.apply_defaults:
                 value = field.default
+        if value is None and field.default_when_none is not None:
+            if field_name in data:
+                continue
+            if context.apply_defaults:
+                value = field.default_when_none
         if value is Undefined and context.init_values:
             value = None
 

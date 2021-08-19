@@ -184,11 +184,12 @@ class BaseType(object):
     def __init__(self, required=False, default=Undefined, serialized_name=None,
                  choices=None, validators=None, deserialize_from=None,
                  export_level=None, serialize_when_none=None,
-                 messages=None, metadata=None):
+                 messages=None, metadata=None, default_when_none=None):
         super(BaseType, self).__init__()
 
         self.required = required
         self._default = default
+        self.default_when_none = default_when_none
         self.serialized_name = serialized_name
         if choices and (isinstance(choices, string_type) or not isinstance(choices, Iterable)):
             raise TypeError('"choices" must be a non-string Iterable')
