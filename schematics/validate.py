@@ -88,11 +88,11 @@ def _validate_model(schema, mutable, data, context):
 
     has_validator = lambda atom: (
         atom.value is not Undefined and
-        atom.name in schema._validator_functions
+        atom.name in get_validator(schema)
     )
     for field_name, field, value in atoms(schema, data, filter=has_validator):
         try:
-            schema._validator_functions[field_name](mutable, data, value, context)
+            get_validator(schema)[field_name](mutable, data, value, context)
         except (FieldError, DataError) as exc:
             serialized_field_name = field.serialized_name or field_name
             errors[serialized_field_name] = exc.errors
@@ -102,6 +102,15 @@ def _validate_model(schema, mutable, data, context):
         data.pop(field_name)
 
     return errors
+
+
+def get_validator(schema):
+    # Since _validate_model can be called at the class level
+    # or the instance level, we need to handle both
+    if hasattr(schema, '_schema'):
+        return schema._schema.validators
+    else:
+        return schema.validators
 
 
 def get_validation_context(**options):

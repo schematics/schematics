@@ -131,19 +131,19 @@ def test_validation_with_size_limits():
         c = Card({"users": None})
         c.validate()
 
-    assert exception.value.messages['users'] == [u'This field is required.']
+    assert exception.value.errors['users'] == [u'This field is required.']
 
     with pytest.raises(DataError) as exception:
         c = Card({"users": []})
         c.validate()
 
-    assert exception.value.messages['users'] == [u'Please provide at least 1 item.']
+    assert exception.value.errors['users'] == [u'Please provide at least 1 item.']
 
     with pytest.raises(DataError) as exception:
         c = Card({"users": [User(), User(), User()]})
         c.validate()
 
-    assert exception.value.messages['users'] == [u'Please provide no more than 2 items.']
+    assert exception.value.errors['users'] == [u'Please provide no more than 2 items.']
 
 
 def test_list_field_required():
@@ -200,7 +200,7 @@ def test_list_model_field():
     with pytest.raises(DataError) as exception:
         c.validate()
 
-    errors = exception.value.messages
+    errors = exception.value.errors
     assert errors['users'] == [u'This field is required.']
 
 
@@ -215,7 +215,7 @@ def test_list_model_field_exception_with_full_message():
 
     with pytest.raises(DataError) as exception:
         g.validate()
-    assert exception.value.messages == {'users': {0: {'name': ['String value is too long.']}}}
+    assert exception.value.errors == {'users': {0: {'name': ['String value is too long.']}}}
 
 
 def test_compound_fields():

@@ -66,7 +66,7 @@ def test_validation_none_fails():
     with pytest.raises(DataError) as exception:
         Player({"first_name": None}).validate()
 
-    messages = exception.value.messages
+    messages = exception.value.errors
     assert len(messages) == 1  # Only one failure
     assert messages["first_name"][0] == 'This field is required.'
 
@@ -93,7 +93,7 @@ def test_custom_validators():
             "title": "Old Man"
         }).validate()
 
-    messages = exception.value.messages
+    messages = exception.value.errors
     assert future_error_msg in messages['publish']
 
 
@@ -107,7 +107,7 @@ def test_messages_subclassing():
     with pytest.raises(DataError) as exception:
         TestDoc({'title': None}).validate()
 
-    messages = exception.value.messages
+    messages = exception.value.errors
     assert u'Never forget' in messages['title']
 
 
@@ -118,7 +118,7 @@ def test_messages_instance_level():
     with pytest.raises(DataError) as exception:
         TestDoc({'title': None}).validate()
 
-    messages = exception.value.messages
+    messages = exception.value.errors
     assert u'Never forget' in messages['title']
 
 
@@ -282,7 +282,7 @@ def test_basic_error():
     with pytest.raises(DataError) as exception:
         school.validate()
 
-    errors = exception.value.messages
+    errors = exception.value.errors
 
     assert "name" in errors
     assert errors["name"] == ["This field is required."]
@@ -303,7 +303,7 @@ def test_deep_errors():
     with pytest.raises(DataError) as exception:
         school.validate()
 
-    errors = exception.value.messages
+    errors = exception.value.errors
 
     assert "headmaster" in errors
     assert "name" in errors["headmaster"]
@@ -345,7 +345,7 @@ def test_deep_errors_with_lists(idx1, idx2):
     with pytest.raises(DataError) as exception:
         school.validate()
 
-    messages = exception.value.messages
+    messages = exception.value.errors
 
     assert messages == {
         'courses': {
@@ -380,7 +380,7 @@ def test_merge_serializable_errors():
     with pytest.raises(DataError) as exception:
         person.validate()
 
-    messages = exception.value.messages
+    messages = exception.value.errors
 
     assert "age" in messages
     assert "name" in messages
@@ -424,7 +424,7 @@ def test_deep_errors_with_dicts():
     with pytest.raises(DataError) as exception:
         school.validate()
 
-    messages = exception.value.messages
+    messages = exception.value.errors
 
     assert messages == {
         'courses': {
@@ -474,7 +474,7 @@ def test_custom_validator_raising_dicterror():
     with pytest.raises(DataError) as exception:
         foo.validate()
 
-    messages = exception.value.messages
+    messages = exception.value.errors
 
     assert messages == {
         'bar': {
@@ -525,8 +525,8 @@ def test_model_validator_override():
         def validate_bar(self, data, value, context=None):
             pass
 
-    assert Child._validator_functions['foo'] is Base._validator_functions['foo']
-    assert Child._validator_functions['bar'] is not Base._validator_functions['bar']
+    assert Child._schema.validators['foo'] is Base._schema.validators['foo']
+    assert Child._schema.validators['bar'] is not Base._schema.validators['bar']
 
 
 def test_validate_convert():
@@ -562,12 +562,12 @@ def test_validate_apply_defaults():
 
 def test_clean_validation_messages():
     error = ValidationError("A")
-    assert error.messages == ["A"]
+    assert error.errors == ["A"]
 
 
 def test_clean_validation_messages_list():
     error = ValidationError(["A", "B", "C"])
-    assert error.messages, ["A", "B", "C"]
+    assert error.errors, ["A", "B", "C"]
 
 
 def test_builtin_conversion_exception():

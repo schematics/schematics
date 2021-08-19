@@ -56,7 +56,8 @@ def atoms(schema, mapping, keys=tuple(Atom._fields), filter=None):
     has_field = 'field' in keys
     has_value = (mapping is not None) and ('value' in keys)
 
-    for field_name, field in iteritems(schema.fields):
+    schema_fields = getattr(schema, '_schema', schema).fields
+    for field_name, field in iteritems(schema_fields):
         value = Undefined
 
         if has_value:

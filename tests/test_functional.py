@@ -49,7 +49,7 @@ def test_validate_strict_with_trusted_data():
     try:
         validate(Player, {'id': 4}, strict=True, trusted_data={'name': 'Arthur'})
     except ValidationError as e:
-        assert 'name' in e.messages
+        assert 'name' in e.errors
 
 
 def test_validate_partial_with_trusted_data():
@@ -75,6 +75,6 @@ def test_validate_with_instance_level_validators():
     try:
         validate(Player, p1, {'id': 3})
     except DataError as e:
-        assert 'id' in e.messages
-        assert 'Cannot change id' in e.messages['id']
+        assert 'id' in e.errors
+        assert 'Cannot change id' in e.errors['id']
         assert p1.id == 4

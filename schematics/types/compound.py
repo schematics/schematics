@@ -7,6 +7,7 @@ import itertools
 from ..common import *
 from ..exceptions import *
 from ..transforms import (
+    convert,
     export_loop,
     get_import_context, get_export_context,
     to_native_converter, to_primitive_converter)
@@ -159,7 +160,8 @@ class ModelType(CompoundType):
         if context.convert and context.oo:
             return model_class(value, context=context)
         else:
-            return model_class.convert(value, context=context)
+            return convert(
+                model_class._schema, value, oo=True, context=context)
 
     def _export(self, value, format, context):
         if isinstance(value, Model):

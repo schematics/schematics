@@ -29,7 +29,7 @@ Validation Errors
 =================
 
 Validation failures throw an exception called ``ValidationError``.  A
-description of what failed is stored in ``messages``, which is a dictionary
+description of what failed is stored in ``errors``, which is a dictionary
 keyed by the field name with a list of reasons the field failed.
 
 ::
@@ -38,7 +38,7 @@ keyed by the field name with a list of reasons the field failed.
   >>> try:
   ...     p.validate()
   ... except ValidationError, e:
-  ...    print e.messages
+  ...    print e.errors
   {'bio': [u'This field is required.']}
 
 

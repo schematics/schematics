@@ -9,7 +9,7 @@ Schematics
    :alt: Build Status
 
 .. image:: https://coveralls.io/repos/github/schematics/schematics/badge.svg?branch=master
-   :target: https://coveralls.io/github/schematics/schematics?branch=master 
+   :target: https://coveralls.io/github/schematics/schematics?branch=master
    :alt: Coverage
 
 
@@ -37,7 +37,7 @@ Some common use cases:
 Example
 =======
 
-This is a simple Model. 
+This is a simple Model.
 
 .. code:: python
 
@@ -70,7 +70,7 @@ Let's try validating without a name value, since it's required.
   Traceback (most recent call last):
     File "<stdin>", line 1, in <module>
     File "schematics/models.py", line 231, in validate
-      raise DataError(e.messages)
+      raise DataError(e.errors)
   schematics.exceptions.DataError: {'name': ['This field is required.']}
 
 Add the field and validation passes.
@@ -91,5 +91,5 @@ Testing & Coverage support
 
 Run coverage and check the missing statements. ::
 
-  $ coverage run --source schematics -m py.test && coverage report
+  $ make test # sets up virtualenv and runs tests + coverage
 

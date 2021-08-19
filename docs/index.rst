@@ -9,7 +9,7 @@ Schematics
    :alt: Build Status
 
 .. image:: https://coveralls.io/repos/github/schematics/schematics/badge.svg?branch=development
-   :target: https://coveralls.io/github/schematics/schematics?branch=development 
+   :target: https://coveralls.io/github/schematics/schematics?branch=development
    :alt: Coverage
 
 .. toctree::
@@ -83,7 +83,7 @@ Let's try validating without a name value, since it's required. ::
   Traceback (most recent call last):
     File "<stdin>", line 1, in <module>
     File "schematics/models.py", line 231, in validate
-      raise DataError(e.messages)
+      raise DataError(e.errors)
   schematics.exceptions.DataError: {'name': ['This field is required.']}
 
 Add the field and validation passes::

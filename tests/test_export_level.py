@@ -36,10 +36,10 @@ def models(request):
         modelfield2 = ModelType(N)
 
     if m_level:
-        M._options.export_level = m_level
+        M._schema.options.export_level = m_level
 
     if n_level:
-        N._options.export_level = n_level
+        N._schema.options.export_level = n_level
 
     return M, N
 
@@ -63,8 +63,8 @@ input = {
 def test_export_level(models):
 
     M, N = models
-    m_level = M._options.export_level
-    n_level = N._options.export_level
+    m_level = M._schema.options.export_level
+    n_level = N._schema.options.export_level
 
     output = M(input, init=False).to_primitive()
 
@@ -152,8 +152,8 @@ def test_export_level(models):
 def test_export_level_override(models):
 
     M, N = models
-    m_level = M._options.export_level
-    n_level = N._options.export_level
+    m_level = M._schema.options.export_level
+    n_level = N._schema.options.export_level
 
     m = M(input, init=False)
 
