@@ -116,6 +116,17 @@ def test_defaults():
     assert m._data == {'d0': 0, 'dN': None}
 
 
+    m = M({'d0': None}, apply_defaults=True)
+    assert m._data == {'d0': 0, 'dN': None}
+    m.validate()
+    assert m._data == {'d0': 0, 'dN': None}
+
+    m = M({'d0': None}, apply_defaults=False)
+    assert m._data == {'d0': None, 'dN': None}
+    m.validate()
+    assert m._data == {'d0': None, 'dN': None}
+
+
 def test_invalid_model_fail_validation():
     class Player(Model):
         name = StringType(required=True)
