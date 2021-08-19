@@ -630,6 +630,30 @@ def test_nested_model_import_data_with_mappings():
     assert root.nxt_level.nested_attr == 'nested value'
 
 
+def test_import_data_for_empty_dict():
+    """Make sure that the whole object is not reimported in case an empty dict is given to ``import_data``"""
+
+    class EncodedStringType(StringType):
+        def to_native(self, value, context=None):
+            return value + ' (native)'
+
+        def to_primitive(self, value, context=None):
+            return value[:-9]
+
+    class Root(Model):
+        str_value = EncodedStringType()
+        other_value = IntType()
+
+    original_data = dict(str_value='Lorem ipsum', other_value=5)
+    root = Root(original_data)
+
+    root.import_data({})
+    # which really is a valid case when the dict is created dynamically somewhere else
+    # (and not by the user explicitly, e.g. a PUT request from the API)
+    # and we don't want the user to add additional emptiness checks (why should they?)
+    assert root.to_primitive() == original_data, 'Original data was not preserved'
+
+
 class SimpleModel(Model):
     field1 = StringType()
     field2 = StringType()
