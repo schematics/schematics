@@ -265,15 +265,7 @@ class EmailType(StringType):
         'email': _("Not a well-formed email address.")
     }
 
-    EMAIL_REGEX = re.compile(r"""^(
-        ( ( [%(atext)s]+ (\.[%(atext)s]+)* ) | ("( [%(qtext)s\s] | \\[%(vchar)s\s] )*") )
-        @((?!-)[A-Z0-9-]{1,63}(?<!-)\.)+[A-Z]{2,63})$"""
-        % {
-            'atext': '-A-Z0-9!#$%&\'*+/=?^_`{|}~',
-            'qtext': '\x21\x23-\x5B\\\x5D-\x7E',
-            'vchar': '\x21-\x7E'
-        },
-        re.I + re.X)
+    EMAIL_REGEX = re.compile(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)")
 
     def _mock(self, context=None):
         return fill_template('%s@example.com', self.min_length,
