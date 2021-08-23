@@ -26,7 +26,7 @@ steps:
   displayName: 'Use Python $(python.version)'
 
 - script: |
-    python -m pip install --upgrade pip
+    python -m pip install --upgrade pip setuptools wheel
     pip install -r test-requirements.txt
     pip install tox pytest-azurepipelines
   displayName: 'Install dependencies'
