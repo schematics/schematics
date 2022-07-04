@@ -25,14 +25,14 @@ if PY2:
     iteritems = operator.methodcaller('iteritems')
     itervalues = operator.methodcaller('itervalues')
 
-    # reraise code taken from werzeug BSD license at https://github.com/pallets/werkzeug/blob/master/LICENSE
+    # reraise code taken from werkzeug BSD license at https://github.com/pallets/werkzeug/blob/master/LICENSE
     exec('def reraise(tp, value, tb=None):\n raise tp, value, tb')
 else:
     string_type = str
     iteritems = operator.methodcaller('items')
     itervalues = operator.methodcaller('values')
 
-    # reraise code taken from werzeug BSD license at https://github.com/pallets/werkzeug/blob/master/LICENSE
+    # reraise code taken from werkzeug BSD license at https://github.com/pallets/werkzeug/blob/master/LICENSE
     def reraise(tp, value, tb=None):
         if value.__traceback__ is not tb:
             raise value.with_traceback(tb)

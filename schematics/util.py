@@ -83,7 +83,7 @@ class ImportStringError(ImportError):
 
     """Provides information about a failed :func:`import_string` attempt.
 
-    Code taken from werzeug BSD license at https://github.com/pallets/werkzeug/blob/master/LICENSE
+    Code taken from werkzeug BSD license at https://github.com/pallets/werkzeug/blob/master/LICENSE
     """
 
     #: String in dotted notation that failed to be imported.
@@ -134,7 +134,7 @@ def import_string(import_name, silent=False):
 
     If `silent` is True the return value will be `None` if the import fails.
 
-    Code taken from werzeug BSD license at https://github.com/pallets/werkzeug/blob/master/LICENSE
+    Code taken from werkzeug BSD license at https://github.com/pallets/werkzeug/blob/master/LICENSE
 
     :param import_name: the dotted name for the object to import.
     :param silent: if set to `True` import errors are ignored and
