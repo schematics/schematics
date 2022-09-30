@@ -397,12 +397,13 @@ class StringType(BaseType):
         'regex': _("String value did not match validation regex."),
     }
 
-    def __init__(self, regex=None, max_length=None, min_length=None, **kwargs):
+    def __init__(self, regex=None, max_length=None, min_length=None, cast_auto=False, **kwargs):
         # type: (...) -> typing.Text
 
         self.regex = re.compile(regex) if regex else None
         self.max_length = max_length
         self.min_length = min_length
+        self.cast_auto = cast_auto
 
         super(StringType, self).__init__(**kwargs)
 
@@ -412,6 +413,9 @@ class StringType(BaseType):
     def to_native(self, value, context=None):
         if isinstance(value, str):
             return value
+        else:
+            if self.cast_auto is False:
+                raise ConversionError(f"{value} must be a string,current is {type(value)} ")
         if isinstance(value, self.allow_casts):
             if isinstance(value, bytes):
                 try:
