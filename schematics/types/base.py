@@ -477,6 +477,9 @@ class NumberType(BaseType):
         except (TypeError, ValueError):
             pass
         else:
+            if self.native_type!=type(value):
+                raise ConversionError(self.messages['number_coerce']
+                                      .format(value, self.number_type.lower()))
             if self.native_type is float: # Float conversion is strict enough.
                 return native_value
             if not self.strict and native_value == value: # Match numeric types.
