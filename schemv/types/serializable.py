@@ -20,7 +20,7 @@ def serializable(arg=None, **kwargs):
     """A serializable is a way to define dynamic serializable fields that are
     derived from other fields.
 
-    >>> from schematics.models import serializable
+    >>> from schemv.models import serializable
     >>> class Location(Model):
     ...     country_code = StringType()
     ...     @serializable

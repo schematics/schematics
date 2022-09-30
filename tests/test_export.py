@@ -3,12 +3,12 @@ import datetime
 import pytest
 import uuid
 
-from schematics.common import *
-from schematics.models import Model
-from schematics.transforms import Converter, to_native, to_primitive
-from schematics.types import *
-from schematics.types.compound import *
-from schematics.types.serializable import serializable
+from schemv.common import *
+from schemv.models import Model
+from schemv.transforms import Converter, to_native, to_primitive
+from schemv.types import *
+from schemv.types.compound import *
+from schemv.types.serializable import serializable
 
 
 class BaseModel(Model):

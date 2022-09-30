@@ -2,11 +2,11 @@
 
 import pytest
 
-from schematics.common import PY2
-from schematics.models import Model, ModelOptions
-from schematics.transforms import whitelist, blacklist
-from schematics.types import StringType, IntType, ListType, ModelType
-from schematics.exceptions import *
+from schemv.common import PY2
+from schemv.models import Model, ModelOptions
+from schemv.transforms import whitelist, blacklist
+from schemv.types import StringType, IntType, ListType, ModelType
+from schemv.exceptions import *
 
 
 def test_dict_methods_in_model():

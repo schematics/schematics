@@ -31,7 +31,21 @@ Our ``LowerCaseEmailType`` can now be used as an ordinary field.
 
 ::
 
-        >>> from schematics.models import Model
+        >>> from schemv.models import Model
+                >>> from schematics.types import StringType
+                >>> class Person(Model):
+                ...     name = StringType()
+                ...     bio = StringType(required=True)
+                ...     email = LowerCaseEmailType(required=True)
+                ...
+                >>> p = Person()
+                >>> p.name = 'Mutoid Man'
+                >>> p.email = 'MutoidMan@Example.com' # technically correct email,but should be 'cleaned'
+                >>> p.validate()
+                >>> p.to_native()
+                >>> {'bio': 'Mutoid Man',
+                >>> 'email': 'mutoidman@example.com', # the email was converted to lowercase
+                >>> 'name': 'Mutoid Man'}
         >>> from schematics.types import StringType
         >>> class Person(Model):
         ...     name = StringType()

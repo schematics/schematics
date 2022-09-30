@@ -7,7 +7,7 @@ from django.views.generic import View
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
-from schematics.exceptions import ModelValidationError, ModelConversionError
+from schemv.exceptions import ModelValidationError, ModelConversionError
 
 from .serializers import (LinkCreateSerializer, LinkReadSerializer,
                           LinkUpdateSerializer)

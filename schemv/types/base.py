@@ -2,7 +2,6 @@
 
 from __future__ import unicode_literals, absolute_import
 
-
 import copy
 import datetime
 import decimal
@@ -30,7 +29,6 @@ try:
     from collections.abc import Iterable  # PY3
 except ImportError:
     from collections import Iterable  # PY2
-
 
 __all__ = [
     'BaseType', 'UUIDType', 'StringType', 'MultilingualStringType',
@@ -87,7 +85,6 @@ _next_position_hint = itertools.count()
 
 
 class TypeMeta(type):
-
     """
     Meta class for BaseType. Merges `MESSAGES` dict and accumulates
     validator methods.
@@ -121,7 +118,6 @@ class TypeMeta(type):
 
 @metaclass(TypeMeta)
 class BaseType(object):
-
     """A base class for Types in a Schematics model. Instances of this
     class may be added to subclasses of ``Model`` to define a model schema.
 
@@ -351,7 +347,6 @@ class BaseType(object):
 
 
 class UUIDType(BaseType):
-
     """A field that stores a valid UUID value.
     """
 
@@ -382,7 +377,6 @@ class UUIDType(BaseType):
 
 
 class StringType(BaseType):
-
     """A Unicode string field."""
 
     primitive_type = str
@@ -442,7 +436,6 @@ class StringType(BaseType):
 
 
 class NumberType(BaseType):
-
     """A generic number field.
     Converts to and validates against `number_type` parameter.
     """
@@ -481,12 +474,12 @@ class NumberType(BaseType):
         except (TypeError, ValueError):
             pass
         else:
-            if self.native_type!=type(value):
+            if self.native_type != type(value):
                 raise ConversionError(self.messages['number_coerce']
                                       .format(value, self.number_type.lower()))
-            if self.native_type is float: # Float conversion is strict enough.
+            if self.native_type is float:  # Float conversion is strict enough.
                 return native_value
-            if not self.strict and native_value == value: # Match numeric types.
+            if not self.strict and native_value == value:  # Match numeric types.
                 return native_value
             if isinstance(value, (string_type, numbers.Integral)):
                 return native_value
@@ -507,7 +500,6 @@ class NumberType(BaseType):
 
 
 class IntType(NumberType):
-
     """A field that validates input as an Integer
     """
 
@@ -524,7 +516,6 @@ LongType = IntType
 
 
 class FloatType(NumberType):
-
     """A field that validates input as a Float
     """
 
@@ -538,7 +529,6 @@ class FloatType(NumberType):
 
 
 class DecimalType(NumberType):
-
     """A fixed-point decimal number field.
     """
 
@@ -565,7 +555,6 @@ class DecimalType(NumberType):
 
 
 class HashType(StringType):
-
     MESSAGES = {
         'hash_length': _("Hash value is wrong length."),
         'hash_hex': _("Hash value is not hexadecimal."),
@@ -587,7 +576,6 @@ class HashType(StringType):
 
 
 class MD5Type(HashType):
-
     """A field that validates input as resembling an MD5 hash.
     """
 
@@ -595,7 +583,6 @@ class MD5Type(HashType):
 
 
 class SHA1Type(HashType):
-
     """A field that validates input as resembling an SHA1 hash.
     """
 
@@ -603,7 +590,6 @@ class SHA1Type(HashType):
 
 
 class BooleanType(BaseType):
-
     """A boolean field type. In addition to ``True`` and ``False``, coerces these
     values:
 
@@ -642,7 +628,6 @@ class BooleanType(BaseType):
 
 
 class DateType(BaseType):
-
     """Defaults to converting to and from ISO8601 date values.
     """
 
@@ -695,7 +680,6 @@ class DateType(BaseType):
 
 
 class DateTimeType(BaseType):
-
     """A field that holds a combined date and time value.
 
     The built-in parser accepts input values conforming to the ISO 8601 format
@@ -771,10 +755,15 @@ class DateTimeType(BaseType):
 
     class fixed_timezone(datetime.tzinfo):
         def utcoffset(self, dt): return self.offset
+
         def fromutc(self, dt): return dt + self.offset
+
         def dst(self, dt): return None
+
         def tzname(self, dt): return self.str
+
         def __str__(self): return self.str
+
         def __repr__(self, info=''): return '{0}({1})'.format(type(self).__name__, info)
 
     class utc_timezone(fixed_timezone):
@@ -789,6 +778,7 @@ class DateTimeType(BaseType):
                 '+' if total_seconds >= 0 else '-',
                 int(abs(total_seconds) / 3600),
                 int(abs(total_seconds) % 3600 / 60))
+
         def __repr__(self):
             return DateTimeType.fixed_timezone.__repr__(self, self.str)
 
@@ -812,17 +802,17 @@ class DateTimeType(BaseType):
 
     def _mock(self, context=None):
         dt = datetime.datetime(
-               year=random.randrange(600) + 1900,
-               month=random.randrange(12) + 1,
-               day=random.randrange(28) + 1,
-               hour=random.randrange(24),
-               minute=random.randrange(60),
-               second=random.randrange(60),
-               microsecond=random.randrange(1000000))
+            year=random.randrange(600) + 1900,
+            month=random.randrange(12) + 1,
+            day=random.randrange(28) + 1,
+            hour=random.randrange(24),
+            minute=random.randrange(60),
+            second=random.randrange(60),
+            microsecond=random.randrange(1000000))
 
         if self.tzd == 'reject' or \
-           self.drop_tzinfo or \
-           self.tzd == 'allow' and random.randrange(2):
+                self.drop_tzinfo or \
+                self.tzd == 'allow' and random.randrange(2):
             return dt
         elif self.convert_tz:
             return dt.replace(tzinfo=self.UTC)
@@ -941,12 +931,11 @@ class DateTimeType(BaseType):
             if self.tzd == 'reject':
                 raise ValidationError(self.messages['validate_tzd_reject'])
             if self.convert_tz \
-              and value.tzinfo.utcoffset(value) != self.TIMEDELTA_ZERO:
+                    and value.tzinfo.utcoffset(value) != self.TIMEDELTA_ZERO:
                 raise ValidationError(self.messages['validate_utc_wrong'])
 
 
 class UTCDateTimeType(DateTimeType):
-
     """A variant of ``DateTimeType`` that normalizes everything to UTC and stores values
     as naive ``datetime`` instances. By default sets ``tzd='utc'``, ``convert_tz=True``,
     and ``drop_tzinfo=True``. The standard export format always includes the UTC time
@@ -962,7 +951,6 @@ class UTCDateTimeType(DateTimeType):
 
 
 class TimestampType(DateTimeType):
-
     """A variant of ``DateTimeType`` that exports itself as a Unix timestamp
     instead of an ISO 8601 string. Always sets ``tzd='require'`` and
     ``convert_tz=True``.
@@ -985,7 +973,6 @@ class TimestampType(DateTimeType):
 
 
 class TimedeltaType(BaseType):
-
     """Converts Python Timedelta objects into the corresponding value in seconds.
     """
 
@@ -1031,7 +1018,6 @@ class TimedeltaType(BaseType):
 
 
 class GeoPointType(BaseType):
-
     """A list storing a latitude and longitude.
     """
 
@@ -1087,7 +1073,6 @@ class GeoPointType(BaseType):
 
 
 class MultilingualStringType(BaseType):
-
     """
     A multilanguage string field, stored as a dict with {'locale': 'localized_value'}.
 

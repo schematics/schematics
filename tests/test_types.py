@@ -9,15 +9,15 @@ import uuid
 
 import pytest
 
-from schematics.datastructures import Context
-from schematics.models import Model
-from schematics.types import *
-from schematics.types.compound import *
-from schematics.types.base import get_range_endpoints
-from schematics.exceptions import ConversionError, ValidationError, DataError
+from schemv.datastructures import Context
+from schemv.models import Model
+from schemv.types import *
+from schemv.types.compound import *
+from schemv.types.base import get_range_endpoints
+from schemv.exceptions import ConversionError, ValidationError, DataError
 
 try:
-    from schematics.compat import bytes, str
+    from schemv.compat import bytes, str
 except ImportError:
     pass
 

@@ -1,9 +1,9 @@
 import pytest
 
-from schematics.models import Model, DataError
-from schematics.types import StringType
-from schematics.types.compound import PolyModelType, ListType
-from schematics.util import get_all_subclasses
+from schemv.models import Model, DataError
+from schemv.types import StringType
+from schemv.types.compound import PolyModelType, ListType
+from schemv.util import get_all_subclasses
 
 
 class A(Model): # fallback model (doesn't define a claim method)

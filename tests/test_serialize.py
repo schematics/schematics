@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from schematics.common import *
-from schematics.models import Model
-from schematics.types import StringType, LongType, IntType, MD5Type
-from schematics.types.compound import ModelType, DictType, ListType
-from schematics.types.serializable import serializable
-from schematics.transforms import blacklist, whitelist, wholelist, export_loop
+from schemv.common import *
+from schemv.models import Model
+from schemv.types import StringType, LongType, IntType, MD5Type
+from schemv.types.compound import ModelType, DictType, ListType
+from schemv.types.serializable import serializable
+from schemv.transforms import blacklist, whitelist, wholelist, export_loop
 
 
 def test_serializable():

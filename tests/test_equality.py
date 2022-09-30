@@ -1,7 +1,7 @@
 import mock
 
-from schematics.models import Model
-from schematics.types import IntType, StringType, ListType, ModelType
+from schemv.models import Model
+from schemv.types import IntType, StringType, ListType, ModelType
 
 
 class M(Model):

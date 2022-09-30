@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = '2.1.1'
+__version__ = '2.1.1.1'
 
 # TODO: remove deprecated API
 from . import deprecated

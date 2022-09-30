@@ -25,7 +25,10 @@ A simple example is the ``DateTimeType``.
 
 ::
 
-  >>> from schematics.types import DateTimeType
+  >>> from schemv.types import DateTimeType
+    >>> dt_t = DateTimeType()
+
+  The
   >>> dt_t = DateTimeType()
 
 The ``to_native`` function transforms an ISO8601 formatted date string into a 

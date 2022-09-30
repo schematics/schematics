@@ -4,11 +4,11 @@ from copy import deepcopy
 
 import pytest
 
-from schematics.models import Model
-from schematics.types import *
-from schematics.types.compound import *
-from schematics.exceptions import *
-from schematics.undefined import Undefined
+from schemv.models import Model
+from schemv.types import *
+from schemv.types.compound import *
+from schemv.exceptions import *
+from schemv.undefined import Undefined
 
 
 @pytest.mark.parametrize('init', (True, False))

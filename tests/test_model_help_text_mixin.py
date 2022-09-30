@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from schematics.common import PY2
-from schematics.models import Model
-from schematics.types import StringType
-from schematics.extensions.model_help_text_mixin import help_text_metadata, ModelHelpTextMixin
+from schemv.common import PY2
+from schemv.models import Model
+from schemv.types import StringType
+from schemv.extensions.model_help_text_mixin import help_text_metadata, ModelHelpTextMixin
 
 
 def get_helptest_model():

@@ -1,7 +1,7 @@
-from schematics.models import Model
-from schematics.types import IntType, StringType
-from schematics.types.serializable import serializable
-from schematics.types.compound import ModelType, DictType
+from schemv.models import Model
+from schemv.types import IntType, StringType
+from schemv.types.serializable import serializable
+from schemv.types.compound import ModelType, DictType
 
 try:
     long

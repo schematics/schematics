@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from schematics.models import Model
-from schematics.types import StringType, URLType, IntType
-from schematics.types.compound import ListType, ModelType
+from schemv.models import Model
+from schemv.types import StringType, URLType, IntType
+from schemv.types.compound import ListType, ModelType
 
 
 class TagSerializer(Model):

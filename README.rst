@@ -1,6 +1,7 @@
 ==========
-Schematics
+pip install schemv
 ==========
+
 
 .. rubric:: Python Data Structures for Humans™.
 
@@ -41,7 +42,18 @@ This is a simple Model.
 
 .. code:: python
 
-  >>> from schematics.models import Model
+  >>> from schemv.models import Model
+    >>> from schematics.types import StringType, URLType
+    >>> class Person(Model):
+    ...     name = StringType(required=True)
+    ...     website = URLType()
+    ...
+    >>> person = Person({'name': u'Joe Strummer',
+    ...                  'website': 'http://soundcloud.com/joestrummer'})
+    >>> person.name
+    u'Joe Strummer'
+
+  Serializing the data to JSON.
   >>> from schematics.types import StringType, URLType
   >>> class Person(Model):
   ...     name = StringType(required=True)

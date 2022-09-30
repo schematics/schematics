@@ -3,12 +3,12 @@
 from copy import copy
 import pytest
 
-from schematics.models import Model
-from schematics.transforms import convert
-from schematics.types import *
-from schematics.types.compound import *
-from schematics.exceptions import *
-from schematics.undefined import Undefined
+from schemv.models import Model
+from schemv.transforms import convert
+from schemv.types import *
+from schemv.types.compound import *
+from schemv.exceptions import *
+from schemv.undefined import Undefined
 
 
 def missing(d, fieldname, init_to_none):

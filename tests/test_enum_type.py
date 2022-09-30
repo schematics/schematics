@@ -1,7 +1,7 @@
 import pytest
 
-from schematics.contrib.enum_type import EnumType
-from schematics.exceptions import ConversionError
+from schemv.contrib.enum_type import EnumType
+from schemv.exceptions import ConversionError
 
 try:
     from enum import Enum

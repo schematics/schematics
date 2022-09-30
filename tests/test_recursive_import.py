@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from schematics.models import Model
-from schematics.types import BaseType, IntType, StringType
-from schematics.types.compound import ListType, DictType, ModelType
-from schematics.exceptions import ModelConversionError, ModelValidationError
+from schemv.models import Model
+from schemv.types import BaseType, IntType, StringType
+from schemv.types.compound import ListType, DictType, ModelType
+from schemv.exceptions import ModelConversionError, ModelValidationError
 
 def test_nested_mapping():
 

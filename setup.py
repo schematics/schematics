@@ -6,13 +6,9 @@ import re
 
 from setuptools import setup
 
-
-with open(os.path.join(os.path.dirname(__file__), 'schematics/__init__.py')) as f:
-    version = re.search(r"^__version__ = '(\d\.\d+\.\d+(\.?(dev|a|b|rc)\d?)?)'$",
-                  f.read(), re.M).group(1)
-
+version = '2.1.1.1'
 setup(
-    name='schematics',
+    name='schemv',
     license='BSD',
     version=version,
     description='Python Data Structures for Humans',
@@ -20,7 +16,7 @@ setup(
     author_email='jdennis@gmail.com, jokull@plainvanillagames.com, johann@plainvanillagames.com, kalle@goodtimes.fi, paul@nkey.com.br',
     url='https://github.com/schematics/schematics',
     download_url='https://github.com/schematics/schematics/archive/v%s.tar.gz' % version,
-    packages=['schematics', 'schematics.types', 'schematics.contrib', 'schematics.extensions'],
+    packages=['schemv', 'schemv.types', 'schemv.contrib', 'schemv.extensions'],
     classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
@@ -39,7 +35,7 @@ setup(
     ],
     install_requires=[],
     package_data={
-        'schematics': ['locale/*/LC_MESSAGES/*.mo']
+        'schemv': ['locale/*/LC_MESSAGES/*.mo']
     },
     include_package_data=True,
     setup_requires=[
