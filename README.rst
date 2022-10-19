@@ -4,10 +4,12 @@
 pip install schemv
 ==========
 
-.. schematics 不支持数据类型强校验,在原有包基础上修改加入数据类型强校验
+描述
+=======
+schematics 不支持数据类型强校验,在原有包基础上修改加入数据类型强校验
 
 
-Example
+例子
 =======
 
 This is a simple Model. 
