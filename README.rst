@@ -68,14 +68,3 @@ Add the field and validation passes.
   >>> person.website = 'http://www.amontobin.com/'
   >>> person.validate()
   >>>
-
-
-.. _coverage:
-
-Testing & Coverage support
-==========================
-
-Run coverage and check the missing statements. ::
-
-  $ coverage run --source schematics -m py.test && coverage report
-
