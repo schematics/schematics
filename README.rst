@@ -6,7 +6,8 @@ pip install schemv
 
 描述
 =======
-schematics 不支持数据类型强校验,在原有包基础上修改加入数据类型强校验
+schematics 不支持数据类型强校验,在原有包基础上修改加入数据类型强校验,
+性能远超cerberus校验框架
 
 
 例子
