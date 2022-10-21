@@ -6,8 +6,8 @@ import sys
 from dateutil.tz import gettz, tzutc
 import pytest
 
-from schematics.exceptions import ConversionError, ValidationError
-from schematics.types import DateTimeType, UTCDateTimeType, TimestampType
+from schemv.exceptions import ConversionError, ValidationError
+from schemv.types import DateTimeType, UTCDateTimeType, TimestampType
 
 
 UTC = DateTimeType.UTC

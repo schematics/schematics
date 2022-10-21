@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from schematics.models import Model
-from schematics.types import StringType, IntType, calculated, serializable
-from schematics.schema import Schema, Field
-from schematics.transforms import convert, to_primitive
-from schematics.exceptions import DataError
-from schematics.validate import validate
-from schematics.contrib.machine import Machine
+from schemv.models import Model
+from schemv.types import StringType, IntType, calculated, serializable
+from schemv.schema import Schema, Field
+from schemv.transforms import convert, to_primitive
+from schemv.exceptions import DataError
+from schemv.validate import validate
+from schemv.contrib.machine import Machine
 
 
 @pytest.fixture

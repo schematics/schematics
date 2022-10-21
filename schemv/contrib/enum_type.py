@@ -22,7 +22,7 @@ class EnumType(BaseType):
     >>> class E(enum.Enum):
     ...    A = 1
     ...    B = 2
-    >>> from schematics import Model
+    >>> from schemv import Model
     >>> class AModel(Model):
     ...    foo = EnumType(E)
     >>> a = AModel()

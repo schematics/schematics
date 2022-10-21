@@ -5,8 +5,8 @@ try:
 except ImportError:
     ObjectId = None
 else:
-    from schematics.contrib.mongo import ObjectIdType
-    from schematics.exceptions import ConversionError, ValidationError
+    from schemv.contrib.mongo import ObjectIdType
+    from schemv.exceptions import ConversionError, ValidationError
 
     FAKE_OID = ObjectId()
 

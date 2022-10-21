@@ -11,7 +11,18 @@ Here's a quick glance and some of the ways you can tweak validation.
 
 ::
 
-  >>> from schematics.models import Model
+  >>> from schemv.models import Model
+    >>> from schematics.types import StringType
+    >>> class Person(Model):
+    ...     name = StringType()
+    ...     bio = StringType(required=True)
+    ...
+    >>> p = Person()
+    >>> p.name = 'Fiona Apple'
+    >>> p.validate()
+    Traceback (most recent call last):
+    ...
+    ModelValidationError: {'bio': [u'This field is required.']}
   >>> from schematics.types import StringType
   >>> class Person(Model):
   ...     name = StringType()
@@ -34,7 +45,12 @@ keyed by the field name with a list of reasons the field failed.
 
 ::
 
-  >>> from schematics.exceptions import ValidationError
+  >>> from schemv.exceptions import ValidationError
+    >>> try:
+    ...     p.validate()
+    ... except ValidationError, e:
+    ...    print e.messages
+    {'bio': [u'This field is required.']}
   >>> try:
   ...     p.validate()
   ... except ValidationError, e:
@@ -57,7 +73,14 @@ Here is a function that checks if a string is uppercase and throws a
 
 ::
 
-  >>> from schematics.exceptions import ValidationError
+  >>> from schemv.exceptions import ValidationError
+    >>> def is_uppercase(value):
+    ...     if value.upper() != value:
+    ...         raise ValidationError(u'Please speak up!')
+    ...     return value
+    ...
+
+  And we can attach it to our StringType like this:
   >>> def is_uppercase(value):
   ...     if value.upper() != value:
   ...         raise ValidationError(u'Please speak up!')
@@ -86,7 +109,23 @@ type, like ``BaseType``, and implementing instance methods that start with
 
 ::
 
-  >>> from schematics.exceptions import ValidationError
+  >>> from schemv.exceptions import ValidationError
+    >>> class UppercaseType(StringType):
+    ...     def validate_uppercase(self, value):
+    ...         if value.upper() != value:
+    ...             raise ValidationError("Value must be uppercase!")
+    ...
+
+  Just like before, using it is now built in.
+
+    >>> class Person(Model):
+    ...     name = UppercaseType()
+    ...
+    >>> me = Person({'name': u'Jökull'})
+    >>> me.validate()
+    Traceback (most recent call last):
+    ...
+    ModelValidationError: {'name': ['Value must be uppercase!']}
   >>> class UppercaseType(StringType):
   ...     def validate_uppercase(self, value):
   ...         if value.upper() != value:
@@ -115,7 +154,23 @@ dependencies:
 
 ::
 
-  >>> from schematics.models import Model
+  >>> from schemv.models import Model
+    >>> from schematics.types import StringType, BooleanType
+    >>> from schematics.exceptions import ValidationError
+    >>>
+    >>> class Signup(Model):
+    ...     name = StringType()
+    ...     call_me = BooleanType(default=False)
+    ...     def validate_call_me(self, data, value):
+    ...         if data['name'] == u'Brad' and data['call_me'] is True:
+    ...             raise ValidationError(u'He prefers email.')
+    ...         return value
+    ...
+    >>> Signup({'name': u'Brad'}).validate()
+    >>> Signup({'name': u'Brad', 'call_me': True}).validate()
+    Traceback (most recent call last):
+    ...
+    ModelValidationError: {'call_me': [u'He prefers email.']}
   >>> from schematics.types import StringType, BooleanType
   >>> from schematics.exceptions import ValidationError
   >>>

@@ -2,10 +2,10 @@ from collections import OrderedDict
 
 import pytest
 
-from schematics.models import Model
-from schematics.types import IntType, StringType
-from schematics.types.compound import ModelType, ListType
-from schematics.exceptions import (
+from schemv.models import Model
+from schemv.types import IntType, StringType
+from schemv.types.compound import ModelType, ListType
+from schemv.exceptions import (
     ConversionError, ValidationError, StopValidationError, DataError,
     MockCreationError)
 

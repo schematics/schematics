@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from schematics.iteration import atoms, Atom
-from schematics.schema import Schema, Field
-from schematics.types import StringType, IntType
-from schematics.undefined import Undefined
+from schemv.iteration import atoms, Atom
+from schemv.schema import Schema, Field
+from schemv.types import StringType, IntType
+from schemv.undefined import Undefined
 
 
 @pytest.fixture

@@ -3,7 +3,7 @@
 import pytest
 import json
 
-from schematics.exceptions import *
+from schemv.exceptions import *
 
 
 def test_error_from_string():

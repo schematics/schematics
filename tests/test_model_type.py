@@ -1,10 +1,10 @@
 import pytest
 
-from schematics.models import Model
-from schematics.types import IntType, StringType
-from schematics.types.compound import ModelType, ListType
-from schematics.exceptions import DataError
-from schematics.util import ImportStringError
+from schemv.models import Model
+from schemv.types import IntType, StringType
+from schemv.types.compound import ModelType, ListType
+from schemv.exceptions import DataError
+from schemv.util import ImportStringError
 
 
 def test_simple_embedded_models():
@@ -209,8 +209,8 @@ def test_specify_model_by_name():
 
 
 def test_model_context_pass_to_type():
-    from schematics.types import BaseType
-    from schematics.datastructures import Context
+    from schemv.types import BaseType
+    from schemv.datastructures import Context
 
     class CustomType(BaseType):
 
@@ -244,7 +244,7 @@ def test_model_context_pass_to_type():
 
 
 def test_model_app_data_pass_to_type():
-    from schematics.types import BaseType
+    from schemv.types import BaseType
 
     class CustomType(BaseType):
 

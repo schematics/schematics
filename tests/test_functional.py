@@ -1,7 +1,7 @@
-from schematics.models import Model
-from schematics.types import IntType, StringType
-from schematics.validate import validate
-from schematics.exceptions import ConversionError, ValidationError, DataError
+from schemv.models import Model
+from schemv.types import IntType, StringType
+from schemv.validate import validate
+from schemv.exceptions import ConversionError, ValidationError, DataError
 
 
 def test_validate_simple_dict():

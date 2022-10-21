@@ -2,13 +2,13 @@
 
 import pytest
 
-from schematics.common import *
-from schematics.models import Model
-from schematics.types import *
-from schematics.types.compound import *
-from schematics.types.serializable import serializable
-from schematics.undefined import *
-from schematics.util import *
+from schemv.common import *
+from schemv.models import Model
+from schemv.types import *
+from schemv.types.compound import *
+from schemv.types.serializable import serializable
+from schemv.undefined import *
+from schemv.util import *
 
 
 def test_undefined():

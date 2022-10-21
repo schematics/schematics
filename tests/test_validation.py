@@ -3,13 +3,13 @@ import operator
 
 import pytest
 
-from schematics.models import Model
-from schematics.exceptions import (
+from schemv.models import Model
+from schemv.exceptions import (
     ConversionError, ValidationError, StopValidationError, DataError)
-from schematics.types import StringType, DateTimeType, BooleanType, IntType
-from schematics.types.compound import ModelType, ListType, DictType
-from schematics.types.serializable import serializable
-from schematics.validate import prepare_validator
+from schemv.types import StringType, DateTimeType, BooleanType, IntType
+from schemv.types.compound import ModelType, ListType, DictType
+from schemv.types.serializable import serializable
+from schemv.validate import prepare_validator
 
 
 future_error_msg = u'Future dates are not valid'
