@@ -74,7 +74,7 @@ functions.
         ...         """
         ...         if 'converters' in kwargs:
         ...             self.converters = kwargs['converters']
-        ...         del kwargs['converters']
+        ...             del kwargs['converters']
         ...         super().__init__(**kwargs)
         ... 
         ...     def convert(self, value, context=None):
